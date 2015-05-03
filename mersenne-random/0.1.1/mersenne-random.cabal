@@ -1,0 +1,120 @@
+name:            mersenne-random
+version:         0.1.1
+homepage:        http://code.haskell.org/~dons/code/mersenne-random
+synopsis:        Generate high quality pseudorandom numbers using a SIMD Fast Mersenne Twister
+description:
+    The Mersenne twister is a pseudorandom number generator developed by
+    Makoto Matsumoto and Takuji Nishimura that is based on a matrix linear
+    recurrence over a finite binary field. It provides for fast generation
+    of very high quality pseudorandom numbers
+    .
+    This library uses SFMT, the SIMD-oriented Fast Mersenne Twister, a
+    variant of Mersenne Twister that is much faster than the original. 
+    It is designed to be fast when it runs on 128-bit SIMD. It can be
+    compiled with either SSE2 and PowerPC AltiVec support, to take
+    advantage of these instructions.
+    .
+    By default the period of the function is 2^19937-1, however, you can
+    compile in other defaults. Note that this algorithm on its own
+    is not cryptographically secure.
+    .
+    For more information about the algorithm and implementation, see
+    the SFMT homepage,
+    .
+    <http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html>
+    .
+    and, Mutsuo Saito and Makoto Matsumoto,
+    /SIMD-oriented Fast Mersenne Twister: a 128-bit Pseudorandom Number
+    Generator/, in the Proceedings of MCQMC2006, here:
+    .
+    <http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/ARTICLES/sfmt.pdf>
+    .
+category:        Math, System
+license:         BSD3
+license-file:    LICENSE
+copyright:       (c) 2008. Don Stewart <dons@galois.com>
+author:          Don Stewart
+maintainer:      Don Stewart <dons@galois.com>
+cabal-version: >= 1.2.0
+tested-with:     GHC ==6.8.2, Hugs ==2005
+build-type:      Simple
+
+flag small_base
+  description: Build with new smaller base library
+  default:     False
+
+flag use_sse2
+  description: Build with SSE2 support.
+  default:     False
+
+flag use_altivec
+  description: Build with Altivec support.
+  default:     False
+
+flag big_endian64
+  description: Build for a big endian 64 bit machine.
+  default:     False
+
+library
+    exposed-modules: System.Random.Mersenne
+    extensions:      CPP, ForeignFunctionInterface, BangPatterns
+
+    if flag(small_base)
+        build-depends: base  < 3
+    else
+        build-depends: base >= 3, old-time
+
+    -- For information on how to set different periods, or tune 
+    -- for your arch, see,
+    --
+    -- <http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/SFMT/howto-compile.html>
+    --
+    -- SSE2 supported on: Pentium M, Pentium 4, Core, Core 2 etc.
+    -- See: http://en.wikipedia.org/wiki/SSE2#CPUs_supporting_SSE2
+    --
+    -- Enable use_sse2 flag if you have one of those archs.
+    --
+    -- Works well on core 2 duo.
+    --
+    -- Enable use_altivec flag to use smid on powerpc.
+    -- Enable big_endian64 flag on a big endian machine 64 bit machine
+    --  (e.g. UltraSparc)
+    --
+    cc-options:
+        -DMEXP=19937
+        -DNDEBUG 
+        -O3 -finline-functions -fomit-frame-pointer
+        -fno-strict-aliasing --param max-inline-insns-single=1800
+
+    if flag(use_sse2)
+        cc-options:
+            -msse2 
+            -DHAVE_SSE2
+
+    if flag(big_endian64)
+        cc-options:
+            -DBIG_ENDIAN64
+
+    if flag(use_altivec)
+        cc-options:
+            -DHAVE_ALTIVEC
+
+    ghc-options:     -Wall -O2 -fvia-C -fexcess-precision
+
+    c-sources:        cbits/SFMT.c
+    include-dirs:     include
+    includes:         SFMT.h
+    install-includes: SFMT.h
+
+
+package-hashes:
+    MD5:6d9c93a7a990b0f004665f7e78550f91
+    SHA1:9410e1a7bfb0a5810dcdcf0727321d1acdf8c47d
+    SHA256:68e3be957848023f8cde2d6b2d1c1c8918d4143a41806c5edecd68ae067ebae5
+    SHA512:5e140975596e23311adbde5f183db204c25ddc23068122e595cfc207d736a7073d38f0131ff2bf4d0b90c23cc6bde41ec86c5aa72c5883a4e0d797589808d119
+    Skein512_512:ab2100eafa213f4b00ceb8bcdfed74732fa8cf5acc31dece46f4cf331694c5c18fb9894da44ec908892019eb04853ca70f156eb38e015329668be56e50ba336c
+
+package-locations:
+    https://hackage.haskell.org/package/mersenne-random-0.1.1/mersenne-random-0.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/mersenne-random-0.1.1.tar.gz
+

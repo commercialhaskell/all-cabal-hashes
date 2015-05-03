@@ -1,0 +1,249 @@
+Name: live-sequencer
+Version: 0.0
+Author: Henning Thielemann and Johannes Waldmann
+Maintainer: Johannes Waldmann <waldmann@imn.htwk-leipzig.de>, Henning Thielemann <haskell@henning-thielemann.de>
+Category: Sound, Music, GUI
+License: GPL
+License-file: LICENSE
+Cabal-Version: >= 1.6
+Tested-With: GHC==6.12.3, GHC==7.2.1
+Synopsis: Live coding of MIDI music
+Description:
+   An editor shows a textual description of music (like Haskore),
+   an interpreter computes and emits a stream of MIDI events,
+   and (that's the main point) the user can change the program on the fly.
+   .
+   1. example usage *****
+   .
+   @
+   timidity -iA &
+   ./live-sequencer-gui --connect-to TiMidity Stream &
+   @
+   .
+   this should give you an ongoing stream
+   of notes
+   .
+   then change one of the numbers
+   that appear in the lines like
+   @mid = note 300 (c 4)@
+   .
+   and press CTRL-R for \"reloading\" that module into the interpreter
+   this should immediately have an effect
+   (change pitch and duration of some of the notes)
+   .
+   2. input language *****
+   .
+   language is Haskell with
+   only strict pattern matching and
+   pattern matching only at the definition level (no case),
+   no local bindings (no lambda, let, where),
+   no types (no type inference, type signatures and type declarations are skipped)
+   .
+   semantics is similar to lazy evaluation,
+   but we have no sharing,
+   the value of @main@ is a stream of midi events
+   (@On/Off pitch velocity@)
+   or (@Wait milliseconds@)
+   .
+   in each step, the head of the stream gets reduced
+   to head normal form (with @:@ at the top),
+   and the first arg of the @:@ gets fully expanded
+   and it must be a midi event.
+   .
+   In the library interface we provide the basic Live-Sequencer modules
+   in order to allow offline rendering of Live-Sequencer music.
+Build-Type: Simple
+
+Data-Files:
+  data/prelude/Prelude.hs
+  data/Band.hs
+  data/Finite.hs
+  data/Klingklong.hs
+  data/Simplesong.hs
+  data/Sweep.hs
+  data/UD.hs
+  data/CrossSum.hs
+  data/Fibonacci.hs
+  data/DeBruijn.hs
+
+  data/Bool.hs
+  data/Chords.hs
+  data/Drum.hs
+  data/Function.hs
+  data/Instrument.hs
+  data/Integer.hs
+  data/List.hs
+  data/ListLive.hs
+  data/Midi.hs
+  data/Music.hs
+  data/Pattern.hs
+  data/Pitch.hs
+  data/Render.hs
+  data/Tuple.hs
+
+Extra-Source-Files:
+  http/enable/HTTPServer.hs
+  http/enable/HTTPServer/GUI.hs
+  http/enable/HTTPServer/Option.hs
+  http/disable/HTTPServer/GUI.hs
+  http/disable/HTTPServer/Option.hs
+
+Source-Repository head
+  Type: git
+  Location: git://dfa.imn.htwk-leipzig.de/srv/git/seq/
+
+Source-Repository this
+  Type: git
+  Tag: 0.0
+  Location: http://code.haskell.org/~thielema/livesequencer/
+
+Flag httpServer
+  Description: Enable access to modules via a web browser
+  Default: True
+
+
+Library
+  Hs-Source-Dirs: data
+  GHC-Options: -Wall
+  Build-Depends:
+    -- for Render
+    non-negative >=0.0.6 && <0.2,
+    event-list >=0.0.11 && <0.2,
+    base >=4.2 && <5
+  Exposed-Modules:
+    Render
+    Bool
+    Chords
+    Drum
+    Function
+    Instrument
+    Integer
+    ListLive
+    Midi
+    Music
+    Pitch
+    Tuple
+  Other-Modules:
+    List
+    Pattern
+    Finite
+    CrossSum
+    DeBruijn
+    Fibonacci
+
+
+Executable live-sequencer
+  Hs-Source-Dirs: src, http/disable
+  Main-is: Console.hs
+  Other-Modules:
+    ALSA
+    Event
+    IO
+    Module
+    Option
+    Option.Utility
+    Program
+    Rewrite
+    Rule
+    Step
+    Term
+    Type
+    Log
+    Paths_live_sequencer
+  Other-Modules:
+    Lilypond
+  GHC-Options: -Wall -threaded
+  Build-Depends:
+    transformers >=0.2.2 && <0.3,
+    explicit-exception >=0.1.5 && <0.2,
+    parsec >=2.1 && <3.2,
+    pretty >=1.0 && <1.2,
+    midi-alsa >=0.1.1 && <0.2,
+    midi >=0.1.5 && <0.2,
+    alsa-seq >=0.5 && <0.6,
+    alsa-core >=0.5 && <0.6,
+    data-accessor-transformers >=0.2.1 && <0.3,
+    data-accessor >=0.2.1 && <0.3,
+    strict >=0.3.2 && <0.4,
+    utility-ht >=0.0.8 && <0.1,
+    containers >=0.3 && <0.5,
+    process >=1.0 && <1.2,
+    directory >=1.0 && <1.2,
+    filepath >=1.1 && <1.4,
+    base >=4.2 && <5
+
+Executable live-sequencer-gui
+  Hs-Source-Dirs: src
+  Main-is: GUI.hs
+  Other-Modules:
+    ALSA
+    Utility.Concurrent
+    Utility.WX
+    Event
+    IO
+    Exception
+    Module
+    Option
+    Option.Utility
+    Controls
+    Program
+    Rewrite
+    Rule
+    Step
+    Term
+    Type
+    Log
+    Paths_live_sequencer
+  GHC-Options: -threaded -Wall
+  If impl(ghc>=7.0)
+    GHC-Options: -fwarn-tabs -fwarn-incomplete-uni-patterns
+  Build-Depends:
+    wx >=0.12.1 && <0.13,
+    wxcore >=0.12.1 && <0.13,
+    stm >=2.2 && <2.3,
+    transformers >=0.2.2 && <0.3,
+    explicit-exception >=0.1.5 && <0.2,
+    parsec >=2.1 && <3.2,
+    pretty >=1.0 && <1.2,
+    midi-alsa >=0.1.1 && <0.2,
+    midi >=0.1.5 && <0.2,
+    alsa-seq >=0.5 && <0.6,
+    alsa-core >=0.5 && <0.6,
+    data-accessor-transformers >=0.2.1 && <0.3,
+    data-accessor >=0.2.1 && <0.3,
+    strict >=0.3.2 && <0.4,
+    utility-ht >=0.0.8 && <0.1,
+    containers >=0.3 && <0.5,
+    process >=1.0 && <1.2,
+    directory >=1.0 && <1.2,
+    filepath >=1.1 && <1.4,
+    base >=4.2 && <5
+
+  Other-Modules:
+    HTTPServer.Option
+    HTTPServer.GUI
+
+  If flag(httpServer)
+    Hs-Source-Dirs: http/enable
+    Other-Modules:
+      HTTPServer
+    Build-Depends:
+      httpd-shed >=0.4 && <0.5,
+      network >=2.3 && <2.4,
+      cgi >=3001.1 && <3001.2,
+      html >=1.0 && <1.1
+  Else
+    Hs-Source-Dirs: http/disable
+
+
+package-hashes:
+    MD5:377036a15f2aa12c27ea9849a228c55e
+    SHA1:fe83c81e1b6ba51944c84534b760bdadadbbcf0d
+    SHA256:dd6383c8f8ce305d621432aa3d9a3b8ff0803286be2fe315a803a3064e4914ab
+    SHA512:57c49c3bd9e97b1a15ba4037182fe5948b8f4f510619c1fa8bc8775c3de59849054d9adfb2dcc8a6b4178cdf564b18d75745cd0aa622a2313c22be262db5b845
+    Skein512_512:1acd6afcf09dc57a59bdbf2e50b96ce8106a1071e4d9065ecf2652fcb82e9818814c88cf4fb84d180e5ea6bd8cf42a665e992f6a1acafce42570aa5e867e6802
+
+package-locations:
+    https://hackage.haskell.org/package/live-sequencer-0.0/live-sequencer-0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/live-sequencer-0.0.tar.gz
+

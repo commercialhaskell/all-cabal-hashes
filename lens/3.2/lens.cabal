@@ -1,0 +1,336 @@
+name:          lens
+category:      Data, Lenses
+version:       3.2
+license:       BSD3
+cabal-version: >= 1.8
+license-file:  LICENSE
+author:        Edward A. Kmett
+maintainer:    Edward A. Kmett <ekmett@gmail.com>
+stability:     provisional
+homepage:      http://github.com/ekmett/lens/
+bug-reports:   http://github.com/ekmett/lens/issues
+copyright:     Copyright (C) 2012 Edward A. Kmett
+synopsis:      Lenses, Folds and Traversals
+description:
+  This package comes \"Batteries Included\" with many useful lenses for the types
+  commonly used from the Haskell Platform, and with tools for automatically
+  generating lenses and isomorphisms for user-supplied data types.
+  .
+  The combinators in @Control.Lens@ provide a highly generic toolbox for composing
+  families of getters, folds, isomorphisms, traversals, setters and lenses and their
+  indexed variants.
+  .
+  An overview, with a large number of examples can be found in the README.
+  .
+  <https://github.com/ekmett/lens#lens-lenses-folds-and-traversals>
+  .
+  More information on the care and feeding of lenses, including a brief tutorial and motivation
+  for their types can be found on the lens wiki.
+  .
+  <https://github.com/ekmett/lens/wiki>
+  .
+  A small game that manages its state using lenses can be found in the example folder.
+  .
+  <https://github.com/ekmett/lens/blob/master/examples/Pong.hs>
+  .
+  /Lenses, Folds and Traversals/
+  .
+  The core of this hierarchy looks like:
+  .
+  <<https://github.com/ekmett/lens/wiki/images/Hierarchy-3.2.png>>
+  .
+  You can compose any two elements of the hierarchy above using (.) from the Prelude, and you can
+  use any element of the hierarchy as any type it links to above it.
+  .
+  The result is their lowest upper bound in the hierarchy (or an error if that bound doesn't exist).
+  .
+  For instance:
+  .
+  * You can use any 'Traversal' as a 'Fold' or as a 'Setter'.
+  .
+  * The composition of a 'Traversal' and a 'Getter' yields a 'Fold'.
+  .
+  /Minimizing Dependencies/
+  .
+  If you want to provide lenses and traversals for your own types in your own libraries, then you
+  can do so without incurring a dependency on this (or any other) lens package at all.
+  .
+  /e.g./ for a data type:
+  .
+  > data Foo a = Foo Int Int a
+  .
+  You can define lenses such as
+  .
+  > -- bar :: Simple Lens (Foo a) Int
+  > bar :: Functor f => (Int -> f Int) -> Foo a -> f (Foo a)
+  > bar f (Foo a b c) = fmap (\a' -> Foo a' b c) (f a)
+  .
+  > -- baz :: Lens (Foo a) (Foo b) a b
+  > quux :: Functor f => (a -> f b) -> Foo a -> f (Foo b)
+  > quux f (Foo a b c) = fmap (Foo a b) (f c)
+  .
+  without the need to use any type that isn't already defined in the @Prelude@.
+  .
+  And you can define a traversal of multiple fields with 'Control.Applicative.Applicative':
+  .
+  > -- traverseBarAndBaz :: Simple Traversal (Foo a) Int
+  > traverseBarAndBaz :: Applicative f => (Int -> f Int) -> Foo a -> f (Foo a)
+  > traverseBarAndBaz f (Foo a b c) = Foo <$> f a <*> f b <*> pure c
+  .
+  What is provided in this library is a number of stock lenses and traversals for
+  common haskell types, a wide array of combinators for working them, and more
+  exotic functionality, (/e.g./ getters, setters, indexed folds, isomorphisms).
+
+build-type:    Simple
+tested-with:   GHC == 7.4.1, GHC == 7.6.0, GHC == 7.7.20120822, GHC == 7.7.20120830
+extra-source-files:
+  .travis.yml
+  .ghci
+  .gitignore
+  .vim.custom
+  config
+  examples/LICENSE
+  examples/lens-examples.cabal
+  examples/Pong.hs
+  examples/Plates.hs
+  examples/Aeson.hs
+  examples/Brainfuck.hs
+  examples/bf-examples/*.bf
+  README.markdown
+  CHANGELOG.markdown
+
+source-repository head
+  type: git
+  location: git://github.com/ekmett/lens.git
+
+-- Enable benchmarking against Neil Mitchell's uniplate library for comparative performance analysis. Defaults to being turned off to avoid
+-- the extra dependency.
+--
+-- > cabal configure --enable-benchmarks -fbenchmark-uniplate && cabal build && cabal bench
+flag benchmark-uniplate
+  default: False
+  manual: True
+
+-- Enable template haskell. Disable this at your own risk and for testing only.
+--
+-- cabal configure -f-template-haskell is an /unsuppported/ configuration.
+--
+-- Clients of this library can and should expect this to be turned on.
+flag template-haskell
+  default: True
+  manual: True
+
+-- Generate inline pragmas when using template-haskell. This defaults to enabled, but you can
+--
+-- > cabal install lens -f-inlining
+--
+-- to shut it off to benchmark the relative performance impact, or as last ditch effort to address compile
+-- errors resulting from the myriad versions of template-haskell that all purport to be 2.8.
+flag inlining
+  manual: True
+  default: True
+
+-- Some 7.6.1-rc1 users report their TH still uses old style inline pragmas. This lets them turn on inlining.
+flag old-inline-pragmas
+  default: False
+  manual: True
+
+-- Make the test suites dump their template-haskell splices.
+flag dump-splices
+  default: False
+  manual: True
+
+library
+  build-depends:
+    base                 >= 4.4      && < 5,
+    bytestring           >= 0.9.1.10 && < 0.11,
+    comonad              == 3.0.*,
+    comonad-transformers == 3.0.*,
+    comonads-fd          == 3.0.*,
+    containers           >= 0.4.2    && < 0.6,
+    hashable             == 1.1.*,
+    mtl                  >= 2.1.1    && < 2.2,
+    semigroups           >= 0.8.4    && < 0.9,
+    text                 >= 0.11     && < 0.12,
+    transformers         >= 0.3      && < 0.4,
+    unordered-containers >= 0.2      && < 0.3
+
+  exposed-modules:
+    Control.Exception.Lens
+    Control.Lens
+    Control.Lens.Action
+    Control.Lens.Combinators
+    Control.Lens.Fold
+    Control.Lens.Getter
+    Control.Lens.Indexed
+    Control.Lens.IndexedGetter
+    Control.Lens.IndexedFold
+    Control.Lens.IndexedLens
+    Control.Lens.IndexedSetter
+    Control.Lens.IndexedTraversal
+    Control.Lens.Internal
+    Control.Lens.Iso
+    Control.Lens.Isomorphic
+    Control.Lens.Loupe
+    Control.Lens.Plated
+    Control.Lens.Projection
+    Control.Lens.Representable
+    Control.Lens.Setter
+    Control.Lens.Simple
+    Control.Lens.Traversal
+    Control.Lens.Tuple
+    Control.Lens.Type
+    Control.Lens.WithIndex
+    Control.Lens.Zipper
+    Control.Lens.Zoom
+    Data.Bits.Lens
+    Data.ByteString.Lens
+    Data.ByteString.Strict.Lens
+    Data.ByteString.Lazy.Lens
+    Data.Complex.Lens
+    Data.Data.Lens
+    Data.Dynamic.Lens
+    Data.HashSet.Lens
+    Data.IntSet.Lens
+    Data.List.Lens
+    Data.Monoid.Lens
+    Data.Sequence.Lens
+    Data.Set.Lens
+    Data.Text.Lens
+    Data.Text.Strict.Lens
+    Data.Text.Lazy.Lens
+    Data.Tree.Lens
+    Data.Typeable.Lens
+
+  if flag(template-haskell)
+    build-depends: template-haskell >= 2.4 && < 2.9
+    exposed-modules: Control.Lens.TH Language.Haskell.TH.Lens
+  else
+    cpp-options: -DDISABLE_TEMPLATE_HASKELL
+
+  -- platform
+  build-depends:   array >= 0.3.0.2 && < 0.5
+  exposed-modules: Data.Array.Lens
+
+  build-depends:   filepath >= 1.2.0.0 && < 1.4
+  exposed-modules: System.FilePath.Lens
+
+  build-depends:   parallel >= 3.1.0.1 && < 3.3
+  exposed-modules: Control.Parallel.Strategies.Lens Control.Seq.Lens
+
+  if impl(ghc>=7.6.0.20120810)
+    if flag(old-inline-pragmas)
+      cpp-options: -DOLD_INLINE_PRAGMAS
+
+  if !flag(inlining)
+    cpp-options: -DOMIT_INLINING
+
+  if impl(ghc>=7.4)
+    other-extensions: Trustworthy
+    build-depends: ghc-prim
+    exposed-modules: GHC.Generics.Lens
+
+  ghc-options: -Wall -fwarn-tabs -O2 -fdicts-cheap -funbox-strict-fields
+  hs-source-dirs: src
+
+-- Verify that Template Haskell expansion works
+test-suite templates
+  type: exitcode-stdio-1.0
+  main-is: templates.hs
+  build-depends:
+    base,
+    lens
+  ghc-options: -Wall -threaded
+  if flag(dump-splices)
+    ghc-options: -ddump-splices
+  if impl(ghc<7.6.1)
+    ghc-options: -Werror
+  hs-source-dirs: tests
+
+-- Verify the properties of lenses with QuickCheck
+test-suite properties
+  type: exitcode-stdio-1.0
+  main-is: properties.hs
+  build-depends:
+    base,
+    lens,
+    QuickCheck   >= 2.4 && < 2.6,
+    transformers
+  ghc-options: -w -threaded
+  hs-source-dirs: tests
+
+test-suite hunit
+  type: exitcode-stdio-1.0
+  main-is: hunit.hs
+  build-depends:
+    base,
+    containers,
+    HUnit == 1.2.*,
+    lens,
+    mtl,
+    test-framework == 0.6.*,
+    test-framework-hunit == 0.2.*,
+    test-framework-th == 0.2.*
+  ghc-options: -w -threaded
+  hs-source-dirs: tests
+
+-- Verify the results of the examples
+test-suite doctests
+  type:    exitcode-stdio-1.0
+  main-is: doctests.hs
+  build-depends:
+    base,
+    directory >= 1.0 && < 1.3,
+    doctest >= 0.9.1 && <= 0.10,
+    filepath
+  ghc-options: -Wall -threaded
+  if impl(ghc<7.6.1)
+    ghc-options: -Werror
+  hs-source-dirs: tests
+
+-- Basic benchmarks for the uniplate-style combinators
+benchmark plated
+  type: exitcode-stdio-1.0
+  main-is: plated.hs
+  build-depends:
+    base,
+    comonad,
+    criterion,
+    deepseq,
+    ghc-prim,
+    lens,
+    transformers
+  ghc-options: -Wall -O2 -threaded -fdicts-cheap -funbox-strict-fields
+  hs-source-dirs: benchmarks
+  if flag(benchmark-uniplate)
+    build-depends: uniplate >= 1.6.7 && < 1.7
+    cpp-options: -DBENCHMARK_UNIPLATE
+
+-- Basic benchmarks for the uniplate-style combinators
+benchmark alongside
+  type: exitcode-stdio-1.0
+  main-is: alongside.hs
+  build-depends:
+    base,
+    comonad,
+    comonads-fd,
+    criterion,
+    deepseq,
+    ghc-prim,
+    lens,
+    transformers
+  ghc-options: -w -O2 -threaded -fdicts-cheap -funbox-strict-fields
+  hs-source-dirs: benchmarks
+
+
+package-hashes:
+    MD5:20bb8651ffdb3584522e5ebee1a4dba8
+    SHA1:4ee778f5226f866b6072a8ada29b2851e7e5d8e0
+    SHA256:b3795a16ddc198d602f9277dd0754e65e8cf83d308a2d5070ce793bb6aa74b34
+    SHA512:545cf572f493bd5e7b153075123aaf61b453e64b4ebd99d9206a64813f49223fe01bc430ba8b80b52644a6f36fce8ce6e63095b5d4220d1693171ac851ee38f7
+    Skein512_512:cb95715b21e8432baeecba1c9f52d194f6a9090e2926a02a95cba2c2eab41ec04f9dded831469fbd1a3d5d2703ad71127179f40d4f7b8686fcad97574c4237a6
+
+package-locations:
+    https://hackage.haskell.org/package/lens-3.2/lens-3.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/lens-3.2.tar.gz
+

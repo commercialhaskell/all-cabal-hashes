@@ -1,0 +1,139 @@
+Name:          multistate
+Version:       0.1.2
+Cabal-Version: >= 1.8
+Build-Type:    Simple
+license:       BSD3
+license-file:  LICENSE
+Copyright:     Jan Bracker, Lennart Spitzner
+Maintainer:    Lennart Spitzner <lsp@informatik.uni-kiel.de>
+Author:        Jan Bracker, Lennart Spitzner
+Homepage:      https://github.com/lspitzner/multistate
+Bug-reports:   https://github.com/lspitzner/multistate/issues
+Stability:     Experimental
+category:      Control
+tested-with:   GHC == 7.8.2
+
+Synopsis: like mtl's ReaderT/StateT, but more than one contained value/type.
+Description:
+  .
+  == Introduction
+  .
+  When using multiple ReaderT's or StateT's in the same monad stack, it becomes
+  necessary to lift the operations in order to affect a specific transformer.
+  Using heterogenous lists (type level functions), a GADT and a corresponding
+  type class, this package provides transformers that remove that necessity:
+  MultiReaderT/MultiStateT can contain a heterogenous list of values.
+  .
+  The type inferred for the getter/setter determines which value is
+  read/written.
+  .
+  == Example
+  .
+  >              -- an IO action wrapped by a MultiState
+  >              -- containing both a Char and a [Char].
+  > examplePrint :: MultiStateT (Cons [Char] (Cons Char Null)) IO ()
+  > examplePrint = do
+  >   c  <- mGet             -- inferred to be :: m Char
+  >   cs <- mGet             -- inferred to be :: m [Char]
+  >   lift $ putStrLn (c:cs)
+  .
+  This computation can be executed in the following way:
+  .
+  > main = evalMultiStateT
+  >      $ withMultiState 'H'
+  >      $ withMultiState "ello, World!"
+  >      $ examplePrint
+  .
+  ( you can find this example as an executable in the package. )
+  .
+  == Known Deficits
+  .
+  This package currently lacks a complete set of "lifting instances", i.e.
+  instance definitions for classes such as mtl's MonadWriter "over" the newly
+  introduced monad transformers, as in
+  .
+  > instance (MonadWriter w m) => MonadWriter w (MultiStateT c m) where ..
+  .
+  These "lifting instances" would be necessary
+  to achieve full compatability with existing transformers. Ping me if you
+  find anything specific missing.
+
+source-repository head
+  type: git
+  location: git@github.com:lspitzner/multistate.git
+
+flag build-test
+  description: Build the MultiState-test test program
+  default: False
+
+flag build-example
+  description: Build the MultiState-example example program
+  default: False
+
+library {
+  exposed-modules:
+    Data.HList.HList
+    Control.Monad.MultiState
+    Control.Monad.MultiReader
+  other-modules:
+  build-depends:
+    base >=4 && <6,
+    mtl >=2 && <3,
+    tfp >=0.8,
+    transformers == 0.3.*
+  extensions:
+    GADTs
+    TypeFamilies
+    MultiParamTypeClasses
+    FunctionalDependencies
+    FlexibleInstances
+    OverlappingInstances
+    UndecidableInstances
+  ghc-options: -Wall
+  hs-source-dirs: src
+}
+
+executable multistate-test {
+  if flag(build-test) {
+    buildable: True
+    build-depends:
+      multistate,
+      base >= 4 && < 6,
+      transformers == 0.3.*,
+      tfp >=0.8
+  } else {
+    buildable: False
+  }
+  ghc-options: -Wall
+  main-is: Test.hs
+  hs-source-dirs: test
+}
+
+executable multistate-example {
+  if flag(build-example) {
+    buildable: True
+    build-depends:
+      multistate,
+      base >= 4 && < 6,
+      transformers == 0.3.*,
+      tfp >=0.8,
+      mtl >=2 && <3
+  } else {
+    buildable: False
+  }
+  main-is: Example.hs
+  hs-source-dirs: example
+}
+
+
+package-hashes:
+    MD5:eac60281823bde87ba5f863e026391de
+    SHA1:2daebcd9cc0d877f21aa14f436641ac26f616b27
+    SHA256:544bb798a4dc66554a05d883f5f055cdeb886d1952c4877566cfb2d2e446414b
+    SHA512:24d83977b0d9fefec774c591774ee95baefa90ecb329f0bd83b01e2526b51a48862ed98cf11413e68f60bca769f757eefa875a33bde2a0b90e86631bf7278141
+    Skein512_512:3cf5994d05476620e65ec5bde0f3b7fbb4012d8486607d86cd6dea688c4fd61b90a3d10219ba0e0f85bb8dd5b7a0bc159610cba96484f781549118f6500ae636
+
+package-locations:
+    https://hackage.haskell.org/package/multistate-0.1.2/multistate-0.1.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/multistate-0.1.2.tar.gz
+

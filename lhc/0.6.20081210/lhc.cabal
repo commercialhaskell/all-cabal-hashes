@@ -1,0 +1,114 @@
+cabal-version:       >= 1.2
+name:                lhc
+version:             0.6.20081210
+synopsis:            LHC Haskell Compiler
+description:
+  lhc is a haskell compiler which aims to produce the most efficient programs possible via whole
+  program analysis and other optimizations.
+Tested-With:         GHC == 6.10.1, GHC == 6.8.3
+category:            Compiler
+license:             GPL
+license-file:        COPYING
+author:              John Meacham, David Himmelstrup
+maintainer:          lemmih@gmail.com
+homepage:            http://lhc.seize.it/
+build-type:          Custom
+Extra-Source-Files:  src/arch/generic.arch, src/arch/i686.arch, src/arch/x86_64.arch
+data-dir:            data
+data-files:          HsFFI.h names.txt operators.txt prelude.m4 primitives.txt props.txt wsize.h ViaGhc.hs
+                     rts/lhc_rts.c rts/lhc_rts2.c rts/lhc_rts_alloc.c rts/lhc_rts_header.h 
+
+flag base4
+flag hpc
+  default:            False
+flag threaded
+  default:            False
+flag lhc-regress
+  default:            False
+flag with-base
+  default:            False
+
+Executable lhc
+ main-is:             Main.hs
+ Hs-Source-Dirs:      src
+ cc-Options:          -std=c99 -O2 -Wall
+ ghc-prof-options:    -auto-all
+ Extensions:          DeriveDataTypeable, ForeignFunctionInterface, EmptyDataDecls, GeneralizedNewtypeDeriving
+                      MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, FlexibleContexts
+                      UndecidableInstances, TypeSynonymInstances, ScopedTypeVariables, ParallelListComp,
+                      OverlappingInstances, RecursiveDo, GADTs, RankNTypes, PatternGuards, TemplateHaskell
+ build-depends:       containers, mtl, pretty, array, bytestring, pureMD5,
+                      binary >= 0.4.4, directory, haskeline, random, regex-compat,
+                      graphviz, fgl, unix, zlib, old-time, haskell98,
+                      utf8-string, stringtable-atom, derive >= 0.1.4, Cabal >= 1.7,
+                      filepath, ansi-wl-pprint >= 0.5.0, ansi-terminal >= 0.5.0
+                      
+ ghc-options:         -fwarn-unused-imports
+ if flag(base4)
+  build-depends:      base >= 4 && < 5, syb
+  cpp-options:        -DBASE4
+ else
+  build-depends:      base >= 3 && < 4
+  Extensions:         PatternSignatures
+
+ if flag(threaded)
+  ghc-options:        -threaded
+ if flag(with-base)
+  x-build-base:       True
+ else
+  x-build-base:       False
+ Other-modules:
+  CharIO, FindFixpoint, FlagOpts, Interactive, Options, PrimitiveOperators,
+  DataConstructors, FlagDump, GenUtil, PackedString, RawFiles, Stats,
+  C.FromGrin2 C.Arch C.FFI C.Generate C.Prims Cmm.Op
+  Cmm.OpEval Cmm.Number
+  DerivingDrift.RuleUtils DerivingDrift.DataP DerivingDrift.Drift DerivingDrift.StandardRules
+  Doc.DocLike Doc.PPrint Doc.Pretty Doc.Chars Doc.Attr E.TypeAnalysis E.Annotate E.Arbitrary
+  E.Binary E.CPR E.Demand E.Diff E.E E.Eta E.Eval E.FreeVars E.FromHs E.Inline E.LambdaLift
+  E.LetFloat E.PrimOpt E.Program E.Rules E.SSimplify E.SStrictness E.Show E.Subst E.ToHs
+  E.Traverse E.Type E.WorkerWrapper E.TypeCheck E.Values Fixer.Fixer Fixer.Supply Fixer.VMap
+  FrontEnd.FrontEnd FrontEnd.Class FrontEnd.Desugar FrontEnd.DataConsAssump FrontEnd.DeclsDepends
+  FrontEnd.DependAnalysis FrontEnd.Exports FrontEnd.Diagnostic FrontEnd.HsErrors FrontEnd.HsPretty
+  FrontEnd.HsSyn FrontEnd.Infix FrontEnd.KindInfer FrontEnd.Lexer FrontEnd.ParseMonad
+  FrontEnd.ParseUtils FrontEnd.Syn.Traverse FrontEnd.Syn.Options FrontEnd.Rename FrontEnd.SrcLoc
+  FrontEnd.Representation FrontEnd.Tc.Class FrontEnd.Tc.Kind FrontEnd.Tc.Main FrontEnd.Tc.Module
+  FrontEnd.Tc.Monad FrontEnd.Tc.Type FrontEnd.Tc.Unify FrontEnd.TypeSynonyms FrontEnd.TypeSigs
+  FrontEnd.HsParser FrontEnd.TypeSyns FrontEnd.Unlit FrontEnd.Utils FrontEnd.Warning
+  Grin.DeadCode Grin.Arity Grin.Devolve Grin.Embed Grin.FromE Grin.EvalInline Grin.Grin
+  Grin.HashConst Grin.Interpret Grin.Lint Grin.NodeAnalyze Grin.Noodle Grin.Optimize
+  Grin.SSimplify Grin.Show Grin.Simplify Grin.Unboxing Grin.Val Grin.Whiz Ho.Collected
+  Ho.Binary Ho.Build Ho.Library Ho.Type Info.Binary Info.Info Info.Types Info.Properties
+  Name.Prim Name.Binary Name.Id Name.Name Name.Names Name.VConsts
+  Support.Tuple Support.CFF Support.FreeVars Support.CanType Support.ShowTable
+  Support.Tickle Support.Transform Support.Unparse Support.MapBinaryInstance Util.Graph
+  Util.Gen Util.ArbitraryInstances Util.BitSet Util.BooleanSolver Util.ContextMonad
+  Util.FilterInput Util.ReaderWriter Util.Graphviz Util.HasSize Util.Histogram
+  Util.Inst Util.IntBag Util.Interact Util.NameMonad Util.Once Util.Perhaps
+  Util.RWS Util.Relation Util.SameShape Util.Seq Util.SetLike Util.TrueSet
+  Util.UnionFind Util.UnionSolve Util.UniqueMonad Util.VarName Util.Util LHCVersion
+
+Executable lhc-regress
+  if flag(lhc-regress)
+    Buildable:      True
+  else
+    Buildable:      False
+  main-is:          Main.hs
+  hs-source-dirs:   lhc-regress/
+  build-depends:    process
+  if flag(base4)
+    build-depends:  base >= 4 && < 5
+    cpp-options:    -DBASE4
+  else
+    build-depends:  base >= 3 && < 4
+
+package-hashes:
+    MD5:6833ffcc081542238308d47065f458c3
+    SHA1:3004db84ebd7391457d7db01e70932c0158d62b7
+    SHA256:485a43fd6de385690d78f749224d95514983db5c7d787678a2781ed440370a22
+    SHA512:ef9a4c42f596a7352f26c21b10e90c3dc80eb205b77a1b62ff00961d58dbc0dee859759e53785695b4974cced054e62863e985300c9edc3836178d779137ea0c
+    Skein512_512:2b7a70a6c9dd2f3a3968c25febf77d0930bc488d2223ab99453ee8ddcb30750f843ce4b1918159762802962a35575456cc2f8e4bd12c34491eb1570d1e0f15a7
+
+package-locations:
+    https://hackage.haskell.org/package/lhc-0.6.20081210/lhc-0.6.20081210.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/lhc-0.6.20081210.tar.gz
+

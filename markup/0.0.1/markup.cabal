@@ -1,0 +1,89 @@
+Name:                   markup
+Version:                0.0.1
+Author:                 Athan Clark <athan.clark@gmail.com>
+Maintainer:             Athan Clark <athan.clark@gmail.com>
+License:                MIT
+License-File:           LICENSE
+Synopsis:               Abstraction for markup languages
+Description:
+  This library tries to make things more uniformly controlled when working with 
+  markup languages in haskell - namely /deployment/ of markup assets.
+  .
+  Deployment, from this library's perspective, means /how/ something can be 
+  rendered to markup, yet still achieve the same "result" to the end user (namely 
+  the DOM).
+  .
+  We use monad transformers to infer the deployment mechanism for a context of 
+  markup. The three deployment mechanisms provided include /inline/ (content is 
+  slapped between markup tags), /hosted/ (entirely external - uses raw text as a 
+  url), and /local/ (which uses the <hackage.haskell.org/package/urlpath urlpath> 
+  library to realize what kind of link to create).
+  .
+  As an example, here is remotely hosted image:
+  .
+  > image' = renderMarkup Image :: Monad m => HostedMarkupT m T.Text (Html ())
+  > 
+  > image = runHostedMarkupT image' "foo.png"
+  > 
+  > λ> renderText image
+  > 
+  > <img src="foo.png">
+  .
+  Here is the same example, going relative instead:
+  .
+  > image' = renderMarkup Image :: (Monad m, Url UrlString AbsoluteUrl) => LocalMarkupT UrlString m (HtmlT AbsoluteUrl ())
+  >
+  > λ> (runUrlReader $ renderTextT $ runIdentity $ runLocalMarkupT image' $
+  >      "foo.png" <?> ("key","bar")
+  >    ) "example.com"
+  >
+  > "<img src=\"example.com/foo.png?key=bar\">"
+  .
+  Right now this library isn't so great, hopefully it will get better soon :)
+
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall
+  Exposed-Modules:      Data.Markup
+                        Data.Markup.Types
+                        Data.Markup.Class
+                        Data.Markup.Library
+  Build-Depends:        base >= 4 && < 5
+                      , transformers
+                      , mtl
+                      , lucid >= 2.5
+                      , blaze-html
+                      , blaze-markup
+                      , text
+                      , urlpath
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       src
+                      , test
+  Ghc-Options:          -Wall
+  Main-Is:              Spec.hs
+  Build-Depends:        base
+                      , hspec
+
+Source-Repository head
+  Type:                 git
+  Location:             https://github.com/athanclark/markup.git
+
+
+package-hashes:
+    MD5:e617585bb2db8fef063a2b0d3059625b
+    SHA1:3641958bb601eb38bab372f822b07d31e3e59bfe
+    SHA256:9f6987b2bd8550ddac32aa4899bdccace88218edb9a0c9163d315c5cef827f00
+    SHA512:90010d90bf1ea61e877ed7a0b0d6877b527bafa29c5dfaf45df3977c4fdf8027c1f822735add799a43e68b47701b0b093010d7c2223fbfb42104a494f7867586
+    Skein512_512:d028a61b46077b226d9a5c77fe8a84a825d694042131517386d588b9bade3081060741774c684684b874158a157f1feb056292cd5f0e799e79c567d9bd4432bc
+
+package-locations:
+    https://hackage.haskell.org/package/markup-0.0.1/markup-0.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/markup-0.0.1.tar.gz
+

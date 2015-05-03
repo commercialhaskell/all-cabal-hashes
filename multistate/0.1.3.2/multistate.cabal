@@ -1,0 +1,158 @@
+Name:          multistate
+Version:       0.1.3.2
+Cabal-Version: >= 1.8
+Build-Type:    Simple
+license:       BSD3
+license-file:  LICENSE
+Copyright:     Jan Bracker, Lennart Spitzner
+Maintainer:    Lennart Spitzner <lsp@informatik.uni-kiel.de>
+Author:        Jan Bracker, Lennart Spitzner
+Homepage:      https://github.com/lspitzner/multistate
+Bug-reports:   https://github.com/lspitzner/multistate/issues
+Stability:     Experimental
+category:      Control
+tested-with:   GHC == 7.6.3, GHC == 7.8.3
+
+Synopsis: like mtl's ReaderT/StateT, but more than one contained value/type.
+Description:
+  .
+  == Introduction
+  .
+  When using multiple ReaderT's or StateT's in the same monad stack, it becomes
+  necessary to lift the operations in order to affect a specific transformer.
+  Using heterogenous lists (type level functions), a GADT and a corresponding
+  type class, this package provides transformers that remove that necessity:
+  MultiReaderT/MultiStateT can contain a heterogenous list of values.
+  .
+  The type inferred for the getter/setter determines which value is
+  read/written.
+  .
+  == Example
+  .
+  > simpleExample :: IO ()
+  > simpleExample = evalMultiStateT
+  >               $ withMultiState 'H'
+  >               $ withMultiState "ello, World!"
+  >               $ do
+  >   -- the monad here is MultiStateT (Cons [Char] (Cons Char Null)) IO
+  >   let combinedPrint = do       -- no type signature necessary
+  >         c  <- mGet             -- type of mGet inferred to be m Char
+  >         cs <- mGet             --              inferred to be m [Char]
+  >         lift $ putStrLn (c:cs)
+  >   combinedPrint
+  >   mSet 'J'                     -- similarly for the setter
+  >   combinedPrint
+  .
+  The output is:
+  .
+  > Hello, World!
+  > Jello, World!
+  .
+  ( you can find both this and a more complex example
+    in an executable in the package. )
+  .
+  == Error Messages
+  .
+  If you try to execute an action that requires a specific type in the state,
+  but the current state does not contain that type, the error message is
+  something like
+  .
+  > Control.Monad.MultiState.ContainsType Foo Null
+  .
+  where @Foo@ is the missing type.
+  .
+  == Known Deficits
+  .
+  This package currently lacks a complete set of "lifting instances", i.e.
+  instance definitions for classes such as mtl's MonadWriter "over" the newly
+  introduced monad transformers, as in
+  .
+  > instance (MonadWriter w m) => MonadWriter w (MultiStateT c m) where ..
+  .
+  These "lifting instances" would be necessary
+  to achieve full compatability with existing transformers. Ping me if you
+  find anything specific missing.
+
+source-repository head
+  type: git
+  location: git@github.com:lspitzner/multistate.git
+
+flag build-test
+  description: Build the MultiState-test test program
+  default: False
+
+flag build-example
+  description: Build the MultiState-example example program
+  default: False
+
+library {
+  exposed-modules:
+    Data.HList.HList
+    Control.Monad.MultiState
+    Control.Monad.MultiReader
+  other-modules:
+  build-depends:
+    base         >= 4.6   && <4.8,
+    mtl          >= 2.1   && <2.3,
+    tfp          >= 0.8   && <0.9,
+    transformers >= 0.3   && <0.5
+  extensions:
+    GADTs
+    TypeFamilies
+    MultiParamTypeClasses
+    FunctionalDependencies
+    FlexibleInstances
+    OverlappingInstances
+    UndecidableInstances
+  ghc-options: -Wall
+  hs-source-dirs: src
+}
+
+executable multistate-test {
+  if flag(build-test) {
+    buildable: True
+    build-depends:
+      -- no version constraints necessary, because they are already
+      -- given by library
+      multistate,
+      base,
+      tfp,
+      transformers
+  } else {
+    buildable: False
+  }
+  ghc-options: -Wall
+  main-is: Test.hs
+  hs-source-dirs: test
+}
+
+executable multistate-example {
+  if flag(build-example) {
+    buildable: True
+    build-depends:
+      -- no version constraints necessary, because they are already
+      -- given by library
+      multistate,
+      base,
+      mtl,
+      tfp,
+      transformers
+  } else {
+    buildable: False
+  }
+  main-is: Example.hs
+  hs-source-dirs: example
+}
+
+
+package-hashes:
+    MD5:b71d39a00ddb79601c19b980aaa9f121
+    SHA1:808d6204cc416ee07c3d1157004595681649f095
+    SHA256:0b5a50d5ffb29ead56b07e5e02352d2078e79f5d11c7df0f1b69c789ec22a000
+    SHA512:de64d279cb0d2bbbe9b8a4602538725a558263c98947d9e83c71281602d24a7ed6d5299c6b931b77af963edb188836aa6f35ff8f5ff0121f1b8b6558907ab573
+    Skein512_512:9387ba3aacbd379b55a85ae59c53d40c6e1fb77091e6306aeb2213e0aaa97c1c94210554da68325995706c70efee03246a23e43492cc8f6a8a194f6c9b2f1ebc
+
+package-locations:
+    https://hackage.haskell.org/package/multistate-0.1.3.2/multistate-0.1.3.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/multistate-0.1.3.2.tar.gz
+

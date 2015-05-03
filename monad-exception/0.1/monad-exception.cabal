@@ -1,0 +1,93 @@
+name:           monad-exception
+version:        0.1
+synopsis:       Exstensible monadic exceptions
+license:        PublicDomain
+license-file:   LICENSE
+author:         Shane O'Brien
+maintainer:     shane@duairc.com
+stability:      Experimental
+category:       Control
+cabal-version:  >= 1.6
+build-type:     Simple
+description:
+  Extensible exceptions are a good solution to the exception problem in
+  Haskell. However, there is one problem: they are not extensible enough!
+  The problem is that the functions defined in @Control.Exception@ for dealing
+  with exceptions can only be used with the @IO@ monad. A lot of Haskell code
+  uses a stack of monads, at the bottom of which is @IO@, but the @IO@ monad
+  is not used directly.
+  .
+  There have been many attempts to solve this problem, but the stumbling block
+  has been the presence of short-circuiting monad transformers: sometimes,
+  these prevented the cleanup actions from being run, making it effectively
+  impossible to catch exceptions in such monads. The @monad-control@ package
+  has been developed as a solution to this problem: it defines a way to turn
+  a monad transformer stack \"inside-out\", which ensures that cleanup actions
+  are run even when the original action short-circuits. The @lifted-base@
+  package, built on top of @monad-control@, exports the
+  @Control.Exception.Lifted@ module, which contains versions of the
+  "Control.Exception" functions that work on any monad stack with @IO@ at its
+  base.
+  .
+  This has pretty much solved the above problems. However, one thing that the
+  solutions that came before @monad-control@ did was provide a type class
+  encapsulating exception functionality that could be implemented by pure
+  monads, allowing you to use the same interface to throw and catch exceptions
+  in both pure and @IO@-based code. This also makes it possible to express
+  which can throw an exception, but which don't necessarily do any IO and
+  which are polymorphic in their exception throwing (i.e., you could run the
+  function in @IO@ and it would use @throwIO@, or you could run it as an
+  @Either@ and it would use @Left@).
+  .
+  That's what this package does. It provides a @MonadException@ type class (in
+  the "Control.Monad.Exception.Class" module), which has instances for @IO@
+  and @IO@-like monads (for which @monad-control@ is used to provide the
+  correct instances as described above), as well as for some pure monads.
+  Several overlapping instances (in the spirit of @mtl-evil-instances@) are
+  provided, so it is not necessary to provide a pass-through instance for
+  @MonadException@ for every monad transformer you write.
+  .
+  This package also defines an @ExceptionT@ monad transformer (in
+  "Control.Monad.Trans.Exception") that can be used to add @MonadException@
+  functionality to otherwise pure monad stacks. @mtl-evil-instances@ is used
+  to automatically provide pass-through instances for the @mtl@ type classes
+  for this transformer.
+  .
+  Finally, this package includes the module "Control.Exception.Monadic", which
+  is a full replacement for "Control.Exception", whose functions work on
+  any instance of @MonadException@ and not just @IO@. The functions for
+  dealing with asynchronous exceptions require @IO@ however, so these are only
+  polymorphic for any @IO@-like monadic (as determined by @monad-control@).
+
+
+extra-source-files:
+  CONTRIBUTORS
+
+Library
+  hs-source-dirs:
+    src
+
+  exposed-modules:
+    Control.Exception.Monadic,
+    Control.Monad.Exception.Class,
+    Control.Monad.Trans.Exception
+
+  build-depends:
+    base > 4 && < 5,
+    monad-control > 0.3 && < 0.4,
+    mtl-evil-instances < 0.2,
+    transformers-base < 0.5,
+    transformers > 0.2 && < 0.3
+
+
+package-hashes:
+    MD5:6898301bde42b5fbbeedf49ce06e18a9
+    SHA1:0cae7d3916d90dead9a030487763b69f94f921bc
+    SHA256:084efc952e9479fc7a3ffb48e58b35d3b61a5b6d52ee8140db9356137b4d01d6
+    SHA512:77d8f8b5a50f8824f3d3faf038d624ed1a5a3c7c435800dcd1ceccea632bd6ac6e8869ff651ca341964db35dc5adc57f26f68ff4ea913de096a8b8a29d4b8b8e
+    Skein512_512:e0a9c5db052a09d9597608ce6dc5e6a6caac1a2981d7c7d3bd2de149e3d5008da05baaacaf3ed082a88d5574bacbe3365a61d5c994d91f7c74647d13afeb9bf1
+
+package-locations:
+    https://hackage.haskell.org/package/monad-exception-0.1/monad-exception-0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/monad-exception-0.1.tar.gz
+

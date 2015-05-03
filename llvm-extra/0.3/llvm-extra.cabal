@@ -1,0 +1,131 @@
+Name:           llvm-extra
+Version:        0.3
+License:        BSD3
+License-File:   LICENSE
+Author:         Henning Thielemann <haskell@henning-thielemann.de>
+Maintainer:     Henning Thielemann <haskell@henning-thielemann.de>
+-- Homepage:       http://www.haskell.org/haskellwiki/LLVM
+Homepage:       http://code.haskell.org/~thielema/llvm-extra/
+Category:       Compilers/Interpreters, Code Generation
+Synopsis:       Utility functions for the llvm interface
+Description:
+  The Low-Level Virtual-Machine is a compiler back-end with optimizer.
+  You may also call it a high-level portable assembler.
+  This package provides various utility functions
+  for the Haskell interface to LLVM, for example:
+  .
+  * arithmetic operations with better type inference than the @llvm@ interface
+    in "LLVM.Extra.Arithmetic",
+  .
+  * a type class for loading and storing sets of values with one command (macro)
+    in "LLVM.Extra.Memory",
+  .
+  * support instance declarations of LLVM classes
+    in "LLVM.Extra.Class",
+  .
+  * handling of termination by a custom monad on top of @CodeGenFunction@
+    in "LLVM.Extra.MaybeContinuation"
+  .
+  * various kinds of loops (while) and condition structures (if-then-else)
+    in "LLVM.Extra.Control"
+  .
+  * automatic adaption to target specific extensions,
+    currently used for access of vector operations
+    that are specific to an SSE level on x86 processors
+    in "LLVM.Extra.Extension"
+    (On x86 architectures we depend on the cpuid package
+     that is needed for automatic detection of available features.)
+  .
+  * advanced vector operations
+    such as sum of all vector elements, cumulative sum,
+    floor, non-negative fraction, absolute value
+    in "LLVM.Extra.Vector"
+  .
+  * type classes for handling scalar and vector operations
+    in a uniform way
+    in "LLVM.Extra.ScalarOrVector"
+  .
+  * a Makefile and a description
+    of how to run LLVM code from within GHCi.
+Stability:      Experimental
+Tested-With:    GHC==6.10.4, GHC==6.12.3, GHC==7.0.4
+Cabal-Version:  >=1.6
+Build-Type:     Simple
+Extra-Source-Files:
+  Makefile
+  Problems.txt
+  x86/cpuid/LLVM/Extra/ExtensionCheck/X86.hs
+  x86/none/LLVM/Extra/ExtensionCheck/X86.hs
+
+Flag buildExamples
+  description: Build example executables
+  default:     False
+
+Source-Repository head
+  Type:        darcs
+  Location:    http://code.haskell.org/~thielema/llvm-extra/
+
+Library
+  Build-Depends:
+    -- llvm must be imported with restrictive version bounds,
+    -- because we import implicitly and unqualified
+    llvm >=0.10 && <0.10.1,
+    type-level >=0.2.3 && <0.3,
+    containers >=0.1 && <0.5,
+    transformers >=0.1.1 && <0.3,
+    utility-ht >=0.0.1 && <0.1
+
+  Build-Depends:
+    base >= 3 && <5
+
+  If arch(i386)
+    Build-Depends: cpuid >=0.2.2 && <0.3
+    Hs-Source-Dirs: x86/cpuid
+  Else
+    -- Instead of calling the cpuid instruction directly
+    -- we may ask LLVM's Subtarget detection.
+    -- This would also enable cross compilation.
+    -- However in LLVM-2.6 this is only available in the C++ interface.
+    Hs-Source-Dirs: x86/none
+
+  -- large context stack needed for LLVM.Extra.Extension.X86 on GHC-7.0.4
+  GHC-Options: -fcontext-stack=1000
+  GHC-Options: -Wall
+  Hs-source-dirs: src
+  Exposed-Modules:
+    LLVM.Extra.Arithmetic
+    LLVM.Extra.Monad
+    LLVM.Extra.Memory
+    LLVM.Extra.ForeignPtr
+    LLVM.Extra.MaybeContinuation
+    LLVM.Extra.Class
+    LLVM.Extra.Control
+    LLVM.Extra.Extension
+    LLVM.Extra.Extension.X86
+    LLVM.Extra.ExtensionCheck.X86
+    LLVM.Extra.Array
+    LLVM.Extra.Vector
+    LLVM.Extra.ScalarOrVector
+  Other-Modules:
+    LLVM.Extra.ArithmeticPrivate
+
+Executable tone-llvm
+  If !flag(buildExamples)
+    Buildable: False
+  GHC-Options: -fcontext-stack=1000
+  GHC-Options: -Wall
+  Hs-Source-Dirs: src, x86/none
+  Main-Is: Array.hs
+
+
+package-hashes:
+    MD5:576b30d623cb077beefc9cde89e87959
+    SHA1:e5200fd12f51783a1f1ad88a60b0afcca5e9eb2d
+    SHA256:a6d38c47b60a22e9c165dac1a00f58769b262f3d522c313df6fc2a9b9434dd69
+    SHA512:7c1b593e34af2422783b7f1dca15832c40f74c709554eb9d415a37dec3049b0ea5cc70d64ffbda99de1e6bd8b641ff927b18827f491db1aef63f5cbb573284bf
+    Skein512_512:6d4f96e197d1d2d341f75f7c61dcdcf980f52c2baa07d0d3332f69c5ea2c22bf702d9bed6c4e241fd7a5d59fb73c8ded797482cecd59bc78d3e2ad77ff3458cf
+
+package-locations:
+    https://hackage.haskell.org/package/llvm-extra-0.3/llvm-extra-0.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/llvm-extra-0.3.tar.gz
+

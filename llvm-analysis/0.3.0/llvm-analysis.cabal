@@ -1,0 +1,185 @@
+name: llvm-analysis
+version: 0.3.0
+synopsis: A Haskell library for analyzing LLVM bitcode
+license: BSD3
+license-file: LICENSE
+author: Tristan Ravitch
+maintainer: travitch@cs.wisc.edu
+category: Development
+build-type: Simple
+cabal-version: >=1.10
+stability: experimental
+tested-with: GHC == 7.6.3
+extra-source-files: README.md
+description: A Haskell library for analyzing LLVM bitcode.  To convert
+             bitcode to the format used by this library, see the
+             llvm-data-interop package.
+             .
+             This library attempts to provide some basic program analysis
+             infrastructure and aims to scale to large bitcode files.
+             .
+             There are some useful tools built on top of this library
+             available in the llvm-tools package.
+             .
+             Changes since 0.2.0:
+
+              * LLVM 3.3 support (contributed by Patrick Hulin)
+
+              * Metadata format change.  Metadata type entries no longer have
+                a MetaDWFile.  Instead, file and directory names are stored
+                directly in each MetaDW*Type.  This change lets us more easily
+                accommodate changes in LLVM 3.3 (while supporting older versions).
+
+              * Under LLVM 3.3, the 'metaCompileUnitIsMain' field of MetaDWCompileUnit
+                is always False.  This disappeared in LLVM 3.3, but removing it would
+                be an unnecessary API break, I think.
+
+flag DebugAndersenConstraints
+  description: Enable debugging output for the points-to analysis (shows constraints)
+  default: False
+
+flag DebugAndersenGraph
+  description: Enable debugging output for the points-to analysis (shows the solved constraint graph in a window)
+  default: False
+
+library
+  default-language: Haskell2010
+  build-depends: base == 4.*,
+                 vector >= 0.9,
+                 transformers >= 0.3,
+                 filemanip >= 0.3.5.2,
+                 monad-par >= 0.3.4.2,
+                 graphviz >= 2999.12.0.3,
+                 temporary >= 1.0,
+                 lens > 1,
+                 hashable >= 1.1.2.0,
+                 failure >= 0.2,
+                 lens >= 3.8,
+                 GenericPretty > 1,
+                 hoopl >= 3.9.0.0,
+                 llvm-base-types >= 0.3.0,
+                 fgl >= 5.4,
+                 text >= 0.11,
+                 boomerang,
+                 ifscs >= 0.2.0.0 && < 0.3.0.0,
+                 array, bytestring, containers, deepseq,
+                 process, filepath, directory, unordered-containers,
+                 -- Testing
+                 HUnit, test-framework, test-framework-hunit,
+                 -- Dealing with C++ names
+                 itanium-abi >= 0.1.0.0 && < 0.2.0.0,
+                 uniplate == 1.*
+  hs-source-dirs: src
+  exposed-modules: LLVM.Analysis,
+                   LLVM.Analysis.AccessPath,
+                   LLVM.Analysis.BlockReturnValue,
+                   LLVM.Analysis.CDG,
+                   LLVM.Analysis.CFG,
+                   LLVM.Analysis.CFG.Internal,
+                   LLVM.Analysis.CallGraph,
+                   LLVM.Analysis.CallGraphSCCTraversal,
+                   LLVM.Analysis.CallGraph.Internal,
+                   LLVM.Analysis.ClassHierarchy,
+                   LLVM.Analysis.Dataflow,
+                   LLVM.Analysis.Dominance,
+                   LLVM.Analysis.PointsTo,
+                   LLVM.Analysis.PointsTo.AllocatorProfile,
+                   LLVM.Analysis.PointsTo.Andersen,
+                   LLVM.Analysis.PointsTo.TrivialFunction,
+                   LLVM.Analysis.NoReturn,
+                   LLVM.Analysis.NullPointers,
+                   LLVM.Analysis.ScalarEffects,
+                   LLVM.Analysis.UsesOf,
+                   LLVM.Analysis.Util.Names,
+                   LLVM.Analysis.Util.Testing
+
+  if flag(DebugAndersenConstraints)
+    cpp-options: "-DDEBUGCONSTRAINTS"
+  ghc-options: -Wall -funbox-strict-fields
+  ghc-prof-options: -auto-all
+
+test-suite CallGraphTests
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  main-is: CallGraphTest.hs
+  hs-source-dirs: tests
+  build-depends: base == 4.*,
+                 HUnit, filepath, containers, bytestring,
+                 llvm-analysis >= 0.3.0,
+                 llvm-data-interop >= 0.3.0
+  ghc-options: -Wall
+
+test-suite BlockReturnTests
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  main-is: BlockReturnTests.hs
+  hs-source-dirs: tests
+  build-depends: base == 4.*,
+                 containers, HUnit, filepath,
+                 llvm-analysis >= 0.3.0,
+                 llvm-data-interop >= 0.3.0
+  ghc-options: -Wall
+
+test-suite ReturnTests
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  build-depends: base == 4.*,
+                 transformers >= 0.3,
+                 containers, filepath, HUnit,
+                 unordered-containers,
+                 llvm-data-interop >= 0.3.0,
+                 llvm-analysis >= 0.3.0
+  ghc-options: -Wall -rtsopts
+  main-is: ReturnTests.hs
+  hs-source-dirs: tests
+
+test-suite AccessPathTests
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  build-depends: base == 4.*,
+                 containers, filepath, HUnit,
+                 llvm-data-interop >= 0.3.0,
+                 llvm-analysis >= 0.3.0
+  ghc-options: -Wall -rtsopts
+  main-is: AccessPathTests.hs
+  hs-source-dirs: tests
+
+test-suite ClassHierarchyTests
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  build-depends: base == 4.*,
+                 containers, filepath, HUnit, uniplate,
+                 llvm-analysis >= 0.3.0,
+                 llvm-data-interop >= 0.3.0,
+                 itanium-abi
+  ghc-options: -Wall -rtsopts
+  main-is: ClassHierarchyTests.hs
+  hs-source-dirs: tests
+
+test-suite AndersenTests
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  build-depends: base == 4.*,
+                 containers, filepath, HUnit,
+                 llvm-data-interop >= 0.3.0,
+                 llvm-analysis >= 0.3.0
+
+  if flag(DebugAndersenGraph)
+    build-depends: graphviz
+    cpp-options: "-DDEBUGGRAPH"
+  ghc-options: -Wall
+  main-is: AndersenTest.hs
+  hs-source-dirs: tests
+
+
+package-hashes:
+    MD5:7c4b46ecde8b87bb3758a0d8bd92e5db
+    SHA1:80f36752a241dc424e63aeccf5aa6019204ee594
+    SHA256:13d5a1202cb920fc8bc1b65ad138b3b91e91b824264a65b4963c04cf130b9349
+    SHA512:886ecd41d6eb4fb93c15c3eea7e371175fd9ebd728b07dced3e1e99eb39a469b35c7338658a1c54dc6f8c4326f8c6e672bd6d4bdc219859302c330866a72844c
+    Skein512_512:a3d130030851cbd41b1fa2e343798d85eeddc50395a8f44f26151be5679933b0f7356756aa76583822f1eec95401ec2c7deeb08da2c4fd7fb1ed94f64e8cf208
+
+package-locations:
+    https://hackage.haskell.org/package/llvm-analysis-0.3.0/llvm-analysis-0.3.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/llvm-analysis-0.3.0.tar.gz
+

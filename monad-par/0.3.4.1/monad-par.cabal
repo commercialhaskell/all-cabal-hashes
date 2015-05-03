@@ -1,0 +1,165 @@
+Name:                monad-par
+Version:             0.3.4.1
+Synopsis:            A library for parallel programming based on a monad
+
+
+-- Version history:
+--  0.1      : First release
+--  0.1.0.1  : 
+--  0.1.0.2  : 
+--  0.1.1.0  : module reorganization, moving ParClass
+
+--  0.2      : Bumped for new class-based API
+--  0.2.1    : Bumped for change AList
+--  0.2.2    : incorporation of real deque package
+--  0.2.3    : Restricted module export for 0.2 release.
+
+--  0.3      : Factored/reorganized modules and packages.  
+--             *This* package is the original, core monad-par.
+--  0.3.1    : fix for ghc 7.6.1, expose Par.IO
+--  0.3.4    : switch to direct scheduler as default (only 1-level nesting allowed)
+--  0.3.4.1  : fix build with GHC 7.0, and fix test
+
+Description:
+  The 'Par' monad offers a simple API for parallel programming.  The
+  library works for parallelising both pure and @IO@ computations,
+  although only the pure version is deterministic.
+  .
+  For complete documentation see "Control.Monad.Par".
+  .
+  Some examples of use can be found in the @examples/@ directory of
+  the source package.
+  .
+  Other related packages:
+  .
+  * @abstract-par@ provides the type classes that abstract over different
+  implementations of the @Par@ monad.
+  .
+  * @monad-par-extras@ provides some extra combinators layered on top of
+  the @Par@ monad.
+  .
+  Changes in 0.3.4 relative to 0.3:
+  .
+  * Fix bugs that cause "thread blocked indefinitely on MVar" crashes.
+  .
+  * Added "Control.Monad.Par.IO"
+
+Homepage:            https://github.com/simonmar/monad-par
+License:             BSD3
+License-file:        LICENSE
+Author:              Simon Marlow, Ryan Newton
+Maintainer:          Simon Marlow <marlowsd@gmail.com>, Ryan Newton <rrnewton@gmail.com>
+Copyright:           (c) Simon Marlow 2011
+Stability:           Experimental
+Category:            Control,Parallelism,Monads
+Build-type:          Simple
+Cabal-version:       >=1.8
+
+extra-source-files:
+     tests/AListTest.hs
+     tests/AllTests.hs
+     tests/AsyncTest.hs
+     tests/Makefile
+     tests/ParTests.hs
+     tests/TestHelpers.hs
+     tests/TestParDist.hs
+     tests/Test_ContReaderT.hs
+     tests/Test_ReaderContT.hs
+     tests/hs_cassandra_microbench.hs
+     tests/hs_cassandra_microbench2.hs
+
+Library
+  Source-repository head
+    type:     git
+    location: https://github.com/simonmar/monad-par
+
+  Exposed-modules: 
+                 -- The classic, simple monad-par interface:
+                   Control.Monad.Par
+                 , Control.Monad.Par.IO
+
+                 -- This is the default scheduler:
+                 , Control.Monad.Par.Scheds.Trace
+                 , Control.Monad.Par.Scheds.TraceInternal
+
+                 -- Replacement scheduler for Trace:
+                 , Control.Monad.Par.Scheds.Direct
+
+                 -- This scheduler uses sparks rather than IO threads.
+                 -- It only supports Futures, not full IVars.  Fork
+                 -- becomes lighter weight.
+                 , Control.Monad.Par.Scheds.Sparks
+
+  Build-depends: base >= 4 && < 5
+               -- This provides the interface which monad-par implements:
+               , abstract-par 
+               , abstract-deque >= 0.1.4
+               -- Extras such as parMap, RNG, State
+               , monad-par-extras == 0.3.*
+               , deepseq >= 1.1
+               , array >= 0.3
+               , mwc-random >= 0.11
+               , containers
+               , parallel >= 3.1
+               , mtl >= 2.0.1.0
+
+  ghc-options: -O2
+  Other-modules:
+               ------------------------------------------------------------
+               --                Schedulers & Infrastructure             --
+               ------------------------------------------------------------
+
+               -- Strawman scheduler that forks IO threads:
+               -- Control.Monad.Par.Scheds.ContFree,
+
+               -- Internal logging framework:
+               -- Control.Monad.Par.Logging,
+
+               -- Serial Elision scheduling is currently experimental:
+               -- Control.Monad.Par.Scheds.SerialElision
+
+               Control.Monad.Par.Scheds.DirectInternal
+
+               ------------------------------------------------------------
+               --                   Data Structures                      -- 
+               ------------------------------------------------------------
+
+               -- ILists are internal:
+               -- , Control.Monad.Par.IList
+
+               -- RRN: Not exposing Streams or OpenLists yet.  Need to improve performance.
+               -- We have some ideas for enabling bounded chans while preventing deadlock:
+               -- , Control.Monad.Par.OpenList
+               -- , Control.Monad.Par.Stream
+
+
+Test-Suite test-monad-par
+    type:       exitcode-stdio-1.0
+    main-is:    tests/AllTests.hs
+    ghc-options: -itests -rtsopts -threaded
+    build-depends: base >= 4 && < 5
+                 , abstract-par, monad-par-extras
+                 , array   >= 0.3
+                 , deepseq >= 1.2
+                 , time
+                 , QuickCheck, HUnit
+                 , test-framework-hunit, test-framework-quickcheck2
+                 , test-framework, test-framework-th
+
+                 , abstract-deque >= 0.1.4
+                 , mwc-random >= 0.11
+                 , mtl >= 2.0.1.0
+                 , containers
+
+
+package-hashes:
+    MD5:fc483a9825b927326bf5a658036f7aec
+    SHA1:31408ed100d4168689815b867baec134dfcb7631
+    SHA256:a8727ee5523699fbc90b86657e2123b69e8a166d402c26eaabfb27b27fb70f6c
+    SHA512:c1978a2b24685f4a4572186ac194da2f93d9fafdc47ad41a50f62d582cf385fe95b9b87c9abf2a7f35bad8ca87c0df67f8aa84001006081b091f2270bb84935d
+    Skein512_512:55422746228248fecb959c862af0b2d3d4d9004d1620b07ea63cf8820df50730c0cc8c2b2dc0e139fca531ce21a3edb5829c6e3f486fef59f9b552138ad8309b
+
+package-locations:
+    https://hackage.haskell.org/package/monad-par-0.3.4.1/monad-par-0.3.4.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/monad-par-0.3.4.1.tar.gz
+

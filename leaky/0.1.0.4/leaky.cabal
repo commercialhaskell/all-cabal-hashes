@@ -1,0 +1,320 @@
+
+name:                leaky
+version:             0.1.0.4
+synopsis:            Robust space leak, and its strictification
+description:         Robust space leak, and its strictification, for testing <http://hackage.haskell.org/package/deepseq-bounded deepseq-bounded> and <http://hackage.haskell.org/package/seqaid seqaid>.
+                     .
+                     See also the project <http://www.fremissant.net/leaky homepage> for more information.
+                     .
+                     Please share your comments on this <http://www.reddit.com/r/haskell/comments/2pscxh/ann_deepseqbounded_seqaid_leaky/ reddit> discussion.
+homepage:            http://www.fremissant.net/leaky
+license:             BSD3
+license-file:        LICENSE
+author:              Andrew G. Seniuk
+maintainer:          Andrew Seniuk <rasfar@gmail.com>
+category:            Testing
+build-type:          Simple
+cabal-version:       >=1.10
+tested-with:         GHC==7.8.1, GHC==7.8.3
+--tested-with:         GHC==7.6.3, GHC==7.8.1, GHC==7.8.3
+
+extra-source-files:
+
+      README
+    , HTML/*.html
+    , HTML/*.css
+    , rough-fs-twiddling-guide.txt
+
+    , leaky-full.hs
+    , leaky-full-incl-types.hs
+    , Types_no_SOP.hs
+    , Types_explicit_SOP.hs
+    , seqaid.config
+    , seqaid.config-full
+    , seqaid.config-full-incl-types
+--- , seqaid.config-full-no2ndmod
+
+    , leaky-min-cppd.hs
+    , leaky-min-cppd-working.hs
+    , leaky-min.hs
+    , Types_min.hs
+    , seqaid.config-min
+
+--  , LICENSE
+--  , leaky.cabal
+--  , Setup.hs
+--- , cabal.config
+
+-- XXX Would be nice if could avoid the TH when FORCING_STRATEGY < 4.
+
+Flag TURN_ON_SEQAID_PLUGIN
+  Description: Only when True, provide the options to enable the seqaid preprocessor and GHC plugin.
+  Default:     True
+--Default:     False
+
+Flag OMNITYPIC
+  Description: Blanket seqaid harness at subexpressions of all possible types. Shouldn't need a Cabal flag for this, but it's the same problem of casing over integer values for a macro (in a .cabal file). So this need not be orthogonal to FORCING_STRATEGY, but this way it is ... which is okay, actually. (Can then test interactions with other FS=0..6.)
+--Default:     True
+  Default:     False
+
+Flag TEST_SEQAIDPP
+  Description: Finally crumbed and availed myself of -F -pgmF, although only for things which are /fairly/ safe via regex (injecting imports, top-level splices, "deriving instance" statements, LANGUAGE pragmas, etc.). (Later: You can't really do without this anymore, although with FORCING_STRATEGY=4 it is possible.)
+  Default:     True
+--Default:     False
+
+Flag STATS
+  Description: Dump periodic stats lines, for FORCING_STRATEGY that need it.
+  Default:     True
+--Default:     False
+
+Flag USING_SANDBOX
+  Description: I use them, but it's not default because it makes for much longer initial build, as all the dependencies (except base libs) need first to be installed (into the sandbox).
+--Default:     True
+  Default:     False
+
+Flag USE_SECOND_MODULE
+  Description: Temporary for testing... (Later: Sadly this is not so temporary. There is some kind of interference between SOP.TH and Seqaid.TH splices which is still unresolved. So, types needing NFDataP (etc.) instances will need to live in a module which is /not/ being harnessed.)
+  Default:     True
+--Default:     False
+
+Flag PROFILE
+  Description: Enable profiling
+  Default:     True
+--Default:     False
+
+Flag USE_GROWING_LIST
+  Description: The problem with using a growing list is, it itself is a leak (as it were), so it's hard to see you've plugged anything. However, the slowdown of "force" relative to "forcep" will be noticed!  Alternative to GROWING is FIXED (is at length 10000 at the moment).  Fixed list is infinite if INFINITE set below.  (INFINITE has no effect when GROWING set.)
+  Default:     True
+--Default:     False
+
+Flag USE_GROWING_LIST_REDUCTION
+  Description: XXX For some reason, memory is being retained when REDUCTION is enabled. (Later: Is this still the case? I see it's been set to True throughout development...).
+  Default:     True
+--Default:     False
+
+Flag USE_INFINITE_LIST
+  Description: To show DeepSeq.force (FORCING_STRATEGY=1) at its worst.
+--Default:     True
+  Default:     False
+
+Flag USE_STRICT_BLOB
+  Description: Put some weighty strict subtrees in the test data structure, so can showcase forcep's specificity relative to forcen.
+  Default:     True
+--Default:     False
+
+-- Flag FORCING_STRATEGY
+--   Description: 
+-- --Default:     6
+--   Default:     (6::Int)
+-------
+-- Sadly, not.
+-- See bottom of this file for the meanings of the values.
+
+executable leaky
+
+  main-is:             leaky.hs
+--main-is:             leaky-min.hs
+--main-is:             leaky-min-cppd.hs
+--leaky-pris.hs contains just the maladies.
+--leaky.hs contains these, and remedies as well.
+--leaky-no-let-without-in.hs is due to a bug in GHC HsExpr Outputable
+---main-is:             leaky-pris.hs
+---main-is:             leaky-no-let-without-in.hs
+
+-- -- XXX Get rid of this Temp one soon (just a wee experiment)!...
+--   other-modules:       Temp
+
+-- XXX Must later: I don't understand this:
+  if flag(USE_STRICT_BLOB)
+    other-modules:       Types
+
+  build-depends:
+     base == 4.*
+   , random <= 1.1
+
+---------- BEGIN SEQAID-SPECIFIC -- PART 1 of 2 ----------
+
+  -- User needs to add these deps themselves:
+  -- Later: I'm sure not every one of these needs to be named,
+  -- when using only FORCING_STRATEGY >= 4; probably, only
+  -- seqaid (and template-haskell?).
+
+  build-depends:
+
+     deepseq-bounded <= 0.5.3
+   , deepseq-generics <= 0.1.1.2
+
+   , generics-sop <= 0.1.0.4
+   , template-haskell <= 2.9.0.0
+-- , template-haskell
+
+   , seqaid == 0.1.4
+
+  if flag(OMNITYPIC)
+    build-depends:
+     -- first needed by seqaidpp with the omnitypic blanket:
+       ghc-prim
+--     ghc-prim <= 0.3.1.0
+---  , integer-gmp
+  
+---------- END SEQAID-SPECIFIC -- PART 1 of 2 ----------
+
+  -- hs-source-dirs:      
+  default-language:    Haskell2010
+  ghc-options: -optP-Wundef -fno-warn-overlapping-patterns
+--ghc-options: -optP-Wundef -fno-warn-overlapping-patterns -rtsopts -threaded
+  if flag(PROFILE)
+    ghc-options: -fprof-auto -auto-all -caf-all
+
+---------- BEGIN SEQAID-SPECIFIC -- PART 2 of 2 ----------
+
+  if flag(TURN_ON_SEQAID_PLUGIN)
+
+    ghc-options: -fplugin=Seqaid.Plugin
+
+    if flag(USING_SANDBOX)
+      ghc-options: -F -pgmF .cabal-sandbox/bin/seqaidpp
+    else
+      ghc-options: -F -pgmF seqaidpp
+
+    if flag(OMNITYPIC)
+      ghc-options: -optF omnitypic
+
+    -- Cabal (1.20) says that we should use "extensions: TemplateHaskell",
+    -- which it then complains is deprecated -- but we'd really rather just
+    -- give -XTemplateHaskell to GHC along with the other plugin-related
+    -- options, in a compact group:
+--  ghc-options: -XTemplateHaskell
+    default-extensions:    TemplateHaskell
+--  other-extensions:    TemplateHaskell
+--  extensions:    TemplateHaskell
+
+-- We need -rtsopts above for other reasons (when get into -h* profile
+-- integration); although -rtsopts is probably not needed for that
+-- in recent GHC?  But in any case, the below I think you WOULDN'T
+-- need -rtsopts, since you're explicitly setting (augmenting, hopefully)
+-- the default RTS options with the -T option.
+    ghc-options: -with-rtsopts=-T
+--  ghc-options: -rtsopts -with-rtsopts=-T
+
+--  ghc-options: -split-objs
+
+--  ghc-options: -fforce-recomp
+--  ghc-options: -dcore-lint
+--  ghc-options: -ddump-splices
+--  ghc-options: -ddump-simpl
+
+--     ghc-options: -fno-liberate-case
+--     ghc-options: -fliberate-case-threshold=0
+--   --ghc-options: -fliberate-case-threshold=999
+--     ghc-options: -fno-spec-constr
+
+---------- END SEQAID-SPECIFIC -- PART 2 of 2 ----------
+
+------------------------------------------------------
+
+-- Trying to silence the "Loading package" lines of TH!
+-- (This did not work out, but there's always sed...).
+-- Refer to https://ghc.haskell.org/trac/ghc/ticket/5647 and its
+-- usurper https://ghc.haskell.org/trac/ghc/ticket/7863.
+
+-- http://www.macs.hw.ac.uk/~dsg/gph/docs/4.06/users_guide/options-output.html
+-- this was suggested, but 7.8.3 doesn't recognise an -odump option.
+--ghc-options: -odump seqaid-ghc-odump.log
+
+-- With -v0 you get no "Compiling" lines for each module compiled :(
+-- On the other hand, ... we /could/ detect the presence of this option
+-- via seqaidpp, and synthesize compilation progress output lines.
+-- In either case, we do see the plugin-specific output lines, which
+-- is almost enough...
+-- ...And I tried that, but I'm getting duplicate output and don't
+-- quite understand it; so living with the "standard" TH dumping
+-- of "Loading package" lines!
+--   Will provide the "z" bash script that pipes through sed,
+-- for user's convenience in case they care.
+--ghc-options: -v0
+
+-- This doesn't suppress any output for me, anyway.
+------
+-- Seems to work.
+--ghc-options: -j=2
+-- Seems to work.
+--ghc-options: "-j 2"
+-- This will cause an error when seqaidpp runs, for some
+-- undetermined reason.
+--ghc-options: -j 2
+
+------------------------------------------------------
+
+  -- Needed for all FORCING_STRATEGY's now:
+  ghc-options: -with-rtsopts=-T
+--ghc-options: -rtsopts -with-rtsopts=-T
+
+  if flag(OMNITYPIC)
+    cpp-options: -DOMNITYPIC=1
+  else
+    cpp-options: -DOMNITYPIC=0
+  if flag(TEST_SEQAIDPP)
+    cpp-options: -DTEST_SEQAIDPP=1
+  else
+    cpp-options: -DTEST_SEQAIDPP=0
+  if flag(STATS)
+    cpp-options: -DSTATS=1
+  else
+    cpp-options: -DSTATS=0
+  if flag(USE_SECOND_MODULE)
+    cpp-options: -DUSE_SECOND_MODULE=1
+  else
+    cpp-options: -DUSE_SECOND_MODULE=0
+  if flag(USE_GROWING_LIST)
+    cpp-options: -DUSE_GROWING_LIST=1
+  else
+    cpp-options: -DUSE_GROWING_LIST=0
+  if flag(USE_GROWING_LIST_REDUCTION)
+    cpp-options: -DUSE_GROWING_LIST_REDUCTION=1
+  else
+    cpp-options: -DUSE_GROWING_LIST_REDUCTION=0
+  if flag(USE_INFINITE_LIST)
+    cpp-options: -DUSE_INFINITE_LIST=1
+  else
+    cpp-options: -DUSE_INFINITE_LIST=0
+  if flag(USE_STRICT_BLOB)
+    cpp-options: -DUSE_STRICT_BLOB=1
+  else
+    cpp-options: -DUSE_STRICT_BLOB=0
+
+------------------------------------------------------
+
+-- 0 = None
+-- 1 = Use rnf (the standard Control.DeepSeq)
+-- 2 = Use rnfn (from Control.DeepSeq.Bounded)
+-- 3 = Use rnfp (from Control.DeepSeq.Bounded)
+-- 4 = Test manual instrumentation with Seqaid.Runtime.seqaid
+-- 5 = Test seqaid blanket auto-instrumentation of top-level RHSs
+-- 6 = Test seqaid blanket auto-instrumentation at requested type
+
+  cpp-options: -DFORCING_STRATEGY=6
+--cpp-options: -DFORCING_STRATEGY=flag(FORCING_STRATEGY)
+
+------------------------------------------------------
+
+--ghc-options: -fno-pre-inlining
+
+--ghc-options: -ddump-simpl
+--ghc-options: -ddump-splices
+
+------------------------------------------------------
+
+
+
+package-hashes:
+    MD5:6e220c74568d023da595bb398323b1de
+    SHA1:003211a645fd71e2c5859f28774f3a53bfcc2dcc
+    SHA256:9a80a39f6070097bbe3b4cc667adb0ebe91e5172b44a467b679036bbe640c2d3
+    SHA512:badb3582ef3b78a25ff83db16817ed3e807103b5b0a5939b77ae606c58d123c57fa16c3c867153ffd78d2933572404b7c407fecce82a000c38f38dbcda5b9ce8
+    Skein512_512:b4418a126b7fa6b687b77c0e97abc3ae2125fe189c58314c2f0bef9f05054adc45b7c059f866f87109c80cdd23e49815e542d60c5795422fb7bbcf552e00bf86
+
+package-locations:
+    https://hackage.haskell.org/package/leaky-0.1.0.4/leaky-0.1.0.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/leaky-0.1.0.4.tar.gz
+

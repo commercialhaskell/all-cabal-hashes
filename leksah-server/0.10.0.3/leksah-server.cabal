@@ -1,0 +1,155 @@
+name: leksah-server
+version: 0.10.0.3
+cabal-version: >= 1.8
+build-type: Simple
+license: GPL
+license-file: LICENSE
+copyright: 2007-2011 Juergen Nicklisch-Franken, Hamish Mackenzie
+maintainer: maintainer@leksah.org
+stability: provisional
+homepage: http://leksah.org
+package-url: http://code.haskell.org/leksah-collector
+bug-reports: http://code.google.com/p/leksah/issues/list
+synopsis: Metadata collection for leksah
+description: The interface to GHC-API for leksah
+category: IDE
+author: Juergen "jutaro" Nicklisch-Franken, Hamish Mackenzie
+data-dir: ""
+tested-with: GHC ==6.10 || ==6.12 || ==7.0
+data-files:
+            data/prefscoll.lkshp
+flag curl
+    Default: False
+    Description: Use runs curl instead of wget (curl is the default on OSX)
+
+flag libcurl
+    Default: False
+    Description: Use libcurl instead of running wget
+
+flag threaded
+    default: True
+    description: Build with support for multithreaded execution
+
+library
+    build-depends: Cabal >=1.6.0.1 && <1.11, base >= 4.0.0.0 && <4.4, binary >=0.5.0.0 && <0.6,
+               binary-shared >=0.8 && <0.9, bytestring >=0.9.0.1 && <0.10,
+               containers >=0.2.0.0 && <0.5,
+               directory >=1.0.0.2 && <1.2, filepath >=1.1.0.1 && <1.3, ghc >=6.10.1 && <7.1,
+               ltk >=0.9 && <1.0, mtl >=1.1.0.2 && <2.1, parsec >=2.1.0.1 && <2.2,
+               pretty >=1.0.1.0 && <1.1, process-leksah >=1.0.1.3 && <1.1, time >=1.1 && <1.3, deepseq >=1.1 && <1.2,
+               hslogger >= 1.0.7 && <1.2, network >=2.2 && <3.0
+    if (impl(ghc >= 6.12))
+       build-depends: haddock >= 2.7.2 && <2.10
+    else
+       build-depends: haddock-leksah == 2.5.0
+    if os(windows)
+        build-depends: Win32 >=2.2.0.0 && <2.3
+        extra-libraries: kernel32
+    else
+        build-depends: unix >=2.3.1.0 && <2.5
+
+    if flag(curl) || os(osx)
+        cpp-options: -DUSE_CURL
+
+    if flag(libcurl)
+        build-depends: curl >=1.3.5 && <1.4
+        cpp-options: -DUSE_LIBCURL
+
+    exposed-modules: IDE.Utils.GHCUtils IDE.Utils.Utils IDE.Utils.Tool
+        IDE.Utils.FileUtils IDE.Core.CTypes IDE.Core.Serializable IDE.StrippedPrefs
+        IDE.Utils.Server IDE.Metainfo.PackageCollector IDE.Utils.VersionUtils
+    exposed: True
+    buildable: True
+    extensions: CPP
+    hs-source-dirs: src
+    other-modules:
+        IDE.Metainfo.WorkspaceCollector IDE.Metainfo.InterfaceCollector
+        IDE.Metainfo.SourceCollectorH
+        IDE.Metainfo.SourceDB Paths_leksah_server
+    if (impl(ghc >= 6.12))
+       ghc-options: -Wall -fno-warn-unused-do-bind -ferror-spans -O2
+    else
+       ghc-options: -Wall -ferror-spans -O2
+    ghc-prof-options: -auto-all -prof
+
+executable leksah-server
+    build-depends: Cabal >=1.6.0.1 && <1.11, base >= 4.0.0.0 && <4.4, binary >=0.5.0.0 && <0.6,
+               binary-shared >=0.8 && <0.9, bytestring >=0.9.0.1 && <0.10,
+               containers >=0.2.0.0 && <0.5,
+               directory >=1.0.0.2 && <1.2, filepath >=1.1.0.1 && <1.3, ghc >=6.10.1 && <7.1,
+               ltk >=0.9 && <1.0, mtl >=1.1.0.2 && <2.1, parsec >=2.1.0.1 && <2.2,
+               pretty >=1.0.1.0 && <1.1, process-leksah >=1.0.1.3 && <1.1, time >=1.1 && <1.3, deepseq >=1.1 && <1.2,
+               hslogger >= 1.0.7 && <1.2, network >=2.2 && <3.0
+    if (impl(ghc >= 6.12))
+       build-depends: haddock >= 2.7.2 && <2.10
+    else
+       build-depends: haddock-leksah == 2.5.0
+
+    if os(windows)
+        build-depends: Win32 >=2.2.0.0 && <2.3
+        extra-libraries: kernel32
+    else
+        build-depends: unix >=2.3.1.0 && <2.5
+
+    if flag(curl) || os(osx)
+        cpp-options: -DUSE_CURL
+
+    if flag(libcurl)
+        build-depends: curl >=1.3.5 && <1.4
+        cpp-options: -DUSE_LIBCURL
+
+    main-is: IDE/Metainfo/Collector.hs
+    buildable: True
+    extensions: CPP
+    hs-source-dirs: src
+    other-modules: IDE.StrippedPrefs IDE.Utils.GHCUtils IDE.Utils.Utils
+        IDE.Core.CTypes IDE.Core.Serializable
+        IDE.Metainfo.WorkspaceCollector IDE.Metainfo.InterfaceCollector
+        IDE.Metainfo.SourceCollectorH IDE.Metainfo.SourceDB IDE.Utils.Tool
+        IDE.HeaderParser IDE.Metainfo.PackageCollector
+
+    if flag(threaded)
+        ghc-options: -threaded
+
+    if impl(ghc >= 7.0)
+        ghc-options: -rtsopts
+
+    if impl(ghc >= 6.12)
+        ghc-options: -Wall -fno-warn-unused-do-bind -ferror-spans -O2
+    else
+        ghc-options: -Wall -ferror-spans -O2
+    ghc-prof-options: -auto-all -prof
+
+executable leksahecho
+    main-is: LeksahEcho.hs
+    buildable: True
+    extensions: CPP
+    hs-source-dirs: src
+    ghc-prof-options: -auto-all -prof
+--    ghc-shared-options: -auto-all -prof
+    build-depends:  base >= 4.0.0.0 && <4.4, hslogger >= 1.0.7 && <1.2, deepseq >=1.1 && <1.2,
+                    process-leksah >=1.0.1.3 && <1.1
+
+
+    if flag(threaded)
+        ghc-options: -threaded
+
+    if (impl(ghc >= 6.12))
+       ghc-options: -Wall -fno-warn-unused-do-bind -ferror-spans -O2
+    else
+       ghc-options: -Wall -ferror-spans -O2
+
+
+
+
+package-hashes:
+    MD5:e6c7eaf6911661520aee37b702202b0e
+    SHA1:869216c74df0c8fbe0ca33166421451c019fe99a
+    SHA256:0f6d0e470724ace512850aa4f5d31d2d9be6e1cc3afcfa2058ac7fc73cedc1a6
+    SHA512:4fa4d7de1022b792f3f9273b39742d7c4a89ef8a9cd8305e02cf24526aa31d5e2f60ddc09dfd319e04445679fcc2a92017ca49c1ffb3e5bc6aa84fb02927c434
+    Skein512_512:6490421477b2b6c7aa1dd23c1f8af447df9215cd92bb6487af619c8fe97d640e255f83f7b03df0a4ea271b51ba54de8ef5b7647a68703201b82bfd2541772306
+
+package-locations:
+    https://hackage.haskell.org/package/leksah-server-0.10.0.3/leksah-server-0.10.0.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/leksah-server-0.10.0.3.tar.gz
+

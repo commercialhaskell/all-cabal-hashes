@@ -1,0 +1,102 @@
+Cabal-Version:      >= 1.2
+Name:               jsmw
+Version:            0.1
+Copyright:          2009, Dmitry Golubovsky
+Maintainer:         golubovsky@gmail.com
+License:            BSD3
+License-File:       LICENSE
+Build-Type:         Simple
+Author:             Dmitry Golubovsky
+Synopsis:           Javascript Monadic Writer base package.
+Description:
+    An EDSL inspired in part by HJ(ava)Script and HSP aimed at coding in typed
+    Javascript. It uses WebBits as the underlying representation of Javascript.
+    .
+    This package provides the basic API sufficient to create simple dynamic web pages.
+    .
+    Below is a simple example of a program that increments or decrements a value
+    in an input field depending on whether /Enter/ or /Shift-Enter/ was pressed.
+    .
+    Save this program in a file, and run @runghc@ on the file. Javascript will be output
+    to be placed into HEAD element of a blank HTML page. Give the page body attribute:
+    .
+    > <body onload="javascript:main()">
+    .
+    to run the script when the page loads.
+    .
+    A live example of this program is available here:
+    .
+    <http://code.haskell.org/yc2js/examples/ex1.html>
+    .
+    > module Main where
+    > 
+    > import Prelude hiding (putStrLn)
+    > import System.IO.UTF8
+    > import BrownPLT.JavaScript
+    > import BrownPLT.JavaScript.PrettyPrint
+    > import Control.Monad
+    > import Language.JSMW
+    > import Data.DOM
+    > import Data.DOM.Dom
+    > import Data.DOM.Html2
+    > import Data.DOM.Events
+    > import Data.DOM.KeyEvent
+    > import Data.DOM.HTMLHRElement
+    > import Data.DOM.HTMLInputElement
+    > 
+    > main = putStrLn $ show $ stmt $ 
+    >   FunctionStmt undefined (Id undefined "main") [] (getBlock ( runJSMW 0 q))
+    > 
+    > 
+    > q = do
+    >   passive (mkText $ string 
+    >     "Example 1: Press Enter to increase value, Shift-Enter to decrease value")
+    >   passive mkHr
+    >   mkInput `container` (do 
+    >     setHandler "keypress" plusOne
+    >     ask >>= set'value (string "0") >>= focus)
+    > 
+    > plusOne :: OnHandler TKeyEvent THTMLInputElement
+    > 
+    > plusOne e = do
+    >   c <- getm'keyCode e
+    >   switch (c) $ do
+    >     cDOM_VK_ENTER --> do i <- ask 
+    >                          v <- getm'value i
+    >                          vv <- switch v $ do
+    >                            "" --> stringM "0"
+    >                            none (return v)
+    >                          n <- parseInt vv 0
+    >                          shft <- get'shiftKey e
+    >                          n2 <- switch shft $ do
+    >                            True --> return (n - number 1)
+    >                            False --> return (n + number 1)
+    >                          once =<< (toString n2 >>= flip set'value i)
+    >                          return false
+    >     none (return true)
+    > 
+
+Category:           Language
+
+Library
+    build-depends: base >= 4.0.0, mtl, WebBits == 0.15, DOM == 2.0.1
+    Extensions: FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses, 
+                FunctionalDependencies, CPP
+    Exposed-modules:
+        Language.JSMW, Language.JSMW.Monad, Language.JSMW.Arith, 
+        Language.JSMW.Cond, Data.DOM.JSMWExt, Data.JSRef
+
+
+
+
+package-hashes:
+    MD5:51d62bd4aa3dbcd239d977c0fe074c1e
+    SHA1:17f4b2d91b9b50ba3956b9da6d4763b2b4b4bffc
+    SHA256:f87901fc858e38c5c13f4870196cf511b365f869dedb678aa5f80050a0e066e4
+    SHA512:b1db03bfba4f766f8b11debcbbf72490c49f2c0eef327bbda4ff68f04ea06e7e669f1b7ce3ca3713ece353577ff4c11af543bb926f01ab7bf431b210a40b96bd
+    Skein512_512:aed458adb91fdcf19fb088691749526e9352f5e394c5603ee204b7d34ae1589c3b0e4e5f0c412fee09b139efa73a92a5f78eae267475aaf3da2e8749cb97ef22
+
+package-locations:
+    https://hackage.haskell.org/package/jsmw-0.1/jsmw-0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/jsmw-0.1.tar.gz
+

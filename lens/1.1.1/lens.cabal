@@ -1,0 +1,200 @@
+name:          lens
+category:      Data, Lenses
+version:       1.1.1
+license:       BSD3
+cabal-version: >= 1.6
+license-file:  LICENSE
+author:        Edward A. Kmett
+maintainer:    Edward A. Kmett <ekmett@gmail.com>
+stability:     provisional
+homepage:      http://github.com/ekmett/lens/
+bug-reports:   http://github.com/ekmett/lens/issues
+copyright:     Copyright (C) 2012 Edward A. Kmett
+synopsis:      Families of Lenses, Folds and Traversals
+description:
+  The combinators in @Control.Lens@ provide a highly generic toolbox for composing
+  families of getters, folds, traversals, setters and lenses.
+  .
+  /Getter/
+  .
+  A @'Getter' a b c d@ is just any function @(a -> c)@, which we've flipped into continuation
+  passing style, @forall r. (c -> r) -> a -> r@ and decorated with 'Const' to obtain
+  .
+  > type Getter a b c d = forall r. (c -> Const r d) -> a -> Const r b
+  .
+  Everything you can do with a function, you can do with a 'Getter', but note that because of the
+  continuation passing style (.) composes them in the opposite order.
+  .
+  Since it is only a function, every 'Getter' obviously only retrieves a single value for a given
+  input.
+  .
+  /Fold/
+  .
+  A @'Fold' a b c d@ is a generalization of something 'Foldable'. It allows you to
+  extract multiple results from a container. A 'Foldable' container can be
+  characterized by the behavior of @foldMap :: (Foldable t, Monoid m) => (c -> m) -> t c -> m@.
+  Since we want to be able to work with monomorphic containers, we generalize this signature to
+  @forall m. 'Monoid' m => (c -> m) -> a -> m@, and then decorate it with 'Const' to obtain
+  .
+  > type Fold a b c d = forall m. Monoid m => (c -> Const m d) -> a -> Const m b
+  .
+  Every 'Getter' is a valid 'Fold' that simply doesn't use the 'Monoid' it is passed.
+  .
+  Everything you can do with a 'Foldable' container, you can with with a 'Fold' and there are
+  combinators that generalize the usual 'Foldable' operations in @Control.Lens@.
+  .
+  /Traversal/
+  .
+  A @'Traversal' a b c d@ is a generalization of 'traverse' from 'Traversable'. It allows
+  you to traverse over a structure and change out its contents with monadic or
+  applicative side-effects. Starting from
+  @'traverse' :: ('Traversable' t, 'Applicative' f) => (c -> f d) -> t c -> f (t d)@,
+  we monomorphize the contents and result to obtain
+  .
+  > type Traversal a b c d = forall f. Applicative f => (c -> f d) -> a -> f b
+  .
+  Every 'Traversal' can be used as a valid 'Fold', because given a 'Monoid' @m@, we have an 'Applicative' for @('Const' m)@.
+
+  Everything you can do with a 'Traversable' container, you can with with a 'Traversal', and there
+  are combinators that generalize the usual 'Traversable' operations in @Control.Lens@.
+  .
+  /Setter/
+  .
+  A @'Setter' a b c d@ is a generalization of 'fmap' from 'Functor'. It allows you to map into a
+  structure and change out the contents, but it isn't strong enough to allow you to
+  enumerate those contents. Starting with @fmap :: 'Functor' f => (c -> d) -> f c -> f d@
+  we monomorphize the type to obtain @(c -> d) -> a -> b@ and then decorate it with 'Identity' to obtain
+  .
+  > type Setter a b c d = (c -> Identity d) -> a -> Identity b
+  .
+  Every 'Traversal' is a valid 'Setter', since 'Identity' is 'Applicative'.
+  .
+  Everything you can do with a 'Functor', you can do with a 'Setter', and there are combinators that
+  generalize the usual 'Functor' operations in @Control.Lens@.
+  .
+  /Lens/
+  .
+  A @'Lens' a b c d@ is a purely functional reference.
+  .
+  While a 'Traversal' was a valid 'Fold', it wasn't a valid 'Getter'. To make the 'Applicative'
+  for 'Const' it required a 'Monoid' for the argument we passed it, which a 'Getter' doesn't recieve.
+  .
+  However, the instance of 'Functor' for 'Const' requires no such thing. If we weaken the type
+  requirement from 'Applicative' to 'Functor' for 'Traversal', we obtain 
+  .
+  > type Lens a b c d = forall f. Functor f => (c -> f d) -> a -> f b
+  .
+  Every 'Lens' is a valid 'Setter', choosing @f@ = 'Identity'.
+  .
+  Every 'Lens' is a valid 'Fold' that doesn't use the 'Monoid' it is passed.
+  .
+  Every 'Lens' is a valid 'Traversal' that only uses the 'Functor' part of the 'Applicative' it is supplied.
+  .
+  Every 'Lens' is a valid 'Getter', choosing @f@ = 'Const' @r@ for an appropriate @r@
+  .
+  Since every 'Lens' is a valid 'Getter' it follows that it must view exactly one element in the structure.
+  .
+  The lens laws follow from this property and the desire for it to act like a 'Functor' when used as a 'Setter'.
+  .
+  /Composition/
+  .
+  Note that all of these types are type aliases, and you can compose these lenses with mere function compositon.
+  .
+  This is a generalization of the well-known trick for @(.).(.)@ or @fmap.fmap@, and their less well-known cousins
+  @foldMap.foldMap@ @traverse.traverse@. It follows because each one is a function between values of type @(x -> f y)@
+  and the composition takes the intersection of supplied functionality for you automatically!
+  .
+  /Lens Families/
+  .
+  For a longer description of why you should care about lenses, and an overview of why we use 4
+  parameters a, b, c, and d instead of just 2, see <http://comonad.com/reader/2012/mirrored-lenses/>.
+  .
+  Sometimes you won't need the flexibility those extra parameters afford you and you can use
+  .
+  > type Simple f a b = f a a b b
+  .
+  to describe a 'Simple' 'Lens', 'Simple' 'Traversal' or 'Simple' 'Setter'.
+  .
+  /Avoiding Dependencies/
+  .
+  Note: If you merely want your library to /provide/ lenses you may not
+  have to actually import /any/ lens library at all. For, say, a
+  @'Simple' 'Lens' Bar Foo@, just export a function with the signature:
+  .
+  > foo :: Functor f => (Foo -> f Foo) -> Bar -> f Bar
+  .
+  and then you can compose it with other lenses using nothing more than @(.)@ from the Prelude.
+  .
+  /Deriving Lenses/
+  .
+  You can derive lenses automatically for many data types using 'Control.Lens.TH', and if a
+  container is fully characterized by its lenses, you can use 'Control.Lens.Representable' to
+  automatically derive 'Functor', 'Applicative', 'Monad', and 'Derivable'.
+
+build-type:    Simple
+tested-with:   GHC == 7.4.1
+extra-source-files: .travis.yml
+
+source-repository head
+  type: git
+  location: git://github.com/ekmett/lens.git
+
+library
+  exposed-modules:
+    Control.Exception.Lens
+    Control.Lens
+    Control.Lens.Internal
+    Control.Lens.Representable
+    Control.Lens.TH
+    Control.Parallel.Strategies.Lens
+    Data.Array.Lens
+    Data.Bits.Lens
+    Data.ByteString.Lens
+    Data.Complex.Lens
+    Data.Dynamic.Lens
+    Data.Map.Lens
+    Data.IntMap.Lens
+    Data.IntSet.Lens
+    Data.Sequence.Lens
+    Data.Set.Lens
+    Data.Text.Lens
+    Data.Tree.Lens
+
+  build-depends:
+    array            == 0.4.*,
+    base             == 4.*,
+    bytestring       == 0.9.*,
+    containers       >= 0.3   && < 0.6,
+    mtl              >= 2.1.1 && < 2.2,
+    parallel         == 3.2.*,
+    template-haskell >= 2.4   && < 2.8,
+    text             == 0.11.*,
+    transformers     >= 0.2   && < 0.4
+
+  other-extensions:
+    CPP
+    LiberalTypeSynonyms
+    MultiParamTypeClasses
+    Rank2Types
+    RankNTypes
+    TemplateHaskell
+
+  if (impl(ghc>=7.4))
+    other-extensions:
+      Trustworthy
+
+  ghc-options: -Wall -fwarn-tabs -O2 -fdicts-cheap -funbox-strict-fields
+  hs-source-dirs: src
+
+
+package-hashes:
+    MD5:996188ea297a808fba944cd85f91abad
+    SHA1:8b32aa693299aa412861dc5a0f764b58a6c09cd5
+    SHA256:05cb58bb0c028eddad1951f5fa9d90f03e99668def9b148b48d1dbf9b49adeab
+    SHA512:9f7a74f8860d6b0dea871b9805c8c7cd24e255f347ee2e7a2d798fd62291270af1e3c6c30748ab31b7f89f2992ab6f87e080a5c0aa4e3058d25f09871041c3c3
+    Skein512_512:6e1ee21b51218011c25427c0ac4fed963672b485921bbcf2a95d94bd05f25868c75ecc6fbce28f94b83d54c8badfcea79e72654f2a803966671268e1bfdb99f3
+
+package-locations:
+    https://hackage.haskell.org/package/lens-1.1.1/lens-1.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/lens-1.1.1.tar.gz
+

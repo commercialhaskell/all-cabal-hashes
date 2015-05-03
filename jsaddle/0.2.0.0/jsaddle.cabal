@@ -1,0 +1,119 @@
+name: jsaddle
+version: 0.2.0.0
+cabal-version: >=1.10
+license: MIT
+license-file: LICENSE
+maintainer: Hamish Mackenzie <Hamish.K.Mackenzie@googlemail.com>
+synopsis: High level interface for webkit-javascriptcore
+description: This package provides an EDSL for calling JavaScript code using
+             the JavaScriptCore engine and low level Haskell bindings
+             in the webkit-javascriptcore library <https://github.com/ghcjs/webkit-javascriptcore>.
+author: Hamish Mackenzie
+data-dir: ""
+category: Web, Javascript
+build-type: Simple
+
+Source-Repository head
+  type:         git
+  location:     https://github.com/ghcjs/jsaddle
+
+flag ghcjs
+    description: Tell cabal we are using ghcjs (work around until hackage supports impl(ghcjs))
+    default: True
+
+flag gtk3
+    Description: Use GTK3 rather than GTK2
+    Default: True
+
+flag jsffi
+    description: Use JavaScriptFFI extension for GHCJS JavaScript output
+    default: True
+
+flag webkit
+    description: Use WebKitGtk and JavaScriptCore for GHCJS output
+    default: False
+
+flag jmacro
+    description: Include some JMacro support
+    default: True
+
+library
+    -- Make sure ghcjs gets turned off if ghcjs-base is not avaialbe
+    if flag(ghcjs)
+        build-depends: ghcjs-base
+
+--    if impl(ghcjs) && flag(jsffi)
+    if flag(ghcjs) && flag(jsffi)
+        cpp-options: -DUSE_JAVASCRIPTFFI
+        build-depends: ghcjs-base
+
+--    if !impl(ghcjs) || flag(webkit)
+    if !flag(ghcjs) || flag(webkit)
+        cpp-options: -DUSE_WEBKIT
+        if flag(gtk3)
+            build-depends: webkitgtk3 >=0.13.0.0 && <0.14,
+                           webkitgtk3-javascriptcore >=0.13.0.0 && <0.14
+        else
+            build-depends: webkit >=0.13.0.0 && <0.14,
+                           webkit-javascriptcore >=0.13.0.0 && <0.14
+
+    if flag(jmacro)
+        exposed-modules: Language.Javascript.JSaddle.JMacro
+        build-depends: jmacro >=0.6.3 && <0.8
+
+    build-depends: template-haskell -any, base <5, lens >=3.8.5 && <4.4,
+                   text >=0.11.2.3 && <1.2, transformers >=0.3.0.0 && <0.5
+
+    exposed-modules: Language.Javascript.JSaddle
+                     Language.Javascript.JSaddle.Arguments Language.Javascript.JSaddle.Classes
+                     Language.Javascript.JSaddle.Evaluate Language.Javascript.JSaddle.Exception
+                     Language.Javascript.JSaddle.Monad
+                     Language.Javascript.JSaddle.Object Language.Javascript.JSaddle.Properties
+                     Language.Javascript.JSaddle.String Language.Javascript.JSaddle.Value
+                     Language.Javascript.JSaddle.Types
+    exposed: True
+    buildable: True
+    default-language: Haskell2010
+    hs-source-dirs: src
+    other-modules: Language.Javascript.JSaddle.PropRef
+
+test-suite test-tool
+    if flag(jsffi)
+        buildable: False
+
+--    if impl(ghcjs) && flag(jsffi)
+    if flag(ghcjs) && flag(jsffi)
+        cpp-options: -DUSE_JAVASCRIPTFFI
+        build-depends: ghcjs-base
+
+--    if !impl(ghcjs) || flag(webkit)
+    if !flag(ghcjs) || flag(webkit)
+        cpp-options: -DUSE_WEBKIT
+        build-depends: glib
+        if flag(gtk3)
+            build-depends: gtk3, webkitgtk3, webkitgtk3-javascriptcore
+        else
+            build-depends: gtk, webkit, webkit-javascriptcore
+
+    if flag(jmacro)
+        build-depends: jmacro
+
+    build-depends: template-haskell, base, lens, text,
+                   transformers, hslogger, jsaddle
+    type: exitcode-stdio-1.0
+    main-is: TestJSaddle.hs
+    default-language: Haskell2010
+    hs-source-dirs: tests
+
+
+package-hashes:
+    MD5:f3eea4f2c017096e0e2afa4d6574fbf5
+    SHA1:e4befbc2baffbb8da13d4715c0e7339170183214
+    SHA256:4865887a577e6ca7f59ffc801ef1d7cc67cf2a4a3a55850fb76de2c96f5fb0e6
+    SHA512:6602a9c7c90bf1b11d2517b850645cae17b9654ea655128a94321e305628b16310d591b254880652918a679a4daf90fa6b5b15a12aff0ccaf890cb9887bb57d8
+    Skein512_512:d2cd1c94bb12e577ce565c18cb19e44ddd04e79c173a8fd06571b5fb3dafc3345515f7df510830f62dcdc5db813f57833331632522caec9b350d5b5b4ff4d897
+
+package-locations:
+    https://hackage.haskell.org/package/jsaddle-0.2.0.0/jsaddle-0.2.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/jsaddle-0.2.0.0.tar.gz
+

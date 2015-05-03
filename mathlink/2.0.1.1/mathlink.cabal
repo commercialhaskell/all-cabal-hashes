@@ -1,0 +1,112 @@
+Name:                 mathlink
+Version:              2.0.1.1
+Cabal-Version:        >= 1.6
+Build-Type:           Custom
+License:              BSD3
+License-File:         LICENSE
+Copyright:            Copyright (c) Tracy Wadleigh 2009
+Author:               Tracy Wadleigh
+Maintainer:           <tracy.wadleigh@gmail.com>
+Bug-Reports:          mailto:tracy.wadleigh@gmail.com?subject=dev-mathlink
+Homepage:             http://community.haskell.org/~TracyWadleigh/mathlink
+
+Stability:            experimental
+Synopsis:             Write Mathematica packages in Haskell
+Tested-With:          GHC >= 6.10.1
+Category:             Foreign
+Extra-Source-Files:   INSTALL
+                      cbits/ml.h 
+                      example/README
+                      example/Test.hs
+                      example/test.sh
+Extra-Tmp-Files:      cbits/arch.h
+                      mathlink.buildinfo
+
+
+Description: {
+Makes it easy to write /Mathematica/ packages in Haskell. Just write some
+functions and provide a package specification in a simple DSL that 
+mimics that of /Mathematica/'s @mprep@ utility.
+.
+Data marshaling is accomplished via the 'MLGet' and 'MLPut' classes, which
+specify types that that can be read from or written to the /MathLink/
+connection. Instances of these classes are provided for the obvious 
+standard data types, including tuples, lists, and 'UArray's.
+.
+A Haskell function that is to be exposed to /Mathematica/ has the type
+signature @('MLGet' a, 'MLPut' b) => a -> 'ML' b@. The 'ML' monad provides
+single-threaded access to the /MathLink/ connection.
+.
+A simple example of a /Mathematica/ package:
+.
+@
+import Foreign.MathLink
+.
+\-- define a function
+addTwo :: (Int,Int) -> ML Int
+addTwo (x,y) = return $ x+y
+.
+\-- specify a package
+spec :: MLSpec
+spec =
+\    -- start a package definition
+\  [ Eval $ \"BeginPackage\":\@[St \"Test\`\"]
+.
+\    -- define a usage message for the public symbol
+\  , DeclMsg \"AddTwo\" \"usage\" \"AddTwo[..] adds a pair of numbers\"
+.
+\    -- open a new (private) namespace
+\  , Eval $ \"Begin\":\@[St \"\`Private\`\"]
+.
+\    -- declare the function
+\  , DeclFn &#123;
+\      callPattern = \"AddTwo[x_Integer,y_Integer]\"
+\    , argPattern = \"&#123;x,y&#125;\"
+\    , func = addTwo
+\    &#125;
+.
+\    -- close the namespaces
+\  , Eval $ \"End\":\@[]
+\  , Eval $ \"EndPackage\":\@[]
+\  ]
+.
+\-- runs the /MathLink/ connection
+main :: IO ()
+main = runMathLink spec
+@
+}
+
+Library
+  Build-Depends:      base >= 4.0 && < 4.3,
+                      mtl >= 1.1 && < 1.2,
+                      haskell98,
+                      array >= 0.2 && < 0.4,
+                      containers >= 0.2 && < 0.4,
+                      ix-shapable
+
+  Exposed-Modules:    Foreign.MathLink
+                      Foreign.MathLink.Expression
+                      Foreign.MathLink.Internal
+  Include-Dirs:       cbits
+  Includes:           ml.h mathlink.h
+  C-Sources:          cbits/ml.c
+
+  Build-Tools:        c2hs >= 0.16
+  Ghc-Options:        -fexcess-precision -funbox-strict-fields -Wall
+
+Source-Repository     head
+  Type:               darcs
+  Location:           http://community.haskell.org/~TracyWadleigh/darcs/mathlink/
+
+
+package-hashes:
+    MD5:1381fdc03d59d8bce986e74a07077210
+    SHA1:1734e0c84dddd6269d000ac6823816aaffdae889
+    SHA256:136317152f6158676036a4bccd13382a3198dc4edd53aab7e61a906c285cf8a9
+    SHA512:b9e6a95fb1d24bcb5b178f882a0f8dd17b1ffaeb1770f227587dc53400bbd204a896efb2c65efd15840e159283bb38b67c23f42bea06e4e6db2fda37f624db40
+    Skein512_512:03f9d52e9a94fe57f31ca54daa419d6f776671e256cc79d87fbff76e327792f9710fcf65db68bd7aa9e5cba0ac66f33d18a72e97a0f860429927d74421210836
+
+package-locations:
+    https://hackage.haskell.org/package/mathlink-2.0.1.1/mathlink-2.0.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/mathlink-2.0.1.1.tar.gz
+
