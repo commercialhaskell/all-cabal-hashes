@@ -1,0 +1,128 @@
+Name:                happstack-state
+Version:             0.5.0
+Synopsis:            Event-based distributed state.
+Description:         Unplug your machine and restart and have your app recover to exactly where it left off. Happstack-State spares you the need to deal with all the marshalling, consistency, and configuration headache that you would have if you used an external DBMS for this purpose. Its component model makes it easy to compose big applications from smaller reliable parts. Use event subscription to trigger IO actions and support comet-style or irc-bot applications. 
+License:             BSD3
+License-file:        COPYING
+Author:              Happstack team, HAppS LLC
+Maintainer:          Happstack team <happs@googlegroups.com>
+homepage:            http://happstack.com
+Category:            Web, Distributed Computing
+Cabal-Version:       >= 1.6
+Build-Type:          Simple
+
+source-repository head
+    type:     darcs
+    subdir:   happstack-state
+    location: http://patch-tag.com/r/mae/happstack/pullrepo
+
+flag base4
+
+Flag tests
+    Description: Build the testsuite, and include the tests in the library
+    Default: False
+
+flag replication
+    Description: Enable state replication through a central serialization service.
+    Default: False
+
+Library
+
+  Exposed-modules:     
+                       Happstack.State
+--                     Happstack.State.Logger
+                       Happstack.State.Saver
+                       Happstack.State.Control
+                       Happstack.State.Transaction
+                       Happstack.State.ComponentTH
+                       Happstack.State.ComponentSystem
+  if flag(tests)
+    Build-Depends:     QuickCheck >= 2 && <3, HUnit, network
+    Exposed-modules:   
+                       Happstack.State.Tests
+                       Happstack.State.Tests.Helpers
+                       Happstack.State.Tests.CheckpointProperties
+                       Happstack.State.Tests.SaverProperties
+  Other-modules:       
+                       Happstack.State.Checkpoint
+                       Happstack.State.Monad
+                       Happstack.State.Saver.Impl.File
+                       Happstack.State.Saver.Impl.Memory
+                       Happstack.State.Saver.Impl.Queue
+                       Happstack.State.Saver.Types
+                       Happstack.State.Types
+                       Happstack.State.Util
+                       Happstack.State.TxControl
+
+  Build-Depends:       binary,
+                       bytestring,
+                       containers,
+                       directory, 
+                       extensible-exceptions,
+                       filepath,
+                       hslogger >= 1.0.2,
+                       happstack-util >= 0.5 && < 0.6,
+                       happstack-data >= 0.5 && < 0.6,
+                       mtl,
+                       old-time,
+                       random,
+                       stm,
+                       template-haskell
+
+  if flag(replication)
+    Other-modules:     Happstack.State.CentralLogServer
+                       Happstack.State.NetworkChan
+    Build-Depends:     hS3 >= 0.5.1 && < 0.6,
+                       bencode >= 0.5,
+                       process,
+                       SHA >= 1.4.0 && < 2
+    cpp-options:       -DREPLICATION
+
+  if flag(base4)
+    Build-Depends:     base >= 4 && < 5, syb
+  else
+    Build-Depends:     base < 4
+
+  hs-source-dirs:      src
+  if flag(tests)
+    hs-source-dirs:    tests
+  
+  if !os(windows)
+     Build-Depends:    unix
+     cpp-options:      -DUNIX
+
+  Extensions:          TemplateHaskell, FlexibleInstances, FlexibleContexts,
+                       MultiParamTypeClasses, DeriveDataTypeable,
+                       OverlappingInstances, UndecidableInstances, CPP,
+                       TypeFamilies, FunctionalDependencies, TypeOperators,
+                       GADTs, EmptyDataDecls, ExistentialQuantification, RankNTypes,
+                       ScopedTypeVariables, PatternGuards,
+                       MagicHash, TypeSynonymInstances
+  if impl(ghc < 6.10)
+     Extensions:       PatternSignatures
+  ghc-options:         -Wall
+  GHC-Prof-Options:    -auto-all
+
+Executable happstack-state-tests
+  Main-Is: Test.hs
+  GHC-Options: -threaded
+  Build-depends: HUnit
+  hs-source-dirs: tests, src
+  if flag(tests)
+    Buildable: True
+  else
+    Buildable: False
+
+
+
+package-hashes:
+    MD5:9412cbdc645c25e8c81f4a5444b6e9ef
+    SHA1:7346305e785ad66295d94e1c9a5dbfb34461c4d9
+    SHA256:565280ebdcd24431ddf3411fea9522ddba472468829bee2a5fa771ecc50657c1
+    SHA512:d2a995e8457972983dc7af40dc5a416cc1c3257ee106ac0b6276fba112fe1a3073695c7cfcbe83d3c24f987c614eb8c9484b0d80cabefd6fa0a2af13b019a541
+    Skein512_512:86a104dcf16afdc496b60f409e0d9da9d2754af672999c31386b300c5e682dc830fde8d4599adef58bf56b870f3b65a5ff1a30f6cf53f8db2167b7af380ada8d
+
+package-locations:
+    https://hackage.haskell.org/package/happstack-state-0.5.0/happstack-state-0.5.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/happstack-state-0.5.0.tar.gz
+

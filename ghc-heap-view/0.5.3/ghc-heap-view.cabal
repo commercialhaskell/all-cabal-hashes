@@ -1,0 +1,111 @@
+Name:                ghc-heap-view
+Version:             0.5.3
+Synopsis:            Extract the heap representation of Haskell values and thunks
+Description:
+  This library provides functions to introspect the Haskell heap, for example
+  to investigate sharing and lazy evaluation.
+  .
+  It has been inspired by (and taken code from) the vacuum package and the GHCi
+  debugger, but also allows to investiage thunks and other closures. 
+  .
+  This package also provides a new GHCi-command, @:printHeap@, which allows you
+  to inspect the current heap representation of a value, including sharing and
+  cyclic references. To enable the command, you need to load the included ghci
+  script or add it to @~/.ghci@, as explained by @cabal install@. Once it is
+  set up, you can do this:
+  .
+  >> let value = "A Value"
+  >> let x = (value, if head value == 'A' then value else "", cycle [True, False])
+  >> :printHeap x
+  >let x1 = _bco
+  >    x21 = []
+  >in (x1,_bco,_bco)
+  >> length (take 100 (show x)) `seq` return () -- evaluate everything
+  >> :printHeap x
+  >let x1 = "A Value"
+  >    x16 = True : False : x16
+  >in (x1,x1,x16)
+  .
+  You can change the maximum recursion depth using @:setPrintHeapDepth@:
+  .
+  >> :setPrintHeapDepth 3
+  >> :printHeap x
+  >let x1 = C# 'A' : ... : ...
+  >in (x1,x1,True : ... : ...)
+  .
+  If the view is impaired by blackholes (written @_bh@), running
+  @System.Mem.performGC@ usually helps.
+  .
+  The work on this package has been supported by the Deutsche Telekom Stiftung
+  (<http://telekom-stiftung.de>).
+License:             BSD3
+License-file:        LICENSE
+Author:              Joachim Breitner, Dennis Felsing
+Maintainer:          Joachim Breitner <mail@joachim-breitner.de>
+Copyright:           2012-2014 Joachim Breitner
+bug-reports:         https://github.com/nomeata/ghc-heap-view
+Category:            Debug, GHC
+Build-type:          Custom
+Cabal-version:       >=1.14
+Extra-source-files:  Demo.hs
+data-files:          ghci
+
+Flag prim-supports-any
+    Description: The used GHC supports Any as an argument to foreign prim functions (GHC ticket #5931)
+    Default: False
+
+Flag ghc_7_7
+
+Library
+  Default-Language:    Haskell2010
+  Exposed-modules:
+    GHC.HeapView 
+    GHC.AssertNF 
+    GHC.Disassembler
+    GHC.HeapView.Debug
+  Build-depends:
+    base >= 4.5 && < 4.8,
+    containers,
+    transformers,
+    template-haskell,
+    bytestring >= 0.10,
+    binary
+  if flag(ghc_7_7)
+    build-depends: ghc >= 7.7
+    cc-options: -DGHC_7_7
+    cpp-options: -DGHC_7_7
+  else
+    build-depends: ghc < 7.7
+  C-Sources: cbits/HeapView.c cbits/HeapViewPrim.cmm
+  Hs-source-dirs: src/
+  Ghc-options: -Wall
+  default-language: Haskell2010
+
+  if flag(prim-supports-any)
+    cpp-options: -DPRIM_SUPPORTS_ANY
+ 
+test-suite Test
+  type:           exitcode-stdio-1.0
+  main-is:        Test.hs
+  build-depends:  base, ghc-heap-view, deepseq
+  default-language: Haskell2010
+  Ghc-options:    -O0
+
+  
+source-repository head
+  type:     git
+  location: git://git.nomeata.de/ghc-heap-view.git
+  subdir:   Cabal
+
+
+package-hashes:
+    MD5:387baf793c281d4e6a7d6afbaf3597fd
+    SHA1:9291d7cd28230bb557856312a89decaa3ad85f80
+    SHA256:008fd158b916929e9a95c020641aed33a5dbd27abc1c0a8369b076a81e8998c9
+    SHA512:48873e591a0c6dcd3f48c0b31037342c1a5599e99c5f5ae6c26dacc0bbc2f06ae68ec4ef4aca2e1bf7868e50aac268d2bf27e379be5baab2bc500dda76c88a36
+    Skein512_512:a8a0f5a5ed83fb5c268a55cd8daedc0f334becf26c22bec74efe17e05d65f87263df6c5ef93a94eff8a878e70099cd81dc3db0d53768b17d9aaade719efd044a
+
+package-locations:
+    https://hackage.haskell.org/package/ghc-heap-view-0.5.3/ghc-heap-view-0.5.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/ghc-heap-view-0.5.3.tar.gz
+

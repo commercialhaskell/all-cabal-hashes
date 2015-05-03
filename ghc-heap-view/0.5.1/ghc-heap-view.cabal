@@ -1,0 +1,93 @@
+Name:                ghc-heap-view
+Version:             0.5.1
+Synopsis:            Extract the heap representation of Haskell values and thunks
+Description:
+  This library provides functions to introspect the Haskell heap, for example
+  to investigate sharing and lazy evaluation.
+  .
+  It has been inspired by (and taken code from) the vacuum package and the GHCi
+  debugger, but also allows to investiage thunks and other closures. 
+  .
+  This package also provides a new GHCi-command, @:printHeap@, which allows you
+  to inspect the current heap representation of a value, including sharing and
+  cyclic references. To enable the command, you need to load the included ghci
+  script or add it to @~/.ghci@, as explained by @cabal install@. Once it is
+  set up, you can do this:
+  .
+  >> let value = "A Value"
+  >> let x = (value, if head value == 'A' then value else "", cycle [True, False])
+  >> :printHeap x
+  >let x1 = _bco
+  >    x21 = []
+  >in (x1,_bco,_bco)
+  >> length (take 100 (show x)) `seq` return () -- evaluate everything
+  >> :printHeap x
+  >let x1 = "A Value"
+  >    x16 = True : False : x16
+  >in (x1,x1,x16)
+  .
+  You can change the maximum recursion depth using @:setPrintHeapDepth@:
+  .
+  >> :setPrintHeapDepth 3
+  >> :printHeap x
+  >let x1 = C# 'A' : ... : ...
+  >in (x1,x1,True : ... : ...)
+  .
+  If the view is impaired by blackholes (written @_bh@), running
+  @System.Mem.performGC@ usually helps.
+  .
+  The work on this package has been supported by the Deutsche Telekom Stiftung
+  (<http://telekom-stiftung.de>).
+License:             BSD3
+License-file:        LICENSE
+Author:              Joachim Breitner, Dennis Felsing
+Maintainer:          Joachim Breitner <mail@joachim-breitner.de>
+Copyright:           2012-2013 Joachim Breitner
+Category:            Debug, GHC
+Build-type:          Custom
+Cabal-version:       >=1.14
+Extra-source-files:  Demo.hs
+data-files:          ghci
+
+Flag prim-supports-any
+    Description: The used GHC supports Any as an argument to foreign prim functions (GHC ticket #5931)
+    Default: False
+
+Library
+  Default-Language:    Haskell2010
+  Exposed-modules:
+    GHC.HeapView 
+    GHC.AssertNF 
+    GHC.Disassembler
+    GHC.HeapView.Debug
+  Build-depends:
+    base >= 4.5 && < 4.7,
+    containers,
+    transformers,
+    template-haskell,
+    bytestring >= 0.10,
+    binary,
+    ghc
+  C-Sources: cbits/HeapView.c cbits/HeapViewPrim.cmm
+  Hs-source-dirs: src/
+  Ghc-options: -Wall
+
+  if flag(prim-supports-any)
+    cpp-options: -DPRIM_SUPPORTS_ANY
+  
+source-repository head
+  type:     darcs
+  location: http://darcs.nomeata.de/ghc-heap-view/
+
+
+package-hashes:
+    MD5:5bbc91dbbca8fb6f652cc8397b750248
+    SHA1:ead097955ae91f5f61a83211e7766b4de013d90e
+    SHA256:36b82bfae789d84ce100fa8ba0096a9d1592cc989b89c6431f460a09ef7027e2
+    SHA512:454568951df79b68f1624736971eca824b080d428f44835bafde0f41bdec9efdf05fa1db091e3434ec3ed34ce5a680ff3dea5cf69c7bddf0814ae3386ec15a2b
+    Skein512_512:b3ceaf899d812f02106f79f6e1788f8bd4ff4657308176037545baaca67a941afaf7f8a915477e4cd750d3661ea02da7f68be7cafdd1589d738d952f52e74a66
+
+package-locations:
+    https://hackage.haskell.org/package/ghc-heap-view-0.5.1/ghc-heap-view-0.5.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/ghc-heap-view-0.5.1.tar.gz
+

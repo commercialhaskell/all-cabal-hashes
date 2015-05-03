@@ -1,0 +1,262 @@
+name:                 haddock
+version:              2.14.1
+x-revision: 2
+synopsis:             A documentation-generation tool for Haskell libraries
+description:          Haddock is a documentation-generation tool for Haskell
+                      libraries
+license:              BSD3
+license-file:         LICENSE
+author:               Simon Marlow, David Waern
+maintainer:           Simon Hengel <sol@typeful.net>, Mateusz Kowalczyk <fuuzetsu@fuuzetsu.co.uk>
+homepage:             http://www.haskell.org/haddock/
+bug-reports:          http://trac.haskell.org/haddock
+copyright:            (c) Simon Marlow, David Waern
+category:             Documentation
+build-type:           Simple
+cabal-version:        >= 1.10
+stability:            experimental
+
+extra-source-files:
+  CHANGES
+  README
+  doc/Makefile
+  doc/README
+  doc/aclocal.m4
+  doc/config.mk.in
+  doc/configure.ac
+  doc/docbook-xml.mk
+  doc/fptools.css
+  doc/haddock.xml
+  haddock.spec
+  haskell.vim
+  src/haddock.sh
+  html-test/src/*.hs
+  html-test/ref/*.html
+  latex-test/src/Simple/*.hs
+  latex-test/ref/Simple/*.tex
+  latex-test/ref/Simple/*.sty
+
+data-dir:   resources
+data-files: html/frames.html
+            html/haddock-util.js
+            html/Classic.theme/haskell_icon.gif
+            html/Classic.theme/minus.gif
+            html/Classic.theme/plus.gif
+            html/Classic.theme/xhaddock.css
+            html/Ocean.std-theme/hslogo-16.png
+            html/Ocean.std-theme/minus.gif
+            html/Ocean.std-theme/ocean.css
+            html/Ocean.std-theme/plus.gif
+            html/Ocean.std-theme/synopsis.png
+            latex/haddock.sty
+
+flag in-ghc-tree
+  description: Are we in a GHC tree?
+  default: False
+  manual: True
+
+-- Using this disables -O2, and hence allows to use --disable-optimization,
+-- which is about twice as fast.  This should probably be the default, but we
+-- need some benchmarks first..
+flag dev
+  default: False
+  manual: True
+
+executable haddock
+  default-language:     Haskell2010
+  main-is:              Main.hs
+  hs-source-dirs:       driver
+  if flag(dev)
+    ghc-options:          -funbox-strict-fields -Wall -fwarn-tabs
+  else
+    ghc-options:          -funbox-strict-fields -Wall -fwarn-tabs -O2
+
+  build-depends:
+    base >= 4.3 && < 4.8
+  if flag(in-ghc-tree)
+    hs-source-dirs: src, vendor/attoparsec-0.10.4.0
+    cpp-options: -DIN_GHC_TREE
+    build-depends:
+      filepath,
+      directory,
+      containers,
+      deepseq,
+      array,
+      xhtml >= 3000.2 && < 3000.3,
+      Cabal >= 1.10,
+      ghc >= 7.8.1 && < 7.8.3,
+      bytestring
+
+    other-modules:
+      Documentation.Haddock
+      Data.Attoparsec
+      Data.Attoparsec.ByteString
+      Data.Attoparsec.ByteString.Char8
+      Data.Attoparsec.Combinator
+      Data.Attoparsec.Number
+      Data.Attoparsec.ByteString.FastSet
+      Data.Attoparsec.ByteString.Internal
+      Data.Attoparsec.Internal
+      Data.Attoparsec.Internal.Types
+      Haddock
+      Haddock.Interface
+      Haddock.Interface.Rename
+      Haddock.Interface.Create
+      Haddock.Interface.AttachInstances
+      Haddock.Interface.LexParseRn
+      Haddock.Interface.ParseModuleHeader
+      Haddock.Parser
+      Haddock.Parser.Util
+      Haddock.Utf8
+      Haddock.Utils
+      Haddock.Backends.Xhtml
+      Haddock.Backends.Xhtml.Decl
+      Haddock.Backends.Xhtml.DocMarkup
+      Haddock.Backends.Xhtml.Layout
+      Haddock.Backends.Xhtml.Names
+      Haddock.Backends.Xhtml.Themes
+      Haddock.Backends.Xhtml.Types
+      Haddock.Backends.Xhtml.Utils
+      Haddock.Backends.LaTeX
+      Haddock.Backends.HaddockDB
+      Haddock.Backends.Hoogle
+      Haddock.ModuleTree
+      Haddock.Types
+      Haddock.Doc
+      Haddock.Version
+      Haddock.InterfaceFile
+      Haddock.Options
+      Haddock.GhcUtils
+      Haddock.Convert
+  else
+    build-depends:  haddock
+
+library
+  default-language:     Haskell2010
+
+  build-depends:
+    base >= 4.3 && < 4.8,
+    bytestring,
+    filepath,
+    directory,
+    containers,
+    deepseq,
+    array,
+    xhtml >= 3000.2 && < 3000.3,
+    Cabal >= 1.10,
+    ghc >= 7.8.1 && < 7.8.3
+
+  if flag(in-ghc-tree)
+    cpp-options: -DIN_GHC_TREE
+  else
+    build-depends: ghc-paths
+
+  hs-source-dirs:       src, vendor/attoparsec-0.10.4.0
+  if flag(dev)
+    ghc-options:          -funbox-strict-fields -Wall -fwarn-tabs
+  else
+    ghc-options:          -funbox-strict-fields -Wall -fwarn-tabs -O2
+
+  exposed-modules:
+    Documentation.Haddock
+
+  other-modules:
+    Data.Attoparsec
+    Data.Attoparsec.ByteString
+    Data.Attoparsec.ByteString.Char8
+    Data.Attoparsec.Combinator
+    Data.Attoparsec.Number
+    Data.Attoparsec.ByteString.FastSet
+    Data.Attoparsec.ByteString.Internal
+    Data.Attoparsec.Internal
+    Data.Attoparsec.Internal.Types
+    Haddock
+    Haddock.Interface
+    Haddock.Interface.Rename
+    Haddock.Interface.Create
+    Haddock.Interface.AttachInstances
+    Haddock.Interface.LexParseRn
+    Haddock.Interface.ParseModuleHeader
+    Haddock.Parser
+    Haddock.Parser.Util
+    Haddock.Utf8
+    Haddock.Utils
+    Haddock.Backends.Xhtml
+    Haddock.Backends.Xhtml.Decl
+    Haddock.Backends.Xhtml.DocMarkup
+    Haddock.Backends.Xhtml.Layout
+    Haddock.Backends.Xhtml.Names
+    Haddock.Backends.Xhtml.Themes
+    Haddock.Backends.Xhtml.Types
+    Haddock.Backends.Xhtml.Utils
+    Haddock.Backends.LaTeX
+    Haddock.Backends.HaddockDB
+    Haddock.Backends.Hoogle
+    Haddock.ModuleTree
+    Haddock.Types
+    Haddock.Doc
+    Haddock.Version
+    Haddock.InterfaceFile
+    Haddock.Options
+    Haddock.GhcUtils
+    Haddock.Convert
+    Paths_haddock
+
+  if flag(in-ghc-tree)
+    buildable: False
+
+test-suite html-test
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is:          run.lhs
+  hs-source-dirs:   html-test
+  build-depends:    base, directory, process, filepath, Cabal
+
+test-suite latex-test
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is:          run.lhs
+  hs-source-dirs:   latex-test
+  build-depends:    base, directory, process, filepath, Cabal
+
+test-suite spec
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is:          Spec.hs
+  hs-source-dirs:
+      test
+    , src
+    , vendor/attoparsec-0.10.4.0
+
+  other-modules:
+      Haddock.ParserSpec
+
+  build-depends:
+      base
+    , bytestring
+    , ghc
+    , containers
+    , deepseq
+    , array
+    , hspec
+    , QuickCheck == 2.*
+
+  build-depends:
+      haddock
+
+source-repository head
+  type:     git
+  location: http://git.haskell.org/haddock.git
+
+
+package-hashes:
+    MD5:5053bad191563f069caf52c121ad44c0
+    SHA1:36d8c5f28ec8825e97c7f464cdc712e3f6f68272
+    SHA256:a61bc20790c066244576193340ff5e1171c8b1540950476743ac34d73ebcb3d7
+    SHA512:d4ebaca2408cabe2f79b680e0768d3fbdd17fb1ec011e1e33ef36e87620803eb6842e50033af7619451a2920d160f59a0441a9833c5d6e0ebfb13ce456d141bc
+    Skein512_512:5f84e87f400b33dd6b97d03bc1c15efb44470c9a88fade017a88224a9180cbf33274bade069c9b3ba8ec5e7b4ab50c6460ddff65788aaf8138f4156461eba586
+
+package-locations:
+    https://hackage.haskell.org/package/haddock-2.14.1/haddock-2.14.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/haddock-2.14.1.tar.gz
+

@@ -1,0 +1,135 @@
+name:               hedis
+version:            0.4
+synopsis:
+    Client library for the Redis datastore: supports full command set,  
+    pipelining.
+Description:
+    Redis is an open source, advanced key-value store. It is often referred to
+    as a data structure server since keys can contain strings, hashes, lists,
+    sets and sorted sets. This library is a Haskell client for the Redis
+    datastore. Compared to other Haskell client libraries it has some
+    advantages:
+    .
+    [Complete Redis 2.4 command set:] All Redis commands
+        (<http://redis.io/commands>) are available as haskell functions, except
+        for the MONITOR and SYNC commands. Additionally, a low-level API is
+        exposed that  makes it easy for the library user to implement additional
+        commands, such as new commands from an experimental Redis version.
+    .
+    [Automatic Optimal Pipelining:] Commands are pipelined
+        (<http://redis.io/topics/pipelining>) as much as possible without any
+        work by the user. See
+        <http://informatikr.com/2012/redis-pipelining.html> for a
+        technical explanation of automatic optimal pipelining.
+    .
+    [Enforced Pub\/Sub semantics:] When subscribed to the Redis Pub\/Sub server
+        (<http://redis.io/topics/pubsub>), clients are not allowed to issue
+        commands other than subscribing to or unsubscribing from channels. This
+        library uses the type system to enforce the correct behavior.
+    .
+    [Connect via TCP or Unix Domain Socket:] TCP sockets are the default way to
+        connect to a Redis server. For connections to a server on the same
+        machine, Unix domain sockets offer higher performance than the standard
+        TCP connection.
+    .
+    For detailed documentation, see the "Database.Redis" module.
+    .
+    [Changes since version 0.3.2]
+    .
+    * Some commands got a 'Maybe' added to their return type, to properly handle
+        Redis returning @nil@-replies.
+    .
+    * Updated dependencies on @bytestring-lexing@ and @stm@.
+    .
+    * Minor improvements and fixes to the documentation.
+    .
+license:            BSD3
+license-file:       LICENSE
+author:             Falko Peters
+maintainer:         falko.peters@gmail.com
+copyright:          Copyright (c) 2011 Falko Peters
+category:           Database
+build-type:         Simple
+cabal-version:      >=1.8
+homepage:           https://github.com/informatikr/hedis
+bug-reports:        https://github.com/informatikr/hedis/issues
+
+source-repository head
+  type:     git
+  location: https://github.com/informatikr/hedis
+
+flag benchmark
+    description: Build the benchmark executable.
+    default: False
+
+flag test
+    description: Build the test suite.
+    default: False
+
+library
+  hs-source-dirs:   src
+  if flag(test)
+      ghc-options:  -Wall
+  else
+      ghc-options:  -Wall
+  ghc-prof-options: -auto-all
+  exposed-modules:  Database.Redis
+  build-depends:    attoparsec == 0.10.*,
+                    base == 4.*,
+                    bytestring == 0.9.*,
+                    bytestring-lexing == 0.4.*,
+                    mtl == 2.*,
+                    network == 2.*,
+                    resource-pool == 0.2.1.*,
+                    stm == 2.3.*,
+                    time
+
+  other-modules:    Database.Redis.Core,
+                    Database.Redis.PubSub,
+                    Database.Redis.Reply,
+                    Database.Redis.Request,
+                    Database.Redis.Types
+                    Database.Redis.Commands,
+                    Database.Redis.ManualCommands
+
+executable hedis-benchmark
+    main-is: benchmark/Benchmark.hs
+    if flag(benchmark)
+        build-depends:
+            base == 4.*,
+            mtl == 2.*,
+            hedis,
+            time >= 1.2
+    else
+        buildable: False
+    ghc-options: -Wall -rtsopts
+    ghc-prof-options: -auto-all
+
+executable hedis-test
+    main-is: test/Test.hs
+    if flag(test)
+        build-depends:
+            base == 4.*,
+            bytestring == 0.9.*,
+            hedis,
+            HUnit == 1.2.*,
+            mtl == 2.*,
+            time
+    else
+        buildable: False
+    -- We use -O0 here, since GHC takes *very* long to compile so many constants
+    ghc-options: -O0 -Wall -rtsopts -fno-warn-unused-do-bind
+    ghc-prof-options: -auto-all
+    
+
+package-hashes:
+    MD5:73750cae314d6a1db54b8b6f48c474c4
+    SHA1:e0257dafff5810a27120e755a62e67e741e4d923
+    SHA256:a078f454edd8e225a34a303c3cdcb77c33a4c6536d717a648ec9f92cae1d4bc9
+    SHA512:3b20ca9ef2d0ea5964423ffd4d49f4b0131845748370e8078afcb17f151a266bb322806c3957f4859bcba0349e72673833b03f85caa9dc55d7281f9660bb4369
+    Skein512_512:c26c1647cfab3b75ea07e96f089fd5e3f347656109bbb2a7a0f9c923f8a042a53bd3c7b944a457846dae6a155b08bfe8a672f701e5f6fc58c47771bf2e11fa9f
+
+package-locations:
+    https://hackage.haskell.org/package/hedis-0.4/hedis-0.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hedis-0.4.tar.gz
+

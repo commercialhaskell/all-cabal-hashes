@@ -1,0 +1,223 @@
+name: gf
+version: 3.3
+
+cabal-version: >= 1.8
+build-type: Custom
+license: OtherLicense
+license-file: LICENSE
+category: Natural Language Processing, Compiler
+synopsis: Grammatical Framework
+description: GF, Grammatical Framework, is a programming language for multilingual grammar applications
+homepage: http://www.grammaticalframework.org/
+bug-reports: http://code.google.com/p/grammatical-framework/issues/list
+tested-with: GHC==6.12.3, GHC==7.0.3
+
+data-dir: src
+data-files: www/index.html
+	    www/gfse/*.html
+	    www/gfse/*.css
+	    www/gfse/*.js
+	    www/gfse/P/*.png
+	    www/gfse/P/*.jpg
+	    www/minibar/*.html
+	    www/minibar/*.css
+	    www/minibar/*.js
+	    www/minibar/*.png
+
+source-repository head
+  type:     darcs
+  location: http://www.grammaticalframework.org/
+
+
+flag interrupt
+  Description: Enable Ctrl+Break in the shell
+  Default:     True
+
+flag server
+  Description: Include --server mode
+  Default:     True
+
+flag cclazy
+  Description: Use the new, lazy compute_concrete (faster than the old, strict version)
+  Default: True
+
+library
+  build-depends: base >= 4.2 && <5,
+                 array,
+                 fst,
+                 containers,
+                 bytestring,
+                 random,
+                 pretty,
+                 mtl
+  ghc-options: -O2
+  hs-source-dirs: src/compiler src/runtime/haskell
+  extensions: 
+  exposed-modules: 
+    PGF
+  other-modules:
+    PGF.CId
+    PGF.Data
+    PGF.Macros
+    PGF.Generate
+    PGF.Linearize
+    PGF.Parse
+    PGF.SortTop
+    PGF.Expr
+    PGF.Type
+    PGF.Tree
+    PGF.Tokenizer
+    PGF.Paraphrase
+    PGF.TypeCheck
+    PGF.Binary
+    PGF.Morphology
+    PGF.VisualizeTree
+    PGF.Printer
+    PGF.Probabilistic
+    PGF.Forest
+    PGF.Optimize
+    PGF.Signature
+    GF.Data.TrieMap
+    GF.Data.Utilities
+    GF.Data.SortedList
+    GF.Data.ErrM
+    GF.Data.Relation
+    GF.Data.Operations
+-- not really part of GF but I have changed the original binary library
+-- and we have to keep the copy for now.
+    Data.Binary
+    Data.Binary.Put
+    Data.Binary.Get
+    Data.Binary.Builder
+    Data.Binary.IEEE754
+
+executable gf
+  build-depends: base >= 4.2,
+                 array,
+                 containers,
+                 bytestring,
+                 filepath,
+                 fst,
+                 directory,
+                 random,
+                 old-time,
+                 process,
+                 pretty,
+                 mtl,
+                 haskeline
+  if flag(server)
+    build-depends: httpd-shed, network, silently, utf8-string, json, cgi
+    cpp-options: -DSERVER_MODE
+    other-modules: GFServer
+    hs-source-dirs: src/server src/server/transfer src/example-based
+
+  build-tools: happy, alex>=2 && <3
+  if os(windows)
+    build-depends: Win32
+  else
+    build-depends: unix
+
+  ghc-prof-options: -auto-all
+
+  ghc-options: -O2
+  if impl(ghc>=7.0)
+    ghc-options: -rtsopts
+  hs-source-dirs: src/compiler src/runtime/haskell
+  extensions:
+  main-is: GF.hs
+  other-modules:
+    GF.Data.BacktrackM
+    GF.Data.TrieMap
+    GF.Data.Utilities
+    GF.Data.SortedList
+    GF.Data.ErrM
+    GF.Data.Operations
+    GF.Data.Str
+    GF.JavaScript.AbsJS
+    GF.JavaScript.PrintJS
+    GF.Infra.Ident
+    GF.Infra.Modules
+    GF.Infra.GetOpt
+    GF.Infra.Option
+    GF.Infra.UseIO
+    GF.Infra.CheckM
+    GF.Command.Commands
+    GF.Command.Interpreter
+    GF.Command.Abstract
+    GF.Command.Parse
+    GF.Command.Importing
+    GF.Grammar
+    GF.Grammar.Lexer
+    GF.Grammar.Parser
+    GF.Grammar.Grammar
+    GF.Grammar.Values
+    GF.Grammar.Macros
+    GF.Grammar.Lockfield
+    GF.Grammar.MMacros
+    GF.Grammar.Lookup
+    GF.Grammar.Unify
+    GF.Grammar.PatternMatch
+    GF.Grammar.Printer
+    GF.Grammar.ShowTerm
+    GF.Grammar.Binary
+    GF.Compile.Update
+    GF.Compile.CheckGrammar
+    GF.Compile.Refresh
+    GF.Compile.Rename
+    GF.Compile.ReadFiles
+    GF.Compile.GrammarToPGF
+    GF.Compile.ToAPI
+    GF.Compile.TypeCheck.Abstract
+    GF.Compile.TypeCheck.Concrete
+    GF.Compile.TypeCheck.TC
+    GF.Compile.Compute.Abstract
+    GF.Compile.Compute.Concrete
+    GF.Compile.Compute.AppPredefined
+    GF.Compile.Optimize
+    GF.Compile.SubExOpt
+    GF.Compile.GetGrammar
+    GF.Compile.PGFtoHaskell
+    GF.Compile.PGFtoProlog
+    GF.Compile.PGFtoJS
+    GF.Compile
+    GF.Index
+    GF.Quiz
+    PGF
+    PGF.CId
+    PGF.Data
+    PGF.Expr
+    PGF.Type
+    PGF.Tree
+    PGF.Macros
+    PGF.Generate
+    PGF.Linearize
+    PGF.Binary
+    PGF.Paraphrase
+    PGF.TypeCheck
+    PGF.Binary
+    PGF.Printer
+    PGF.Optimize
+    GFC
+    GFI
+
+  if flag(interrupt)
+    cpp-options: -DUSE_INTERRUPT
+    other-modules: GF.System.UseSignal
+  else
+    other-modules: GF.System.NoSignal
+
+  if flag(cclazy)
+    cpp-options: -DCC_LAZY
+
+
+package-hashes:
+    MD5:e6f5937339ef9b477e779d70d661ce2e
+    SHA1:9a6315d5a0d50e8dcc643a5a23582e87bf7e5efd
+    SHA256:c326bb798d60f52d200f2e1f84bd1a0d4d15e0edacebcc2da48a44c575b929a5
+    SHA512:a5c082c344e2c8f07bb82c0b3421343d99e1af226750022cab7ae41211c7a8c980f9f08744a49653fcb8758d0b72bb0e89c39e71d1c9e63f5f495a10cfe11e75
+    Skein512_512:6dd978def302ac80bb8efce15bdb6660ac1894c3d96af7458c9137b2b22283da1d25e41bf9970c43d3de448326abdd261af54ec13cdd720a66a9486c94be0903
+
+package-locations:
+    https://hackage.haskell.org/package/gf-3.3/gf-3.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/gf-3.3.tar.gz
+

@@ -1,0 +1,95 @@
+Name:                   google-oauth2
+Version:                0.1.0
+Author:                 Pat Brisbin <pbrisbin@gmail.com>
+Maintainer:             Pat Brisbin <pbrisbin@gmail.com>
+License:                MIT
+License-File:           LICENSE
+Synopsis:               Google OAuth2 token negotiation
+Description:
+  Interacting with the Google OAuth2 authorization API
+  .
+  1. Prompt the user for a verification code
+  2. POST that code to the Google API for a set of tokens (access and refresh)
+  3. Use the access token until it expires
+  4. Use the refresh token to get a new access token
+  5. Repeat from 3
+  .
+  Example usage:
+  .
+  > import Data.Monoid
+  > import Network.Google.OAuth2
+  > import Network.HTTP.Conduit
+  > import Network.HTTP.Types (hAuthorization)
+  >
+  > import qualified Data.ByteString.Char8 as B8
+  > import qualified Data.ByteString.Lazy.Char8 as L8
+  >
+  > main :: IO ()
+  > main = do
+  >     let client = OAuth2Client clientId clientSecret
+  >         scopes = ["https://www.googleapis.com/auth/drive"]
+  >
+  >     token <- getAccessToken client scopes Nothing
+  >
+  >     request <- parseUrl "https://www.googleapis.com/drive/v2/files"
+  >     response <- withManager $ httpLbs $ authorize token request
+  >
+  >     L8.putStrLn $ responseBody response
+  >
+  >  where
+  >    authorize token request = request
+  >        -- Note: haddock chokes on curly braces for some reason, so I'm using
+  >        -- parens here instead.
+  >        ( requestHeaders = [(hAuthorization, B8.pack $ "Bearer " <> token)] )
+  >
+  >    -- Setup in Google Developers Console
+  >    clientId = "..."
+  >    clientSecret = "..."
+  .
+
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall
+  Exposed-Modules:      Network.Google.OAuth2
+  Build-Depends:        base >= 4 && < 5
+                      , HTTP            >= 4000.2       && < 4000.3
+                      , aeson           >= 0.8          && < 0.9
+                      , bytestring
+                      , http-conduit
+  Default-Extensions:   OverloadedStrings
+                        RecordWildCards
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       test
+  Ghc-Options:          -Wall
+  Main-Is:              Spec.hs
+  Build-Depends:        base
+                      , google-oauth2
+                      , hspec
+                      , bytestring
+                      , http-conduit
+                      , http-types
+                      , load-env
+
+Source-Repository head
+  Type:                 git
+  Location:             https://github.com/pbrisbin/google-oauth2
+
+
+package-hashes:
+    MD5:01414ee3ee4219b59e84ba70be35873c
+    SHA1:3b41c57f2dc75bdd9e99a4f6155b482d768a311a
+    SHA256:06f2bdd9cb6f753c826eafef1a65d13ec2154b7d6095572524f7bfdd5536c86a
+    SHA512:ab4ad8e16c8df164624a9fd080dede63478c672e113ccfbd3df729c7f5f0afbf340aafb6fbb94b513c37f16b7c524f1547b75840878fdd282133a9a6d5453d9e
+    Skein512_512:7488764dbe7c735a663305f0dd75b89a4e9792580b24cb4b2b6d909e450616d5c025f5a54883101cfa29637d4d0fda15fbf7365ddb5688c3b1eb18d450972c52
+
+package-locations:
+    https://hackage.haskell.org/package/google-oauth2-0.1.0/google-oauth2-0.1.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/google-oauth2-0.1.0.tar.gz
+

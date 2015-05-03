@@ -1,0 +1,121 @@
+Name: git-annex
+Version: 3.20121009
+Cabal-Version: >= 1.8
+License: GPL
+Maintainer: Joey Hess <joey@kitenet.net>
+Author: Joey Hess
+Stability: Stable
+Copyright: 2010-2012 Joey Hess
+License-File: COPYRIGHT
+Homepage: http://git-annex.branchable.com/
+Build-type: Custom
+Category: Utility
+Synopsis: manage files with git, without checking their contents into git
+Description:
+ git-annex allows managing files with git, without checking the file
+ contents into git. While that may seem paradoxical, it is useful when
+ dealing with files larger than git can currently easily handle, whether due
+ to limitations in memory, time, or disk space.
+ .
+ Even without file content tracking, being able to manage files with git,
+ move files around and delete files with versioned directory trees, and use
+ branches and distributed clones, are all very handy reasons to use git. And
+ annexed files can co-exist in the same git repository with regularly
+ versioned files, which is convenient for maintaining documents, Makefiles,
+ etc that are associated with annexed files but that benefit from full
+ revision control.
+
+Flag S3
+  Description: Enable S3 support
+
+Flag Inotify
+  Description: Enable inotify support
+
+Flag Dbus
+  Description: Enable dbus support
+
+Flag Assistant
+  Description: Enable git-annex assistant and watch command
+
+Flag Webapp
+  Description: Enable git-annex webapp
+
+Flag Pairing
+  Description: Enable pairing
+
+Executable git-annex
+  Main-Is: git-annex.hs
+  Build-Depends: MissingH, hslogger, directory, filepath,
+   unix, containers, utf8-string, network, mtl, bytestring, old-locale, time,
+   pcre-light, extensible-exceptions, dataenc, SHA, process, json, HTTP,
+   base == 4.5.*, monad-control, transformers-base, lifted-base,
+   IfElse, text, QuickCheck >= 2.1, bloomfilter, edit-distance, process
+  -- Need to list these because they're generated from .hsc files.
+  Other-Modules: Utility.Touch Utility.Mounts
+  Include-Dirs: Utility
+  C-Sources: Utility/libdiskfree.c Utility/libmounts.c
+  if (! os(linux))
+    C-Sources: Utility/libkqueue.c
+  Extensions: CPP
+  GHC-Options: -threaded
+
+  if flag(S3)
+    Build-Depends: hS3
+    CPP-Options: -DWITH_S3
+
+  if flag(Assistant)
+    Build-Depends: stm >= 2.3
+    CPP-Options: -DWITH_ASSISTANT
+
+  if os(linux) && flag(Inotify)
+    Build-Depends: hinotify
+    CPP-Options: -DWITH_INOTIFY
+  else
+    if (! os(windows))
+      CPP-Options: -DWITH_KQUEUE
+
+  if os(linux) && flag(Dbus)
+    Build-Depends: dbus
+    CPP-Options: -DWITH_DBUS
+
+  if flag(Webapp) && flag(Assistant)
+    Build-Depends: yesod, yesod-static, case-insensitive,
+     http-types, transformers, wai, wai-logger, warp, blaze-builder,
+     blaze-html, crypto-api, hamlet, clientsession,
+     template-haskell, yesod-default (>= 1.1.0), data-default
+    CPP-Options: -DWITH_WEBAPP
+
+  if flag(Pairing) && flag(Webapp)
+    Build-Depends: network-multicast, network-info
+    CPP-Options: -DWITH_PAIRING
+
+Test-Suite test
+  Type: exitcode-stdio-1.0
+  Main-Is: test.hs
+  Build-Depends: testpack, HUnit, MissingH, hslogger, directory, filepath,
+   unix, containers, utf8-string, network, mtl, bytestring, old-locale, time,
+   pcre-light, extensible-exceptions, dataenc, SHA, process, json, HTTP,
+   base == 4.5.*, monad-control, transformers-base, lifted-base,
+   IfElse, text, QuickCheck >= 2.1, bloomfilter, edit-distance, process
+  Other-Modules: Utility.Touch
+  Include-Dirs: Utility
+  C-Sources: Utility/libdiskfree.c
+  Extensions: CPP
+  GHC-Options: -threaded
+
+source-repository head
+  type: git
+  location: git://git-annex.branchable.com/
+
+
+package-hashes:
+    MD5:8e7616ce18cf7ec71086ab84ce566b21
+    SHA1:c3ccdaa265bef3bbbcd6a5c0a0c78df52340976e
+    SHA256:94ce6134506b82a9709f754b246c5f029c76fcb4540a342eac95fe955acbea02
+    SHA512:1c5e79b4bd2fe11dcc7c8e2eef65b59f0776c1ddc40621c5c06d2c92e8ee32280ea1a7bd8905894868fd9cc95233f4f0baeaef5d9b9ebd502fecba33a3f29bfe
+    Skein512_512:e2368a2d903139aa5d8b809aa02a6babbdbc90307013dfdf6139a56457dba928530f4d160b5fb7df46712b70cab0ce32dced625d32c1f6230091cce8fac7006a
+
+package-locations:
+    https://hackage.haskell.org/package/git-annex-3.20121009/git-annex-3.20121009.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/git-annex-3.20121009.tar.gz
+

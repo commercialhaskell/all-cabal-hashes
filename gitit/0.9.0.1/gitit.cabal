@@ -1,0 +1,206 @@
+name:                gitit
+version:             0.9.0.1
+Cabal-version:       >= 1.6
+build-type:          Simple
+synopsis:            Wiki using happstack, git or darcs, and pandoc.
+description:         Gitit is a wiki backed by a git, darcs, or mercurial
+                     filestore.  Pages and uploaded files can be modified either
+                     directly via the VCS's command-line tools or through
+                     the wiki's web interface. Pandoc is used for markup
+                     processing, so pages may be written in
+                     (extended) markdown, reStructuredText, LaTeX, HTML,
+                     or literate Haskell, and exported in ten different
+                     formats, including LaTeX, ConTeXt, DocBook, RTF,
+                     OpenOffice ODT, and MediaWiki markup.
+                     .
+                     Notable features include
+                     .
+                     * plugins: dynamically loaded page
+                       transformations written in Haskell (see
+                       "Network.Gitit.Interface")
+                     .
+                     * conversion of TeX math to MathML for display in
+                       web browsers
+                     .
+                     * syntax highlighting of source code
+                       files and code snippets
+                     .
+                     * Atom feeds (site-wide and per-page)
+                     .
+                     * a library, "Network.Gitit", that makes it simple
+                       to include a gitit wiki in any happstack application
+                     .
+                     You can see a running demo at <http://gitit.net>.
+                     .
+                     For usage information:  @gitit --help@
+
+category:            Network
+license:             GPL
+license-file:        LICENSE
+author:              John MacFarlane
+maintainer:          jgm@berkeley.edu
+bug-reports:         http://github.com/jgm/gitit/issues
+homepage:            http://gitit.net
+stability:           experimental
+data-files:          data/static/css/screen.css, data/static/css/print.css,
+                     data/static/css/ie.css, data/static/css/hk-pyg.css,
+                     data/static/css/reset-fonts-grids.css,
+                     data/static/css/custom.css,
+                     data/static/img/logo.png, data/static/img/icons/feed.png,
+                     data/static/img/icons/folder.png, data/static/img/icons/page.png,
+                     data/static/js/dragdiff.js, data/static/js/jquery.min.js,
+                     data/static/js/uploadForm.js, data/static/js/jquery-ui.packed.js,
+                     data/static/js/jquery.hotkeys-0.7.9.min.js,
+                     data/static/js/preview.js, data/static/js/search.js,
+                     data/static/js/MathMLinHTML.js, data/static/js/footnotes.js,
+                     data/static/robots.txt,
+                     data/s5/default/blank.gif,
+                     data/s5/default/bodybg.gif,
+                     data/s5/default/framing.css,
+                     data/s5/default/iepngfix.htc,
+                     data/s5/default/opera.css,
+                     data/s5/default/outline.css,
+                     data/s5/default/pretty.css,
+                     data/s5/default/print.css,
+                     data/s5/default/s5-core.css,
+                     data/s5/default/slides.css,
+                     data/s5/default/slides.js,
+                     data/s5/default/slides.min.js,
+                     data/post-update, data/FrontPage.page, data/Help.page,
+                     data/markup.Markdown, data/markup.RST,
+                     data/markup.HTML, data/markup.LaTeX,
+                     data/default.conf,
+                     data/templates/page.st, data/templates/content.st,
+                     data/templates/userbox.st, data/templates/footer.st,
+                     data/templates/logo.st, data/templates/markuphelp.st,
+                     data/templates/pagetools.st, data/templates/sitenav.st,
+                     data/templates/messages.st, data/templates/listitem.st,
+                     data/templates/expire.st, data/templates/getuser.st,
+                     data/markupHelp/Markdown, data/markupHelp/Markdown+LHS,
+                     data/markupHelp/RST, data/markupHelp/RST+LHS,
+                     data/markupHelp/LaTeX, data/markupHelp/LaTeX+LHS,
+                     data/markupHelp/HTML,
+                     plugins/CapitalizeEmphasis.hs,
+                     plugins/PigLatin.hs,
+                     plugins/Dot.hs,
+                     plugins/ImgTex.hs,
+                     plugins/Interwiki.hs,
+                     plugins/Deprofanizer.hs,
+                     plugins/WebArchiver.hs,
+                     plugins/ShowUser.hs,
+                     plugins/Signature.hs,
+                     plugins/Subst.hs,
+                     CHANGES, README.markdown, YUI-LICENSE, BLUETRIP-LICENSE, TANGOICONS
+
+Source-repository head
+  type:          git
+  location:      git://github.com/jgm/gitit.git
+
+Flag plugins
+  description:       Compile in support for plugins.  This will increase the size of
+                     the executable and the memory it uses, so those who will not need
+                     plugins should disable this flag.
+  default:           True
+
+Library
+  hs-source-dirs:    .
+  exposed-modules:   Network.Gitit, Network.Gitit.ContentTransformer,
+                     Network.Gitit.Types, Network.Gitit.Framework,
+                     Network.Gitit.Initialize, Network.Gitit.Config,
+                     Network.Gitit.Layout, Network.Gitit.Authentication
+  other-modules:     Network.Gitit.Cache, Network.Gitit.State,
+                     Paths_gitit, Network.Gitit.Server, Network.Gitit.Export,
+                     Network.Gitit.Util, Network.Gitit.Handlers,
+                     Network.Gitit.Plugins, Network.Gitit.Rpxnow,
+                     Network.Gitit.Page, Network.Gitit.Feed
+  if flag(plugins)
+    exposed-modules: Network.Gitit.Interface
+    build-depends:   ghc, ghc-paths
+    cpp-options:     -D_PLUGINS
+  build-depends:     base >= 3, pandoc >= 1.9.0.5 && < 1.10,
+                     pandoc-types >= 1.9.0.2 && < 1.10, filepath, safe
+  extensions:        CPP
+  if impl(ghc >= 6.12)
+    ghc-options:     -Wall -fno-warn-unused-do-bind
+  else
+    ghc-options:     -Wall
+  ghc-prof-options:  -auto-all -caf-all
+
+Executable           gitit
+  hs-source-dirs:    .
+  main-is:           gitit.hs
+  build-depends:     base >=3 && < 5,
+                     parsec,
+                     pretty,
+                     xhtml,
+                     containers,
+                     pandoc >= 1.9.0.5 && < 1.10,
+                     pandoc-types >= 1.9.0.2 && < 1.10,
+                     process,
+                     filepath,
+                     directory,
+                     mtl,
+                     cgi,
+                     old-time,
+                     highlighting-kate >= 0.5.0.1 && < 0.6,
+                     bytestring,
+                     text,
+                     random,
+                     network >= 2.1.0.0 && < 2.4,
+                     utf8-string >= 0.3 && < 0.4,
+                     SHA > 1 && < 1.6,
+                     HTTP >= 4000.0 && < 4000.3,
+                     HStringTemplate >= 0.6 && < 0.7,
+                     old-locale >= 1,
+                     time >= 1.1 && < 1.5,
+                     recaptcha >= 0.1,
+                     filestore >= 0.4.0.2 && < 0.5,
+                     zlib >= 0.5 && < 0.6,
+                     url >= 2.1 && < 2.2,
+                     happstack-server >= 6.6 && < 7.1,
+                     base64-bytestring >= 0.1 && < 0.2,
+                     xml >= 1.3.5,
+                     hslogger >= 1 && < 1.2,
+                     ConfigFile >= 1 && < 1.2,
+                     feed >= 0.3.6 && < 0.4,
+                     xss-sanitize >= 0.3 && < 0.4,
+                     tagsoup >= 0.12 && < 0.13,
+                     blaze-html >= 0.4 && < 0.5,
+                     json >= 0.4 && < 0.6
+  if impl(ghc >= 6.10)
+    build-depends:   base >= 4, syb
+  if impl(ghc >= 7.0.3)
+    -- without this, 'cabal install' tries to install an older
+    -- version of network; I'm not sure why:
+    build-depends:   network >= 2.3 && < 2.4
+  if flag(plugins)
+    build-depends:   ghc, ghc-paths
+    cpp-options:     -D_PLUGINS
+  extensions:        CPP
+  if impl(ghc >= 6.12)
+    ghc-options:     -Wall -threaded -fno-warn-unused-do-bind
+  else
+    ghc-options:     -Wall -threaded
+  ghc-prof-options:  -auto-all -caf-all
+
+Executable           expireGititCache
+  hs-source-dirs:    .
+  main-is:           expireGititCache.hs
+  build-depends:     base >=3 && < 5, HTTP, url, filepath
+  if impl(ghc >= 6.10)
+    build-depends:   base >= 4, syb
+  ghc-options:       -Wall
+
+
+
+package-hashes:
+    MD5:c187ea4361f660bd8aa7dd1add8f618e
+    SHA1:10a8660600a496cc735d2f9d8b6b3ecbc89df492
+    SHA256:7550894dbad06bacaec2143980d694da13c70119435597a10f86897337363fcc
+    SHA512:c9a034f645ed9e6bcb713fd3480e257276698c3e1daa3b6a067b193a66f7add3d07c03eaed47c1598367efca2236e399bca44209bf7a03ff6269e890e736c8ec
+    Skein512_512:af6ba98160720001b3a44692dd454e3182ee6e7f350a7a176ec9ba90d7cab682c7bc2ab0342f7ce471944d5e460633302a2772850dcc72f0475f3654a9c869c5
+
+package-locations:
+    https://hackage.haskell.org/package/gitit-0.9.0.1/gitit-0.9.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/gitit-0.9.0.1.tar.gz
+

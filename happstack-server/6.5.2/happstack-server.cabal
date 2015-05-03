@@ -1,0 +1,170 @@
+Name:                happstack-server
+Version:             6.5.2
+Synopsis:            Web related tools and services.
+Description:         Happstack Server provides an HTTP server and a rich set of functions for routing requests, handling query parameters, generating responses, working with cookies, serving files, and more. For in-depth documentation see the Happstack Crash Course <http://happstack.com/docs/crashcourse/index.html>
+License:             BSD3
+License-file:        COPYING
+Author:              Happstack team, HAppS LLC
+Maintainer:          Happstack team <happs@googlegroups.com>
+homepage:            http://happstack.com
+Category:            Web, Distributed Computing
+Build-Type:          Simple
+Cabal-Version:       >= 1.6
+
+source-repository head
+    type:     darcs
+    subdir:   happstack-server
+    location: http://patch-tag.com/r/mae/happstack
+
+Flag base4
+    Description: Choose the even newer, even smaller, split-up base package.
+
+Flag network_2_2_3
+    Description: Choose newer network library with merged in network-bytestring.
+    Default: True
+
+Flag tests
+    Description: Build the testsuite, and include the tests in the library
+    Default: False
+
+Flag https
+     Description: Compile server with out https:// support
+     Default: True
+     Manual: True
+
+Library
+
+  Exposed-modules:
+                       Happstack.Server
+                       Happstack.Server.Auth
+                       Happstack.Server.Cookie
+                       Happstack.Server.Compression
+                       Happstack.Server.Client
+                       Happstack.Server.Error
+                       Happstack.Server.FileServe
+                       Happstack.Server.FileServe.BuildingBlocks
+                       Happstack.Server.Internal.Compression
+                       Happstack.Server.Internal.Cookie
+                       Happstack.Server.Internal.Types
+                       Happstack.Server.Internal.LowLevel
+                       Happstack.Server.Internal.MessageWrap
+--                       Happstack.Server.Internal.NoPush
+                       Happstack.Server.Internal.TLS
+                       Happstack.Server.Internal.TimeoutIO
+                       Happstack.Server.Internal.TimeoutManager
+                       Happstack.Server.Internal.TimeoutSocket
+                       Happstack.Server.Internal.Monads
+                       Happstack.Server.Monads
+                       Happstack.Server.Proxy
+                       Happstack.Server.Response
+                       Happstack.Server.Routing
+                       Happstack.Server.RqData
+                       Happstack.Server.SURI
+                       Happstack.Server.SimpleHTTP
+                       Happstack.Server.Types
+                       Happstack.Server.Validation
+  if flag(tests)
+    Exposed-modules:   
+                       Happstack.Server.Tests
+  Other-modules:       
+                       Happstack.Server.HTTPClient.HTTP
+                       Happstack.Server.HTTPClient.Stream
+                       Happstack.Server.HTTPClient.TCP
+                       Happstack.Server.Internal.Clock
+                       Happstack.Server.Internal.Handler
+                       Happstack.Server.Internal.LazyLiner
+                       Happstack.Server.Internal.Listen
+                       Happstack.Server.Internal.LogFormat
+                       Happstack.Server.Internal.Multipart
+                       Happstack.Server.Internal.RFC822Headers
+                       Happstack.Server.Internal.Socket
+                       Happstack.Server.Internal.SocketTH
+                       Happstack.Server.SURI.ParseURI
+                       Paths_happstack_server
+
+  Build-Depends:       base,
+                       blaze-html >= 0.3 && < 0.5,
+                       base64-bytestring == 0.1.*,
+                       bytestring,
+                       containers,
+                       directory,
+                       extensible-exceptions,
+                       filepath,
+                       hslogger >= 1.0.2,
+                       html,
+                       monad-control >= 0.3 && < 0.4,
+                       mtl >= 2 && < 2.1,
+                       old-locale,
+                       old-time,
+                       parsec < 4,
+                       process,
+                       sendfile >= 0.7.1 && < 0.8,
+                       template-haskell,
+                       text >= 0.10 && < 0.12,
+                       time,
+                       transformers >= 0.1.3 && < 0.3,
+                       transformers-base >= 0.4 && < 0.5,
+                       utf8-string >= 0.3.4 && < 0.4,
+                       xhtml,
+                       zlib
+  if flag(https)
+    Exposed-modules:
+                       Happstack.Server.Internal.TimeoutSocketTLS
+    Build-Depends:
+                       HsOpenSSL == 0.10.*
+    Extra-Libraries:   cryptopp ssl
+  else
+    CPP-Options:       -DDISABLE_HTTPS
+
+  if flag(network_2_2_3)
+    Build-Depends:     network >= 2.2.3
+  else
+    Build-Depends:     network < 2.2.3, network-bytestring
+
+  hs-source-dirs:      src
+  if flag(tests)
+    hs-source-dirs:    tests
+
+  if !os(windows)
+     Build-Depends:    unix
+     cpp-options:      -DUNIX
+  if flag(base4)
+    Build-Depends:     base >= 4 && < 5, syb
+
+  if flag(tests)
+    Build-Depends:     HUnit
+
+  Extensions:          TemplateHaskell, DeriveDataTypeable, MultiParamTypeClasses,
+                       TypeFamilies, FlexibleContexts, OverlappingInstances,
+                       FlexibleInstances, UndecidableInstances, ScopedTypeVariables,
+                       TypeSynonymInstances, PatternGuards
+                       CPP, ForeignFunctionInterface
+  if impl(ghc >= 6.12)
+     ghc-options:      -Wall -fno-warn-unused-do-bind
+  else
+     ghc-options:      -Wall
+  GHC-Prof-Options:    -auto-all
+
+Executable happstack-server-tests
+  Main-Is: Test.hs
+  GHC-Options: -threaded
+  hs-source-dirs: tests, src
+--  Other-modules: Happstack.Server.Internal.NoPush
+  if flag(tests)
+    Buildable: True
+    Build-depends: HUnit, parsec < 4
+  else
+    Buildable: False
+
+
+package-hashes:
+    MD5:d4cebb67f6ed4d2c3a8b1a72416f9fe8
+    SHA1:a5b967a6676ebdb9387dd4d5d8f7edb67f077569
+    SHA256:cd585ae6ad1ca62d07f4a69c090dc60b44e5a8b604096c8e7587a270b459c6f3
+    SHA512:009d61bab26e0efaa8da9bf958091bb0d5a1df4a70d3c07aceea7050b09945845d9340a49e67c2d03cf6109cbd911be8329dd58c2128e238f7176e01ea10a409
+    Skein512_512:4d96494e9df36103bddba0d521cc3518441974a82520b338aa24de3eadfb44af43aa85555837984ac40d3c7256c7f7f9558edee5dae695696ec30697ec36cf7e
+
+package-locations:
+    https://hackage.haskell.org/package/happstack-server-6.5.2/happstack-server-6.5.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/happstack-server-6.5.2.tar.gz
+

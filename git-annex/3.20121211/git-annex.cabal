@@ -1,0 +1,144 @@
+Name: git-annex
+Version: 3.20121211
+Cabal-Version: >= 1.8
+License: GPL
+Maintainer: Joey Hess <joey@kitenet.net>
+Author: Joey Hess
+Stability: Stable
+Copyright: 2010-2012 Joey Hess
+License-File: COPYRIGHT
+Homepage: http://git-annex.branchable.com/
+Build-type: Custom
+Category: Utility
+Synopsis: manage files with git, without checking their contents into git
+Description:
+ git-annex allows managing files with git, without checking the file
+ contents into git. While that may seem paradoxical, it is useful when
+ dealing with files larger than git can currently easily handle, whether due
+ to limitations in memory, time, or disk space.
+ .
+ Even without file content tracking, being able to manage files with git,
+ move files around and delete files with versioned directory trees, and use
+ branches and distributed clones, are all very handy reasons to use git. And
+ annexed files can co-exist in the same git repository with regularly
+ versioned files, which is convenient for maintaining documents, Makefiles,
+ etc that are associated with annexed files but that benefit from full
+ revision control.
+
+Flag S3
+  Description: Enable S3 support
+
+Flag WebDAV
+  Description: Enable WebDAV support
+
+Flag Inotify
+  Description: Enable inotify support
+
+Flag Dbus
+  Description: Enable dbus support
+
+Flag Assistant
+  Description: Enable git-annex assistant and watch command
+
+Flag Webapp
+  Description: Enable git-annex webapp
+
+Flag Pairing
+  Description: Enable pairing
+
+Flag XMPP
+  Description: Enable notifications using XMPP
+
+Flag DNS
+  Description: Enable the haskell DNS library for DNS lookup
+
+Executable git-annex
+  Main-Is: git-annex.hs
+  Build-Depends: MissingH, hslogger, directory, filepath,
+   unix, containers, utf8-string, network (>= 2.0), mtl (>= 2.1.1),
+   bytestring, old-locale, time,
+   pcre-light, extensible-exceptions, dataenc, SHA, process, json, HTTP,
+   base (>= 4.5 && < 4.7), monad-control, transformers-base, lifted-base,
+   IfElse, text, QuickCheck >= 2.1, bloomfilter, edit-distance, process,
+   SafeSemaphore
+  -- Need to list these because they're generated from .hsc files.
+  Other-Modules: Utility.Touch Utility.Mounts
+  Include-Dirs: Utility
+  C-Sources: Utility/libdiskfree.c Utility/libmounts.c
+  Extensions: CPP
+  GHC-Options: -threaded
+
+  if flag(S3)
+    Build-Depends: hS3
+    CPP-Options: -DWITH_S3
+
+  if flag(WebDAV)
+    Build-Depends: DAV (>= 0.3), http-conduit, xml-conduit, http-types
+    CPP-Options: -DWITH_WEBDAV
+
+  if flag(Assistant) && ! os(windows) && ! os(solaris)
+    Build-Depends: stm >= 2.3
+    CPP-Options: -DWITH_ASSISTANT
+
+  if os(linux) && flag(Inotify)
+    Build-Depends: hinotify
+    CPP-Options: -DWITH_INOTIFY
+  else
+    if (! os(windows) && ! os(solaris))
+      CPP-Options: -DWITH_KQUEUE
+      C-Sources: Utility/libkqueue.c
+
+  if os(linux) && flag(Dbus)
+    Build-Depends: dbus (>= 0.10.3)
+    CPP-Options: -DWITH_DBUS
+
+  if flag(Webapp) && flag(Assistant)
+    Build-Depends: yesod, yesod-static, case-insensitive,
+     http-types, transformers, wai, wai-logger, warp, blaze-builder,
+     crypto-api, hamlet, clientsession, aeson, yesod-form,
+     template-haskell, yesod-default (>= 1.1.0), data-default
+    CPP-Options: -DWITH_WEBAPP
+
+  if flag(Pairing) && flag(Webapp)
+    Build-Depends: network-multicast, network-info
+    CPP-Options: -DWITH_PAIRING
+
+  if flag(XMPP) && flag(Assistant)
+    Build-Depends: network-protocol-xmpp, gnutls (>= 0.1.4), xml-types
+    CPP-Options: -DWITH_XMPP
+
+  if flag(XMPP) && flag(Assistant) && flag(DNS)
+    Build-Depends: dns
+    CPP-Options: -DWITH_DNS
+
+Test-Suite test
+  Type: exitcode-stdio-1.0
+  Main-Is: test.hs
+  Build-Depends: testpack, HUnit, MissingH, hslogger, directory, filepath,
+   unix, containers, utf8-string, network, mtl (>= 2.1.1), bytestring,
+   old-locale, time, pcre-light, extensible-exceptions, dataenc, SHA,
+   process, json, HTTP, base (>= 4.5 && < 4.7), monad-control,
+   transformers-base, lifted-base, IfElse, text, QuickCheck >= 2.1,
+   bloomfilter, edit-distance, process
+  Other-Modules: Utility.Touch
+  Include-Dirs: Utility
+  C-Sources: Utility/libdiskfree.c
+  Extensions: CPP
+  GHC-Options: -threaded
+
+source-repository head
+  type: git
+  location: git://git-annex.branchable.com/
+
+
+package-hashes:
+    MD5:c77476dc62277694c5b45e93b94f5d14
+    SHA1:bdacd7a436722ee9b1026e5ee0ed5d56d7ee3a88
+    SHA256:3b6d9d7d8d44c7939813a4798a78b76a02efef655030d742149eda3779daa13e
+    SHA512:26095f275e9226827d36c8c9b48c71ce3c23091594b911e06cba1c4f5b65d5f60372ec300e2084fdda2f68ea8d53ba7d17f160e805d1830b1910a3d70f8bc4ba
+    Skein512_512:978335a6e736193f860305bd828c77467307e0b7c49e9bf7f3d7c9055062ce9d6dbd13e3d0149f64bbdc4447f90ccc63cbeb3a481e443cb4788aff5f6aa22a7b
+
+package-locations:
+    https://hackage.haskell.org/package/git-annex-3.20121211/git-annex-3.20121211.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/git-annex-3.20121211.tar.gz
+

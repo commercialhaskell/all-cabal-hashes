@@ -1,0 +1,155 @@
+Name: git-annex
+Version: 4.20130323
+Cabal-Version: >= 1.8
+License: GPL
+Maintainer: Joey Hess <joey@kitenet.net>
+Author: Joey Hess
+Stability: Stable
+Copyright: 2010-2013 Joey Hess
+License-File: COPYRIGHT
+Homepage: http://git-annex.branchable.com/
+Build-type: Custom
+Category: Utility
+Synopsis: manage files with git, without checking their contents into git
+Description:
+ git-annex allows managing files with git, without checking the file
+ contents into git. While that may seem paradoxical, it is useful when
+ dealing with files larger than git can currently easily handle, whether due
+ to limitations in memory, time, or disk space.
+ .
+ Even without file content tracking, being able to manage files with git,
+ move files around and delete files with versioned directory trees, and use
+ branches and distributed clones, are all very handy reasons to use git. And
+ annexed files can co-exist in the same git repository with regularly
+ versioned files, which is convenient for maintaining documents, Makefiles,
+ etc that are associated with annexed files but that benefit from full
+ revision control.
+
+Flag S3
+  Description: Enable S3 support
+
+Flag WebDAV
+  Description: Enable WebDAV support
+
+Flag Inotify
+  Description: Enable inotify support
+
+Flag Dbus
+  Description: Enable dbus support
+
+Flag Assistant
+  Description: Enable git-annex assistant and watch command
+
+Flag Webapp
+  Description: Enable git-annex webapp
+
+Flag Pairing
+  Description: Enable pairing
+
+Flag XMPP
+  Description: Enable notifications using XMPP
+
+Flag DNS
+  Description: Enable the haskell DNS library for DNS lookup
+
+Flag Production
+  Description: Enable production build (slower build; faster binary)
+
+Flag Android
+  Description: Building for Android
+  Default: False
+
+Flag TestSuite
+  Description: Embed the test suite into git-annex
+
+Executable git-annex
+  Main-Is: git-annex.hs
+  Build-Depends: MissingH, hslogger, directory, filepath,
+   unix, containers, utf8-string, network (>= 2.0), mtl (>= 2),
+   bytestring, old-locale, time,
+   extensible-exceptions, dataenc, SHA, process, json,
+   base (>= 4.5 && < 4.8), monad-control, transformers-base, lifted-base,
+   IfElse, text, QuickCheck >= 2.1, bloomfilter, edit-distance, process,
+   SafeSemaphore, uuid, random, regex-tdfa
+  -- Need to list these because they're generated from .hsc files.
+  Other-Modules: Utility.Touch Utility.Mounts
+  Include-Dirs: Utility
+  C-Sources: Utility/libdiskfree.c Utility/libmounts.c
+  CC-Options: -Wall
+  GHC-Options: -threaded -Wall
+  CPP-Options: -DWITH_CLIBS
+
+  if flag(Production)
+    GHC-Options: -O2
+
+  if flag(TestSuite)
+    Build-Depends: HUnit
+    CPP-Options: -DWITH_TESTSUITE
+
+  if flag(S3)
+    Build-Depends: hS3
+    CPP-Options: -DWITH_S3
+
+  if flag(WebDAV)
+    Build-Depends: DAV (>= 0.3), http-conduit, xml-conduit, http-types
+    CPP-Options: -DWITH_WEBDAV
+
+  if flag(Assistant) && ! os(windows) && ! os(solaris)
+    Build-Depends: async, stm (>= 2.3)
+    CPP-Options: -DWITH_ASSISTANT
+
+  if flag(Android)
+    CPP-Options: -D__ANDROID__
+
+  if os(linux) && flag(Inotify)
+    Build-Depends: hinotify
+    CPP-Options: -DWITH_INOTIFY
+  else
+    if os(darwin)
+      Build-Depends: hfsevents
+      CPP-Options: -DWITH_FSEVENTS
+    else
+      if (! os(windows) && ! os(solaris) && ! os(linux))
+        CPP-Options: -DWITH_KQUEUE
+        C-Sources: Utility/libkqueue.c
+        Includes: sys/event.h
+
+  if os(linux) && flag(Dbus)
+    Build-Depends: dbus (>= 0.10.3)
+    CPP-Options: -DWITH_DBUS
+
+  if flag(Webapp)
+    Build-Depends: yesod, yesod-static, case-insensitive,
+     http-types, transformers, wai, wai-logger, warp, blaze-builder,
+     crypto-api, hamlet, clientsession, aeson, yesod-form,
+     template-haskell, yesod-default, data-default
+    CPP-Options: -DWITH_WEBAPP
+
+  if flag(Pairing)
+    Build-Depends: network-multicast, network-info
+    CPP-Options: -DWITH_PAIRING
+
+  if flag(XMPP)
+    Build-Depends: network-protocol-xmpp, gnutls (>= 0.1.4), xml-types
+    CPP-Options: -DWITH_XMPP
+
+  if flag(DNS)
+    Build-Depends: dns
+    CPP-Options: -DWITH_DNS
+
+source-repository head
+  type: git
+  location: git://git-annex.branchable.com/
+
+
+package-hashes:
+    MD5:394abd53fd562ae90ac8407b209e1e04
+    SHA1:e5ec046ffa93d7807213d10658eb742a4740ad09
+    SHA256:1f940d88b8ef91e18155a778b3665c7151f61567945259d41921e389beab779f
+    SHA512:040f35c08a3eaae16592573558346e775c697fa4dbaf5ea4c8be2992547d26297468f82a316e56e09f6376b3949bc04d895446a70db6ab6610265e139d70c453
+    Skein512_512:51a6379cea0b43c0ea9f5140d793c0047af313397fb9e6c926c756465f11c1dc0884cf07596d5a48007527750d44fe7618a796940c41abe97656079b203d6fcb
+
+package-locations:
+    https://hackage.haskell.org/package/git-annex-4.20130323/git-annex-4.20130323.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/git-annex-4.20130323.tar.gz
+

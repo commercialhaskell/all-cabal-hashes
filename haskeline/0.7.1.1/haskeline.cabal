@@ -1,0 +1,149 @@
+Name:           haskeline
+Cabal-Version:  >=1.6
+Version:        0.7.1.1
+Category:       User Interfaces
+License:        BSD3
+License-File:   LICENSE
+Copyright:      (c) Judah Jacobson
+Author:         Judah Jacobson
+Maintainer:     Judah Jacobson <judah.jacobson@gmail.com>
+Category:       User Interfaces
+Synopsis:       A command-line interface for user input, written in Haskell.
+Description:    
+                Haskeline provides a user interface for line input in command-line
+                programs.  This library is similar in purpose to readline, but since
+                it is written in Haskell it is (hopefully) more easily used in other
+                Haskell programs.
+                .
+                Haskeline runs both on POSIX-compatible systems and on Windows.
+Homepage:       http://trac.haskell.org/haskeline
+Stability:      Experimental
+Build-Type:     Custom
+extra-source-files: examples/Test.hs Changelog
+
+source-repository head
+    type: git
+    location: git://github.com/judah/haskeline.git
+
+-- There are three main advantages to the terminfo backend over the portable,
+-- "dumb" alternative.  First, it enables more efficient control sequences
+-- when redrawing the input.  Second, and more importantly, it enables us
+-- to draw on multiple lines, so we can wrap long input strings.  And third,
+-- the backend adds some extra key sequences such as forwards delete.
+--
+-- (The "dumb" terminal also allows editing of long input strings, but is
+-- restricted to only one line and thus only shows part of the input at once.)
+flag terminfo
+    Description: Use the terminfo package for POSIX consoles.
+    Default: True
+
+-- Note that the Setup script checks whether -liconv is necessary.  This flag
+-- lets us override that decision.  When it is True, we use -liconv.  When it
+-- is False, we run tests to decide.
+flag libiconv
+    Description: Explicitly link against the libiconv library.
+    Default: False
+
+flag legacy-encoding
+    Description: Use the legacy iconv encoding for POSIX, even on ghc>=7.4.1.
+                 (Intended for testing only.)
+    Default: False
+
+Library
+    if impl(ghc>=6.11) {
+        Build-depends: base >=4.1 && < 4.8, containers>=0.1 && < 0.6, directory>=1.0 && < 1.3,
+                       bytestring>=0.9 && < 0.11
+    }
+    else {
+        Build-depends: base>=3 && <4.1 , containers>=0.1 && < 0.3, directory==1.0.*,
+                       bytestring==0.9.*
+    }
+    Build-depends:  filepath >= 1.1 && < 1.4, transformers >= 0.2 && < 0.4
+    Extensions:     ForeignFunctionInterface, Rank2Types, FlexibleInstances,
+                TypeSynonymInstances
+                FlexibleContexts, ExistentialQuantification
+                ScopedTypeVariables, GeneralizedNewtypeDeriving
+                MultiParamTypeClasses, OverlappingInstances
+                UndecidableInstances
+                ScopedTypeVariables, CPP, DeriveDataTypeable,
+                PatternGuards
+    Exposed-Modules:
+                System.Console.Haskeline
+                System.Console.Haskeline.Completion
+                System.Console.Haskeline.MonadException
+                System.Console.Haskeline.History
+                System.Console.Haskeline.IO
+    Other-Modules:
+                System.Console.Haskeline.Backend
+                System.Console.Haskeline.Backend.WCWidth
+                System.Console.Haskeline.Command
+                System.Console.Haskeline.Command.Completion
+                System.Console.Haskeline.Command.History
+                System.Console.Haskeline.Command.KillRing
+                System.Console.Haskeline.Directory
+                System.Console.Haskeline.Emacs
+                System.Console.Haskeline.InputT
+                System.Console.Haskeline.Key
+                System.Console.Haskeline.LineState
+                System.Console.Haskeline.Monads
+                System.Console.Haskeline.Prefs
+                System.Console.Haskeline.RunCommand
+                System.Console.Haskeline.Term
+                System.Console.Haskeline.Command.Undo
+                System.Console.Haskeline.Vi
+    include-dirs: includes
+    c-sources: cbits/h_wcwidth.c
+
+    -- We require ghc>=7.4.1 to use the base library encodings,
+    -- even though it was implemented in earlier releases,
+    -- due to GHC bug #5436 which wasn't fixed until 7.4.1
+    if !flag(legacy-encoding) && impl(ghc>=7.4) {
+        cpp-options: -DUSE_GHC_ENCODINGS
+        Other-modules: System.Console.Haskeline.Recover
+    } else {
+        Build-depends: utf8-string==0.3.* && >=0.3.6
+    }
+    if os(windows) {
+        Build-depends: Win32>=2.0
+        Other-modules: System.Console.Haskeline.Backend.Win32
+        c-sources: cbits/win_console.c
+        includes: win_console.h
+        install-includes: win_console.h
+        cpp-options: -DMINGW
+    } else {
+        Build-depends: unix>=2.0 && < 2.8
+                        -- unix-2.3 doesn't build on ghc-6.8.1 or earlier
+        -- Use manual encoding/decoding on ghc<7.4
+        if flag (legacy-encoding) || impl(ghc<7.4) {
+            c-sources: cbits/h_iconv.c
+            includes: h_iconv.h
+            install-includes: h_iconv.h
+            Other-modules: System.Console.Haskeline.Backend.Posix.IConv
+        }
+        Other-modules: 
+                System.Console.Haskeline.Backend.Posix
+                System.Console.Haskeline.Backend.Posix.Encoder
+                System.Console.Haskeline.Backend.DumbTerm
+        if flag(terminfo) {
+            Build-depends: terminfo>=0.3.1.3 && <0.4
+            Other-modules: System.Console.Haskeline.Backend.Terminfo
+            cpp-options: -DTERMINFO
+        }
+        if os(solaris) {
+            cpp-options: -DUSE_TERMIOS_H
+        }
+    }
+    ghc-options: -Wall
+
+
+package-hashes:
+    MD5:fb25f14c345f75ab4315153140332c6c
+    SHA1:130dd0672cd0dd703d24cb2bed41aad77b4e6adb
+    SHA256:b5747ebb0b8febc459fe7882a57eb1f3fe481bc73a0133275b2c4a3055968bf7
+    SHA512:6299b6087497ca017bbec3a2106a353335fafc8500e76712f405cdd7b21f3fd25de31ef68be4a1cb53223b475840834a79aac00f6c066f1cad0ec9df450e3931
+    Skein512_512:2cdb1ceb95610ddfe4973d010235fd9963f6083eccd0672ca8c8c52a38984406e6964f961457b5e2cd7e784548601b11307fa9abe1154dddcfe9321c863e598a
+
+package-locations:
+    https://hackage.haskell.org/package/haskeline-0.7.1.1/haskeline-0.7.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/haskeline-0.7.1.1.tar.gz
+

@@ -1,0 +1,131 @@
+name:                hdis86
+version:             0.2
+license:             BSD3
+license-file:        LICENSE
+synopsis:            Interface to the udis86 disassembler for x86 and x86-64 / AMD64
+category:            Disassembler, Language, Foreign, Reverse Engineering
+author:              Keegan McAllister <mcallister.keegan@gmail.com>
+maintainer:          Keegan McAllister <mcallister.keegan@gmail.com>
+homepage:            https://github.com/kmcallister/hdis86
+build-type:          Simple
+cabal-version:       >=1.6
+description:
+  @hdis86@ is an interface to the @udis86@ disassembler, which decodes machine
+  code for 16-, 32-, and 64-bit x86  and x86-64 / AMD64 processors.  @hdis86@
+  provides an instruction stream as a Haskell algebraic data type, suitable for
+  inspection by pattern matching.  It also provides metadata such as assembly
+  syntax in Intel or AT&T flavors.
+  .
+  This library exposes three layers of wrapping:
+  .
+    * The @Pure@ module has the simplest interface, effectively
+      @ByteString -> [Instruction]@.
+  .
+    * The @IO@ module exposes an imperative API closely matching the @udis86@
+      state machine, while providing Haskellish types and automatic resource
+      management.
+  .
+    * The @C@ module is a direct import of the @udis86@ library, with C types
+      and conventions.
+  .
+  Many users can simply import @Hdis86@.
+  .
+  The @Incremental@ module provides disassembly of lazy @ByteString@s, and a
+  function for building other incremental operations.
+  .
+  By default, @hdis86@ will statically link a built-in copy of @udis86-1.7@,
+  which is provided by its author under a similar BSD license.  See inside the
+  tarball for more information.  If you have @udis86@ installed on your system,
+  you can instead link dynamically using
+  @cabal configure --flags=external-udis86@.  In that case see also @doc/customizing.txt@.
+  .
+  This code is available on GitHub at <https://github.com/kmcallister/hdis86>.
+  .
+  The @udis86@ project website is located at <http://udis86.sourceforge.net/>.
+  .
+  New in version 0.2:
+  .
+    * Disassembly of lazy @ByteString@s
+  .
+    * A function for building other incremental operations
+  .
+    * Record selectors on @Instruction@
+  .
+    * QuickCheck @Arbitrary@ instances for @Instruction@ and related types
+
+extra-source-files:
+    tools/hdcli.hs
+  , tools/gen_opcode.sh
+  , tools/test_lazy_bytestring.hs
+  , udis86-1.7/libudis86/decode.h
+  , udis86-1.7/libudis86/input.h
+  , udis86-1.7/libudis86/syn.h
+  , udis86-1.7/libudis86/extern.h
+  , udis86-1.7/libudis86/itab.h
+  , udis86-1.7/libudis86/types.h
+  , udis86-1.7/udis86.h
+  , udis86-1.7/LICENSE
+  , udis86-1.7/README
+  , README
+  , doc/customizing.txt
+
+flag external-udis86
+  default: False
+  description: Dynamically link to the system's copy of udis86.
+
+library
+  exposed-modules:  
+      Hdis86
+    , Hdis86.Types
+    , Hdis86.Pure
+    , Hdis86.Incremental
+    , Hdis86.IO
+    , Hdis86.C
+    , Hdis86.Internal.Map
+  other-modules:
+      Hdis86.Internal.Opcode
+  ghc-options:       -Wall
+  build-depends:
+      base       >= 3 && < 5
+    , containers >= 0.3
+    , bytestring >= 0.9
+    , QuickCheck >= 2.4
+
+  if flag(external-udis86)
+    extra-libraries: udis86
+  else
+    include-dirs: udis86-1.7
+    c-sources:
+      udis86-1.7/libudis86/udis86.c
+      udis86-1.7/libudis86/decode.c
+      udis86-1.7/libudis86/input.c
+      udis86-1.7/libudis86/itab.c
+      udis86-1.7/libudis86/syn.c
+      udis86-1.7/libudis86/syn-att.c
+      udis86-1.7/libudis86/syn-intel.c
+
+  other-extensions:
+      DeriveDataTypeable
+    , RecordWildCards
+    , NamedFieldPuns
+    , ViewPatterns
+    , ForeignFunctionInterface
+    , EmptyDataDecls
+    , ScopedTypeVariables
+
+source-repository head
+    type:     git
+    location: git://github.com/kmcallister/hdis86.git
+
+
+package-hashes:
+    MD5:20c65002f9c13c6ecb7faa9905dc5827
+    SHA1:c9d5d859f0d4f3758fae39615cc7346210dea233
+    SHA256:7ab68d30a31e621962eedc72e427f17e6e38536e9c475023d9cccebd30692863
+    SHA512:ef4edd6ff95c33e6f0638325c236c987ed2f880fc95ba53d1f8931a0ab7fcda8f12b703c5a4efef3c93cbdbb1988a44d265f2364f78156e7703240e293c558dd
+    Skein512_512:26aa2bfc31d1ac8f9769091ea611979a646fa17aff818585aed0b21f2ca3b938e22027abbec8178285640d93c700a19e883d193d93950514f176f1a6c977aed1
+
+package-locations:
+    https://hackage.haskell.org/package/hdis86-0.2/hdis86-0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hdis86-0.2.tar.gz
+

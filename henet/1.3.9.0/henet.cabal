@@ -1,0 +1,124 @@
+Name:                 henet
+Version:              1.3.9.0
+Synopsis:             Bindings and high level interface for to ENet v1.3.8
+Description:
+  ENet is a networking library on top of UDP. In it's own words:
+  .
+    "ENet's purpose is to provide a relatively thin, simple and robust network
+    communication layer on top of UDP (User Datagram Protocol). The primary
+    feature it provides is optional reliable, in-order delivery of packets.
+    .
+    ENet omits certain higher level networking features such as authentication,
+    lobbying, server discovery, encryption, or other similar tasks that are
+    particularly application specific so that the library remains flexible,
+    portable, and easily embeddable."
+  .
+  This library contains both bindings and a slightly cleaned up interface on
+  top. The bindings are as close to the original as possible. Names are striped
+  of the leading 'enet_' and converted to CamelCase, and the occasional newtype
+  is used instead, but otherwise all functions signatures are exactly the
+  same. The bindings are in 'Network.ENet.Bindings'.
+  .
+  The higher level interface is all other exposed modules. Functions like
+  'enet_host_*' are placed in 'Network.ENet.Host'. All functions are present
+  except for the 'enet_socket*' functions: they are just wrappers of the Posix
+  Sockets Interface, which is already provided in Haskell by the 'network'
+  package. Changes are fairly minimal: "Out-Args" are now returned with a tuple,
+  conversions between C and Haskell types happen automatically (when Haskell
+  versions exists), and nullable pointer types have been replaced with
+  Maybes. In short, there should be very few reasons to use the raw bindings
+  over the "nice" interface.
+  .
+  At the moment, consult the ENet website for documentation. In the vast
+  majority of cases the documentation there should apply here exactly, I will
+  try to add Haddock documentation for everywhere it does not.
+  .
+  ENet currently only supports IPv4 at the moment (though that should soon
+  change), and must be called from only one bound thread (i.e. thread created
+  with 'forkOS'). Richer native networking libraries leveraging Haskell's
+  strengths exist, and for new projects I'd recommend those. But for interfacing
+  with existing protocols using ENet, this package should be quite useful.
+
+License-file:         enet/LICENSE
+License:              MIT
+Author:               John Ericson
+Maintainer:           Ericson2314@Yahoo.com
+Build-Type:           Simple
+Cabal-Version:        >=1.10
+Category:             FFI
+
+Extra-source-files:   enet/include/enet/*.h
+
+Source-repository head
+  type:               git
+  location:           git://github.com/Ericson2314/henet.git
+
+--Test-suite henet-test
+--  default-language:   Haskell98
+--  type:               exitcode-stdio-1.0
+--  ghc-options:        -Wall
+--  main-is:            Main.hs
+--  hs-source-dirs:     test
+--  build-depends:      base            >= 3
+--    ,                 henet
+
+Library
+  hs-source-dirs:     src
+  ghc-options:        -Wall
+  default-language:   Haskell98
+  default-extensions: ForeignFunctionInterface
+
+  build-tools:        hsc2hs
+
+
+  build-depends:      base            >= 3 && < 5
+    ,                 bitset          >= 1.4.7
+    ,                 network         >= 2.4.1
+    ,                 bytestring      >= 0.10
+    ,                 typesafe-endian == 0.1.*
+
+  exposed-modules:    Network.ENet
+    ,                 Network.ENet.Host
+    ,                 Network.ENet.Peer
+    ,                 Network.ENet.Packet
+    ,                 Network.ENet.Bindings
+
+  other-modules:      Network.ENet.Internal
+    ,                 Network.ENet.Bindings.System
+    ,                 Network.ENet.Bindings.Callbacks
+    ,                 Network.ENet.Bindings.List
+
+  c-sources:          enet/callbacks.c
+    ,                 enet/compress.c
+    ,                 enet/host.c
+    ,                 enet/list.c
+    ,                 enet/packet.c
+    ,                 enet/peer.c
+    ,                 enet/protocol.c
+
+
+  include-dirs:       enet
+    ,                 enet/include
+
+  cc-options:         -g
+  ld-options:         -g
+  if os(windows)
+    cpp-options:        -DWINDOWS
+    cc-options:         -D_WIN32 -D_DEBUG
+    c-sources:          enet/win32.c
+  else
+    cc-options:         -D_GNU_SOURCE -Wno-deprecated-declarations -DHAS_SOCKLEN_T=1
+    c-sources:          enet/unix.c
+
+
+package-hashes:
+    MD5:1bb1864fc3e38622b98aeb8f9f4b61e9
+    SHA1:86d8e56358a2b37675a3796e6d5afef5b863dd1b
+    SHA256:f0e5660694304e9c4a847c8ad4fa27990cb5aff28ef0f4d6f5a5862371584d43
+    SHA512:ac43859bd56e100d4b00c19fdd628f42712c5c68520e45007f18e754a7a39df994f12bb9c635fb00a4e8d3d00ebaa2179b872e5d959317b40596b1a76e3b6f28
+    Skein512_512:e539082fe58a9247fa37247998803d86fc1ac8c64eb53475103697a975b92edebe311efd971a4865676d0917694d867f3375a797336a34d834aa095167af18f8
+
+package-locations:
+    https://hackage.haskell.org/package/henet-1.3.9.0/henet-1.3.9.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/henet-1.3.9.0.tar.gz
+

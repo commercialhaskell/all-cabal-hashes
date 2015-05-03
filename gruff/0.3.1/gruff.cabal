@@ -1,0 +1,160 @@
+Name:                gruff
+Version:             0.3.1
+Synopsis:            fractal explorer GUI using the ruff library
+Description:
+    Mandelbrot Set fractal explorer using the ruff library.
+    .
+    Requires GTK, OpenGL, and GLSL fragment shader support; lots of RAM
+    and multiple CPU cores recommended.
+    .
+    If you want to explore very deep zooms, you'll need hmpfr which
+    currently requires GHC to be compiled with integer-simple instead of
+    the default integer-gmp.  To install with MPFR support, use
+    @cabal install gruff -fmpfr@.
+    Note that the default setting for this flag has changed since gruff-0.2.
+    .
+    gruff-0.3.1 is a bugfix release, fixing a performance problem wherein
+    offscreen tiles were needlessly calculated.  The performance gain
+    is much less (and in many cases is in fact a performance loss) when
+    using integer-simple.
+    .
+    gruff-0.3 includes a small library to allow external programs to
+    create diagrams and animations with gruff.  See the gruff-examples
+    package.  The interface has been remodelled to simplify it and add
+    informative feature overlays.
+    .
+    gruff-0.2.1 was a bugfix release.  Changes since gruff-0.2:
+    .
+      * Supersampling bugs are fixed (no more undocumented quantization
+        leading to inconsistent appearance at different zoom levels).
+    .
+      * Race condition bugs in cache management are fixed (no more
+        incompletely rendered images).
+    .
+      * Internal changes/refactoring to make future additions easier.
+    .
+    Features in this version include:
+    .
+      * Interactive fractal browser display with mouse controls:
+        .
+          * Left click to zoom in (press shift for bigger jumps).
+        .
+          * Right click to zoom out (press shift for bigger jumps).
+        .
+          * Middle click to center.
+        .
+          * Shift middle click to auto-focus.
+        .
+          * Control left click to label with period.
+        .
+          * Control right click to label with angled internal address (slow!).
+    .
+      * Session persistance (stored in @~\/.gruff\/state.gruff@ - states can
+        also be loaded from and saved to other files, including labels and
+        rays).  Note that the file format is incompatible with previous
+        releases of gruff.
+    .
+      * Tile cache (by default in @~\/.gruff\/cache@ - symlink it somewhere
+        with a few GB of space if you plan on exploring a lot).
+    .
+      * Can use MPFR if desired for higher precision, allowing deeper
+        zooms and locating high period nucleii.
+    .
+      * Limited amount of customizable colouring (colours for interior,
+        border, and exterior points, as well as labels and rays).
+    .
+      * Supersampling for more detailed images (useful range is 1 to 16).
+    .
+      * Rudimentary scripting support (see the gruff-examples package).
+    .
+    Future versions will focus on enhancing the scripting support.
+
+License:             GPL-2
+License-file:        LICENSE
+Author:              Claude Heiland-Allen
+Maintainer:          claudiusmaximus@goto10.org
+Category:            Graphics
+
+Build-type:          Simple
+Cabal-version:       >=1.8
+
+Data-dir:            data
+Data-files:          icon.png, merge.frag, minimal.frag
+Extra-source-files:  TODO src/mp_real.h
+
+Flag mpfr
+  description: use MPFR for higher precision floating point
+  default: False
+
+Library
+  Hs-source-dirs:     src
+  Exposed-modules:    Fractal.GRUFF
+  Build-depends:      base >= 3 && < 5,
+                      ruff >= 0.3 && < 0.4
+  GHC-options:        -Wall
+
+Executable gruff
+  Hs-source-dirs:     src
+  Main-is:            gruff.hs
+  Other-modules:      Browser
+                      GLUTGtk
+                      Interact
+                      Logger
+                      Number
+                      Progress
+                      QuadTree
+                      Shader
+                      Snapshot
+                      StatusDialog
+                      Tile
+                      Utils
+                      View
+  Build-depends:      gruff == 0.3.1,
+                      base >= 4 && < 5,
+                      containers >= 0 && < 1,
+                      directory >= 1 && < 2,
+                      filepath >= 1 && < 2,
+                      FTGL == 1.333,
+                      gtk >= 0.11 && < 0.13,
+                      gtkglext >= 0.11 && < 0.13,
+                      old-locale >= 1 && < 2,
+                      OpenGL >= 2.4 && < 3,
+                      OpenGLRaw >= 1.1 && < 2,
+                      parallel >= 3.1 && < 3.2,
+                      qd >= 1 && < 2,
+                      qd-vec >= 1 && < 2,
+                      time >= 1 && < 2,
+                      Vec >= 0.9 && < 1,
+                      ruff >= 0.3 && < 0.4,
+                      bytestring,
+                      mtl
+  if (flag(mpfr))
+    Build-depends:    hmpfr >= 0.3.2 && < 0.4
+    CPP-options:      -DHAVE_MPFR
+    CC-options:       -DHAVE_MPFR
+  C-sources:          src/compute.cc, src/rts.c
+  CC-options:         -O3 -Wall -pedantic -Wextra
+  GHC-options:        -O2 -Wall -threaded -rtsopts
+  GHC-Prof-Options:   -prof -auto-all -caf-all
+
+source-repository head
+  type:     git
+  location: git://gitorious.org/ruff/gruff.git
+
+source-repository this
+  type:     git
+  location: git://gitorious.org/ruff/gruff.git
+  tag:      v0.3.1
+
+
+package-hashes:
+    MD5:ac0767996a9100989fd6404bbe152f6a
+    SHA1:643a7635cbbc58d28beb31aa2644e3cfb9463577
+    SHA256:4d1541e0a3a44c3b246dd489d1a3e4590bae01691fc01f43f64579a03d07e251
+    SHA512:50db8347a84fc7aa297c9a4d0aa1d14ed08c84365b81526bf039423614c026d75dd9c16e6bb0937ae9c43cc0fdafc023bba47b62bfd79f7a0f132044a72d9a7d
+    Skein512_512:93f82ea7f54ad742e1a2078d50ab4779993fe1d4342b77b1f5afad6bf6152f9836c0127967e36f907a2dea8259a50fbe02d1ac799a0873e83aa0c577d81f2f2b
+
+package-locations:
+    https://hackage.haskell.org/package/gruff-0.3.1/gruff-0.3.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/gruff-0.3.1.tar.gz
+

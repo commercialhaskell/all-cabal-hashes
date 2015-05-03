@@ -1,0 +1,297 @@
+name: gf
+version: 3.6
+x-revision: 2
+
+cabal-version: >= 1.10
+build-type: Custom
+license: OtherLicense
+license-file: LICENSE
+category: Natural Language Processing, Compiler
+synopsis: Grammatical Framework
+description: GF, Grammatical Framework, is a programming language for multilingual grammar applications
+homepage: http://www.grammaticalframework.org/
+bug-reports: http://code.google.com/p/grammatical-framework/issues/list
+maintainer: Thomas Hallgren
+tested-with: GHC==7.4.2, GHC==7.6.3
+
+data-dir: src
+data-files: www/*.html
+	    www/P/*.png
+	    www/gfse/*.html
+	    www/gfse/*.css
+	    www/gfse/*.js
+	    www/gfse/P/*.png
+	    www/gfse/P/*.jpg
+            www/js/*.js
+	    www/minibar/*.html
+	    www/minibar/*.css
+	    www/minibar/*.js
+	    www/minibar/*.png
+	    www/syntax-editor/*.html
+	    www/syntax-editor/*.css
+	    www/syntax-editor/*.js
+	    www/TransQuiz/*.html
+	    www/TransQuiz/*.css
+	    www/TransQuiz/*.js
+	    www/TransQuiz/*.png
+	    www/translator/*.html
+	    www/translator/*.css
+	    www/translator/*.js
+
+source-repository head
+  type:     darcs
+  location: http://www.grammaticalframework.org/
+
+
+flag interrupt
+  Description: Enable Ctrl+Break in the shell
+  Default:     True
+
+flag server
+  Description: Include --server mode
+  Default:     True
+
+--flag new-comp
+--  Description: Make -new-comp the default
+--  Default:     True
+
+flag custom-binary
+  Description: Use a customised version of the binary package
+  Default:     True
+
+flag c-runtime
+  Description: Include functionality from the C run-time library (which must be installed already)
+  Default:     False
+
+Library
+  default-language:    Haskell2010
+  build-depends: base >= 4.3 && <4.8,
+                 array,
+                 fst,
+                 containers,
+                 bytestring,
+                 utf8-string,
+                 random,
+                 pretty,
+                 mtl
+  hs-source-dirs: src/runtime/haskell
+
+  if flag(custom-binary)
+    hs-source-dirs: src/binary
+    other-modules:
+      -- not really part of GF but I have changed the original binary library
+      -- and we have to keep the copy for now.
+      Data.Binary
+      Data.Binary.Put
+      Data.Binary.Get
+      Data.Binary.Builder
+      Data.Binary.IEEE754
+  else
+    build-depends: binary
+
+  ghc-options: -fwarn-unused-imports
+  if impl(ghc>=7.8)
+    ghc-options: -j +RTS -A20M -RTS
+  ghc-prof-options: -auto-all
+  extensions: 
+
+  exposed-modules: 
+    PGF
+    PGF.Internal
+    PGF.Lexing
+    PGF.Utilities
+  other-modules:
+    PGF.Data
+    PGF.Macros
+    PGF.Binary
+    PGF.Optimize
+    PGF.Printer
+    PGF.CId
+    PGF.Expr
+    PGF.Generate
+    PGF.Linearize
+    PGF.Morphology
+    PGF.Paraphrase
+    PGF.Parse
+    PGF.Probabilistic
+    PGF.SortTop
+    PGF.Tree
+    PGF.Type
+    PGF.Tokenizer
+    PGF.TypeCheck
+    PGF.Forest
+    PGF.TrieMap
+    PGF.VisualizeTree
+    PGF.OldBinary
+
+  if flag(c-runtime)
+    exposed-modules:     PGF2
+    other-modules:       PGF2.FFI
+    hs-source-dirs:      src/runtime/haskell-bind
+    build-tools:         hsc2hs
+    extra-libraries:     gu pgf
+    cc-options:          -std=c99
+
+Executable gf
+  default-language:    Haskell2010
+  build-depends: gf,
+                 base >= 4.3 && <4.8,
+                 array,
+                 containers,
+                 bytestring,
+                 filepath,
+                 fst,
+                 directory,
+                 random,
+                 time<1.5,
+                 time-compat,
+                 old-locale,
+                 process,
+                 pretty,
+                 mtl,
+                 haskeline,
+                 parallel>=3,
+                 utf8-string
+  ghc-options: -threaded -fwarn-unused-imports
+  if flag(server)
+    build-depends: httpd-shed>=0.4.0.2, network>=2.3 && <2.6, json, cgi
+                   -- ,silently
+    cpp-options: -DSERVER_MODE
+    other-modules: GFServer
+    hs-source-dirs: src/server src/server/transfer src/example-based
+
+  if flag(c-runtime)
+    cpp-options: -DC_RUNTIME
+
+  if impl(ghc>=7.0)
+    ghc-options: -rtsopts
+    if impl(ghc<7.8)
+      ghc-options: -with-rtsopts=-K64M
+
+  if impl(ghc>=7.8)
+    build-tools: happy>=1.19, alex>=3.1
+    ghc-options: -j +RTS -A20M -RTS
+  else
+    build-tools: happy, alex>=3
+
+  if os(windows)
+    build-depends: Win32
+  else
+    build-depends: unix
+
+  ghc-prof-options: -auto-all
+
+  hs-source-dirs: src/compiler
+
+  if !flag(custom-binary)
+    build-depends: binary, data-binary-ieee754
+
+  extensions:
+  main-is: GF.hs
+  other-modules:
+    GF.Data.BacktrackM
+    GF.Data.Utilities
+--  GF.Data.SortedList
+    GF.Data.ErrM
+    GF.Data.Operations
+    GF.Data.Str
+    GF.JavaScript.AbsJS
+    GF.JavaScript.PrintJS
+    GF.Infra.Ident
+    GF.Infra.GetOpt
+    GF.Infra.Option
+    GF.Infra.UseIO
+    GF.Infra.CheckM
+    GF.System.Catch
+    GF.System.Console
+    GF.System.Signal
+    GF.Command.Commands
+    GF.Command.Interpreter
+    GF.Command.Abstract
+    GF.Command.Parse
+    GF.Command.Importing
+    GF.Grammar
+    GF.Grammar.Lexer
+    GF.Grammar.Parser
+    GF.Grammar.Grammar
+    GF.Grammar.Values
+    GF.Grammar.Macros
+    GF.Grammar.Lockfield
+    GF.Grammar.MMacros
+    GF.Grammar.Lookup
+    GF.Grammar.Unify
+    GF.Grammar.PatternMatch
+    GF.Grammar.Printer
+    GF.Grammar.ShowTerm
+    GF.Grammar.Binary
+    GF.Compile.Update
+    GF.Compile.CheckGrammar
+--  GF.Compile.Refresh
+    GF.Compile.Rename
+    GF.Compile.ReadFiles
+    GF.Compile.GrammarToPGF
+    GF.Compile.ToAPI
+    GF.Compile.TypeCheck.Abstract
+    GF.Compile.TypeCheck.Concrete
+    GF.Compile.TypeCheck.ConcreteNew
+    GF.Compile.TypeCheck.TC
+    GF.Compile.Compute.Abstract
+--  GF.Compile.Compute.Concrete
+    GF.Compile.Compute.ConcreteNew1
+    GF.Compile.Compute.ConcreteNew
+    GF.Compile.Compute.AppPredefined
+    GF.Compile.Compute.Value
+    GF.Compile.Compute.Predef
+    GF.Compile.Optimize
+    GF.Compile.SubExOpt
+    GF.Compile.GetGrammar
+    GF.Compile.PGFtoHaskell
+    GF.Compile.PGFtoProlog
+    GF.Compile.PGFtoJS
+    GF.Compile
+    GF.Quiz
+    GFC
+    GFI
+
+  if flag(interrupt)
+    cpp-options: -DUSE_INTERRUPT
+    other-modules: GF.System.UseSignal
+  else
+    other-modules: GF.System.NoSignal
+
+executable pgf-shell
+  if !flag(c-runtime)
+    buildable: False
+  main-is:             pgf-shell.hs
+  hs-source-dirs:      src/runtime/haskell-bind/examples
+  build-depends:       gf, base, containers, mtl, lifted-base
+  default-language:    Haskell2010
+  if impl(ghc>=7.0)
+    ghc-options: -rtsopts
+
+test-suite rgl-tests
+  type:           exitcode-stdio-1.0
+  main-is:        run.hs
+  hs-source-dirs: lib/tests/
+  build-depends:  base, HTF, process, HUnit, filepath, directory
+  default-language:    Haskell2010
+
+test-suite gf-tests
+  type:           exitcode-stdio-1.0
+  main-is:        run.hs
+  hs-source-dirs: testsuite
+  build-depends:  base>=4.3 && <5, Cabal>=1.8, directory, filepath, process
+  default-language:    Haskell2010
+
+
+package-hashes:
+    MD5:ca91dcc78199bc73d0602c4e8bb2e6f4
+    SHA1:46f183fc7db97e7b49f5a3ba1d868b634a2fb5f5
+    SHA256:fd4717e4989b06ec51691c0b020fe32ef6116c0c76b4a5d33a5f9aa1d8db4883
+    SHA512:4b4bc2e2ede4a5d02a72f2f511d860f6cfce1c1942e1941ba88b821df0b3aacc710a3d11a2d74e60d8ef1547bbf03e2310c8dd277fd1153395abd711e8e72520
+    Skein512_512:d1416cfb1be52f2944487ea2141719e1aa8faaa4a37cab47b811be7291e5f825a0a69f2499c260f843ecbd030e678dde6b4d782395063c642c16e546ebb48e05
+
+package-locations:
+    https://hackage.haskell.org/package/gf-3.6/gf-3.6.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/gf-3.6.tar.gz
+

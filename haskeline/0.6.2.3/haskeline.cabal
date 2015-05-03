@@ -1,0 +1,138 @@
+Name:           haskeline
+Cabal-Version:  >=1.6
+Version:        0.6.2.3
+Category:       User Interfaces
+License:        BSD3
+License-File:   LICENSE
+Copyright:      (c) Judah Jacobson
+Author:         Judah Jacobson
+Maintainer:     Judah Jacobson <judah.jacobson@gmail.com>
+Category:       User Interfaces
+Synopsis:       A command-line interface for user input, written in Haskell.
+Description:    
+                Haskeline provides a user interface for line input in command-line
+                programs.  This library is similar in purpose to readline, but since
+                it is written in Haskell it is (hopefully) more easily used in other
+                Haskell programs.
+                .
+                Haskeline runs both on POSIX-compatible systems and on Windows.
+Homepage:       http://trac.haskell.org/haskeline
+Stability:      Experimental
+Build-Type:     Custom
+extra-source-files: examples/Test.hs CHANGES
+
+flag base2
+    Description: Use the base packages from before version 6.8
+
+-- There are three main advantages to the terminfo backend over the portable,
+-- "dumb" alternative.  First, it enables more efficient control sequences
+-- when redrawing the input.  Second, and more importantly, it enables us
+-- to draw on multiple lines, so we can wrap long input strings.  And third,
+-- the backend adds some extra key sequences such as forwards delete.
+--
+-- (The "dumb" terminal also allows editing of long input strings, but is
+-- restricted to only one line and thus only shows part of the input at once.)
+flag terminfo
+    Description: Use the terminfo package for POSIX consoles.
+    Default: True
+
+-- Note that the Setup script checks whether -liconv is necessary.  This flag
+-- lets us override that decision.  When it is True, we use -liconv.  When it
+-- is False, we run tests to decide.
+flag libiconv
+    Description: Explicitly link against the libiconv library.
+    Default: False
+
+Library
+    if flag(base2) {
+        Build-depends: base == 2.*
+        cpp-options:    -DOLD_BASE
+    }
+    else {
+        if impl(ghc>=6.11) {
+            Build-depends: base >=4.1 && < 4.4, containers>=0.1 && < 0.4, directory==1.0.*,
+                           bytestring==0.9.*
+        }
+        else {
+            Build-depends: base>=3 && <4.1 , containers>=0.1 && < 0.3, directory==1.0.*,
+                           bytestring==0.9.*
+        }
+    }
+    Build-depends:  filepath >= 1.1 && < 1.3, mtl==1.1.*,
+                    utf8-string==0.3.* && >=0.3.6,
+                    extensible-exceptions==0.1.* && >=0.1.1.0
+    Extensions:     ForeignFunctionInterface, Rank2Types, FlexibleInstances,
+                TypeSynonymInstances
+                FlexibleContexts, ExistentialQuantification
+                ScopedTypeVariables, GeneralizedNewtypeDeriving
+                MultiParamTypeClasses, OverlappingInstances
+                UndecidableInstances
+                PatternSignatures, CPP, DeriveDataTypeable,
+                PatternGuards
+    Exposed-Modules:
+                System.Console.Haskeline
+                System.Console.Haskeline.Completion
+                System.Console.Haskeline.Encoding
+                System.Console.Haskeline.MonadException
+                System.Console.Haskeline.History
+                System.Console.Haskeline.IO
+    Other-Modules:
+                System.Console.Haskeline.Backend
+                System.Console.Haskeline.Command
+                System.Console.Haskeline.Command.Completion
+                System.Console.Haskeline.Command.History
+                System.Console.Haskeline.Command.KillRing
+                System.Console.Haskeline.Directory
+                System.Console.Haskeline.Emacs
+                System.Console.Haskeline.InputT
+                System.Console.Haskeline.Key
+                System.Console.Haskeline.LineState
+                System.Console.Haskeline.Monads
+                System.Console.Haskeline.Prefs
+                System.Console.Haskeline.RunCommand
+                System.Console.Haskeline.Term
+                System.Console.Haskeline.Command.Undo
+                System.Console.Haskeline.Vi
+    include-dirs: includes
+    if os(windows) {
+        Build-depends: Win32>=2.0
+        Other-modules: System.Console.Haskeline.Backend.Win32
+        c-sources: cbits/win_console.c
+        includes: win_console.h
+        install-includes: win_console.h
+        cpp-options: -DMINGW
+    } else {
+        Build-depends: unix>=2.0 && < 2.5
+                        -- unix-2.3 doesn't build on ghc-6.8.1 or earlier
+        c-sources: cbits/h_iconv.c
+                   cbits/h_wcwidth.c
+        includes: h_iconv.h
+        install-includes: h_iconv.h
+        Other-modules: 
+                System.Console.Haskeline.Backend.WCWidth
+                System.Console.Haskeline.Backend.Posix
+                System.Console.Haskeline.Backend.IConv
+                System.Console.Haskeline.Backend.DumbTerm
+        if flag(terminfo) {
+            Build-depends: terminfo>=0.3.1.3 && <0.4
+            Other-modules: System.Console.Haskeline.Backend.Terminfo
+            cpp-options: -DTERMINFO
+        }
+        if os(solaris) {
+            cpp-options: -DUSE_TERMIOS_H
+        }
+    }
+    ghc-options: -Wall
+
+
+package-hashes:
+    MD5:4e48c5dd0133f20ce69c6a5813fb82d9
+    SHA1:98c68b0c3228c22b1aaee7431aa2ae3caa814955
+    SHA256:d6dced71c4ebd9ad1f1f9415275aa522342a17d0cc800de9ae122e997e099d24
+    SHA512:b554f29f3724e431ac8f01c624efbc4531b3b4e5277f6fae46851293f8287c2e1cb205658088b086d70a3d0150f3d3923b7a00674845476bd1b668696de7dbf6
+    Skein512_512:339e8bc80bb71944e7f37f445db679933729b00c0f58bb3ed2a9700b2553929258aa03df2d8b40389dbe2da252296cb33c7c3cf30ad5f07eadd57cf78632d83d
+
+package-locations:
+    https://hackage.haskell.org/package/haskeline-0.6.2.3/haskeline-0.6.2.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/haskeline-0.6.2.3.tar.gz
+

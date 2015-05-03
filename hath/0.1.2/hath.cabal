@@ -1,0 +1,308 @@
+name:           hath
+version:        0.1.2
+cabal-version:  >= 1.8
+author:         Michael Orlitzky
+maintainer:	Michael Orlitzky <michael@orlitzky.com>
+category:       Utils
+license:        GPL-3
+license-file:   doc/LICENSE
+build-type:     Simple
+extra-source-files:
+  doc/man1/hath.1
+  test/shell/*.test
+  test/shell-net/*.test
+synopsis:
+  Hath manipulates network blocks in CIDR notation.
+description:
+  Hath is a Haskell program for working with network blocks in CIDR
+  notation. When dealing with blocks of network addresses, there are a
+  few things that one usually wants to do with them:
+  .
+    * Create a regular expression matching the CIDR block(s). This is
+      because grep will throw up if you feed it CIDR.
+  .
+    * Combine small blocks into larger ones. For example, if you have two
+      consecutive \/24s, they might combine into a larger \/23.
+  .
+    * View the result of block combination in a useful way.
+  .
+    * List them.
+  .
+    * Find their associated PTR records.
+  .
+  Hath has several modes to perform these functions:
+  .
+    [@Regexed@]
+    This computes a (Perl-compatible) regular expression matching
+    the input CIDR blocks. It's the default mode of operation.
+  .
+    [@Reduced@]
+    This combines small blocks into larger ones where possible, and
+    eliminates redundant blocks. The output should be equivalent to
+    the input, though.
+  .
+    [@Duped@]
+    Shows only the blocks that would be removed by reduce; that is, it
+    shows the ones that would get combined into larger blocks or are
+    simply redundant.
+  .
+    [@Diffed@]
+    Shows what would change if you used reduce. Uses diff-like
+    notation.
+  .
+    [@Listed@]
+    List the IP addresses contained within the given CIDRs.
+  .
+    [@Reversed@]
+    Perform reverse DNS (PTR) lookups on the IP addresses contained
+    within the given CIDRs.
+  .
+  /Examples/:
+  .
+  Compute a (Perl-compatible) regular expression matching
+  the input CIDR blocks. It's the default mode of operation.
+  .
+  @
+  $ hath <<< \"10.0.0.0\/29 10.0.0.8\/29\"
+  ((10)\.(0)\.(0)\.(15|14|13|12|11|10|9|8|7|6|5|4|3|2|1|0))
+  @
+  .
+  Combine two \/24s into a \/23:
+  .
+  @
+  $ hath reduced <<< \"10.0.0.0\/24 10.0.1.0\/24\"
+  10.0.0.0/23
+  @
+  .
+  List the addresses in 192.168.0.240\/29:
+  .
+  @
+  $ hath listed <<< 192.168.0.240\/29
+  192.168.0.240
+  192.168.0.241
+  192.168.0.242
+  192.168.0.243
+  192.168.0.244
+  192.168.0.245
+  192.168.0.246
+  192.168.0.247
+  @
+  .
+  Perform PTR lookups on all of 198.41.0.4\/30:
+  .
+  @
+  $ hath reversed <<< 198.41.0.4\/30
+  198.41.0.4: a.root-servers.net.
+  198.41.0.5:
+  198.41.0.6: rs.internic.net.
+  198.41.0.7:
+  @
+  .
+  The DNS lookups are usually the bottleneck for this mode, but we can
+  perform them in parallel. Simply pass the number of threads to the
+  GHC runtime on the command line; for example, the following will
+  perform 25 lookups in parallel:
+  .
+  @
+  $ hath reversed +RTS -N25 <<< 198.41.0.4\/24
+  198.41.0.4: a.root-servers.net.
+  198.41.0.5:
+  198.41.0.6: rs.internic.net.
+  ...
+  @
+  .
+  The command-line syntax and complete set of options are documented in
+  the man page.
+
+
+executable hath
+
+  main-is:
+    Main.hs
+
+  hs-source-dirs:
+    src/
+
+  other-modules:
+    Bit
+    Cidr
+    CommandLine
+    DNS
+    ExitCodes
+    IPv4Address
+    Maskable
+    Maskbits
+    Octet
+
+  build-depends:
+    base                        >= 4.6 && < 4.7,
+    bytestring                  == 0.10.*,
+    cmdargs                     == 0.10.*,
+    dns                         == 1.*,
+    HUnit                       == 1.2.*,
+    QuickCheck                  == 2.6.*,
+    MissingH                    == 1.2.*,
+    parallel-io                 == 0.3.*,
+    split                       == 0.2.*,
+    test-framework              == 0.8.*,
+    test-framework-hunit        == 0.3.*,
+    test-framework-quickcheck2  == 0.3.*
+
+  ghc-options:
+    -Wall
+    -fwarn-hi-shadowing
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-orphans
+    -fwarn-type-defaults
+    -fwarn-tabs
+    -fwarn-incomplete-record-updates
+    -fwarn-monomorphism-restriction
+    -fwarn-unused-do-bind
+    -rtsopts
+    -threaded
+    -optc-O3
+    -optc-march=native
+    -O2
+
+  ghc-prof-options:
+    -prof
+    -auto-all
+    -caf-all
+
+
+test-suite testsuite
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src test
+  main-is: TestSuite.hs
+
+  build-depends:
+    base                        >= 4.6 && < 4.7,
+    bytestring                  == 0.10.*,
+    cmdargs                     == 0.10.*,
+    dns                         == 1.*,
+    HUnit                       == 1.2.*,
+    QuickCheck                  == 2.6.*,
+    MissingH                    == 1.2.*,
+    parallel-io                 == 0.3.*,
+    split                       == 0.2.*,
+    test-framework              == 0.8.*,
+    test-framework-hunit        == 0.3.*,
+    test-framework-quickcheck2  == 0.3.*
+
+  -- It's not entirely clear to me why I have to reproduce all of this.
+  ghc-options:
+    -Wall
+    -fwarn-hi-shadowing
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-orphans
+    -fwarn-type-defaults
+    -fwarn-tabs
+    -fwarn-incomplete-record-updates
+    -fwarn-monomorphism-restriction
+    -fwarn-unused-do-bind
+    -rtsopts
+    -threaded
+    -optc-O3
+    -optc-march=native
+    -O2
+
+
+-- These won't work without shelltestrunner installed in your
+-- $PATH. Maybe there is some way to tell Cabal that.
+test-suite shelltests
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: ShellTests.hs
+
+  build-depends:
+    base                        >= 4.6 && < 4.7,
+    bytestring                  == 0.10.*,
+    cmdargs                     == 0.10.*,
+    dns                         == 1.*,
+    HUnit                       == 1.2.*,
+    QuickCheck                  == 2.6.*,
+    MissingH                    == 1.2.*,
+    parallel-io                 == 0.3.*,
+    process                     == 1.1.*,
+    split                       == 0.2.*,
+    test-framework              == 0.8.*,
+    test-framework-hunit        == 0.3.*,
+    test-framework-quickcheck2  == 0.3.*
+
+  -- It's not entirely clear to me why I have to reproduce all of this.
+  ghc-options:
+    -Wall
+    -fwarn-hi-shadowing
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-orphans
+    -fwarn-type-defaults
+    -fwarn-tabs
+    -fwarn-incomplete-record-updates
+    -fwarn-monomorphism-restriction
+    -fwarn-unused-do-bind
+    -rtsopts
+    -threaded
+    -optc-O3
+    -optc-march=native
+    -O2
+
+
+test-suite shelltests-net
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: ShellTestsNet.hs
+
+  build-depends:
+    base                        >= 4.6 && < 4.7,
+    bytestring                  == 0.10.*,
+    cmdargs                     == 0.10.*,
+    dns                         == 1.*,
+    HUnit                       == 1.2.*,
+    QuickCheck                  == 2.6.*,
+    MissingH                    == 1.2.*,
+    parallel-io                 == 0.3.*,
+    process                     == 1.1.*,
+    split                       == 0.2.*,
+    test-framework              == 0.8.*,
+    test-framework-hunit        == 0.3.*,
+    test-framework-quickcheck2  == 0.3.*
+
+  -- It's not entirely clear to me why I have to reproduce all of this.
+  ghc-options:
+    -Wall
+    -fwarn-hi-shadowing
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-orphans
+    -fwarn-type-defaults
+    -fwarn-tabs
+    -fwarn-incomplete-record-updates
+    -fwarn-monomorphism-restriction
+    -fwarn-unused-do-bind
+    -rtsopts
+    -threaded
+    -optc-O3
+    -optc-march=native
+    -O2
+
+
+source-repository head
+  type: git
+  location: http://michael.orlitzky.com/git/hath.git
+  branch: master
+
+
+package-hashes:
+    MD5:1be2f18b59c0d2cbe91c6bce57bae877
+    SHA1:b55ad75828037f694256a1aa26a838be678ca35b
+    SHA256:f5fb9fd7475871bce9c1f353078382c49d7a410525a353e39a78a718c53bcfac
+    SHA512:b978a92032417e0045611331316331d8d021d4f73ef16f7ad5c39d3ef9a51fd516d3c6096698226f0a9e61b9ff826a67c5c1d5a1f92fa2a305cedc6bc6d37cec
+    Skein512_512:97925196d480ac997f62da2c97f56f8c86ce7254a023340005a399aff69e0b0b1acb3be52654e9da33476eb01f1625f75b670042531559335a1b98136291c9cf
+
+package-locations:
+    https://hackage.haskell.org/package/hath-0.1.2/hath-0.1.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hath-0.1.2.tar.gz
+

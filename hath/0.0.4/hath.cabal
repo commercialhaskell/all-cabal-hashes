@@ -1,0 +1,202 @@
+name:           hath
+version:        0.0.4
+cabal-version:  >= 1.8
+author:         Michael Orlitzky
+maintainer:	Michael Orlitzky <michael@orlitzky.com>
+category:       Utils
+license:        GPL-3
+license-file:   doc/LICENSE
+build-type:     Simple
+extra-source-files:
+  doc/man1/hath.1
+synopsis:
+  Hath manipulates network blocks in CIDR notation.
+description:
+  Hath is a Haskell program for working with network blocks in CIDR
+  notation. When dealing with blocks of network addresses, there are a
+  few things that one usually wants to do with them:
+  .
+    * Create a regular expression matching the CIDR block(s). This is
+      because grep will throw up if you feed it CIDR.
+  .
+    * Combine small blocks into larger ones. For example, if you have two
+      consecutive \/24s, they might combine into a larger \/23.
+  .
+    * View the result of block combination in a useful way.
+  .
+    * List them.
+  .
+    * Find their associated PTR records.
+  .
+  Hath has several modes to perform these functions:
+  .
+    [@Regexed@]
+    This computes a (Perl-compatible) regular expression matching
+    the input CIDR blocks. It's the default mode of operation.
+  .
+    [@Reduced@]
+    This combines small blocks into larger ones where possible, and
+    eliminates redundant blocks. The output should be equivalent to
+    the input, though.
+  .
+    [@Duped@]
+    Shows only the blocks that would be removed by reduce; that is, it
+    shows the ones that would get combined into larger blocks or are
+    simply redundant.
+  .
+    [@Diffed@]
+    Shows what would change if you used reduce. Uses diff-like
+    notation.
+  .
+    [@Listed@]
+    List the IP addresses contained within the given CIDRs.
+  .
+    [@Reversed@]
+    Perform reverse DNS (PTR) lookups on the IP addresses contained
+    within the given CIDRs.
+  .
+  /Examples/:
+  .
+  Combine two \/24s into a \/23:
+  .
+  @
+  $ hath reduced <<< \"10.0.0.0\/24 10.0.1.0\/24\"
+  10.0.0.0/23
+  @
+  .
+  Create a perl-compatible regex to be fed to grep:
+  .
+  @
+  $ grep -P `hath regexed -i cidrs.txt` mail.log
+  @
+  .
+  List the addresses in 192.168.0.240\/29:
+  .
+  @
+  $ hath listed <<< \"192.168.0.240\/29\"
+  192.168.0.240
+  192.168.0.241
+  192.168.0.242
+  192.168.0.243
+  192.168.0.244
+  192.168.0.245
+  192.168.0.246
+  192.168.0.247
+  @
+  .
+  Perform PTR lookups on all of 198.41.0.4\/30:
+  .
+  @
+  hath reversed <<< \"198.41.0.4\/30\"
+  198.41.0.4: a.root-servers.net.
+  198.41.0.5:
+  198.41.0.6: rs.internic.net.
+  198.41.0.7:
+  @
+
+executable hath
+  build-depends:
+    base                        >= 4.6 && < 4.7,
+    bytestring                  == 0.10.*,
+    dns                         == 0.3.*,
+    HUnit                       == 1.2.*,
+    QuickCheck                  == 2.6.*,
+    MissingH                    == 1.2.*,
+    parallel-io                 == 0.3.*,
+    split                       == 0.2.*,
+    test-framework              == 0.8.*,
+    test-framework-hunit        == 0.3.*,
+    test-framework-quickcheck2  == 0.3.*
+
+  main-is:
+    Main.hs
+
+  hs-source-dirs:
+    src/
+
+  other-modules:
+    Bit
+    Cidr
+    CommandLine
+    DNS
+    ExitCodes
+    IPv4Address
+    Maskable
+    Maskbits
+    Octet
+
+  ghc-options:
+    -Wall
+    -fwarn-hi-shadowing
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-orphans
+    -fwarn-type-defaults
+    -fwarn-tabs
+    -fwarn-incomplete-record-updates
+    -fwarn-monomorphism-restriction
+    -fwarn-unused-do-bind
+    -rtsopts
+    -threaded
+    -optc-O3
+    -optc-march=native
+    -O2
+
+  ghc-prof-options:
+    -prof
+    -auto-all
+    -caf-all
+
+
+test-suite testsuite
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src test
+  main-is: TestSuite.hs
+  build-depends:
+    base                        >= 4.6 && < 4.7,
+    bytestring                  == 0.10.*,
+    dns                         == 0.3.*,
+    HUnit                       == 1.2.*,
+    QuickCheck                  == 2.6.*,
+    MissingH                    == 1.2.*,
+    parallel-io                 == 0.3.*,
+    split                       == 0.2.*,
+    test-framework              == 0.8.*,
+    test-framework-hunit        == 0.3.*,
+    test-framework-quickcheck2  == 0.3.*
+
+  -- It's not entirely clear to me why I have to reproduce all of this.
+  ghc-options:
+    -Wall
+    -fwarn-hi-shadowing
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-orphans
+    -fwarn-type-defaults
+    -fwarn-tabs
+    -fwarn-incomplete-record-updates
+    -fwarn-monomorphism-restriction
+    -fwarn-unused-do-bind
+    -rtsopts
+    -threaded
+    -optc-O3
+    -optc-march=native
+    -O2
+
+source-repository head
+  type: git
+  location: http://michael.orlitzky.com/git/hath.git
+  branch: master
+
+
+package-hashes:
+    MD5:2f5144e26c8b45ff50455d6946573685
+    SHA1:6b13df6c2f8ddb3d8e22802a9abaf9a511caa5ad
+    SHA256:e176ddfd7e7398d9fb427e19141538230b50815cfc7557f712f19c5f63e46042
+    SHA512:0a2a354efe0bcfa9c9ea2d7636b2a0873807b170bc13e1b0d02e5f337f8fd488241356c8fff6f5380970f634b568663ff31c6a7dbcb1f80e83f4879ac9b0fdcd
+    Skein512_512:609f18c48efb1fea665211cbae72c65e343530079cf1b078eac91e9ee01cc269d06624a611919ba0e70b0f5da27736e2d8f88c41dcee58f4ea88f4c3d66a7c6f
+
+package-locations:
+    https://hackage.haskell.org/package/hath-0.0.4/hath-0.0.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hath-0.0.4.tar.gz
+

@@ -1,0 +1,190 @@
+Name: git-annex
+Version: 4.20130927
+Cabal-Version: >= 1.8
+License: GPL-3
+Maintainer: Joey Hess <joey@kitenet.net>
+Author: Joey Hess
+Stability: Stable
+Copyright: 2010-2013 Joey Hess
+License-File: COPYRIGHT
+Homepage: http://git-annex.branchable.com/
+Build-type: Custom
+Category: Utility
+Synopsis: manage files with git, without checking their contents into git
+Description:
+ git-annex allows managing files with git, without checking the file
+ contents into git. While that may seem paradoxical, it is useful when
+ dealing with files larger than git can currently easily handle, whether due
+ to limitations in memory, time, or disk space.
+ .
+ Even without file content tracking, being able to manage files with git,
+ move files around and delete files with versioned directory trees, and use
+ branches and distributed clones, are all very handy reasons to use git. And
+ annexed files can co-exist in the same git repository with regularly
+ versioned files, which is convenient for maintaining documents, Makefiles,
+ etc that are associated with annexed files but that benefit from full
+ revision control.
+
+Flag S3
+  Description: Enable S3 support
+
+Flag WebDAV
+  Description: Enable WebDAV support
+
+Flag Inotify
+  Description: Enable inotify support
+
+Flag Dbus
+  Description: Enable dbus support
+
+Flag Assistant
+  Description: Enable git-annex assistant and watch command
+
+Flag Webapp
+  Description: Enable git-annex webapp
+
+Flag Pairing
+  Description: Enable pairing
+
+Flag XMPP
+  Description: Enable notifications using XMPP
+
+Flag DNS
+  Description: Enable the haskell DNS library for DNS lookup
+
+Flag Production
+  Description: Enable production build (slower build; faster binary)
+
+Flag Android
+  Description: Building for Android
+  Default: False
+
+Flag TestSuite
+  Description: Embed the test suite into git-annex
+
+Flag TDFA
+  Description: Use regex-tdfa for wildcards
+
+Flag Feed
+  Description: Enable podcast feed support
+
+Flag Quvi
+  Description: Enable use of quvi to download videos
+
+Executable git-annex
+  Main-Is: git-annex.hs
+  Build-Depends: MissingH, hslogger, directory, filepath,
+   containers, utf8-string, network (>= 2.0), mtl (>= 2),
+   bytestring, old-locale, time, HTTP,
+   extensible-exceptions, dataenc, SHA, cryptohash, process, json,
+   base (>= 4.5 && < 4.8), monad-control, MonadCatchIO-transformers,
+   IfElse, text, QuickCheck >= 2.1, bloomfilter, edit-distance, process,
+   SafeSemaphore, uuid, random, dlist, unix-compat
+  -- Need to list these because they're generated from .hsc files.
+  Other-Modules: Utility.Touch Utility.Mounts
+  Include-Dirs: Utility
+  C-Sources: Utility/libdiskfree.c Utility/libmounts.c
+  CC-Options: -Wall
+  GHC-Options: -Wall
+  CPP-Options: -DWITH_CLIBS
+  Extensions: PackageImports
+  -- Some things don't work with the non-threaded RTS.
+  GHC-Options: -threaded
+
+  if flag(Production)
+    GHC-Options: -O2
+
+  if os(windows)
+    CPP-Options: -D__WINDOWS__
+  else
+    Build-Depends: unix
+
+  if flag(TestSuite)
+    Build-Depends: HUnit
+    CPP-Options: -DWITH_TESTSUITE
+
+  if flag(TDFA)
+    Build-Depends: regex-tdfa
+    CPP-Options: -DWITH_TDFA
+
+  if flag(S3)
+    Build-Depends: hS3
+    CPP-Options: -DWITH_S3
+
+  if flag(WebDAV)
+    Build-Depends: DAV (>= 0.3), http-conduit, xml-conduit, http-types
+    CPP-Options: -DWITH_WEBDAV
+
+  if flag(Assistant) && ! os(windows) && ! os(solaris)
+    Build-Depends: async, stm (>= 2.3)
+    CPP-Options: -DWITH_ASSISTANT
+
+  if flag(Android)
+    Build-Depends: data-endian
+    CPP-Options: -D__ANDROID__
+
+  if flag(Assistant)
+    if os(linux) && flag(Inotify)
+      Build-Depends: hinotify
+      CPP-Options: -DWITH_INOTIFY
+    else
+      if os(darwin)
+        Build-Depends: hfsevents
+        CPP-Options: -DWITH_FSEVENTS
+      else
+        if (! os(windows) && ! os(solaris) && ! os(linux))
+          if flag(Android)
+            Build-Depends: hinotify
+            CPP-Options: -DWITH_INOTIFY
+          else
+            CPP-Options: -DWITH_KQUEUE
+            C-Sources: Utility/libkqueue.c
+
+  if os(linux) && flag(Dbus)
+    Build-Depends: dbus (>= 0.10.3)
+    CPP-Options: -DWITH_DBUS
+
+  if flag(Webapp)
+    Build-Depends:
+     yesod, yesod-default, yesod-static, yesod-form, yesod-core,
+     case-insensitive, http-types, transformers, wai, wai-logger, warp,
+     blaze-builder, crypto-api, hamlet, clientsession,
+     template-haskell, data-default, aeson
+    CPP-Options: -DWITH_WEBAPP
+
+  if flag(Pairing)
+    Build-Depends: network-multicast, network-info
+    CPP-Options: -DWITH_PAIRING
+
+  if flag(XMPP)
+    Build-Depends: network-protocol-xmpp, gnutls (>= 0.1.4), xml-types
+    CPP-Options: -DWITH_XMPP
+
+  if flag(DNS)
+    Build-Depends: dns
+    CPP-Options: -DWITH_DNS
+
+  if flag(Feed)
+    Build-Depends: feed
+    CPP-Options: -DWITH_FEED
+  
+  if flag(Quvi)
+    Build-Depends: aeson
+    CPP-Options: -DWITH_QUVI
+
+source-repository head
+  type: git
+  location: git://git-annex.branchable.com/
+
+
+package-hashes:
+    MD5:7dd40f2ac77066c6c34c8b8b3e592d5c
+    SHA1:4f7fd86b0f8e9a13e09b04953c14be95dc82bea9
+    SHA256:68c8abc6ab2673100b44de16b23663482cf1d9f921ccfc7c910e5716316f8e79
+    SHA512:2258423988dd036e92fd2c70737da7b1f9231bfa2a003949ed63ac3584b0a78c546ef694040683d0e568d1183abba78d25d71e820cee33fd35e6db853c2e3689
+    Skein512_512:8264b423d24ba3f2287c5b892484a0926d117b3d82ab751b7278ead53206d79e7a657005b8c55600fba242a90e7fcdf0d13183d22c1a92dc67dd4b72fedc25f0
+
+package-locations:
+    https://hackage.haskell.org/package/git-annex-4.20130927/git-annex-4.20130927.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/git-annex-4.20130927.tar.gz
+

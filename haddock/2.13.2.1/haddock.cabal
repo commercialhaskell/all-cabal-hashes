@@ -1,0 +1,240 @@
+name:                 haddock
+version:              2.13.2.1
+synopsis:             A documentation-generation tool for Haskell libraries
+description:          Haddock is a documentation-generation tool for Haskell
+                      libraries
+license:              BSD3
+license-file:         LICENSE
+author:               Simon Marlow, David Waern
+maintainer:           David Waern <david.waern@gmail.com>
+homepage:             http://www.haskell.org/haddock/
+bug-reports:          http://trac.haskell.org/haddock
+copyright:            (c) Simon Marlow, David Waern
+category:             Documentation
+build-type:           Simple
+cabal-version:        >= 1.10
+stability:            experimental
+
+extra-source-files:
+  CHANGES
+  README
+  doc/Makefile
+  doc/README
+  doc/aclocal.m4
+  doc/config.mk.in
+  doc/configure.ac
+  doc/docbook-xml.mk
+  doc/fptools.css
+  doc/haddock.xml
+  haddock.spec
+  haskell.vim
+  src/haddock.sh
+  html-test/src/*.hs
+  html-test/ref/*.html
+
+data-dir:   resources
+data-files: html/frames.html
+            html/haddock-util.js
+            html/Classic.theme/haskell_icon.gif
+            html/Classic.theme/minus.gif
+            html/Classic.theme/plus.gif
+            html/Classic.theme/xhaddock.css
+            html/Ocean.std-theme/hslogo-16.png
+            html/Ocean.std-theme/minus.gif
+            html/Ocean.std-theme/ocean.css
+            html/Ocean.std-theme/plus.gif
+            html/Ocean.std-theme/synopsis.png
+            latex/haddock.sty
+
+flag in-ghc-tree
+  description: Are we in a GHC tree?
+  default: False
+  manual: True
+
+-- Using this disables -O2, and hence allows to use --disable-optimization,
+-- which is about twice as fast.  This should probably be the default, but we
+-- need some benchmarks first..
+flag dev
+  default: False
+  manual: True
+
+executable haddock
+  default-language:     Haskell2010
+  main-is:              Main.hs
+  hs-source-dirs:       driver
+
+  if flag(dev)
+    ghc-options:          -funbox-strict-fields -Wall -fwarn-tabs
+  else
+    ghc-options:          -funbox-strict-fields -Wall -fwarn-tabs -O2
+
+  build-depends:
+    base >= 4.3 && < 4.7
+  if flag(in-ghc-tree)
+    hs-source-dirs: src
+    cpp-options: -DIN_GHC_TREE
+    build-depends:
+      filepath,
+      directory,
+      containers,
+      deepseq,
+      array,
+      xhtml >= 3000.2 && < 3000.3,
+      Cabal >= 1.10,
+      ghc == 7.6.*
+    other-modules:
+      Documentation.Haddock
+      Haddock
+      Haddock.Interface
+      Haddock.Interface.Rename
+      Haddock.Interface.Create
+      Haddock.Interface.AttachInstances
+      Haddock.Interface.LexParseRn
+      Haddock.Interface.ParseModuleHeader
+      Haddock.Lex
+      Haddock.Parse
+      Haddock.Utils
+      Haddock.Backends.Xhtml
+      Haddock.Backends.Xhtml.Decl
+      Haddock.Backends.Xhtml.DocMarkup
+      Haddock.Backends.Xhtml.Layout
+      Haddock.Backends.Xhtml.Names
+      Haddock.Backends.Xhtml.Themes
+      Haddock.Backends.Xhtml.Types
+      Haddock.Backends.Xhtml.Utils
+      Haddock.Backends.LaTeX
+      Haddock.Backends.HaddockDB
+      Haddock.Backends.Hoogle
+      Haddock.ModuleTree
+      Haddock.Types
+      Haddock.Doc
+      Haddock.Version
+      Haddock.InterfaceFile
+      Haddock.Options
+      Haddock.GhcUtils
+      Haddock.Convert
+  else
+    build-depends:  haddock
+
+library
+  default-language:     Haskell2010
+  -- In a GHC tree - in particular, in a source tarball - we don't
+  -- require alex or happy
+  if !flag(in-ghc-tree)
+    build-tools: alex >= 2.3, happy >= 1.18
+  build-depends:
+    base >= 4.3 && < 4.7,
+    filepath,
+    directory,
+    containers,
+    deepseq,
+    array,
+    xhtml >= 3000.2 && < 3000.3,
+    Cabal >= 1.10,
+    ghc == 7.6.*
+
+  if flag(in-ghc-tree)
+    cpp-options: -DIN_GHC_TREE
+  else
+    build-depends: ghc-paths
+
+  hs-source-dirs:       src
+  if flag(dev)
+    ghc-options:          -funbox-strict-fields -Wall -fwarn-tabs
+  else
+    ghc-options:          -funbox-strict-fields -Wall -fwarn-tabs -O2
+
+  exposed-modules:
+    Documentation.Haddock
+
+  other-modules:
+    Haddock
+    Haddock.Interface
+    Haddock.Interface.Rename
+    Haddock.Interface.Create
+    Haddock.Interface.AttachInstances
+    Haddock.Interface.LexParseRn
+    Haddock.Interface.ParseModuleHeader
+    Haddock.Lex
+    Haddock.Parse
+    Haddock.Utils
+    Haddock.Backends.Xhtml
+    Haddock.Backends.Xhtml.Decl
+    Haddock.Backends.Xhtml.DocMarkup
+    Haddock.Backends.Xhtml.Layout
+    Haddock.Backends.Xhtml.Names
+    Haddock.Backends.Xhtml.Themes
+    Haddock.Backends.Xhtml.Types
+    Haddock.Backends.Xhtml.Utils
+    Haddock.Backends.LaTeX
+    Haddock.Backends.HaddockDB
+    Haddock.Backends.Hoogle
+    Haddock.ModuleTree
+    Haddock.Types
+    Haddock.Doc
+    Haddock.Version
+    Haddock.InterfaceFile
+    Haddock.Options
+    Haddock.GhcUtils
+    Haddock.Convert
+    Paths_haddock
+
+  if flag(in-ghc-tree)
+    buildable: False
+
+test-suite html-test
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is:          run.lhs
+  hs-source-dirs:   html-test
+  build-depends:    base, directory, process, filepath, Cabal
+
+test-suite spec
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is:          Spec.hs
+  hs-source-dirs:
+      test
+    , test/nanospec
+    , src
+
+  other-modules:
+      Test.Hspec
+      Haddock.ParseSpec
+
+  build-depends:
+      base
+    , ghc
+    , containers
+    , deepseq
+    , array
+
+  -- NOTE: As of this writing, Cabal does not properly handle alex/happy for
+  -- test suites.  We work around this by adding dist/build to hs-source-dirs,
+  -- so that the the generated lexer/parser from the library is used.  In
+  -- addition we depend on 'haddock', so that the library is compiled before
+  -- the test suite.
+  --
+  -- The corresponding cabal ticket is here:
+  -- https://github.com/haskell/cabal/issues/943
+  hs-source-dirs:
+      dist/build
+  build-depends:
+      haddock
+
+source-repository head
+  type:     git
+  location: http://darcs.haskell.org/haddock.git
+
+
+package-hashes:
+    MD5:3c93d116c8b509c27636248ef0e712b3
+    SHA1:90a4e98b496a4788e4f8cb0951fcd7105e40a66b
+    SHA256:c9cfe2bd2e8e1201870f88bc9a2ccdb0173315d0a8c734b459ec344feb1af34e
+    SHA512:91e451264ff1c82c801f32a48f33d9fd808d22135e0ca6c73a0bd5b515ec69f2530ca9566ee11109cdf67005c4f794cf5e12b7743cf72e34e1e76f094a5744e2
+    Skein512_512:15aab2ee322cf437204f47021cc4f541280630f9246a45669376d8bbc7bd1ea8ba2e7d01f7e85362d644ab0644038b29831df0c7152db2e88c7dbaba41ffb73f
+
+package-locations:
+    https://hackage.haskell.org/package/haddock-2.13.2.1/haddock-2.13.2.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/haddock-2.13.2.1.tar.gz
+

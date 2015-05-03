@@ -1,0 +1,173 @@
+name:                haskell-mpi
+version:             0.5.0
+cabal-version:       >= 1.6
+synopsis:            Distributed parallel programming in Haskell using MPI.
+description:
+ MPI is defined by the Message-Passing Interface Standard,
+ as specified by the Message Passing Interface Forum. The latest release
+ of the standard is known as MPI-2. These Haskell
+ bindings are designed to work with any standards compliant
+ implementation of MPI-2. Examples are MPICH2:
+ <http://www.mcs.anl.gov/research/projects/mpich2> and
+ OpenMPI: <http://www.open-mpi.org>.
+ .
+ In addition to reading these documents, users may also find it
+ beneficial to consult the MPI-2 standard documentation provided by the
+ MPI Forum: <http://www.mpi-forum.org>, and also the documentation for
+ the MPI implementation linked to this library (that is, the MPI
+ implementation that was chosen when this Haskell library was compiled).
+ .
+ "Control.Parallel.MPI.Fast" contains a high-performance interface
+ for working with (possibly mutable) arrays of storable Haskell data types.
+ .
+ "Control.Parallel.MPI.Simple" contains a convenient (but slower)
+ interface for sending arbitrary serializable Haskell data values as messages.
+ .
+ "Control.Parallel.MPI.Internal" contains a direct binding to the
+ C interface.
+ .
+ "Control.Parallel.MPI.Base" contains essential MPI functionality
+ which is independent of the message passing API. This is re-exported
+ by the Fast and Simple modules, and usually does not need to be
+ explcitly imported itself.
+ .
+ Notable differences between Haskell-MPI and the standard C interface to MPI:
+ .
+    1. Some collective message passing operations are split into send
+       and receive parts to facilitate a more idiomatic Haskell style of programming.
+       For example, C provides the @MPI_Gather@ function which is called
+       by all processes participating in the communication, whereas
+       Haskell-MPI provides 'gatherSend' and 'gatherRecv' which are called
+       by the sending and receiving processes respectively.
+ .
+    2. The order of arguments for some functions is changed to allow
+       for the most common patterns of partial function application.
+ .
+    3. Errors are raised as exceptions rather than return codes (assuming
+       that the error handler to 'errorsThrowExceptions', otherwise errors
+       will terminate the computation just like C interface).
+ .
+      Below is a small but complete MPI program. Process 1 sends the message
+      @\"Hello World\"@ to process 0, which in turn receives the message and
+      prints it to standard output. All other processes, if there are any,
+      do nothing.
+ .
+      >module Main where
+      >
+      >import Control.Parallel.MPI.Simple (mpiWorld, commWorld, unitTag, send, recv)
+      >
+      >main :: IO ()
+      >main = mpiWorld $ \size rank ->
+      >   if size < 2
+      >      then putStrLn "At least two processes are needed"
+      >      else case rank of
+      >         0 -> do (msg, _status) <- recv commWorld 1 unitTag
+      >                 putStrLn msg
+      >         1 -> send commWorld 0 unitTag "Hello World"
+      >         _ -> return ()
+
+category:            FFI, Distributed Computing
+license:             BSD3
+license-file:        LICENSE
+copyright:           (c) 2010 Bernard James Pope
+author:              Bernard James Pope (Bernie Pope)
+maintainer:          florbitous@gmail.com
+homepage:            http://github.com/bjpop/haskell-mpi
+build-type:          Simple
+stability:           experimental
+tested-with:         GHC==6.10.4, GHC==6.12.1
+extra-source-files:  src/cbits/*.c src/include/*.h README.txt
+
+source-repository head
+  type: git
+  location: git://github.com/bjpop/haskell-mpi.git
+
+flag test
+  description: Build testsuite and code coverage tests
+  default: False
+
+Library
+   extra-libraries:  mpi
+   build-tools:      c2hs
+   ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
+   c-sources:
+      src/cbits/init_wrapper.c,
+      src/cbits/constants.c
+   include-dirs:
+      src/include
+   hs-source-dirs:
+      src
+   build-depends:
+      base > 3 && <= 5,
+      haskell98,
+      bytestring,
+      cereal,
+      extensible-exceptions,
+      array
+   exposed-modules:
+      Control.Parallel.MPI.Base,
+      Control.Parallel.MPI.Internal,
+      Control.Parallel.MPI.Fast,
+      Control.Parallel.MPI.Simple
+   other-modules:
+      C2HS,
+      Control.Parallel.MPI.Utils
+
+executable  haskell-mpi-testsuite
+  hs-source-dirs:
+    ./test
+    ./src
+  build-tools:      c2hs
+  extra-libraries:  mpi
+  ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
+  c-sources:
+    src/cbits/init_wrapper.c,
+    src/cbits/constants.c
+  include-dirs:
+    src/include
+  other-modules:
+    Control.Parallel.MPI.Base,
+    Control.Parallel.MPI.Internal,
+    Control.Parallel.MPI.Fast,
+    Control.Parallel.MPI.Simple,
+    Control.Parallel.MPI.Utils,
+    C2HS,
+    IOArrayTests,
+    SimpleTests,
+    FastAndSimpleTests,
+    StorableArrayTests,
+    GroupTests,
+    PrimTypeTests,
+    ExceptionTests,
+    OtherTests,
+    TestHelpers
+  main-is:       Testsuite.hs
+  if flag(test)
+    ghc-options: -fhpc
+    build-depends: base >=3 && <=5, HUnit, testrunner, hpc, unix
+  else
+    buildable: False
+
+executable haskell-mpi-comprunclean
+  hs-source-dirs:
+    ./test
+  ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
+  other-modules:
+  main-is:  CompileRunClean.hs
+  if flag(test)
+    build-depends: base >=3 && <=5, process
+  else
+    buildable: False
+
+
+package-hashes:
+    MD5:dded23fc52f2f904117d5db54824adb7
+    SHA1:a18d7f339692eb1bdc650e80b25162f61f00f7f0
+    SHA256:3326e44b75530cedaf1af756a4b9b7e06002df2dff794abc05d47515e66a475b
+    SHA512:e17b1c447a95100986ad0a8efe55c8fb9e3170ef16b815a4a308e8a70faf546e15be887437721e5939fdd66a01bfae5c821fcc80e49dce74ba496c9e294b2327
+    Skein512_512:d94092b189ae0a69c446b4d85cc3638bf4a8f9bee5eaf3d1d5fc44bb5f88df1f086885ea94417d50e85cef6c74c216603742f8ac6d5613fd30cbe8628591ee7b
+
+package-locations:
+    https://hackage.haskell.org/package/haskell-mpi-0.5.0/haskell-mpi-0.5.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/haskell-mpi-0.5.0.tar.gz
+

@@ -1,0 +1,159 @@
+Name:                hashable
+Version:             1.2.3.1
+x-revision: 1
+Synopsis:            A class for types that can be converted to a hash value
+Description:         This package defines a class, 'Hashable', for types that
+                     can be converted to a hash value.  This class
+                     exists for the benefit of hashing-based data
+                     structures.  The package provides instances for
+                     basic types and a way to combine hash values.
+Homepage:            http://github.com/tibbe/hashable
+License:             BSD3
+License-file:        LICENSE
+Author:              Milan Straka <fox@ucw.cz>
+                     Johan Tibell <johan.tibell@gmail.com>
+Maintainer:          johan.tibell@gmail.com
+bug-reports:         https://github.com/tibbe/hashable/issues
+Stability:           Provisional
+Category:            Data
+Build-type:          Simple
+Cabal-version:       >=1.8
+-- tests/Properties.hs shouldn't have to go here, but the source files
+-- for the test-suite stanzas don't get picked up by `cabal sdist`.
+Extra-source-files:
+  CHANGES.md, README.md, tests/Properties.hs, benchmarks/Benchmarks.hs
+
+Flag integer-gmp
+  Description: Are we using integer-gmp to provide fast Integer instances?
+  Default: True
+
+Flag sse2
+  Description: Do we want to assume that a target supports SSE 2?
+  Default: True
+  Manual: True
+
+Flag sse41
+  Description: Do we want to assume that a target supports SSE 4.1?
+  Default: False
+  Manual: True
+
+Library
+  Exposed-modules:   Data.Hashable
+  Other-modules:     Data.Hashable.Class
+  Build-depends:     base >= 4.0 && < 4.8,
+                     bytestring >= 0.9 && < 0.11
+  if impl(ghc)
+    Build-depends:   ghc-prim,
+                     text >= 0.11.0.5
+  if impl(ghc) && flag(integer-gmp)
+    Build-depends:   integer-gmp >= 0.2
+
+  if impl(ghc >= 7.2.1)
+    CPP-Options:     -DGENERICS
+    Other-modules:   Data.Hashable.Generic
+
+  C-sources:
+                     cbits/fnv.c
+
+  Ghc-options:       -Wall
+  if impl(ghc >= 6.8)
+    Ghc-options: -fwarn-tabs
+  else
+    c-sources:         cbits/getRandomBytes.c
+    other-modules:     Data.Hashable.RandomSource
+    if os(windows)
+      extra-libraries: advapi32
+
+Test-suite tests
+  Type:              exitcode-stdio-1.0
+  Hs-source-dirs:    tests
+  Main-is:           Main.hs
+  Other-modules:     Properties Regress
+  Build-depends:     base >= 4.0 && < 4.8,
+                     bytestring,
+                     ghc-prim,
+                     hashable,
+                     test-framework >= 0.3.3,
+                     test-framework-hunit,
+                     test-framework-quickcheck2 >= 0.2.9,
+                     HUnit,
+                     QuickCheck >= 2.4.0.1,
+                     random >= 1.0 && < 1.2,
+                     text >= 0.11.0.5
+  if !os(windows)
+    Build-depends:   unix
+    CPP-options:     -DHAVE_MMAP
+    Other-modules:   Regress.Mmap
+
+  Ghc-options:       -Wall -fno-warn-orphans
+  if impl(ghc >= 7.2.1)
+    CPP-Options:     -DGENERICS
+
+benchmark benchmarks
+  -- We cannot depend on the hashable library directly as that creates
+  -- a dependency cycle.
+  hs-source-dirs: . benchmarks
+
+  main-is: Benchmarks.hs
+  other-modules:
+    Data.Hashable
+    Data.Hashable.Class
+    Data.Hashable.RandomSource
+    Data.Hashable.SipHash
+  type: exitcode-stdio-1.0
+
+  build-depends:
+    base,
+    bytestring,
+    criterion,
+    ghc-prim,
+    siphash,
+    text
+
+  if impl(ghc)
+    Build-depends:   ghc-prim,
+                     text >= 0.11.0.5
+  if impl(ghc) && flag(integer-gmp)
+    Build-depends:   integer-gmp >= 0.2
+
+  c-sources:
+    benchmarks/cbits/inthash.c
+    benchmarks/cbits/siphash.c
+    benchmarks/cbits/wang.c
+    cbits/fnv.c
+
+  if (arch(i386) || arch(x86_64)) && flag(sse2)
+    cpp-options: -DHAVE_SSE2
+    c-sources:
+      benchmarks/cbits/siphash-sse2.c
+
+    if flag(sse41)
+      cpp-options: -DHAVE_SSE41
+      c-sources:
+        benchmarks/cbits/siphash-sse41.c
+
+  Ghc-options:       -Wall -O2
+  if impl(ghc >= 6.8)
+    Ghc-options: -fwarn-tabs
+  else
+    c-sources:         cbits/getRandomBytes.c
+    other-modules:     Data.Hashable.RandomSource
+    if os(windows)
+      extra-libraries: advapi32
+
+source-repository head
+  type:     git
+  location: https://github.com/tibbe/hashable.git
+
+
+package-hashes:
+    MD5:7a0540000e5717c0b089278f63c13ba0
+    SHA1:b08e8fb12a27953aeca2e34713c2dcdd79735464
+    SHA256:d5bf53df132e56671a3a4533c89324b327e1b47181b3961cffa87f5aea6f7af9
+    SHA512:e8518490a89aa42c283adbda038754a2d0ad4ebcf9c28fa5203be69616f9c6d12befd472874d34e3892d70cfa6de6e0f5be9dddae9b78a8fdfb83106074825d3
+    Skein512_512:4e5cb02c96742559ab0900506b9c92a8be678931a4d7895a81bc713e2d4fb66f6ef93478b15e4c6cc880b2b44ac53b5e321c7c6e8a70747e73aeeb9a6a8b2abd
+
+package-locations:
+    https://hackage.haskell.org/package/hashable-1.2.3.1/hashable-1.2.3.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hashable-1.2.3.1.tar.gz
+
