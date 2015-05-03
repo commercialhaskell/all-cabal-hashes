@@ -1,0 +1,214 @@
+name:               scholdoc-citeproc
+version:            0.6
+x-revision: 1
+cabal-version:      >= 1.12
+synopsis:           Scholdoc fork of pandoc-citeproc
+description:        This package is a fork of @pandoc-citeproc@, intended to
+                    support the development of Scholdoc. It is currently just a
+                    trivial fork just so it can compile against
+                    @scholdoc-citeproc@ without polluting the @pandoc-citeproc@
+                    package and executable namespace.
+                    .
+                    This package is versioned identically to @pandoc-citeproc@.
+                    .
+                    For descriptions of the original @pandoc-citeproc@ package,
+                    please visit
+                    <http://hackage.haskell.org/package/pandoc-citeproc>
+
+category:           Text
+license:            BSD3
+license-file:       LICENSE
+author:             Tim T.Y. Lin <timtylin@gmail.com>
+maintainer:         Tim T.Y. Lin <timtylin@gmail.com>
+homepage:           http://scholdoc.scholarlymarkdown.com
+bug-reports:        https://github.com/timtylin/scholdoc-citeproc/issues
+build-type:         Custom
+data-files:         chicago-author-date.csl
+                    locales/locales-af-ZA.xml
+                    locales/locales-ar-AR.xml
+                    locales/locales-bg-BG.xml
+                    locales/locales-ca-AD.xml
+                    locales/locales-cs-CZ.xml
+                    locales/locales-da-DK.xml
+                    locales/locales-de-AT.xml
+                    locales/locales-de-CH.xml
+                    locales/locales-de-DE.xml
+                    locales/locales-el-GR.xml
+                    locales/locales-en-GB.xml
+                    locales/locales-en-US.xml
+                    locales/locales-es-ES.xml
+                    locales/locales-et-EE.xml
+                    locales/locales-eu.xml
+                    locales/locales-fa-IR.xml
+                    locales/locales-fi-FI.xml
+                    locales/locales-fr-CA.xml
+                    locales/locales-fr-FR.xml
+                    locales/locales-he-IL.xml
+                    locales/locales-hr-HR.xml
+                    locales/locales-hu-HU.xml
+                    locales/locales-is-IS.xml
+                    locales/locales-it-IT.xml
+                    locales/locales-ja-JP.xml
+                    locales/locales-km-KH.xml
+                    locales/locales-ko-KR.xml
+                    locales/locales-lt-LT.xml
+                    locales/locales-lv-LV.xml
+                    locales/locales-mn-MN.xml
+                    locales/locales-nb-NO.xml
+                    locales/locales-nl-NL.xml
+                    locales/locales-nn-NO.xml
+                    locales/locales-pl-PL.xml
+                    locales/locales-pt-BR.xml
+                    locales/locales-pt-PT.xml
+                    locales/locales-ro-RO.xml
+                    locales/locales-ru-RU.xml
+                    locales/locales-sk-SK.xml
+                    locales/locales-sl-SI.xml
+                    locales/locales-sr-RS.xml
+                    locales/locales-sv-SE.xml
+                    locales/locales-th-TH.xml
+                    locales/locales-tr-TR.xml
+                    locales/locales-uk-UA.xml
+                    locales/locales-vi-VN.xml
+                    locales/locales-zh-CN.xml
+                    locales/locales-zh-TW.xml
+                    -- tests
+                    tests/*.in.native
+                    tests/*.expected.native
+                    tests/*.csl
+                    tests/biblio.bib
+                    tests/biblio2yaml/*.bibtex
+                    -- documentation
+                    README.md
+                    README-pandoc-citeproc.md
+                    man/man1/scholdoc-citeproc.1
+                    changelog
+
+source-repository head
+  type:          git
+  location:      git://github.com/timtylin/scholdoc-citeproc.git
+
+flag small_base
+  description: Choose the new smaller, split-up base package.
+
+flag bibutils
+  description: Use Chris Putnam's Bibutils.
+  default:     True
+
+flag embed_data_files
+  description: Embed locale files into the library (needed for windows packaging)
+  default:     False
+
+flag unicode_collation
+  description: Use Haskell bindings to the International Components for Unicode (ICU) libraries
+  default:     False
+
+flag test_citeproc
+  description: Build the test-citeproc program
+  default:     False
+
+library
+    hs-source-dirs:   src
+    exposed-modules:  Text.CSL.Pandoc
+                      Text.CSL
+                      Text.CSL.Reference
+                      Text.CSL.Style
+                      Text.CSL.Eval
+                      Text.CSL.Eval.Common
+                      Text.CSL.Eval.Date
+                      Text.CSL.Eval.Names
+                      Text.CSL.Eval.Output
+                      Text.CSL.Parser
+                      Text.CSL.Proc
+                      Text.CSL.Proc.Collapse
+                      Text.CSL.Proc.Disamb
+                      Text.CSL.Input.Bibutils
+                      Text.CSL.Input.Bibtex
+                      Text.CSL.Output.Pandoc
+                      Text.CSL.Output.Plain
+                      Text.CSL.Data
+    other-modules:    Text.CSL.Util
+                      Paths_scholdoc_citeproc
+    ghc-options:      -funbox-strict-fields -Wall -fno-warn-unused-do-bind
+    ghc-prof-options: -prof -auto-all
+    build-depends:    containers, directory, mtl,
+                      bytestring, filepath, scholdoc-types >= 0.1.3, tagsoup,
+                      aeson >= 0.7 && < 0.9, text, vector,
+                      xml-conduit >= 1.2 && < 1.3,
+                      data-default,
+                      split, yaml >= 0.8.8.2, scholdoc >= 0.1.3
+    if impl(ghc < 7.6)
+       build-depends: ghc-prim
+
+    if flag(bibutils)
+       build-depends:   hs-bibutils >= 0.3
+       default-extensions: CPP
+       cpp-options:     -DUSE_BIBUTILS
+
+    if flag(embed_data_files)
+       default-extensions:    CPP
+       cpp-options:   -DEMBED_DATA_FILES
+       other-modules: Text.CSL.Data.Embedded
+
+    if flag(unicode_collation)
+       build-depends: text, text-icu
+       default-extensions:    CPP
+       cpp-options:   -DUNICODE_COLLATION
+    else
+       build-depends: rfc5051
+       default-extensions:    CPP
+
+    if impl(ghc >= 6.10)
+       build-depends: base >= 4, syb, parsec, old-locale, time
+    else
+       build-depends: base >= 3 && < 4
+
+    default-language: Haskell98
+
+executable scholdoc-citeproc
+    main-is:          scholdoc-citeproc.hs
+    hs-source-dirs:   .
+    ghc-options:      -funbox-strict-fields -Wall
+    ghc-prof-options: -prof -auto-all
+    build-depends:    base >= 4, scholdoc-citeproc, scholdoc-types >= 0.1.3, aeson,
+                      aeson-pretty, yaml, bytestring, syb, attoparsec, text,
+                      filepath
+    default-language: Haskell98
+
+executable test-citeproc
+  Main-Is:        test-citeproc.hs
+  Other-Modules:  JSON
+  Hs-Source-Dirs: tests
+  if flag(test_citeproc)
+    Buildable:    True
+  else
+    Buildable:    False
+  build-depends:  base >= 4, aeson, directory, text,
+                  scholdoc-types >= 0.1.3, scholdoc >= 0.1.3, filepath,
+                  bytestring, scholdoc-citeproc, process, temporary >= 1.1,
+                  yaml >= 0.8.8.2, containers >= 0.4 && < 0.6,
+                  vector >= 0.10 && < 0.11
+  default-language: Haskell98
+
+test-suite test-scholdoc-citeproc
+  Type:           exitcode-stdio-1.0
+  Main-Is:        test-scholdoc-citeproc.hs
+  Other-Modules:  JSON
+  Hs-Source-Dirs: tests
+  build-depends:  base >= 4, aeson, directory, text,
+                  scholdoc-types >= 0.1.3, scholdoc >= 0.1.3, filepath,
+                  bytestring, scholdoc-citeproc, process, temporary >= 1.1,
+                  yaml >= 0.8.8.2
+  default-language: Haskell98
+
+package-hashes:
+    MD5:c5e59468a8d23c35b44497e9f3bae859
+    SHA1:27a88b5dd1637e95096d828e779738771e08e02d
+    SHA256:94c2695699811dfdc84a4fb4352bda5d5086134d92695cd0c2ec8f913267c873
+    SHA512:9efcb1d5f2369f5daa380376c1f53de8347a67450e1dde3e58aaa362c1a0c730df46084ffc13dfb0f9728a03def75d7b0904b3cc63962485981082cdb56d0b08
+    Skein512_512:e3d49bda69fbd3c29d7d331a12b1f6a3a482d6bd191030a8c674c2f1089d89cb67247144d3d0aa540c35aa5eca6d554689d8d2d26f7050656522bea8156669b5
+
+package-locations:
+    https://hackage.haskell.org/package/scholdoc-citeproc-0.6/scholdoc-citeproc-0.6.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/scholdoc-citeproc-0.6.tar.gz
+

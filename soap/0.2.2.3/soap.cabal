@@ -1,0 +1,110 @@
+name:                soap
+version:             0.2.2.3
+synopsis:            SOAP client tools
+description:
+  Tools to build SOAP clients using xml-conduit.
+  .
+  A mildly-complicated example:
+  .
+  > {-# LANGUAGE OverloadedStrings #-}
+  > import Network.SOAP
+  > import Network.SOAP.Transport.HTTP
+  >
+  > import Text.XML.Writer
+  > import Text.XML.Stream.Parse as Parse
+  > import           Data.Text (Text)
+  > import qualified Data.Text as T
+  >
+  > main :: IO ()
+  > main = do
+  >     -- Initial one-time preparations.
+  >     transport <- initTransport "http://example.com/soap/endpoint" id (iconv "cp-1251")
+  >
+  >     -- Making queries
+  >     activeStaff <- listStaff transport True
+  >     print activeStaff
+  >
+  > data Person = Person Text Int deriving Show
+  >
+  > listStaff :: Transport -> Bool -> IO [Person]
+  > listStaff t active = invokeWS t "urn:dummy:listStaff" () body parser
+  >     where
+  >         body = element "request" $ element "listStaff" $ do
+  >                    element "active" active
+  >                    element "order" $ T.pack "age"
+  >                    element "limit" (10 :: Int)
+  >
+  >         parser = StreamParser $ force "no people" $ tagNoAttr "people" $ Parse.many parsePerson
+  >
+  >         parsePerson = tagName "person" (requireAttr "age") $ \age -> do
+  >                           name <- Parse.content
+  >                           return $ Person name (read . T.unpack $ age)
+  .
+  Notice: to invoke HTTPS services you need to initialize a transport from soap-tls or soap-openssl.
+
+homepage:            https://bitbucket.org/dpwiz/haskell-soap
+license:             MIT
+license-file:        LICENSE
+author:              Alexander Bondarenko
+maintainer:          aenor.realm@gmail.com
+-- copyright:           
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.8
+extra-source-files:
+  changelog
+
+library
+  hs-source-dirs:    src/
+  ghc-options: -Wall
+  exposed-modules:
+    Network.SOAP
+    Network.SOAP.Transport
+    Network.SOAP.Exception
+    Network.SOAP.Transport.HTTP
+    Network.SOAP.Transport.Mock
+    Network.SOAP.Parsing.Cursor
+    Network.SOAP.Parsing.Stream
+  build-depends:
+      base ==4.*
+    , http-client >=0.2 && <0.4
+    , http-types
+
+    , configurator
+
+    , xml-conduit-writer
+    , xml-conduit
+    , xml-types
+    , conduit
+    , exceptions
+    , resourcet
+    , data-default
+
+    , text
+    , bytestring
+    , iconv
+    , unordered-containers
+    , mtl
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test/
+  build-depends:
+    base, soap, hspec, HUnit,
+    xml-conduit, xml-conduit-writer,
+    text, bytestring,
+    unordered-containers
+
+
+package-hashes:
+    MD5:d3facd86caaee8b8f76a3712b63d1e6e
+    SHA1:2e9ff6e78269e8dd809f241d0d59b5bdc0a01248
+    SHA256:01c054ecb6ef2c5dc6d069a357243e4669f0ed95d074e0238a22fd6ffb4c169e
+    SHA512:383c8277c186392c8d17bb1b375f79ebca9486d4cef9f297147605d1f305d06205a66192446b6a364bba93a1d6875731124b385ae5d93fb1c82c51428e122edf
+    Skein512_512:45e81edae6b9c2495cf65db0a7385f29c793b39ed40051b6a762b3c7b90096a839c28d6b1d715511fc15c0855742b6c43c9e282ba936ec92b744b78d9cf9952b
+
+package-locations:
+    https://hackage.haskell.org/package/soap-0.2.2.3/soap-0.2.2.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/soap-0.2.2.3.tar.gz
+

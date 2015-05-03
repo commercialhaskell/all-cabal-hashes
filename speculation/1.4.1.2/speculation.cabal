@@ -1,0 +1,113 @@
+name:           speculation
+version:        1.4.1.2
+license:        BSD3
+license-file:   LICENSE
+author:         Edward A. Kmett
+maintainer:     Edward A. Kmett <ekmett@gmail.com>
+stability:      experimental
+homepage:       http://github.com/ekmett/speculation
+bug-reports:    http://github.com/ekmett/speculation/issues
+category:       Concurrency
+copyright:      (c) 2010 Edward A. Kmett
+build-type:     Custom
+cabal-version:  >=1.6
+tested-with:    GHC==6.12.1, GHC==7.3.20111017
+synopsis:       A framework for safe, programmable, speculative parallelism
+description:
+ A framework for safe, programmable, speculative parallelism, loosely based on:
+ .
+ *  Prakash Prabhu, G. Ramalingam, and Kapil Vaswani, \"/Safe Programmable Speculative Parallelism/\",
+    In the proceedings of Programming Language Design and Implementation (PLDI) Vol 45, Issue 6 (June 2010) pp 50-61.
+    <http://research.microsoft.com/pubs/118795/pldi026-vaswani.pdf>
+ .
+ This package provides speculative function application and speculative folds. Speculative STM transactions take the place
+ of the transactional rollback machinery from the paper.
+ .
+ For example:
+ .
+ @'spec' g f a@ evaluates @f g@ while forcing @a@, if @g == a@ then @f g@ is returned, otherwise @f a@ is evaluated and returned. Furthermore, if the argument has already been evaluated, we skip the @f g@ computation entirely. If a good guess at the value of @a@ is available, this is one way to induce parallelism in an otherwise sequential task. However, if the guess isn\'t available more cheaply than the actual answer, then this saves no work and if the guess is wrong, you risk evaluating the function twice. Under high load, since 'f g' is computed via the spark queue, the speculation will be skipped and you will obtain the same answer as 'f $! a'.
+ .
+ The best-case timeline looks like:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]    (check g == a)
+ > spark:         [----- f g -----]
+ > overall:    [--- spec g f a ---]
+ .
+ The worst-case timeline looks like:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]               (check g == a)
+ > foreground:                 [---- f a ----]
+ > spark:         [----- f g -----]
+ > overall:    [-------- spec g f a ---------]
+ .
+ Note that, if @f g@ takes longer than a to compute, in the HEAD release of GHC, @f g@ will be collected and killed during garbage collection.
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]               (check g == a)
+ > foreground:                 [---- f a ----]
+ > spark:         [---- f g ----######         (#'s mark when this spark is collectable)
+ > overall:    [--------- spec g f a --------]
+ .
+ Under high load:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]               (check g == a)
+ > foreground:                 [---- f a ----]
+ > overall:    [-------- spec g f a ---------]
+ .
+ Compare these to the timeline of @f $! a@:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [---- f a ----]
+ > orverall:   [---------- f $! a ---------]
+ .
+ 'specSTM' provides a similar time table for STM actions, but also rolls back side-effects. The one unfortunate operational distinction is that it is forced to compute 'a' in the background thread and therefore degrades slightly less gracefully under load, although we mitigate this effect by only enqueuing if the number of sparks for the current capability is lower than the total number of capabilities, to try to avoid wasting time when all computational resources are in use.
+
+extra-source-files: README.markdown CHANGELOG.markdown ISSUES.markdown .travis.yml
+
+source-repository head
+  type:     git
+  location: http://github.com/ekmett/speculation.git
+  branch:   master
+
+flag optimize
+  description: Enable optimizations for the library and benchmarks
+  default:     True
+
+library
+  ghc-options: -Wall
+  if flag(optimize)
+    ghc-options: -funbox-strict-fields -O2 -fspec-constr -fdicts-cheap
+
+  build-depends: base >= 4.3 && < 6
+
+  build-depends:
+    ghc-prim,
+    tag-bits     >= 0.1 && < 0.2,
+    transformers >= 0.2.2.0 && < 0.4,
+    stm          >= 2.1 && < 2.5
+
+  exposed-modules:
+    Control.Concurrent.Speculation
+    Control.Concurrent.Speculation.Class
+    Control.Concurrent.Speculation.Foldable
+    Control.Concurrent.Speculation.Traversable
+    Control.Concurrent.Speculation.List
+  other-modules:
+    Control.Concurrent.Speculation.Internal
+
+
+
+package-hashes:
+    MD5:fa930c6ef8e1fa6118dcfc562321fcaf
+    SHA1:0bfb403e13b8e49b8debb8d0cc5fd72086296f37
+    SHA256:056dcf620d8e4dd5a3549289e55a1c63c767bae439143bf507ae0c54b89b22fe
+    SHA512:983edd76e9886ab0be2ea8f9a5293795b7822fb90e415cd5a6ded6b2cd958cdd03b7df476e24db050231893995bd621b4f2c66ede5ec786a00d3de4dad71d89d
+    Skein512_512:824dd254e89277fd93798ed8197b59eff850f358e8d783952f875879d99372b592e59585d45559bf85f5f7cec6a94023fec51ae4b9fa219ef81917cc39d6ef8b
+
+package-locations:
+    https://hackage.haskell.org/package/speculation-1.4.1.2/speculation-1.4.1.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/speculation-1.4.1.2.tar.gz
+

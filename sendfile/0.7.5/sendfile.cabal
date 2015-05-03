@@ -1,0 +1,74 @@
+name:          sendfile
+version:       0.7.5
+stability:     provisional
+synopsis:      A portable sendfile library
+description:   A library which exposes zero-copy sendfile functionality in a portable way. If a platform does not support sendfile, a fallback implementation in haskell is provided.
+               .
+               Currently supported platforms: Windows 2000+ (Native), Linux 2.6+ (Native), FreeBSD (Native), OS-X 10.5+ (Native), Everything else (Portable Haskell code).
+
+license:       BSD3
+license-file:  LICENSE
+author:        Matthew Elder <matt@mattelder.org>
+maintainer:    Jeremy Shaw <jeremy@n-heptane.com>
+homepage:      http://patch-tag.com/r/mae/sendfile
+category:      Network
+build-type:    Simple
+cabal-version: >= 1.6
+
+flag portable
+    description: Explicitly enable portable sendfile support (implemented in Haskell)
+    default:     False
+
+library
+    hs-source-dirs:  src
+
+    exposed-modules: Network.Socket.SendFile
+                     Network.Socket.SendFile.Iter
+                     Network.Socket.SendFile.Handle
+                     Network.Socket.SendFile.Portable
+
+    other-modules:   Network.Socket.SendFile.Internal
+                     Network.Socket.SendFile.Util
+
+    build-depends:   base >= 3 && < 5,
+                     bytestring >= 0.9.1.4 && < 0.10,
+                     network >= 2 && < 3
+
+    ghc-options: -Wall
+
+    if os(windows) && !flag(portable)
+      cpp-options: -DWIN32_SENDFILE
+      build-depends: Win32 >= 2.2.0.0 && < 2.3
+      extra-libraries: mswsock
+      other-modules: Network.Socket.SendFile.Win32
+    else
+      if os(linux) && !flag(portable)
+        cpp-options: -DLINUX_SENDFILE
+        other-modules: Network.Socket.SendFile.Linux
+      else
+        if os(freebsd) && !flag(portable)
+          cpp-options: -DFREEBSD_SENDFILE
+          other-modules: Network.Socket.SendFile.FreeBSD
+        else
+          if os(darwin) && !flag(portable)
+            cpp-options: -DDARWIN_SENDFILE
+            other-modules: Network.Socket.SendFile.Darwin
+          else
+            cpp-options: -DPORTABLE_SENDFILE
+
+source-repository head
+    type:     darcs
+    location: http://patch-tag.com/r/mae/sendfile/pullrepo
+
+
+package-hashes:
+    MD5:940e36c4ef5c816d79a5e56212186ed2
+    SHA1:06b938b1fad18bd6880d20b0e7d1c944b1bd80f9
+    SHA256:48e86e0ffb8b53a0710c68635daf45f5024006987a7a394e5a21b24117ed733e
+    SHA512:55ace15fa12c20f8a07144031777f726aa265930a593b943fc3cdc5f754340796f94c69c153c8bef59eb2c30198a42e0f371647f6c759ec3adfae8f8a5387220
+    Skein512_512:6cba16c5f3c4b6518030739f5098ff259323bb194a5b256162c4a12e925877461e56efdc5d61ce73627ae73da0c0741cb740bf0be3440c71d69a110467862142
+
+package-locations:
+    https://hackage.haskell.org/package/sendfile-0.7.5/sendfile-0.7.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/sendfile-0.7.5.tar.gz
+

@@ -1,0 +1,125 @@
+Name:         storable-record
+Version:      0.0.1
+Category:     Data, Foreign
+Synopsis:     Elegant definition of Storable instances for records
+Description:
+  With this package definition
+  you can build a Storable instance of a record type
+  from Storable instances of its elements.
+  This is as simple as:
+  .
+  > import Foreign.Storable.Record as Store
+  > import Foreign.Storable (Storable (..), )
+  >
+  > import Control.Applicative (liftA2, )
+  >
+  > data Stereo a = Stereo (left, right :: a)
+  > -- parentheses must be curly braces, but Haddock does not like them
+  >
+  > store :: Storable a => Store.Dictionary (Stereo a)
+  > store =
+  >    Store.run $
+  >    liftA2 Stereo
+  >       (Store.element left)
+  >       (Store.element right)
+  >
+  > instance (Storable a) => Storable (Stereo a) where
+  >    sizeOf = Store.sizeOf store
+  >    alignment = Store.alignment store
+  >    peek = Store.peek store
+  >    poke = Store.poke store
+  .
+  I cannot promise that the generated memory layout
+  is compatible with that of a corresponding C struct.
+  However, the module generates the smallest layout
+  that is possible with respect to the alignment of the record elements.
+  Thus this package might provide a Haskell98 alternative to HSC
+  without a preprocessor.
+  If you encounter, that a record does not have a compatible layout,
+  we should fix that.
+  But also without C compatibility this package is useful
+  e.g. in connection with StorableVector.
+  .
+  The @Stereo@ constructor is exclusively used
+  for constructing the @peek@ function,
+  where as the accessors in the @element@ calls
+  are used for assembling the @poke@ function.
+  It is required that the order of arguments of @Stereo@
+  matches the record accessors in the @element@ calls.
+  If you want that the stored data correctly and fully represents
+  your Haskell data, it must hold:
+  .
+  >   Stereo (left x) (right x) = x   .
+  .
+  Unfortunately this cannot be checked automatically.
+  However, mismatching types that are caused by swapped arguments
+  are detected by the type system.
+  Our system performs for you:
+  Size and alignment computation, poking and peeking.
+  Thus several inconsistency bugs can be prevented using this package,
+  like size mismatches space required by @poke@ actions.
+  There is no more restriction,
+  thus smart constructors and accessors
+  and nested records work, too.
+  For nested records however,
+  I recommend individual Storable instances for the sub-records.
+  .
+  You see it would simplify class instantiation
+  if we could tell the class dictionary at once
+  instead of defining each method separately.
+  .
+  For examples see packages sox and synthesizer.
+License:             BSD3
+License-file:        LICENSE
+Author:              Henning Thielemann <storable@henning-thielemann.de>
+Maintainer:          Henning Thielemann <storable@henning-thielemann.de>
+Homepage:            http://code.haskell.org/~thielema/storable-record/
+Stability:           Experimental
+Build-Type:          Simple
+Tested-With:         GHC==6.8.2
+Cabal-Version:       >=1.6
+
+Source-Repository head
+  Type:     darcs
+  Location: http://code.haskell.org/~thielema/storable-record/
+
+Source-Repository this
+  Type:     darcs
+  Location: http://code.haskell.org/~thielema/storable-record/
+  Tag:      0.0.1
+
+Flag splitBase
+  description: Choose the new smaller, split-up base package.
+
+Library
+  Build-Depends:
+    transformers >=0.0.1 && <0.2,
+    utility-ht >=0.0.1 && <0.1
+  If flag(splitBase)
+    Build-Depends: base >= 3
+  Else
+    Build-Depends:
+      special-functors >= 1.0 && <1.1,
+      base >= 1.0 && < 2
+
+  GHC-Options:         -Wall
+  Hs-Source-Dirs:      src
+
+  Exposed-Modules:
+    Foreign.Storable.Record
+    Foreign.Storable.Newtype
+  Other-Modules:
+    Foreign.Storable.FixedArray
+
+
+package-hashes:
+    MD5:64c984f96cab8ff92b34420f9d9d3515
+    SHA1:852b4c82ba67526273f2b3721cb7c8953d429f53
+    SHA256:02a7896497295fb5ac6aed20e15c2f8fb42f347bd9bfb045e1632e113e168453
+    SHA512:16386b5ed29cd3c52636ac9309cc694c444660afc39af10416d5a405e852ec05edccc384e7b8eebbc68ab8fb5aa8e1dce2cf2509172e49a83cb9cd482eb3e2f0
+    Skein512_512:24037d327632dace91d0cd5e8aa146b727b26327f468f6d11434ecfdfd0ade5a9e0b4f040ea28a5d9fe5b886727daf34bacf3dd75770e6dc75d3ad74e6ff4136
+
+package-locations:
+    https://hackage.haskell.org/package/storable-record-0.0.1/storable-record-0.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/storable-record-0.0.1.tar.gz
+

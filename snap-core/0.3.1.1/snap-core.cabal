@@ -1,0 +1,188 @@
+name:           snap-core
+version:        0.3.1.1
+x-revision: 1
+synopsis:       Snap: A Haskell Web Framework (Core)
+
+description:
+  This is the first developer prerelease of the Snap framework.  Snap is a
+  simple and fast web development framework and server written in Haskell. For
+  more information or to download the latest version, you can visit the Snap
+  project website at <http://snapframework.com/>.
+  .
+  This library contains the core definitions and types for the Snap framework,
+  including:
+  .
+    1. Primitive types and functions for HTTP (requests, responses, cookies,
+       post/query parameters, etc)
+  .
+    2. Type aliases and helper functions for Iteratee I/O
+  .
+    3. A monad for programming web handlers called \"Snap\", inspired by
+       happstack's (<http://happstack.com/index.html>), which allows:
+  .
+       * Stateful access to the HTTP request and response objects
+  .
+       * Monadic failure (i.e. MonadPlus/Alternative instances) for declining
+         to handle requests and chaining handlers together
+  .
+       * Early termination of the computation if you know early what you want
+         to return and want to prevent further monadic processing
+  .
+  /Quick start/: The 'Snap' monad and HTTP definitions are in "Snap.Types",
+  some iteratee utilities are in "Snap.Iteratee".
+  .
+  Higher-level facilities for building web applications (like user/session
+  management, component interfaces, data modeling, etc.) are planned but not
+  yet implemented, so this release will mostly be of interest for those who:
+  .
+  * need a fast and minimal HTTP API at roughly the same level of abstraction
+    as Java servlets, or
+  .
+  * are interested in contributing to the Snap Framework project.
+
+license:        BSD3
+license-file:   LICENSE
+author:         James Sanders, Shu-yu Guo, Gregory Collins, Doug Beardsley
+maintainer:     snap@snapframework.com
+build-type:     Simple
+cabal-version:  >= 1.6
+homepage:       http://snapframework.com/
+category:       Web
+
+extra-source-files:
+  test/suite/TestSuite.hs,
+  cbits/timefuncs.c,
+  CONTRIBUTORS,
+  extra/fonts/DroidSerif-Bold.eot,
+  extra/fonts/DroidSerif-Bold.svg,
+  extra/fonts/DroidSerif-Bold.ttf,
+  extra/fonts/DroidSerif-Bold.woff,
+  extra/fonts/DroidSerif-BoldItalic.eot,
+  extra/fonts/DroidSerif-BoldItalic.svg,
+  extra/fonts/DroidSerif-BoldItalic.ttf,
+  extra/fonts/DroidSerif-BoldItalic.woff,
+  extra/fonts/DroidSerif-Italic.eot,
+  extra/fonts/DroidSerif-Italic.svg,
+  extra/fonts/DroidSerif-Italic.ttf,
+  extra/fonts/DroidSerif-Italic.woff,
+  extra/fonts/DroidSerif-Regular.eot,
+  extra/fonts/DroidSerif-Regular.svg,
+  extra/fonts/DroidSerif-Regular.ttf,
+  extra/fonts/DroidSerif-Regular.woff,
+  extra/haddock.css,
+  extra/hscolour.css,
+  extra/logo.gif,
+  haddock.sh,
+  LICENSE,
+  README.md,
+  README.SNAP.md,
+  Setup.hs,
+  test/data/fileServe/foo.bin,
+  test/data/fileServe/foo.bin.bin.bin,
+  test/data/fileServe/foo.html,
+  test/data/fileServe/foo.txt,
+  test/runTestsAndCoverage.sh,
+  test/snap-core-testsuite.cabal,
+  test/suite/Snap/Internal/Http/Types/Tests.hs,
+  test/suite/Snap/Internal/Routing/Tests.hs,
+  test/suite/Snap/Iteratee/Tests.hs,
+  test/suite/Snap/Test/Common.hs,
+  test/suite/Snap/Types/Tests.hs,
+  test/suite/Snap/Util/FileServe/Tests.hs,
+  test/suite/Snap/Util/GZip/Tests.hs
+
+
+Flag portable
+  Description: Compile in cross-platform mode. No platform-specific code or
+               optimizations such as C routines will be used.
+  Default: False
+
+
+Flag no-debug
+  Description: Disable any debug logging code. Without this flag, Snap will
+               test the DEBUG environment variable to decide whether to do
+               logging, and this introduces a tiny amount of overhead
+               (a call into a function pointer) because the calls to 'debug'
+               cannot be inlined. Users who want to squeeze out maximum
+               performance can set the no-debug flag to get a version of Snap
+               which has debug calls that should be inlined away.
+               
+  Default: False
+
+
+Library
+  hs-source-dirs: src
+
+  if flag(no-debug)
+    cpp-options: -DNODEBUG
+
+  if flag(portable) || os(windows)
+    cpp-options: -DPORTABLE
+  else
+    c-sources: cbits/timefuncs.c
+    include-dirs: cbits
+    build-depends: bytestring-mmap >= 0.2.1 && <0.3
+
+  exposed-modules:
+    Data.CIByteString,
+    Snap.Types,
+    Snap.Iteratee,
+    Snap.Internal.Debug,
+    Snap.Internal.Http.Types,
+    Snap.Internal.Iteratee.Debug,
+    Snap.Util.FileServe,
+    Snap.Util.GZip
+
+  other-modules:
+    Snap.Internal.Instances,
+    Snap.Internal.Parsing,
+    Snap.Internal.Routing,
+    Snap.Internal.Types
+
+  build-depends:
+    attoparsec >= 0.8.0.2 && < 0.9,
+    base >= 4 && < 4.4,
+    bytestring,
+    bytestring-nums,
+    bytestring-show >= 0.3.2 && < 0.4,
+    cereal >= 0.3 && < 0.4,
+    containers,
+    deepseq >= 1.1 && <1.2,
+    directory,
+    dlist >= 0.5 && < 0.6,
+    enumerator >= 0.4.5 && < 0.5,
+    filepath,
+    MonadCatchIO-transformers >= 0.2.1 && < 0.3,
+    mtl == 2.0.*,
+    old-locale,
+    old-time,
+    text >= 0.11 && <0.12,
+    time,
+    transformers == 0.2.*,
+    unix-compat == 0.2.*,
+    zlib
+
+  ghc-prof-options: -prof -auto-all
+
+  if impl(ghc >= 6.12.0)
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+                 -fno-warn-unused-do-bind
+  else
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+
+source-repository head
+  type:     git
+  location: http://git.snapframework.com/snap-core.git
+
+
+package-hashes:
+    MD5:23685f91e2695f2fb39668357cad9ed7
+    SHA1:dfac645a256edcbcd1fb9688d5d0395b827fb3d2
+    SHA256:c219724e7e261ffb7020fe39fca9e6f5a1757b6a9180a55646697ddd84e501c1
+    SHA512:ff8cf91a4f716062afdd03bc0e70e9360b28c8047eedf2c7b60bfa55f372f65489702611985d01866709d8427b53e2cd40576ff2affd404e150474d80e26a02d
+    Skein512_512:35aefda1894c51c680f4c5c05a36301732a4ca44d193991bacc31393e1be9b66b93dccf64be9ebf47f143b5f69605018cad5f0c732f35e0cae4b2baddbabcded
+
+package-locations:
+    https://hackage.haskell.org/package/snap-core-0.3.1.1/snap-core-0.3.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/snap-core-0.3.1.1.tar.gz
+

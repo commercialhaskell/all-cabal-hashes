@@ -1,0 +1,135 @@
+Cabal-version:       >= 1.8
+Name:                skein
+Version:             0.1.0.1
+Synopsis:            Skein, a family of cryptographic hash functions.  Includes Skein-MAC as well.
+License:             BSD3
+License-file:        LICENSE
+Author:              Felipe Lessa <felipe.lessa@gmail.com>, Doug Whiting
+Maintainer:          Felipe Lessa <felipe.lessa@gmail.com>
+Category:            Cryptography
+Build-type:          Simple
+
+Description:
+    Skein (<http://www.skein-hash.info/>) is a family of fast
+    secure cryptographic hash functions designed by Niels
+    Ferguson, Stefan Lucks, Bruce Schneier, Doug Whiting, Mihir
+    Bellare, Tadayoshi Kohno, Jon Callas and Jesse Walker.
+    .
+    This package uses bindings to the optimized C implementation
+    of Skein.  We provide a high-level interface (see module
+    "Crypto.Skein") to some of the Skein use cases.  We also
+    provide a low-level interface (see module
+    "Crypto.Skein.Internal") should you need to use Skein in a
+    different way.
+    .
+    Currently we have support for Skein as cryptographic hash
+    function as Skein as a message authentication code
+    (Skein-MAC).  For examples of how to use this package, see
+    "Crypto.Skein" module documentation.
+
+Extra-source-files:
+    c_impl/optimized/skein.c
+    c_impl/optimized/skein.h
+    c_impl/optimized/skein_block.c
+    c_impl/optimized/skein_debug.c
+    c_impl/optimized/skein_debug.h
+    c_impl/optimized/skein_iv.h
+    c_impl/optimized/skein_port.h
+    c_impl/reference/skein.c
+    c_impl/reference/skein.h
+    c_impl/reference/skein_block.c
+    c_impl/reference/skein_debug.c
+    c_impl/reference/skein_debug.h
+    c_impl/reference/skein_port.h
+
+Data-files:
+    tests/skein_golden_kat.txt
+
+Source-repository head
+  Type:     darcs
+  Location: http://patch-tag.com/r/felipe/skein
+
+Flag reference
+    Description: Use the reference implementation instead of the optimized one.
+    Default: False
+
+
+Library
+    Hs-Source-Dirs: src
+
+    Exposed-modules:
+        Crypto.Skein
+        Crypto.Skein.Internal
+
+    Build-depends:
+        base         >= 3   && < 5,
+        bytestring   >= 0.9 && < 0.10,
+        cereal       >= 0.3 && < 0.4,
+        tagged       >= 0.2 && < 0.3,
+        crypto-api   >= 0.6 && < 0.7
+
+    Build-tools: hsc2hs
+    GHC-options: -Wall
+
+    Extensions:
+        BangPatterns
+        CPP
+        ForeignFunctionInterface
+        MultiParamTypeClasses
+
+    Includes:
+        skein.h
+
+    if arch(i386) || arch(x86_64)
+        CC-options: "-DSKEIN_NEED_SWAP=0"
+    if arch(ppc) || arch(sparc)
+        CC-options: "-DSKEIN_NEED_SWAP=1"
+
+    if flag(reference)
+        Include-Dirs:
+            c_impl/reference
+        C-sources:
+            c_impl/reference/skein.c
+            c_impl/reference/skein_block.c
+         -- c_impl/reference/skein_debug.c -- not used
+    else
+        Include-Dirs:
+            c_impl/optimized
+        C-sources:
+            c_impl/optimized/skein.c
+            c_impl/optimized/skein_block.c
+         -- c_impl/optimized/skein_debug.c -- not used
+
+
+Test-suite runtests
+    Type: exitcode-stdio-1.0
+    Build-depends:
+        base         >= 3   && < 5,
+        bytestring   >= 0.9 && < 0.10,
+        cereal       >= 0.3 && < 0.4,
+        tagged       >= 0.2 && < 0.3,
+        crypto-api   >= 0.6 && < 0.7,
+
+        filepath     == 1.*,
+        transformers,
+        hspec        == 0.6.*,
+
+        -- finally, our own package
+        skein
+    GHC-options:     -Wall
+    Hs-source-dirs:  tests
+    Main-is:         runtests.hs
+    Other-modules:   Paths_skein
+
+
+package-hashes:
+    MD5:ad38e069445cadff4fef74c8ae827910
+    SHA1:23dfcd60b52521d4b056e045c8bb2239f52b74b1
+    SHA256:285faa23fffb5f75e14550e4b27b8eb36ba354ab34388b59620a546dab5405c4
+    SHA512:6e9eb2a53dcf33470e46c791c5ee85b566161c652713e4529eb5c392a4c18ceb42e98a458bb98dd23e803da55860d65d45f3d73842d5b74f96bb9c8ddb0e0570
+    Skein512_512:0abfc8ac00aa1fa63fed896928f86c73715175b99df3a86a4f99030b937833512c400cc38305e9061e36d82daf83284a2564c6218f05c6215c7afe9d3777e5db
+
+package-locations:
+    https://hackage.haskell.org/package/skein-0.1.0.1/skein-0.1.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/skein-0.1.0.1.tar.gz
+

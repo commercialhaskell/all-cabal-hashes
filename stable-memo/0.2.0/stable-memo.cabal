@@ -1,0 +1,114 @@
+name:                stable-memo
+version:             0.2.0
+synopsis:            Memoization based on argument identity
+license:             MIT
+license-file:        LICENSE
+author:              Jake McArthur <Jake.McArthur@gmail.com>
+maintainer:          Jake McArthur <Jake.McArthur@gmail.com>
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.10
+description:
+
+  Whereas most memo combinators memoize based on equality, stable-memo
+  does it based on whether the exact same argument has been passed to
+  the function before (that is, is the same argument in memory).
+
+  .
+
+  * This can be more suitable for recursive functions over graphs with
+    cycles.
+
+  .
+
+  * stable-memo doesn't retain the keys it has seen so far, which
+    allows them to be garbage collected if they will no longer be
+    used. Finalizers are put in place to remove the corresponding
+    entries from the memo table if this happens.
+
+  .
+
+  * "Data.StableMemo.Weak" provides an alternative set of combinators
+    that also avoid retaining the results of the function, only
+    reusing results if they have not yet been garbage collected.
+
+  .
+
+  * There is no type class constraint on the function's argument.
+
+  .
+
+  stable-memo will not work for arguments which happen to have the
+  same value but are not the same heap object. This rules out many
+  candidates for memoization, such as the most common example, the
+  naive Fibonacci implementation whose domain is machine Ints; it can
+  still be made to work for some domains, though, such as the lazy
+  naturals.
+
+  .
+
+  > data Nat = Succ Nat | Zero
+  >
+  > fib :: Nat -> Integer
+  > fib = memo fib'
+  >   where fib' Zero                = 0
+  >         fib' (Succ Zero)         = 1
+  >         fib' (Succ n1@(Succ n2)) = fib n1 + fib n2
+
+  .
+
+  Below is an implementation of map that preserves sharing of the
+  spine for cyclic lists. It should even be safe to use this on
+  arbitrarily long, acyclic lists since as long as the garbage
+  collector is chasing you, the size of the memo table should stay
+  under control, too.
+
+  .
+
+  > map :: (a -> b) -> [a] -> [b]
+  > map f = go
+  >   where go = memo map'
+  >         map' []     = []
+  >         map' (x:xs) = f x : go xs
+
+  .
+
+  This library is largely based on the implementation of memo found in
+  \"Stretching the storage manager: weak pointers and stable names in
+  Haskell\", from Simon Peyton Jones, Simon Marlow, and Conal Elliott
+  (<http://community.haskell.org/~simonmar/papers/weak.pdf>).
+
+library
+  build-depends:       base >=4.6 && <5,
+                       hashtables ==1.0.*,
+                       tagged ==0.4.*,
+                       ghc-prim >=0.3 && < 0.4
+  default-language:    Haskell2010
+  exposed-modules:     Data.StableMemo, Data.StableMemo.Weak
+  other-extensions:    BangPatterns,
+                       KindSignatures,
+                       Rank2Types,
+                       TypeOperators
+  other-modules:       Data.StableMemo.Internal
+
+source-repository head
+  type:     darcs
+  location: http://patch-tag.com/r/jmcarthur/stable-memo
+
+source-repository this
+  type:     darcs
+  location: http://patch-tag.com/r/jmcarthur/stable-memo
+  tag:      v0.2.0
+
+
+package-hashes:
+    MD5:0e01d98f8d92ded5fc199db41109d181
+    SHA1:8ec13d026530c56a22103a1862e80172fa55da97
+    SHA256:061c32c751724f9d17cdfac4dd1ee69d5bcdb20441ab7e983622a852ff26a3cd
+    SHA512:7751ffaf0b468de8a5294b68a9be35f7caf5a361c23326add002ae50106d069a942382fd6b3b2ec07f66beda0e0c3280364448f4f79b4c220db0f101a0a1b811
+    Skein512_512:0648676d22418beb36ab202c56b89b6d13835bf16c3c588e3fc1f588f9b79c6c569d15978aa6b19e31e3c535784d1ba826e431b4f119275b6de7225076633ed1
+
+package-locations:
+    https://hackage.haskell.org/package/stable-memo-0.2.0/stable-memo-0.2.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/stable-memo-0.2.0.tar.gz
+

@@ -1,0 +1,137 @@
+name:                scientific
+version:             0.3.3.7
+synopsis:            Numbers represented using scientific notation
+description:
+  @Data.Scientific@ provides a space efficient and arbitrary precision
+  scientific number type.
+  .
+  'Scientific' numbers are represented using
+  <http://en.wikipedia.org/wiki/Scientific_notation scientific notation>. It
+  uses a coefficient @c :: 'Integer'@ and a base-10 exponent @e :: 'Int'@ (do
+  note that since we're using an 'Int' to represent the exponent these numbers
+  aren't truly arbitrary precision). A scientific number corresponds to the
+  'Fractional' number: @'fromInteger' c * 10 '^^' e@.
+  .
+  The main application of 'Scientific' is to be used as the target of parsing
+  arbitrary precision numbers coming from an untrusted source. The advantages
+  over using 'Rational' for this are that:
+  .
+  * A 'Scientific' is more efficient to construct. Rational numbers need to be
+  constructed using '%' which has to compute the 'gcd' of the 'numerator' and
+  'denominator'.
+  .
+  * 'Scientific' is safe against numbers with huge exponents. For example:
+  @1e1000000000 :: 'Rational'@ will fill up all space and crash your
+  program. Scientific works as expected:
+  .
+   > > read "1e1000000000" :: Scientific
+   > 1.0e1000000000
+  .
+  * Also, the space usage of converting scientific numbers with huge exponents to
+  @'Integral's@ (like: 'Int') or @'RealFloat's@ (like: 'Double' or 'Float')
+  will always be bounded by the target type.
+
+homepage:            https://github.com/basvandijk/scientific
+bug-reports:         https://github.com/basvandijk/scientific/issues
+license:             BSD3
+license-file:        LICENSE
+author:              Bas van Dijk
+maintainer:          Bas van Dijk <v.dijk.bas@gmail.com>
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.10
+
+extra-source-files:
+  changelog
+
+source-repository head
+  type:     git
+  location: git://github.com/basvandijk/scientific.git
+
+flag bytestring-builder
+  description: Provide the Data.ByteString.Builder.Scientific module
+               (requires bytestring >= 0.10)
+  default:     True
+  manual:      True
+
+flag integer-simple
+  description: Use the integer-simple package instead of integer-gmp
+  default:     False
+
+library
+  exposed-modules:     Data.Scientific
+                       Data.Text.Lazy.Builder.Scientific
+  other-modules:       Math.NumberTheory.Logarithms
+  other-extensions:    DeriveDataTypeable, BangPatterns
+  ghc-options:         -Wall
+  build-depends:       base        >= 4.3   && < 4.9
+                     , ghc-prim
+                     , deepseq     >= 1.3   && < 1.5
+                     , text        >= 0.8   && < 1.3
+                     , hashable    >= 1.1.2 && < 1.3
+                     , array       >= 0.1   && < 0.6
+
+  if flag(integer-simple)
+      build-depends: integer-simple
+      CPP-options: -DINTEGER_SIMPLE
+  else
+      build-depends: integer-gmp
+
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+  if flag(bytestring-builder)
+    exposed-modules:   Data.ByteString.Builder.Scientific
+    build-depends:     bytestring  >= 0.10  && < 0.11
+
+test-suite test-scientific
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          test.hs
+  default-language: Haskell2010
+  ghc-options:      -Wall
+
+  build-depends: scientific
+               , base             >= 4.3   && < 4.9
+               , tasty            >= 0.5   && < 0.11
+               , tasty-ant-xml    >= 1.0   && < 1.1
+               , tasty-hunit      >= 0.8   && < 0.10
+               , tasty-smallcheck >= 0.2   && < 0.9
+               , tasty-quickcheck >= 0.8   && < 0.9
+               , smallcheck       >= 1.0   && < 1.2
+               , QuickCheck       >= 2.5   && < 2.8
+               , text             >= 0.8   && < 1.3
+               , bytestring       >= 0.10  && < 0.11
+
+benchmark bench-scientific
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench src
+  main-is:          bench.hs
+  default-language: Haskell2010
+  ghc-options:      -O2
+  build-depends:    base        >= 4.3   && < 4.9
+                  , criterion   >= 0.5   && < 1.1
+                  , ghc-prim
+                  , deepseq     >= 1.3   && < 1.5
+                  , text        >= 0.8   && < 1.3
+                  , bytestring  >= 0.10  && < 0.11
+                  , hashable    >= 1.1.2 && < 1.3
+                  , array       >= 0.1   && < 0.6
+
+  if flag(integer-simple)
+      build-depends: integer-simple
+  else
+      build-depends: integer-gmp
+
+
+package-hashes:
+    MD5:17b501c5ac7751105c6d385318aa0713
+    SHA1:4a20b562d0849b0560bb9b38c87ed02bce077cc1
+    SHA256:c00b82c128d3b9fe350b2018674c5ac4483b91dc18bb6a807de42926b6322799
+    SHA512:d4277e9c20213a24a2dd9504d7e1a5bce342277b6c33c6ac46ea911758f4301412cb1568a3de962eaf9ba3e5536e729ad1243522a71b92d6b09b0d5c1d25c1bf
+    Skein512_512:13a241c1576679c9bb5d5d0644b4f2b6f8e6c543ffa6a69d5941612dd8071286d0cded35522d299ef2fb6615920d07696da5adddae3e8b4db0c1ff0e3cc14891
+
+package-locations:
+    https://hackage.haskell.org/package/scientific-0.3.3.7/scientific-0.3.3.7.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/scientific-0.3.3.7.tar.gz
+

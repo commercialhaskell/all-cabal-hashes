@@ -1,0 +1,275 @@
+Name:          sbv
+Version:       2.3
+Category:      Formal Methods, Theorem Provers, Bit vectors, Symbolic Computation, Math, SMT
+Synopsis:      SMT Based Verification: Symbolic Haskell theorem prover using SMT solving.
+Description:   Express properties about Haskell programs and automatically prove them using SMT
+               (Satisfiability Modulo Theories) solvers. Automatically generate C programs from
+               Haskell functions. The SBV library adds support for symbolic bit vectors and other
+               symbolic types, allowing formal models of Haskell programs to be created.
+               .
+               >   $ ghci -XScopedTypeVariables
+               >   Prelude> :m Data.SBV
+               >   Prelude Data.SBV> prove $ \(x::SWord8) -> x `shiftL` 2 .== 4*x
+               >   Q.E.D.
+               >   Prelude Data.SBV> prove $ forAll ["x"] $ \(x::SWord8) -> x `shiftL` 2 .== x
+               >   Falsifiable. Counter-example:
+               >     x = 128 :: SWord8
+               .
+               The library introduces the following types and concepts:
+               .
+                 * 'SBool': Symbolic Booleans (bits)
+               .
+                 * 'SWord8', 'SWord16', 'SWord32', 'SWord64': Symbolic Words (unsigned)
+               .
+                 * 'SInt8',  'SInt16',  'SInt32',  'SInt64': Symbolic Ints (signed)
+               .
+                 * 'SInteger': Symbolic unbounded integers (signed)
+               .
+                 * 'SReal': Symbolic algebraic reals (signed)
+               .
+                 * 'SArray', 'SFunArray': Flat arrays of symbolic values
+               .
+                 * 'STree': Full binary trees of symbolic values (for fast symbolic access)
+               .
+                 * Symbolic polynomials over GF(2^n), and polynomial arithmetic
+               .
+                 * Uninterpreted constants and functions over symbolic values, with user defined axioms.
+               .
+                 * Uninterpreted sorts, and proofs over such sorts, potentially with axioms.
+               .
+               Functions built out of these types can be:
+               .
+                 * proven correct via an external SMT solver (the 'prove' function)
+               .
+                 * checked for satisfiability (the 'sat', and 'allSat' functions)
+               .
+                 * used in synthesis (the 'sat' function with existential variables)
+               .
+                 * optimized with respect to cost functions (the 'optimize', 'maximize',
+                 and 'minimize' functions)
+               .
+                 * quick-checked
+               .
+                 * used in concrete test case generation (the 'genTest' function), rendered as
+                   values in various languages, including Haskell and C.
+               .
+               Predicates can have both existential and universal variables. Use of
+               alternating quantifiers provides considerable expressive power.
+               Furthermore, existential variables allow synthesis via model generation.
+               .
+               The SBV library can also compile Haskell functions that manipulate symbolic
+               values directly to C, rendering them as straight-line C programs.
+               .
+               In addition to the library, the installation will create the
+               executable @SBVUnitTests@. You should run it once the installation is complete,
+               to make sure the unit tests are run and all is well.
+               .
+               SBV is hosted at GitHub: <http://github.com/LeventErkok/sbv>. Comments,
+               bug reports, and patches are always welcome.
+               .
+               The following people reported bugs, provided comments/feedback, or contributed to the
+               development of SBV in various ways: Ian Blumenfeld, Ian Calvert, Iavor Diatchki, John
+               Erickson, Tom Hawkins, Lee Pike, Austin Seipp, Don Stewart, Josef Svenningsson, and
+               Nis Wegmann.
+               .
+               Release notes can be seen at: <http://github.com/LeventErkok/sbv/blob/master/RELEASENOTES>.
+
+Copyright:     Levent Erkok, 2010-2012
+License:       BSD3
+License-file:  LICENSE
+Stability:     Experimental
+Author:        Levent Erkok
+Homepage:      http://github.com/LeventErkok/sbv
+Bug-reports:   http://github.com/LeventErkok/sbv/issues
+Maintainer:    Levent Erkok (erkokl@gmail.com)
+Build-Type:    Simple
+Cabal-Version: >= 1.14
+Data-Files: SBVUnitTest/GoldFiles/*.gold
+Extra-Source-Files: INSTALL, README, COPYRIGHT, RELEASENOTES
+
+source-repository head
+    type:       git
+    location:   git://github.com/LeventErkok/sbv.git
+
+Library
+  default-language: Haskell2010
+  ghc-options     : -Wall
+  other-extensions: BangPatterns
+                    CPP
+                    -- Currently commented out since Cabal doesn't yet recognize DefaultSignatures extension yet. Uncomment when it does.
+                    -- The current list can be seen at: https://github.com/haskell/cabal/blob/master/Cabal/Language/Haskell/Extension.hs
+                    -- DefaultSignatures
+                    DeriveDataTypeable
+                    FlexibleContexts
+                    FlexibleInstances
+                    FunctionalDependencies
+                    GeneralizedNewtypeDeriving
+                    MultiParamTypeClasses
+                    OverlappingInstances
+                    ParallelListComp
+                    PatternGuards
+                    Rank2Types
+                    RankNTypes
+                    ScopedTypeVariables
+                    TupleSections
+                    TypeOperators
+                    TypeSynonymInstances
+  Build-Depends   : base >= 4 && < 5
+                  -- Be careful with versions of packages that come with "latest" GHC,
+                  -- need to update this as new GHC releases incorporate new packages
+                  , array               == 0.4.0.0
+                  , containers          == 0.4.2.1
+                  , deepseq             == 1.3.0.0
+                  , directory           == 1.1.0.2
+                  , filepath            == 1.3.0.0
+                  , old-time            == 1.1.0.0
+                  , pretty              == 1.1.1.0
+                  , process             == 1.1.0.1
+                  -- following are pure hackage packages, thus we can be more relaxed
+                  , mtl                 >= 2.1.2
+                  , QuickCheck          >= 2.5
+                  , random              >= 1.0.1.1
+                  , strict-concurrency  >= 0.2.4.1
+                  , syb                 >= 0.3.7
+  Exposed-modules : Data.SBV
+                  , Data.SBV.Internals
+                  , Data.SBV.Examples.BitPrecise.BitTricks
+                  , Data.SBV.Examples.BitPrecise.Legato
+                  , Data.SBV.Examples.BitPrecise.MergeSort
+                  , Data.SBV.Examples.BitPrecise.PrefixSum
+                  , Data.SBV.Examples.CodeGeneration.AddSub
+                  , Data.SBV.Examples.CodeGeneration.CRC_USB5
+                  , Data.SBV.Examples.CodeGeneration.Fibonacci
+                  , Data.SBV.Examples.CodeGeneration.GCD
+                  , Data.SBV.Examples.CodeGeneration.PopulationCount
+                  , Data.SBV.Examples.CodeGeneration.Uninterpreted
+                  , Data.SBV.Examples.Crypto.AES
+                  , Data.SBV.Examples.Crypto.RC4
+                  , Data.SBV.Examples.Existentials.CRCPolynomial
+                  , Data.SBV.Examples.Existentials.Diophantine
+                  , Data.SBV.Examples.Polynomials.Polynomials
+                  , Data.SBV.Examples.Puzzles.Coins
+                  , Data.SBV.Examples.Puzzles.Counts
+                  , Data.SBV.Examples.Puzzles.DogCatMouse
+                  , Data.SBV.Examples.Puzzles.Euler185
+                  , Data.SBV.Examples.Puzzles.MagicSquare
+                  , Data.SBV.Examples.Puzzles.NQueens
+                  , Data.SBV.Examples.Puzzles.Sudoku
+                  , Data.SBV.Examples.Puzzles.U2Bridge
+                  , Data.SBV.Examples.Uninterpreted.AUF
+                  , Data.SBV.Examples.Uninterpreted.Deduce
+                  , Data.SBV.Examples.Uninterpreted.Function
+                  , Data.SBV.Examples.Uninterpreted.Sort
+  Other-modules   : Data.SBV.BitVectors.AlgReals
+                  , Data.SBV.BitVectors.Data
+                  , Data.SBV.BitVectors.Model
+                  , Data.SBV.BitVectors.PrettyNum
+                  , Data.SBV.BitVectors.SignCast
+                  , Data.SBV.BitVectors.Splittable
+                  , Data.SBV.BitVectors.STree
+                  , Data.SBV.Compilers.C
+                  , Data.SBV.Compilers.CodeGen
+                  , Data.SBV.SMT.SMT
+                  , Data.SBV.SMT.SMTLib
+                  , Data.SBV.SMT.SMTLib1
+                  , Data.SBV.SMT.SMTLib2
+                  , Data.SBV.Provers.Prover
+                  , Data.SBV.Provers.SExpr
+                  , Data.SBV.Provers.Yices
+                  , Data.SBV.Provers.Z3
+                  , Data.SBV.Tools.ExpectedValue
+                  , Data.SBV.Tools.GenTest
+                  , Data.SBV.Tools.Optimize
+                  , Data.SBV.Tools.Polynomial
+                  , Data.SBV.Utils.Boolean
+                  , Data.SBV.Utils.TDiff
+                  , Data.SBV.Utils.Lib
+
+Executable SBVUnitTests
+  default-language: Haskell2010
+  ghc-options     : -Wall
+  other-extensions: Rank2Types
+                    RankNTypes
+                    ScopedTypeVariables
+                    TupleSections
+  Build-depends   : base >= 4 && < 5
+                  -- Be careful with versions of packages that come with "latest" GHC,
+                  -- need to update this as new GHC releases incorporate new packages
+                  , directory == 1.1.0.2
+                  , filepath  == 1.3.0.0
+                  , process   == 1.1.0.1
+                  -- apparently HUnit 1.2.5.0 has some cabal issues..
+                  , HUnit     == 1.2.4.3
+                  -- self dependence on sbv
+                  , sbv
+  Hs-Source-Dirs  : SBVUnitTest
+  main-is         : SBVUnitTest.hs
+  Other-modules   : SBVUnitTestBuildTime
+                  , SBVTest
+                  , Examples.Arrays.Memory
+                  , Examples.Basics.BasicTests
+                  , Examples.Basics.Higher
+                  , Examples.Basics.Index
+                  , Examples.Basics.ProofTests
+                  , Examples.Basics.QRem
+                  , Examples.CRC.CCITT
+                  , Examples.CRC.CCITT_Unidir
+                  , Examples.CRC.GenPoly
+                  , Examples.CRC.Parity
+                  , Examples.CRC.USB5
+                  , Examples.Puzzles.PowerSet
+                  , Examples.Puzzles.Temperature
+                  , Examples.Uninterpreted.Uninterpreted
+                  , TestSuite.Arrays.Memory
+                  , TestSuite.Basics.Arithmetic
+                  , TestSuite.Basics.BasicTests
+                  , TestSuite.Basics.Higher
+                  , TestSuite.Basics.Index
+                  , TestSuite.Basics.ProofTests
+                  , TestSuite.Basics.QRem
+                  , TestSuite.BitPrecise.BitTricks
+                  , TestSuite.BitPrecise.Legato
+                  , TestSuite.BitPrecise.MergeSort
+                  , TestSuite.BitPrecise.PrefixSum
+                  , TestSuite.CodeGeneration.AddSub
+                  , TestSuite.CodeGeneration.CgTests
+                  , TestSuite.CodeGeneration.CRC_USB5
+                  , TestSuite.CodeGeneration.Fibonacci
+                  , TestSuite.CodeGeneration.GCD
+                  , TestSuite.CodeGeneration.PopulationCount
+                  , TestSuite.CodeGeneration.Uninterpreted
+                  , TestSuite.Crypto.AES
+                  , TestSuite.Crypto.RC4
+                  , TestSuite.Existentials.CRCPolynomial
+                  , TestSuite.CRC.CCITT
+                  , TestSuite.CRC.CCITT_Unidir
+                  , TestSuite.CRC.GenPoly
+                  , TestSuite.CRC.Parity
+                  , TestSuite.CRC.USB5
+                  , TestSuite.Puzzles.Coins
+                  , TestSuite.Polynomials.Polynomials
+                  , TestSuite.Puzzles.Counts
+                  , TestSuite.Puzzles.DogCatMouse
+                  , TestSuite.Puzzles.Euler185
+                  , TestSuite.Puzzles.MagicSquare
+                  , TestSuite.Puzzles.NQueens
+                  , TestSuite.Puzzles.PowerSet
+                  , TestSuite.Puzzles.Sudoku
+                  , TestSuite.Puzzles.U2Bridge
+                  , TestSuite.Puzzles.Temperature
+                  , TestSuite.Uninterpreted.AUF
+                  , TestSuite.Uninterpreted.Function
+                  , TestSuite.Uninterpreted.Uninterpreted
+
+
+package-hashes:
+    MD5:76068b94d50c9b350b450245b2e64af3
+    SHA1:8efd6e04aa8436b09393a3fc0771ae678391890a
+    SHA256:9d1d32f54849e4ec530d3405247e00d478f7704369a95a7a2b155ef3b07a55ab
+    SHA512:ec524a2a357a724f40c53c1e5c8f8a81594087daa46ba8e5fdd65bcfbeb8ce52014430a8bbe1faab4ec268d760c9894c9413bdefca0b0c5c508acd32506db311
+    Skein512_512:2b7fa328f6a2638ca4b124633b61659c5f1c4529f242077bffef08ea8475989bcb8b3c991c8c5818a72ab66086fce138de52b544b1c7c6c53900e64cd6a51acd
+
+package-locations:
+    https://hackage.haskell.org/package/sbv-2.3/sbv-2.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/sbv-2.3.tar.gz
+

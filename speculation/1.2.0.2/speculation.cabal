@@ -1,0 +1,198 @@
+name:           speculation
+version:        1.2.0.2
+license:        BSD3
+license-file:   LICENSE
+author:         Edward A. Kmett
+maintainer:     Edward A. Kmett <ekmett@gmail.com>
+stability:      experimental
+homepage:       http://github.com/ekmett/speculation
+category:       Concurrency
+copyright:      (c) 2010 Edward A. Kmett
+build-type:     Custom
+cabal-version:  >=1.6
+tested-with:    GHC==6.12.1
+synopsis:       A framework for safe, programmable, speculative parallelism
+description:
+ A framework for safe, programmable, speculative parallelism, loosely based on:
+ .
+ *  Prakash Prabhu, G. Ramalingam, and Kapil Vaswani, \"/Safe Programmable Speculative Parallelism/\",
+    In the proceedings of Programming Language Design and Implementation (PLDI) Vol 45, Issue 6 (June 2010) pp 50-61.
+    <http://research.microsoft.com/pubs/118795/pldi026-vaswani.pdf>
+ .
+ This package provides speculative function application and speculative folds. Speculative STM transactions take the place
+ of the transactional rollback machinery from the paper.
+ .
+ For example:
+ . 
+ @'spec' g f a@ evaluates @f g@ while forcing @a@, if @g == a@ then @f g@ is returned, otherwise @f a@ is evaluated and returned. Furthermore, if the argument has already been evaluated, we skip the @f g@ computation entirely. If a good guess at the value of @a@ is available, this is one way to induce parallelism in an otherwise sequential task. However, if the guess isn\'t available more cheaply than the actual answer, then this saves no work and if the guess is wrong, you risk evaluating the function twice. Under high load, since 'f g' is computed via the spark queue, the speculation will be skipped and you will obtain the same answer as 'f $! a'.
+ .
+ The best-case timeline looks like:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]    (check g == a)
+ > spark:         [----- f g -----]
+ > overall:    [--- spec g f a ---]
+ .
+ The worst-case timeline looks like:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]               (check g == a)
+ > foreground:                 [---- f a ----]
+ > spark:         [----- f g -----]
+ > overall:    [-------- spec g f a ---------]
+ .
+ Note that, if @f g@ takes longer than a to compute, in the HEAD release of GHC, @f g@ will be collected and killed during garbage collection.
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]               (check g == a)
+ > foreground:                 [---- f a ----]
+ > spark:         [---- f g ----######         (#'s mark when this spark is collectable)
+ > overall:    [--------- spec g f a --------]
+ . 
+ Under high load:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]               (check g == a)
+ > foreground:                 [---- f a ----]
+ > overall:    [-------- spec g f a ---------]
+ .
+ Compare these to the timeline of @f $! a@:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [---- f a ----]
+ > orverall:   [---------- f $! a ---------]
+ .
+ 'specSTM' provides a similar time table for STM actions, but also rolls back side-effects. The one unfortunate operational distinction is that it is forced to compute 'a' in the background thread and therefore degrades slightly less gracefully under load, although we mitigate this effect by only enqueuing if the number of sparks for the current capability is lower than the total number of capabilities, to try to avoid wasting time when all computational resources are in use.
+
+extra-source-files: 
+    README.markdown
+    CHANGELOG.markdown
+    ISSUES.markdown
+
+source-repository head
+  type:     git
+  location: http://github.com/ekmett/speculation.git
+  branch:   master
+
+flag HasNumSparks
+  description: RTS provides GHC.Conc.numSparks
+  default: True
+  manual: False
+
+flag tests
+  description: Build the tests
+  default:     False
+
+flag benchmarks
+  description: Build the benchmarks
+  default:     False
+
+flag optimize
+  description: Enable optimizations for the library and benchmarks
+  default:     True
+
+flag hpc
+  description: Use HPC for tests
+  default:     True
+
+library
+  ghc-options: -Wall
+  if flag(optimize)
+    ghc-options: -funbox-strict-fields -O2 -fspec-constr -fdicts-cheap
+  if flag(HasNumSparks)
+    cpp-options: -DHAS_NUM_SPARKS
+    build-depends: base >= 4.3 && < 6
+  else
+    build-depends: base >= 4 && < 4.3
+
+  build-depends:
+    ghc-prim >= 0.2 && < 0.4,
+    tag-bits >= 0.1 && < 0.2,
+    transformers >= 0.2.2.0 && < 0.3,
+    stm >= 2.1 && < 2.3
+
+  exposed-modules:
+    Data.Speculation
+    Data.Speculation.Cont
+    Data.Speculation.Morphism
+    Data.Speculation.Foldable
+    Data.Speculation.Traversable
+    Data.Speculation.List
+  other-modules:
+    Data.Speculation.Internal
+
+executable test-speculation
+  main-is: Test.hs
+  if !flag(tests)
+    buildable: False
+  else
+    if flag(hpc)
+      ghc-options: -fhpc
+      x-hpc: true
+    ghc-options: -Wall
+    if flag(HasNumSparks)
+      cpp-options: -DHAS_NUM_SPARKS
+      build-depends: base >= 4.3 && < 6
+    else
+      build-depends: base >= 4 && < 4.3
+    build-depends:
+      ghc-prim >= 0.2 && < 0.4,
+      tag-bits >= 0.1 && < 0.2,
+      stm >= 2.1 && < 2.3,
+      transformers >= 0.2.2.0 && < 0.3,
+      containers >= 0.3.0 && < 0.5,
+      test-framework >= 0.2.4 && < 0.3,
+      test-framework-quickcheck >= 0.2.4 && < 0.3,
+      test-framework-hunit >= 0.2.4 && < 0.3, 
+      QuickCheck >= 1.2.0.0 && < 1.3,
+      HUnit >= 1.2.2.1 && < 1.3
+    other-modules:
+      Data.Speculation
+      Data.Speculation.Cont
+      Data.Speculation.Morphism
+      Data.Speculation.Foldable
+      Data.Speculation.Traversable
+      Data.Speculation.List
+      Data.Speculation.Internal
+
+executable benchmark-speculation
+  main-is: Benchmark.hs
+  if !flag(benchmarks)
+    buildable: False
+  else
+    ghc-options: -Wall -threaded
+    if flag(optimize)
+      ghc-options: -O2 -fspec-constr -funbox-strict-fields -fdicts-cheap
+    if flag(HasNumSparks)
+      cpp-options: -DHAS_NUM_SPARKS
+      build-depends: base >= 4.3 && < 6
+    else
+      build-depends: base >= 4 && < 4.3
+    build-depends:
+      ghc-prim >= 0.2 && < 0.4,
+      transformers >= 0.2.2.0 && < 0.3,
+      tag-bits >= 0.1 && < 0.2,
+      stm >= 2.1 && < 2.3,
+      containers >= 0.3.0 && < 0.5,
+      criterion >= 0.5 && < 0.6
+    other-modules:
+      Data.Speculation
+      Data.Speculation.Cont
+      Data.Speculation.Morphism
+      Data.Speculation.Foldable
+      Data.Speculation.Traversable
+      Data.Speculation.List
+      Data.Speculation.Internal
+
+
+package-hashes:
+    MD5:fd08d8f5e136abf8653167a0b8fa481c
+    SHA1:8ce163f66111d903e4f2f60b73f3ae96fa77b56b
+    SHA256:f5ce5a268d24f7ec74bd75fcd3b644a6eea1c0022acff65e528880f9f01170f3
+    SHA512:7a8f6f44aab2e1542e8d3488c25a07982a7085461fed2b7d0bca0218b2a5aff0f881aa6668d77c4e1d26a20fb715f1d2f7a47af95e4283c38d17ebd1cefd0229
+    Skein512_512:bbc92df479b4ae61ae316ec6c84b407b02385385010de688549828c76d99c6218473519c816eee830447d339ca6dbef51cb9ff01b4ca6ec9f60be88f38ce09ad
+
+package-locations:
+    https://hackage.haskell.org/package/speculation-1.2.0.2/speculation-1.2.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/speculation-1.2.0.2.tar.gz
+

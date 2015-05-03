@@ -1,0 +1,80 @@
+name:           speculation
+version:        0.4.0
+license:        BSD3
+license-file:   LICENSE
+author:         Edward A. Kmett
+maintainer:     Edward A. Kmett <ekmett@gmail.com>
+stability:      experimental
+homepage:       http://github.com/ekmett/speculation
+category:       Concurrency
+synopsis:       A framework for safe, programmable, speculative parallelism
+description:
+ A framework for safe, programmable, speculative parallelism, loosely based on
+ <http://research.microsoft.com/pubs/118795/pldi026-vaswani.pdf>
+ .
+ This package provides speculative function application and speculative folds. And speculative STM actions take the place
+ of the transactional rollback machinery from the paper.
+ .
+ For example:
+ . 
+ @'spec' g f a@ evaluates @f g@ while forcing @a@, if @g == a@ then @f g@ is returned, otherwise @f a@ is evaluated and returned. Furthermore, if the argument has already been evaluated, we skip the @f g@ computation entirely. If a good guess at the value of @a@ is available, this is one way to induce parallelism in an otherwise sequential task. However, if the guess isn\'t available more cheaply than the actual answer, then this saves no work and if the guess is wrong, you risk evaluating the function twice.
+ .
+ The best-case timeline looks like:
+ .
+ > [---- f g ----]
+ >    [----- a -----]
+ > [-- spec g f a --]
+ .
+ The worst-case timeline looks like:
+ .
+ > [---- f g ----]
+ >    [----- a -----]
+ >                  [---- f a ----]
+ > [------- spec g f a -----------]
+ .
+ Compare these to the timeline of @f $! a@:
+ .
+ > [---- a -----]
+ >              [---- f a ----]
+ .
+ 'specSTM' provides a similar time table for STM actions, but also rolls back side-effects.
+ . 
+ /Changes in 0.3.0:/
+ . 
+ * Speculative folds moved to 'Data.Foldable.Speculation' and expanded to cover all of the 
+   'Data.Foldable' combinators.
+ * specBy and specOn variants added.
+
+copyright:          (c) 2010 Edward A. Kmett
+build-type:         Simple
+cabal-version:      >=1.2
+tested-with:        GHC==6.12.1
+extra-source-files: README.markdown
+
+library
+  ghc-options: -Wall
+
+  build-depends:
+    base >= 4 && < 6,
+    parallel >= 2.2 && < 2.3,
+    stm >= 2.1 && < 2.2
+
+  exposed-modules:
+    Control.Concurrent.Speculation
+    Data.Foldable.Speculation
+
+  other-modules:
+    Control.Concurrent.Speculation.Internal
+
+
+package-hashes:
+    MD5:8e696a7a1b82469cf10082e5a26da87b
+    SHA1:13d75f5987d0e1c7b34849e841cb9059c982cca8
+    SHA256:8cf3b621b0c682a7c19f5fa3221ebe2aaf59880ad046fb34e0b5dc9f072e6072
+    SHA512:31f818f9c9fdf3494180cf8923d99e1bab8d4253a0f67a4404fc01637761f50dacda30de1f0ae7f7020dcefdb67fc2bd219095e74532ee290eb40b131931aa05
+    Skein512_512:e9e3443f349c289f0862c981c293659303dc2a76b418b4ff7c20b988cb2b21a833cc931650fd0333a4efb59e2991e2e5aa31ab055a5ff786a7fde8edb92cafa6
+
+package-locations:
+    https://hackage.haskell.org/package/speculation-0.4.0/speculation-0.4.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/speculation-0.4.0.tar.gz
+

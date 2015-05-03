@@ -1,0 +1,145 @@
+name:           speculation
+version:        0.8.0.1
+license:        BSD3
+license-file:   LICENSE
+author:         Edward A. Kmett
+maintainer:     Edward A. Kmett <ekmett@gmail.com>
+stability:      experimental
+homepage:       http://github.com/ekmett/speculation
+category:       Concurrency
+copyright:      (c) 2010 Edward A. Kmett
+build-type:     Custom
+cabal-version:  >=1.6
+tested-with:    GHC==6.12.1
+synopsis:       A framework for safe, programmable, speculative parallelism
+description:
+ A framework for safe, programmable, speculative parallelism, loosely based on:
+ .
+ *  Prakash Prabhu, G. Ramalingam, and Kapil Vaswani, \"/Safe Programmable Speculative Parallelism/\",
+    In the proceedings of Programming Language Design and Implementation (PLDI) Vol 45, Issue 6 (June 2010) pp 50-61.
+    <http://research.microsoft.com/pubs/118795/pldi026-vaswani.pdf>
+ .
+ This package provides speculative function application and speculative folds. Speculative STM transactions take the place
+ of the transactional rollback machinery from the paper.
+ .
+ For example:
+ . 
+ @'spec' g f a@ evaluates @f g@ while forcing @a@, if @g == a@ then @f g@ is returned, otherwise @f a@ is evaluated and returned. Furthermore, if the argument has already been evaluated, we skip the @f g@ computation entirely. If a good guess at the value of @a@ is available, this is one way to induce parallelism in an otherwise sequential task. However, if the guess isn\'t available more cheaply than the actual answer, then this saves no work and if the guess is wrong, you risk evaluating the function twice. 
+ .
+ The best-case timeline looks like:
+ .
+ > [---- f g ----]
+ >    [----- a -----]
+ > [-- spec g f a --]
+ .
+ The worst-case timeline looks like:
+ .
+ > [---- f g ----]
+ >    [----- a -----]
+ >                  [---- f a ----]
+ > [------- spec g f a -----------]
+ .
+ Compare these to the timeline of @f $! a@:
+ .
+ > [---- a -----]
+ >              [---- f a ----]
+ .
+ 'specSTM' provides a similar time table for STM actions, but also rolls back side-effects.
+
+extra-source-files: 
+    README.markdown
+    CHANGELOG.markdown
+
+source-repository head
+  type:     git
+  location: http://github.com/ekmett/speculation.git
+  branch:   master
+
+flag optimize
+  description: Enable optimizations
+  default:     True
+
+flag tests
+  description: Build the tests
+  default:     True
+
+flag benchmarks
+  description: Build the benchmarks
+  default:     True
+
+flag hpc
+  description: Use HPC for tests
+  default:     True
+
+flag nolib
+  description: Don't build the library. Useful for speeding up the modify-build-test cycle.
+  default:     False
+
+library
+  ghc-options: -Wall
+
+  if flag(optimize)
+    ghc-options: -funbox-strict-fields -O2 -fspec-constr -fdicts-cheap
+
+  if flag(nolib)
+    buildable: False
+
+  build-depends:
+    base >= 4 && < 6,
+    parallel >= 2.2 && < 2.3,
+    stm >= 2.1 && < 2.2
+
+  exposed-modules:
+    Control.Concurrent.Speculation
+    Data.Foldable.Speculation
+
+executable test-speculation
+  main-is: Test.hs
+  if !flag(tests)
+    buildable: False
+  else
+    if flag(hpc)
+      ghc-options: -fhpc
+    ghc-options: -Wall
+    build-depends:
+      base >= 4 && < 6, 
+      stm >= 2.1 && < 2.2,
+      containers >= 0.3.0 && < 0.4,
+      test-framework >= 0.2.4 && < 0.3,
+      test-framework-quickcheck >= 0.2.4 && < 0.3,
+      test-framework-hunit >= 0.2.4 && < 0.3, 
+      QuickCheck >= 1.2.0.0 && < 1.3,
+      HUnit >= 1.2.2.1 && < 1.3
+    other-modules:
+      Control.Concurrent.Speculation
+      Data.Foldable.Speculation
+
+executable benchmark-speculation
+  main-is: Benchmark.hs
+  if !flag(benchmarks)
+    buildable: False
+  else
+    ghc-options: -Wall -threaded
+    if flag(optimize)
+      ghc-options: -O2 -fspec-constr -funbox-strict-fields -fdicts-cheap
+    build-depends:
+      base >= 4 && < 6, 
+      stm >= 2.1 && < 2.2,
+      containers >= 0.3.0 && < 0.4,
+      criterion >= 0.5 && < 0.6
+    other-modules:
+      Control.Concurrent.Speculation
+      Data.Foldable.Speculation
+
+
+package-hashes:
+    MD5:4849a31dd367f86daaa155e4b471f1f9
+    SHA1:a4663d09e703c957ac29619113ef1c7bcc86200d
+    SHA256:03fe15c9d8208c1ceae800ff4914d7ca81e30d373cc9c7b3ce7ffa03ea3ca26d
+    SHA512:88e54a4eaaf0a37047d4a4226aa28bc5f268004b058262c9c1dec88a3f50369b78c9e186a80b494f0a2549cc6ef1bcbcda2f404301caf2398dde27c1ace5fc5b
+    Skein512_512:1344ef6a4143d20e3cfe47fdc9e5da6106ed2c32cf91b7b8cdd5abd61ca4c233e1642d3703418737a9ca81c43a2a592f3aa6af8f6382022a5bed3bdd5967ccd6
+
+package-locations:
+    https://hackage.haskell.org/package/speculation-0.8.0.1/speculation-0.8.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/speculation-0.8.0.1.tar.gz
+

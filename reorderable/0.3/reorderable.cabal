@@ -1,0 +1,224 @@
+Name:               reorderable
+Version:            0.3
+Cabal-Version:      >= 1.2
+Build-Type:         Simple
+License:            OtherLicense
+License-File:       LICENSE
+Copyright:          (c) 2013, Alex Cole
+Author:             Alex Cole <haskell@y-less.com>
+Maintainer:         Alex Cole <haskell@y-less.com>
+Stability:          Experimental
+Synopsis:           Define compound types that do not depend on member order.
+Category:           Type System, Data
+
+Description:
+    
+    * Introduction.
+    
+    The pair `(Int, Float)' is entirely distinct from the pair `(Float, Int)'
+        and trying to use one in place of the other will give a type error.
+        This is often, but not always, desired.
+    
+    * Module.
+    
+    This module provides more flexible sum and product types that do not enforce
+        a single order on their elements.  This does introduce some necessary
+        restrictions, for example only one instance of any type can appear in
+        any given collection of types.  Additionally, all types that are to be
+        used in one of these flexible containers must be pre-defined as
+        `reorderable':
+    
+    @
+        data MyType1 = MyType1 Int
+        data MyType2 = MyType2 Float
+        data MyType3 = MyType3 Bool
+        data MyType3 = MyType4 String
+        
+        reorderable ''MyType1
+        reorderable ''MyType2
+        reorderable ''MyType3
+        reorderable ''MyType4
+    @
+    
+    That will, using /Template Haskell/, generate all the required instances to
+        make those types usable as reorderable types within unordered
+        containers.  Following that, all the declarations below are valid:
+    
+    @
+        type Reordered1A = ReorderableEnd :*: MyType2 :*: MyType1
+        type Reordered1B = ReorderableEnd :*: MyType1 :*: MyType2
+        type Reordered2  = Reordered1A    :*: MyType3
+        type Reordered3  = ReorderableEnd :*: MyType4 :*: Reordered1B
+    @
+    
+    Types `Reordered1A' and `Reordered1B' are in fact now identical.  This does
+        introduce a third limitation of the library I have been unable to lift -
+        the use of `ReorderableEnd' as a sentinel in all reorderable containers.
+    
+    It may be the case that `Type1' and `Type2' can be used together, as can
+        `Type3' and `Type4', but the two sets of types can not be used in a
+        container together.  These are /groups/ of types:
+    
+    @
+        reorderableGroup [''MyType1, ''MyType2]
+        reorderableGroup [''MyType3, ''MyType4]
+    @
+    
+    The groups can overlap:
+    
+    @
+        reorderableGroup [''MyType1, ''MyType2]
+        reorderableGroup [''MyType1, ''MyType3, ''MyType4]
+    @
+    
+    But this may cause some \"leakage\" where types from two different groups
+        (for example `MyType2' and `MyType4') end up in the same container,
+        attached via common types.
+    
+    * Generation.
+    
+    For each type `X' for which `reorderable' (or equivalent) is called, the
+        following functions are generated (where `X' is the type name):
+    
+    @
+        addSumX :: (x :>: s) => s -> s :+: x
+        setSumX :: (x :<: s) => x -> s -> s
+        getSumX :: (x :<: s) => s -> Maybe x
+        
+        addProductX :: (x :~: s) => x -> s -> s :*: x
+        setProductX :: (x :?: s) => x -> s -> s
+        getProductX :: (x :?: s) => s -> x
+        
+        removeProductX :: (x :?: s) => s -> s :-: x
+    @
+    
+    ** Notes on the syntax:
+    
+        * `:<:' Is read as \"Is member of sum type\".
+        * `:>:' Is read as \"Is not member of sum type\".
+        * `:+:' Is read as \"Plus\".
+        
+        * `:?:' Is read as \"Is member of product type\".
+        * `:~:' Is read as \"Is not member of product type\".
+        * `:*:' Is read as \"Product\".
+        * `:-:' Is read as \"Remove\".
+    
+    ** Notes on the functions:
+    
+        * `addSumX' Adds the TYPE `x' to the given signature, and correctly
+            re-wraps the contained data to reflect this new structure.  It does
+            not add any data in to the structure itself because only one item
+            may exist in the structure, and that item is already there.
+        
+        * `setSumX' Changes what data is currently stored in the sum.  For a
+            given concrete sum type `S', this can be called as:
+            `setSumX x (undefined :: S)'.  An alternative version is simply:
+            `setSumType (undefined :: S) x', in which `X :<: S'.  This is
+            equivalent to the original `inj' function from `Data Types \'a la
+            Carte', but has an explicit type proxy.
+        
+        * `getSumX' Returns the data of type `Just X' IF it is the data
+            currently being stored within the sum, otherwise it returns
+            `Nothing'.  This is equivalent to the original `prj' function from
+            `Data Types \'a la Carte'.
+        
+        * `addProductX' Adds data of type `X' to an existing product type that
+            does not yet contain any data of that type.
+        
+        * `setProductX' Sets the data of type `X' in a product type that already
+            contains data of that type.
+        
+        * `getProductX' Gets the data of type `X' from a product type that
+            contains data of that type.
+        
+        * `removeProductX' Removes data of type `X' from a product type that
+            contains data of that type, and rewraps the resulting information to
+            remove `X' from the product's type.  There is no `removeSumX'
+            function because the result is empty if the stored data is not of
+            the type being removed.
+    
+    * Generators.
+    
+    In addition to being able to control for which types code is generated, you
+        can control what code is generated for them through `reorderer's.  Note
+        that the default code listed above is ALWAYS generated, you can
+        currently only ADD to the generation code.  The simplest way to explain
+        this is through an example:
+    
+    @
+        class ReorderableSum a
+
+        [reorderer|ReorderableSum
+            addSum??? :: (OutSumType without ???) => without -> AddSumType without ???
+            addSum??? without = addSumType without (undefined :: ???)
+            
+            setSum??? :: (InSumType with ???) => ??? -> with -> with
+            setSum??? a b = setSumType b a
+            
+            getSum??? :: (InSumType with ???) => with -> Maybe ???
+            getSum??? with = getSumType with (undefined :: ???)
+        |]
+    @
+    
+    The code above is exactly the code used to generate the sum type functions
+        documented above.  The internal class names are used in place of the
+        type operator synonyms for simplicity.  `???' is used as a placeholder
+        to be replaced by the unqualified type names from every instance of
+        `reorderable' in the code.  The empty class `ReorderableSum' is a
+        unique name with a single type parameter, passed as the first symbol
+        to the reorderer.  An instance of this class is generated for each
+        reorderable type, to track for which types this reorderer has already
+        been generated (using `reify').  The simple reason for this is that
+        placing the same type in two `reorderableGroup's will, without that
+        check, attempt to instantiate this code twice and thus give errors.
+    
+    What can be done within generators is very constrained.  For one thing, the
+        parameter `a' to `ReorderableSum' currently MUST have kind `*', so any
+        reorderable types may not have type parameters themselves (unless a new
+        generator is written for exactly that type).  Additionally, the
+        placeholder `???' in no way accounts for complex names - it is purely a
+        text-based replacement, so trying to create a reorderable ``Maybe Int''
+        type will result in the illegal:
+    
+    @
+        addSumMaybe Int :: ...
+    @
+    
+    Finally, this code is processed with \"haskell-src-meta\", and so any code
+        must be parsable with that code.  One lifting of this restriction is
+        that reorderers may additionally contain type family declarations, which
+        are by default not supported by that library (despite having issued a
+        pull request many months ago).
+
+Library
+    Exposed-Modules:
+        Data.Types.Reorder,
+        Data.Types.Reorder.TH,
+        Data.Types.Reorder.Sum,
+        Data.Types.Reorder.Base,
+        Data.Types.Reorder.Quoter,
+        Data.Types.Reorder.Product,
+        Data.Types.Reorder.Instances
+    
+    Build-Depends:
+        base >= 4.0.0.0 && < 5,
+        template-haskell >= 2.4.0.0,
+        haskell-src-meta >= 0.6.0.4,
+        haskell-src-exts >= 1.14 && < 1.15,
+        constraints >= 0.1
+    
+    Hs-Source-Dirs: src
+
+
+
+package-hashes:
+    MD5:c221307e3a0931000d892c8bc67b2e07
+    SHA1:91d144b2776f92c53bc1c320ac85a65876296839
+    SHA256:3b03ad223be79855909099f035d8a65709312568f4f87929da20f076fe22fd82
+    SHA512:c41b2180fb43d4e220c6dee28759784ce1ea91b20f142c2c3bb49aea528fad5f283fba3a7245cdd85f0c4665c6d26a1475d7e160b5b7998dd24feb3218b0b54b
+    Skein512_512:a5316ff72ba02dff5baf235e50c17e6428f32460f76f095833cbc56740d53366c15d7c4d51f48e624dfbfde852545d32c00c47584423fda23295461bdb437497
+
+package-locations:
+    https://hackage.haskell.org/package/reorderable-0.3/reorderable-0.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/reorderable-0.3.tar.gz
+

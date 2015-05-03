@@ -1,0 +1,171 @@
+name:           snap-server
+version:        0.9.3.4
+x-revision: 1
+synopsis:       A fast, iteratee-based, epoll-enabled web server for the Snap Framework
+description:
+  Snap is a simple and fast web development framework and server written in
+  Haskell. For more information or to download the latest version, you can
+  visit the Snap project website at <http://snapframework.com/>.
+  .
+  The Snap HTTP server is a high performance, epoll-enabled, iteratee-based web
+  server library written in Haskell. Together with the @snap-core@ library upon
+  which it depends, it provides a clean and efficient Haskell programming
+  interface to the HTTP protocol.
+
+license:        BSD3
+license-file:   LICENSE
+author:         James Sanders, Gregory Collins, Doug Beardsley
+maintainer:     snap@snapframework.com
+build-type:     Simple
+cabal-version:  >= 1.6
+homepage:       http://snapframework.com/
+category:       Web, Snap
+
+extra-source-files:
+  CONTRIBUTORS,
+  extra/haddock.css,
+  extra/hscolour.css,
+  extra/logo.gif,
+  haddock.sh,
+  LICENSE,
+  README.md,
+  README.SNAP.md,
+  test/benchmark/Benchmark.hs,
+  test/benchmark/Snap/Internal/Http/Parser/Benchmark.hs,
+  test/benchmark/Snap/Internal/Http/Parser/Data.hs,
+  test/common/Paths_snap_server.hs,
+  test/common/Snap/Test/Common.hs,
+  test/common/Test/Common/TestHandler.hs,
+  test/common/Test/Common/Rot13.hs,
+  test/data/fileServe/foo.bin,
+  test/data/fileServe/foo.bin.bin.bin,
+  test/data/fileServe/foo.html,
+  test/data/fileServe/foo.txt,
+  test/pongserver/Main.hs,
+  test/runTestsAndCoverage.sh,
+  test/snap-server-testsuite.cabal,
+  test/suite/Snap/Internal/Http/Parser/Tests.hs,
+  test/suite/Snap/Internal/Http/Server/Tests.hs,
+  test/suite/Snap/Internal/Http/Server/TimeoutManager/Tests.hs,
+  test/suite/Test/Blackbox.hs,
+  test/suite/TestSuite.hs,
+  test/testserver/Main.hs,
+  test/testserver/static/hello.txt
+
+
+Flag portable
+  Description: Compile in cross-platform mode. No platform-specific code or
+               optimizations such as C routines will be used.
+  Default: False
+
+Flag openssl
+  Description: Enable https support using the HsOpenSSL library.
+  Default: False
+
+
+Library
+  hs-source-dirs: src
+
+  exposed-modules:
+    Snap.Http.Server,
+    Snap.Http.Server.Config,
+    System.FastLogger
+
+  other-modules:
+    Paths_snap_server,
+    Snap.Internal.Http.Parser,
+    Snap.Internal.Http.Server,
+    Snap.Internal.Http.Server.Address,
+    Snap.Internal.Http.Server.Date,
+    Snap.Internal.Http.Server.Backend,
+    Snap.Internal.Http.Server.Config,
+    Snap.Internal.Http.Server.ListenHelpers,
+    Snap.Internal.Http.Server.HttpPort,
+    Snap.Internal.Http.Server.SimpleBackend,
+    Snap.Internal.Http.Server.TimeoutManager,
+    Snap.Internal.Http.Server.TLS
+
+  build-depends:
+    attoparsec                >= 0.10     && < 0.11,
+    attoparsec-enumerator     >= 0.3      && < 0.4,
+    base                      >= 4        && < 4.7,
+    blaze-builder             >= 0.2.1.4  && < 0.4,
+    blaze-builder-enumerator  >= 0.2.0    && < 0.3,
+    bytestring                >= 0.9.1    && < 0.11,
+    case-insensitive          >= 0.3      && < 1.2,
+    containers                >= 0.3      && < 0.6,
+    enumerator                >= 0.4.15   && < 0.5,
+    MonadCatchIO-transformers >= 0.2.1    && < 0.4,
+    mtl                       >= 2        && < 3,
+    network                   >= 2.3      && < 2.5,
+    old-locale,
+    snap-core                 >= 0.9.3    && < 0.10,
+    text                      >= 0.11     && < 0.12,
+    time                      >= 1.0      && < 1.5,
+    unix-compat               >= 0.2      && < 0.5
+
+  extensions:
+    BangPatterns,
+    CPP,
+    MagicHash,
+    Rank2Types,
+    OverloadedStrings,
+    ScopedTypeVariables,
+    DeriveDataTypeable,
+    PackageImports,
+    ViewPatterns,
+    ForeignFunctionInterface,
+    EmptyDataDecls,
+    GeneralizedNewtypeDeriving
+
+  if flag(portable) || os(windows)
+    cpp-options: -DPORTABLE
+  else
+    build-depends: unix
+
+  if flag(openssl)
+    cpp-options: -DOPENSSL
+    build-depends: HsOpenSSL >= 0.10 && <0.11
+
+  if os(linux) && !flag(portable)
+    cpp-options: -DLINUX -DHAS_SENDFILE
+    other-modules:
+      System.SendFile,
+      System.SendFile.Linux
+
+  if os(darwin) && !flag(portable)
+    cpp-options: -DOSX -DHAS_SENDFILE
+    other-modules:
+      System.SendFile,
+      System.SendFile.Darwin
+
+  if os(freebsd) && !flag(portable)
+    cpp-options: -DFREEBSD -DHAS_SENDFILE
+    other-modules:
+      System.SendFile,
+      System.SendFile.FreeBSD
+
+  ghc-prof-options: -prof -auto-all
+
+  if impl(ghc >= 6.12.0)
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2 -fno-warn-unused-do-bind
+  else
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+
+
+source-repository head
+  type:     git
+  location: git://github.com/snapframework/snap-server.git
+
+
+package-hashes:
+    MD5:3a104cb7d3b2ad0858aa9f87c0762216
+    SHA1:42ab8b146867962b78e1079fb4859bd6b0883e19
+    SHA256:08b96faade7472eb6f976861f064759c8de2c4e581da4cb4f50fb8cb8f7b2545
+    SHA512:a2fe0a04cc12efe9d661bff370cd1603639ca3cc0cd76d32624178e6a425933e9084b3c278e43cb6cb0dfd0851da5f5275e31d5f0961cd9cac7d1a98355df784
+    Skein512_512:fd91540f990a40a25e4b3db5a92c837da65d294bbdeefbf92a09ab6c3b6204269768c05858e90c4fca17654c214f2c23d2d01549f5b5cfb86433acb4fe7a57ef
+
+package-locations:
+    https://hackage.haskell.org/package/snap-server-0.9.3.4/snap-server-0.9.3.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/snap-server-0.9.3.4.tar.gz
+

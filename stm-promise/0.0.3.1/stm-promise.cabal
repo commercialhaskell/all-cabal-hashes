@@ -1,0 +1,148 @@
+name:               stm-promise
+category:           Concurrency
+version:            0.0.3.1
+license:            LGPL-3
+license-file:       LICENSE
+author:             Dan Rosén
+maintainer:         Dan Rosén <danr@chalmers.se>
+homepage:           http://www.github.com/danr/stm-promise
+bug-reports:        http://www.github.com/danr/stm-promise/issues
+build-type:         Simple
+cabal-version:      >=1.8
+tested-with:        GHC == 7.8.3, GHC == 7.6.3, GHC == 7.4.2
+synopsis:           Simple STM Promises for IO computations and external processes
+description:
+    Simple STM Promises for IO computations and external processes. Experimental release.
+    .
+    Example with running the theorem prover eprover in parallel. Given this file structure:
+    .
+    > ├── mul-commutative
+    > │   ├── induction_x_0.tptp
+    > │   ├── induction_x_1.tptp
+    > │   ├── induction_x_y_0.tptp
+    > │   ├── induction_x_y_1.tptp
+    > │   ├── induction_x_y_2.tptp
+    > │   ├── induction_x_y_3.tptp
+    > │   ├── induction_y_0.tptp
+    > │   ├── induction_y_1.tptp
+    > │   └── no_induction_0.tptp
+    > └── plus-commutative
+    >     ├── induction_x_0.tptp
+    >     ├── induction_x_1.tptp
+    >     ├── induction_x_y_0.tptp
+    >     ├── induction_x_y_1.tptp
+    >     ├── induction_x_y_2.tptp
+    >     ├── induction_x_y_3.tptp
+    >     ├── induction_y_0.tptp
+    >     ├── induction_y_1.tptp
+    >     └── no_induction_0.tptp
+    .
+    We can capture these different obligations and goals with a `Control.Concurrent.STM.Promise.Tree.Tree`.
+    .
+    > file_tree :: Tree FilePath
+    > file_tree = fmap (++ ".tptp") $ tryAll
+    >    [ fmap ("mul-commutative/" ++) $ requireAny
+    >      [ fmap ("induction_x_" ++) $ requireAll $ map Leaf ["0","1"]
+    >      , fmap ("induction_y_" ++) $ requireAll $ map Leaf ["0","1"]
+    >      , fmap ("induction_x_y_" ++) $ requireAll $ map Leaf ["0","1","2","3"]
+    >      , Leaf "no_induction_0"
+    >      ]
+    >    , fmap ("plus-commutative/" ++) $ requireAny
+    >      [ fmap ("induction_x_" ++) $ requireAll $ map Leaf ["0","1"]
+    >      , fmap ("induction_y_" ++) $ requireAll $ map Leaf ["0","1"]
+    >      , fmap ("induction_x_y_" ++) $ requireAll $ map Leaf ["0","1","2","3"]
+    >      , Leaf "no_induction_0"
+    >      ]
+    >    ]
+    .
+    A successful invocation either contains @Theorem@ or @Unsatisfiable@.
+    .
+    > success :: ProcessResult -> Bool
+    > success r = excode r == ExitSuccess && any (`isInfixOf` stdout r) ok
+    >   where
+    >     ok = ["Theorem","Unsatisfiable"]
+    .
+    Making a promise for an eprover process:
+    .
+    > eproverPromise :: FilePath -> IO (Promise [(FilePath,Bool)])
+    > eproverPromise file = do
+    >     let args = ["-xAuto","-tAuto",'-':"-tptp3-format","-s"]
+    >     promise <- processPromise "eprover" (file : args) ""
+    >     let chres :: ProcessResult -> [(FilePath,Bool)]
+    >         chres r = [ (file,success r) ]
+    >     return $ fmap chres promise
+    .
+    Evaluate this in parallel, with a 1 second timeout for each invocation:
+    .
+    > main :: IO ()
+    > main = do
+    >     promise_tree <- mapM eproverPromise file_tree
+    >
+    >     let timeout      = 1000 * 1000 -- microseconds
+    >         processes    = 2
+    >
+    >     workers (Just timeout) processes (interleave promise_tree)
+    >
+    >     (_,res) <- evalTree (any (not . snd)) promise_tree
+    >
+    >     putStrLn "Results: "
+    >
+    >     mapM_ print res
+    .
+    The result of this run is:
+    .
+    > Results:
+    > ("plus-commutative/induction_x_y_0.tptp",True)
+    > ("plus-commutative/induction_x_y_1.tptp",True)
+    > ("plus-commutative/induction_x_y_2.tptp",True)
+    > ("plus-commutative/induction_x_y_3.tptp",True)
+    .
+    This means that four out of four obligations for commutativity of plus
+    succeeded when doing induction on both x and y.
+
+source-repository head
+  type: git
+  location: git://github.com/danr/stm-promise.git
+
+library
+  ghc-options:         -Wall
+
+  exposed-modules:
+    Control.Concurrent.STM.Promise,
+    Control.Concurrent.STM.Promise.Process,
+    Control.Concurrent.STM.Promise.Tree,
+    Control.Concurrent.STM.Promise.Workers,
+    Control.Concurrent.STM.DTVar
+
+  build-depends:
+    base                      >= 4 && < 5,
+    stm                       >= 2.3 && < 3,
+    mtl                       >= 2.1.2 && < 3,
+    process                   >= 1.0.1.1 && < 2,
+    unix                      >= 2.5
+
+test-suite trees
+  type:           exitcode-stdio-1.0
+  main-is:        Trees.hs
+  hs-source-dirs: test
+  ghc-options:    -Wall
+
+  build-depends:
+    base,
+    stm-promise,
+    stm                       >= 2.3,
+    QuickCheck                >= 2.4
+
+
+
+package-hashes:
+    MD5:80ab85cf1402dcaad62a53eb3ba7575e
+    SHA1:6c3029cf910cb56cabc085a5d0b4b0db516eb66c
+    SHA256:8cbb0b34d0f8c6aa71a22f9cd7ea083b44153e7845882c3fd3abf187905c991f
+    SHA512:9ef9dfa91ace76743b0fcaf7cd5af5b7b266f8051b496566a9a18081d712e796ad5291aa536e1c3ffe3d39bf0e5ffcf1a20dcacb0ca6faa84d8061e3540a1ba9
+    Skein512_512:0ffee5e6633ecb56ec1b417d1d63503483aec90954e3a1f8eac401d256867ac984c0d9296823ce19ec0f312042005d511355636866ed1786996ffe4337640b60
+
+package-locations:
+    https://hackage.haskell.org/package/stm-promise-0.0.3.1/stm-promise-0.0.3.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/stm-promise-0.0.3.1.tar.gz
+

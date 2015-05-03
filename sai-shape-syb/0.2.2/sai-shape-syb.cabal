@@ -1,0 +1,215 @@
+
+name:                sai-shape-syb
+version:             0.2.2
+synopsis:            Obtain homogeneous values from arbitrary values, tramsforming or culling data
+description:
+    This package provides SYB shape support: generic mapping to
+    homogeneous types, and related features.  Complements existing
+    Uniplate and TH shape libraries.  See <http://www.fremissant.net/shape-syb>
+    for more information.
+    .
+    Given a value of arbitrary complexity (mutually recursive
+    heterogeneous constructor application), you can obtain
+    a structure-preserving representation (homomorphism) as
+    a homogeneous type @Homo a@, parameterised by any choice type @a@.
+license:             BSD3
+license-file:        LICENSE
+author:              Andrew Seniuk
+maintainer:          rasfar@gmail.com
+homepage:            http://www.fremissant.net/shape-syb
+-- URL with bug-tracker server preferred to email:
+bug-reports:         rasfar@gmail.com
+category:            Generics
+build-type:          Simple
+-- extra-source-files:  
+cabal-version:       >=1.10
+stability:           experimental
+
+extra-source-files:     tests/*.hs
+                      , HTML/*.html
+                      , HTML/*.css
+
+-- source-repository head
+--   type:                 git
+--   location:             https://github.com/rasfar/shape-syb
+
+Flag USE_DATA_TREE
+  Description: Use Data.Tree instead of custom Rose type
+  Default:     True
+--Default:     False
+
+-- Flag OPTIMISE
+--   Description: Use -O2 (etc.); otherwise, use -O0
+-- --Default:     True
+--   Default:     False
+-- 
+-- Flag PROFILE
+--   Description: Enable profiling
+-- --Default:     True
+--   Default:     False
+-- 
+-- Flag DYNAMIC
+--   Description: Enable dynamically-linked executable
+-- --Default:     True
+--   Default:     False
+
+Library
+  exposed-modules:     SAI.Data.Generics.Shape
+                     , SAI.Data.Generics.Shape.SYB
+                     , SAI.Data.Generics.Shape.SYB.Filter
+                     , SAI.Data.Generics.Shape.SYB.GHC
+  -- other-modules:       
+  -- other-extensions:    
+  build-depends:
+                       base >= 4.0 && < 5.0
+-- XXX VERY BAD!!! (overconstrained)
+--                     base ==4.6.*
+                       -- b/c Glide cannot resolve deps with 0.4.2
+--                   , syb ==0.4.1
+                     , syb
+                     -- version is "phoney" (patch of mine, add-source'd)
+                     -- Later: Which never helped...
+--                   , ghc-syb-utils ==1.2.1.2
+                     , ghc-syb-utils
+--                   , ghc ==7.6.*
+                     , ghc
+  if flag(USE_DATA_TREE)
+    build-depends: containers
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+--   if flag(PROFILE)
+--     ghc-options: -fprof-auto -auto-all -caf-all
+--   if flag(OPTIMISE)
+--     ghc-options: -O2
+--   else
+--     ghc-options: -O0
+-- Hackage upload complains:
+--if flag(DYNAMIC)
+--  ghc-options: -dynamic
+  if flag(USE_DATA_TREE)
+    cpp-options: -DUSE_DATA_TREE=1
+  else
+    cpp-options: -DUSE_DATA_TREE=0
+
+  ghc-options: -optP-Wundef -fno-warn-overlapping-patterns -rtsopts
+--ghc-options: -optP-Wundef -fno-warn-overlapping-patterns -rtsopts -threaded
+
+  -- needed?
+  if impl(ghc < 6.12) 
+    ghc-options:          -package-name syb
+
+--ghc-options:            -Wall
+
+-- test-suite unit-tests
+--   type:                   exitcode-stdio-1.0
+--   hs-source-dirs:         tests
+--   main-is:                Main.hs
+--   build-depends:          base
+--                         , syb
+--                         , HUnit
+--                         , containers
+--                         , mtl
+
+test-suite unit-tests
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+-- This WORKS, but the output is all sent to the test log!
+-- However, it was a mistake that I even tried this, and I'm
+-- surprised it worked at all! 
+--main-is:             test-05.hs
+-- Executable test-sai-shape-syb
+--main-is:             test-05.hs
+--other-modules:       Random
+  other-extensions:    TemplateHaskell
+--   if flag(PROFILE)
+--     ghc-options: -fprof-auto -auto-all -caf-all
+--   if flag(OPTIMISE)
+--     ghc-options: -O2
+--   else
+--     ghc-options: -O0
+-- Hackage upload complains:
+--if flag(DYNAMIC)
+--  ghc-options: -dynamic
+  if flag(USE_DATA_TREE)
+    cpp-options: -DUSE_DATA_TREE=1
+  else
+    cpp-options: -DUSE_DATA_TREE=0
+  ghc-options: -optP-Wundef -fno-warn-overlapping-patterns -rtsopts -threaded
+  build-depends:
+-- XXX VERY BAD!!! (overconstrained)
+---                       base >=4.6 && <4.7
+                          base >= 4.0 && < 5.0
+--                      , containers
+-- --                   , containers ==0.5.0.*
+-- --                   , containers ==0.5.3.*
+--                      , bytestring
+-- --                   , bytestring ==0.10.0.*
+-- --                   , bytestring ==0.10.4.*
+--                      , text
+-- --                   , text ==0.11.3.*
+-- --                   , text ==1.1.1.1
+--                      , filepath
+-- --                   , filepath ==1.3.0.*
+--                      , directory
+-- --                   , directory ==1.2.0.*
+-- --                   , binary-generic
+-- -- XXX Note that 0.5 was the one automatically selected, but
+-- -- it does not work for my generic deriving, and specifying
+-- -- 0.7 did not cause any problems (or even warnings)...
+-- --   Everything else went without issues, installing with
+-- -- --enable-*-profiling.  As for --enable-shared, can't seem
+-- -- to specify it as we're not building a library [?] -- but,
+-- -- as know from experience, when it comes to that, will HAVE
+-- -- to reinstall everything, as there's no system-wide .o_dyn
+-- -- [or is it .dyn_o?] installed.
+-- --                   , binary
+-- --                   , binary ==0.5.1.*
+--                      , binary ==0.7.1.*
+--                      , deepseq-generics
+-- --                   , deepseq-generics ==0.1.1.*
+-- --                   , deepseq ==1.3.*
+--                      , vector
+-- --                   , vector ==0.10.0.*
+--                      , attoparsec
+-- --                   , attoparsec ==0.10.1.*
+--                      , ansi-terminal
+-- --                   , ansi-terminal ==0.6.1.*
+--                      , unordered-containers
+-- --                   , unordered-containers ==0.2.3.*
+--                      , hashable
+-- --                   , hashable ==1.2.1.*
+-- Look into HaRe-as-library, too...
+-- Or just borrow some of their source files...
+                     , syb
+                     , ghc
+--                   , ghc-paths
+                     -- version is "phoney" (patch of mine, add-source'd)
+                     -- Later: Which never helped...
+--                   , ghc-syb-utils ==1.2.1.2
+                     , ghc-syb-utils
+                     , sai-shape-syb
+                       -- XXX only for testing (to make a Data.Map)
+                     , containers
+                     -- version constraint only b/c not online here...
+                     , HUnit ==1.2.5.2
+-- Arbitrary package I *don't* use, to test that
+--   cabal fetch sai-shape-syb.cabal
+-- does resolve and fetch dependencies.
+-- It seems to work! (LATER: On a bigger test, it seems not to fetch all...)
+--                   , numeric-limits
+  hs-source-dirs:      tests
+  default-language:    Haskell2010
+
+
+
+package-hashes:
+    MD5:5d69038180aead41945cd8624ca54219
+    SHA1:a0e461e7fee40fc74936a6bd4b574f43d4c8e509
+    SHA256:41a74f421d87c0bbbe9d127b89663cb3052cd9109f7f72f2fb1a637c7777d167
+    SHA512:27043f5366228bec5dd4439139348a7d36e7bae83bd2f93760d152eabd4e6bcb7f054954bf122a02cd2300f122476874a82a171075ad2864d24e5a8d09a12be4
+    Skein512_512:f7c4dc95d89954b6673444bdade9b8258a8dbf799b99248a9f5a5031e2751c1554ff259a1560420fafd988d59d661ffc122dcc78af6bd7e750d35b999ea96aa6
+
+package-locations:
+    https://hackage.haskell.org/package/sai-shape-syb-0.2.2/sai-shape-syb-0.2.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/sai-shape-syb-0.2.2.tar.gz
+

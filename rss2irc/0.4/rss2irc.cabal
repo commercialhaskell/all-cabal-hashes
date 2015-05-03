@@ -1,0 +1,143 @@
+name:                rss2irc
+version:             0.4
+homepage:            http://hackage.haskell.org/package/rss2irc
+license:             BSD3
+license-file:        LICENSE
+author:              Don Stewart <dons@galois.com>, Simon Michael <simon@joyful.com>
+maintainer:          Simon Michael <simon@joyful.com>
+category:            Network
+synopsis:            Watch an RSS/Atom feed and write it to an IRC channel
+description:         
+ This bot polls a single RSS or Atom feed and announces updates to an
+ IRC channel, with options for customizing output and behavior. It
+ aims to be a simple, dependable bot that does its job and creates no
+ problems.
+ .
+ > Usage: rss2irc FEEDURL [BOTNAME@IRCSERVER/#CHANNEL] [OPTS]
+ > Options:
+ >
+ >   -p PORT  --port=PORT                   irc server port (default 6667)
+ >            --ident=STR                   set the bot's identity string (useful for contact info)
+ >            --delay=N                     wait for N minutes before starting (helps avoid mass joins)
+ >   -i N     --interval=N                  polling interval in minutes (default 5)
+ >            --idle=N                      announce only when channel has been idle N minutes (default 0)
+ >   -m N     --max-items=N                 announce at most N items per polling interval (default 5)
+ >   -r N     --recent=N                    announce up to N recent items at startup (default 0)
+ >            --announce=topnew|allnew|top  which items to announce (default: topnew)
+ >            --no-title                    don't show title (title is announced by default, up to 100 chars)
+ >   -a       --author                      show author (up to 50 chars)
+ >   -d       --description                 show description (up to 300 chars)
+ >   -l       --link                        show link URL (up to 200 chars)
+ >   -t       --time                        show timestamp (up to 50 chars)
+ >   -e       --email                       show email addresses (stripped by default)
+ >   -h       --html                        show HTML tags and entities (stripped by default)
+ >            --dupe-descriptions           show identical consecutive descriptions (elided by default)
+ >            --replace="OLD/NEW"           replace OLD with NEW (regexpr patterns)
+ >   -n N     --num-iterations=N            exit after N iterations
+ >   -q       --quiet                       silence normal console output
+ >            --debug                       do not connect to irc (same as no irc argument)
+ >            --debug-irc                   show irc activity
+ >            --debug-feed                  show feed items and polling stats
+ >            --debug-xml                   show feed content
+ >            --debug-http                  show feed fetching progress
+ > Options:
+ >
+ >   -p PORT  --port=PORT          irc server port (default 6667)
+ >            --ident=STR          set the bot's identity string (useful for contact info)
+ >            --delay=N            wait for N seconds before starting (helps avoid mass joins)
+ >   -i N     --interval=N         polling interval in minutes (default 5)
+ >   -r N     --recent=N           announce up to N recent items at startup (default 0)
+ >   -m N     --max-items=N        announce at most N items per polling interval (default 5)
+ >            --no-title           don't show title (title is announced by default)
+ >   -a       --author             show author
+ >   -d       --description        show description
+ >   -l       --link               show link URL
+ >   -t       --time               show timestamp
+ >   -e       --email              show email addresses (these are stripped by default)
+ >   -h       --html               show HTML tags and entities (these are stripped by default)
+ >            --replace="OLD/NEW"  replace OLD with NEW (regexpr patterns)
+ >   -n N     --num-iterations=N   exit after N iterations
+ >   -q       --quiet              silence normal console output
+ >            --debug              do not connect to irc
+ >            --debug-irc          show irc activity
+ >            --debug-feed         show feed items and polling stats
+ >            --debug-xml          show feed content
+ >            --debug-http         show feed fetching progress
+ .
+ For example, to announce Hackage updates:
+ .
+ > rss2irc http://hackage.haskell.org/packages/archive/recent.rss mybot@irc.freenode.org/#haskell
+ .
+ Release notes for 0.4, 2009/09/25:
+ .
+ * wait for server connection confirmation before JOIN command.
+  Problem was observed on irc.quakenet.org since it refuses
+  to join or any commands before connection is confirmed by server. (Radoslav Dorcik)
+ .
+ * feed polling now recovers from transient failures
+ .
+ * can poll a local file: uri as well as remote uris
+  Works if the uri is of the form "file:FILE", at least. Useful for testing
+  and eg for announcing a feed generated from a darcs posthook.
+ .
+ * more robust new item detection, with some alternate strategies
+   available via the --announce option. The choices are:
+    topnew - new unseen items at the top (default, good for most feeds);
+    allnew - new unseen items anywhere
+    top    - any items above the previous top item.
+ .
+ * --idle option, waits for N minutes of channel idle time before announcing
+ .
+ * --delay now takes minutes, not seconds
+ .
+ * limit individual field sizes, preventing too many irc messages per item
+  Most announcements should now fit in one irc message, and pretty much all
+  should fit in two.
+ .
+ * misc. announcement output improvements: elide identical consecutive
+   item descriptions, split long announcements on a word boundary, try
+   to complete a split announcement within a batch, better whitespace
+   handling
+ .
+ * logging improvements
+ .
+stability:           experimental
+tested-with:         GHC==6.8, GHC==6.10
+cabal-version:       >= 1.6
+build-type:          Simple
+
+executable rss2irc
+    main-is:         rss2irc.hs
+    ghc-options:     -Wall -fno-warn-orphans
+    build-depends:
+                     base                  >= 3 && < 5,
+                     extensible-exceptions >= 0.1 && < 0.2,
+                     feed                  >= 0.3 && < 0.4,
+                     haskell98,
+                     HTTP                  >= 4000.0.3 && < 4000.1,
+                     irc                   >= 0.4 && < 0.5,
+                     mtl                   >= 1.1 && < 1.2,
+                     network               >= 2.2 && < 2.3,
+                     parallel              >= 1.1 && < 1.2,
+                     regexpr               >= 0.5 && < 0.6,
+                     split                 >= 0.1 && < 0.2,
+                     strict-concurrency    >= 0.2 && < 0.3,
+                     tagsoup               >= 0.6 && < 0.7,
+                     time                  >= 1.1 && < 1.2
+
+source-repository head
+  type:     darcs
+  location: http://joyful.com/repos/rss2irc
+
+
+package-hashes:
+    MD5:194b9aa182f25edf69cd781f4562be59
+    SHA1:f52178507c21b3ca1e141d8cb416d1896539af23
+    SHA256:e65765434af5fea7cc6dfe190599cf7d896be5fc6b4575a316f657130ece8701
+    SHA512:6f9fb3e40cb426e1ecfd214975ed966313d89c177b03b56a3124fe1a4215b53bda20dae967dd2adba9b4f6d1ba6ad5771d1fb484f73d720472d1b2303c0764a2
+    Skein512_512:ab913a2bc65624db3a2f66e17b7b13933845e2ccd747442f4a25bb72246b50a803ed0be85de03cf5cfbaba4b8f202c3756f88f213e18ad810046eb1bc4aad3d4
+
+package-locations:
+    https://hackage.haskell.org/package/rss2irc-0.4/rss2irc-0.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/rss2irc-0.4.tar.gz
+

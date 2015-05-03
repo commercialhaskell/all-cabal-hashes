@@ -1,0 +1,107 @@
+build-type:	Simple
+cabal-version:	>= 1.8
+
+name:		simple-pipe
+version:	0.0.0.20
+stability:	Experimental
+author:		Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+maintainer:	Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+homepage:	https://github.com/YoshikuniJujo/simple-pipe/wiki
+
+license:	BSD3
+license-file:	LICENSE
+
+category:	Data
+synopsis:	simple pipeline library like conduit
+description:
+    .
+    examples/upperFile.hs
+    .
+    * read file (sample.txt)
+    .
+    * take 3 lines
+    .
+    * to upper all lines
+    .
+    * write to stdout
+    .
+    extensions
+    .
+    .
+    * PackageImports
+    .
+    > import Data.Pipe
+    > import Data.Char
+    > import System.IO
+    > import "monads-tf" Control.Monad.Trans
+    >
+    > main :: IO ()
+    > main = do
+    > 	_ <- runPipe $ readFileP "sample.txt"
+    >		=$= takeP 3
+    >		=$= convert (map toUpper)
+    >		=$= writeString
+    > 	return ()
+    >
+    > readFileP :: FilePath -> Pipe () String IO ()
+    > readFileP fp = bracket (openFile fp ReadMode) hClose hRead
+    >
+    > hRead :: Handle -> Pipe () String IO ()
+    > hRead h = do
+    > 	eof <- lift $ hIsEOF h
+    > 	if eof then return () else do
+    > 		l <- lift $ hGetLine h
+    > 		yield l
+    > 		hRead h
+    >
+    > writeString :: Pipe String () IO ()
+    > writeString = do
+    > 	ms <- await
+    > 	case ms of
+    > 		Just s -> lift (putStrLn s) >> writeString
+    > 		_ -> return ()
+    >
+    > takeP :: Monad m => Int -> Pipe a a m ()
+    > takeP 0 = return ()
+    > takeP n = do
+    >	mx <- await
+    >	case mx of
+    >		Just x -> yield x >> takeP (n - 1)
+    >		_ -> return ()
+    .
+
+extra-source-files:
+    examples/upperFile.hs
+
+source-repository	head
+    type:	git
+    location:	git://github.com/YoshikuniJujo/simple-pipe.git
+
+source-repository	this
+    type:	git
+    location:	git://github.com/YoshikuniJujo/simple-pipe.git
+    tag:	simple-pipe-0.0.0.20
+
+library
+    hs-source-dirs:	src
+    exposed-modules:
+        Data.Pipe, Data.Pipe.Flow, Data.Pipe.List,
+        Data.Pipe.IO, Data.Pipe.ByteString, Data.Pipe.TChan
+    build-depends:
+        base == 4.*, monad-control == 0.3.*, lifted-base == 0.2.*,
+        monads-tf == 0.1.*, bytestring == 0.10.*, transformers-base == 0.4.*,
+        stm == 2.4.*
+    ghc-options:	-Wall
+
+
+package-hashes:
+    MD5:9266b77b239c06691d276be582c0338f
+    SHA1:aafd1cc1d2910a8d71cfa27d084bb85b9ed7a7a8
+    SHA256:46e26d31e67beb9e5aa83d10486d919dd31171a37a8cdb09e5ed22eaf807ed5f
+    SHA512:115d1867a9dda495031a759be2538c35d01bd9a682cf19dcc576b2578328a7b12efe481132d58e2405d2769ac1182010a8e5580e72649c32ad272571087a1513
+    Skein512_512:3f00f7a2a58c5028e4ccf0a179f043807c115c14f2fdec82d50b263b6bb63f826f6c6c25460414b52d17d2f9fff6af4eaa6b60567564e363ba8fe094a7555a61
+
+package-locations:
+    https://hackage.haskell.org/package/simple-pipe-0.0.0.20/simple-pipe-0.0.0.20.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/simple-pipe-0.0.0.20.tar.gz
+

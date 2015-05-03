@@ -1,0 +1,104 @@
+name:               set-monad
+version:            0.1.0.0
+synopsis:           Set monad
+description:
+  The @set-monad@ library exports the @Set@ abstract data type and
+  set-manipulating functions. These functions behave exactly as their namesakes
+  from the @Data.Set@ module of the @containers@ library. In addition, the
+  @set-monad@ library extends @Data.Set@ by providing @Functor@, @Applicative@,
+  @Alternative@, @Monad@, and @MonadPlus@ instances for sets.
+  .
+  In other words, you can use the @set-monad@ library as a drop-in replacement
+  for the @Data.Set@ module of the @containers@ library and, in addition, you
+  will also get the aforementioned instances which are not available in the
+  @containers@ package.
+  .
+  It is not possible to directly implement instances for the aforementioned
+  standard Haskell type classes for the @Set@ data type from the @containers@
+  library. This is because the key operations @map@ and @union@, are constrained
+  with @Ord@ as follows.
+  .
+  > map :: (Ord a, Ord b) => (a -> b) -> Set a -> Set b
+  > union :: (Ord a) => Set a -> Set a -> Set a
+  .
+  The @set-monad@ library provides the type class instances by wrapping the
+  constrained @Set@ type into a data type that has unconstrained constructors
+  corresponding to monadic combinators. The data type constructors that
+  represent monadic combinators are evaluated with a constrained run function.
+  This elevates the need to use the constraints in the instance definitions
+  (this is what prevents a direct definition). The wrapping and unwrapping
+  happens internally in the library and does not affect its interface.
+  .
+  For details, see the rather compact definitions of the @run@ function and
+  type class instances. The left identity and associativity monad laws play a
+  crucial role in the definition of the @run@ function. The rest of the code
+  should be self explanatory.
+  .
+  The technique is not new. This library was inspired by [1]. To my knowledge,
+  the original, systematic presentation of the idea to represent monadic
+  combinators as data is given in [2]. There is also a Haskell library that
+  provides a generic infrastructure for the aforementioned wrapping and
+  unwrapping [3].
+  .
+  The @set-monad@ library is particularly useful for writing set-oriented code
+  using the do and/or monad comprehension notations. For example, the
+  following definitions now type check.
+  .
+  > s1 :: Set (Int,Int)
+  > s1 = do a <- fromList [1 .. 4]
+  >         b <- fromList [1 .. 4]
+  >         return (a,b)
+  .
+  > -- with -XMonadComprehensions
+  > s2 :: Set (Int,Int)
+  > s2 = [ (a,b) | (a,b) <- s1, even a, even b ]
+  .
+  > s3 :: Set Int
+  > s3 = fmap (+1) (fromList [1 .. 4])
+  .
+  As noted in [1], the implementation technique can be used for monadic
+  libraries and EDSLs with restricted types (compiled EDSLs often restrict the
+  types that they can handle). Haskell's standard monad type class can be used
+  for restricted monad instances. There is no need to resort to GHC extensions
+  that rebind the standard monadic combinators with the library or EDSL specific
+  ones.
+  .
+  @[@1@]@ CSDL Blog: The home of applied functional programming at KU. Monad
+  Reification in Haskell and the Sunroof Javascript compiler.
+  <http://www.ittc.ku.edu/csdlblog/?p=88>
+  .
+  @[@2@]@ Chuan-kai Lin. 2006. Programming monads operationally with Unimo. In
+  Proceedings of the eleventh ACM SIGPLAN International Conference on Functional
+  Programming (ICFP '06). ACM.
+  .
+  @[@3@]@ Heinrich Apfelmus. The operational package.
+  <http://hackage.haskell.org/package/operational>
+
+license:            BSD3
+license-file:       LICENSE
+author:             George Giorgidze
+maintainer:         giorgidze@gmail.com
+category:           Data, Monad
+build-type:         Simple
+cabal-version:      >=1.8
+
+source-repository head
+  type:     git
+  location: https://github.com/giorgidze/set-monad.git
+
+library
+  exposed-modules:  Data.Set.Monad
+  build-depends:    base >=4 && <5, deepseq, containers
+  ghc-options:      -O3 -Wall
+
+package-hashes:
+    MD5:ab1b0c051f93a0e05219594c925a0c6f
+    SHA1:c19e31b20651f6e0fc374c5a5304f64623ffb5e7
+    SHA256:a5cdf13b34bf6da8d7239a97a08a94d5ed3952e5958c35e14b09ba437bd3dfbf
+    SHA512:94864a50f8dac5cf2ba9ddd9c1a71b46a82129d1b86ad0b41fc2d2b4147eb8657982966fc9c8bb2e3f4a62089ef45726ea68ba222ec2181406715bb9db903ca2
+    Skein512_512:ad8e8989611b4017fb649add4f796382bf47ee1f6c1e8b682db6b4258b2efedb7cf991c1f24c9730ecfd8d0f91daca9e4d513e408d4acd6e14e71bdd7c1fc383
+
+package-locations:
+    https://hackage.haskell.org/package/set-monad-0.1.0.0/set-monad-0.1.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/set-monad-0.1.0.0.tar.gz
+

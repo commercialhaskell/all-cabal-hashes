@@ -1,0 +1,224 @@
+cabal-version:      >= 1.8
+build-type:         Simple
+name:               shake
+version:            0.10
+x-revision: 1
+license:            BSD3
+license-file:       LICENSE
+category:           Development
+author:             Neil Mitchell <ndmitchell@gmail.com>
+maintainer:         Neil Mitchell <ndmitchell@gmail.com>
+copyright:          Neil Mitchell 2011-2013
+synopsis:           Build system library, like Make, but more accurate dependencies.
+description:
+    Shake is a Haskell library for writing build systems - designed as a
+    replacement for @make@. See "Development.Shake" for an introduction,
+    including an example. Further examples are included in the Cabal tarball,
+    under the @Examples@ directory.
+    .
+    To use Shake the user writes a Haskell program
+    that imports "Development.Shake", defines some build rules, and calls
+    the 'Development.Shake.shake' function. Thanks to do notation and infix
+    operators, a simple Shake build system
+    is not too dissimilar from a simple Makefile. However, as build systems
+    get more complex, Shake is able to take advantage of the excellent
+    abstraction facilities offered by Haskell and easily support much larger
+    projects.
+    .
+    The Shake library provides all the standard features available in other
+    build systems, including automatic parallelism and minimal rebuilds.
+    Shake provides highly accurate dependency tracking, including seamless
+    support for generated files, and dependencies on system information
+    (i.e. compiler version). Shake can produce profile reports, indicating
+    which files and take longest to build, and providing an analysis of the
+    parallelism.
+    .
+    The theory behind Shake is described in an ICFP 2012 paper,
+    Shake Before Building -- Replacing Make with Haskell
+    <http://community.haskell.org/~ndm/downloads/paper-shake_before_building-10_sep_2012.pdf>.
+    The associated talk forms a short overview of Shake
+    <http://www.youtube.com/watch?v=xYCPpXVlqFM>.
+homepage:           http://community.haskell.org/~ndm/shake/
+stability:          Beta
+extra-source-files:
+    Examples/C/constants.c
+    Examples/C/constants.h
+    Examples/C/main.c
+    Examples/Tar/list.txt
+    Paths.hs
+
+data-files:
+    html/jquery.flot.js
+    html/jquery.flot.stack.js
+    html/jquery.js
+    html/viz.js
+    html/report.html
+    html/shake-logic.js
+    html/shake-ui.js
+    html/shake-util.js
+
+source-repository head
+    type:     git
+    location: git://github.com/ndmitchell/shake.git
+
+flag testprog
+    default: False
+    description: Build the test program
+
+flag portable
+    default: False
+    description: Obtain FileTime using portable functions
+
+library
+    -- broken package (fixed in 0.10.1) due to non-standard Main module
+    build-depends: base<0
+
+    build-depends:
+        base == 4.*,
+        old-time,
+        directory,
+        hashable >= 1.1.2.3 && < 1.3,
+        binary,
+        filepath,
+        process,
+        unordered-containers (>= 0.1.4.3 && < 0.2) || (>= 0.2.1 && < 0.3),
+        bytestring,
+        time,
+        random,
+        transformers >= 0.2 && < 0.4,
+        deepseq >= 1.1 && < 1.4
+
+    if flag(portable)
+        cpp-options: -DPORTABLE
+    else
+        if !os(windows)
+            build-depends: unix >= 2.5.1
+
+    exposed-modules:
+        Development.Shake
+        Development.Shake.Classes
+        Development.Shake.FilePath
+        Development.Shake.Sys
+
+    other-modules:
+        Development.Shake.Args
+        Development.Shake.Binary
+        Development.Shake.Core
+        Development.Shake.Database
+        Development.Shake.Derived
+        Development.Shake.Directory
+        Development.Shake.Errors
+        Development.Shake.File
+        Development.Shake.FilePattern
+        Development.Shake.Files
+        Development.Shake.FileTime
+        Development.Shake.Intern
+        Development.Shake.Locks
+        Development.Shake.Oracle
+        Development.Shake.Pool
+        Development.Shake.Progress
+        Development.Shake.Report
+        Development.Shake.Rerun
+        Development.Shake.Shake
+        Development.Shake.Storage
+        Development.Shake.Types
+        Development.Shake.Value
+        Paths_shake
+
+
+executable shake
+    main-is: Development/Make/Main.hs
+    build-depends:
+        base == 4.*,
+        old-time,
+        directory,
+        hashable >= 1.1.2.3 && < 1.3,
+        binary,
+        filepath,
+        process,
+        unordered-containers (>= 0.1.4.3 && < 0.2) || (>= 0.2.1 && < 0.3),
+        bytestring,
+        time,
+        random,
+        transformers >= 0.2 && < 0.4,
+        deepseq >= 1.1 && < 1.4
+
+    if flag(portable)
+        cpp-options: -DPORTABLE
+    else
+        if !os(windows)
+            build-depends: unix >= 2.5.1
+
+    other-modules:
+        Development.Make.Env
+        Development.Make.Parse
+        Development.Make.Rules
+        Development.Make.Type
+
+
+executable shake-test
+    main-is: Main.hs
+    if flag(testprog)
+        buildable: True
+    else
+        buildable: False
+    build-depends:
+        base == 4.*,
+        old-time,
+        directory,
+        hashable >= 1.1.2.3 && < 1.3,
+        binary,
+        filepath,
+        process,
+        unordered-containers (>= 0.1.4.3 && < 0.2) || (>= 0.2.1 && < 0.3),
+        bytestring,
+        time,
+        random,
+        transformers >= 0.2 && < 0.4,
+        deepseq >= 1.1 && < 1.4
+
+    if flag(portable)
+        cpp-options: -DPORTABLE
+    else
+        if !os(windows)
+            build-depends: unix >= 2.5.1
+
+    other-modules:
+        Development.Make.Env
+        Development.Make.Main
+        Development.Make.Parse
+        Development.Make.Rules
+        Development.Make.Type
+        Examples.Util
+        Examples.C.Main
+        Examples.Self.Main
+        Examples.Tar.Main
+        Examples.Test.Assume
+        Examples.Test.Basic
+        Examples.Test.Benchmark
+        Examples.Test.Cache
+        Examples.Test.Directory
+        Examples.Test.Errors
+        Examples.Test.FilePath
+        Examples.Test.FilePattern
+        Examples.Test.Files
+        Examples.Test.Journal
+        Examples.Test.Lint
+        Examples.Test.Oracle
+        Examples.Test.Pool
+        Examples.Test.Progress
+        Examples.Test.Random
+        Examples.Test.Resources
+
+
+package-hashes:
+    MD5:350e4707cd9ce39ce4d53909f43a6f57
+    SHA1:6abb854b6a8383fa576cc5b333ede749820df5c0
+    SHA256:1adfbff39cc0dc303e89c121dcdbc88c2b4d97b8c9800473c3a6b39afff422eb
+    SHA512:8145b4cc198a66e370644de6fa9a38e5cab4a9bece47cba9940dcc49c7c8166aabe892718f439a6d6206583fb9bc028cb628cdd9b6ef89b5ca3f4663a3e7b6c6
+    Skein512_512:b93ffe05204d1cbafdc7c0cce17d528b25919b3d2aaa1623e60dae4c270c3b4cc795d8321e80ae942aa6a83ce76652e3da7a6cd55e3a2f7355a13df9a79b9ae4
+
+package-locations:
+    https://hackage.haskell.org/package/shake-0.10/shake-0.10.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/shake-0.10.tar.gz
+

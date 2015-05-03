@@ -1,0 +1,66 @@
+name:          splice
+version:       0.1
+stability:     stable on Linux, experimental on other operating systems
+synopsis:      Socket to Socket Data Splicing
+description:   A library that implements efficient socket to socket
+               data transfer loops for proxy servers.
+               .
+               On Linux, it uses the zero-copy splice() system call:
+               <http://kerneltrap.org/node/6505>.
+               .
+               On all other operating systems, it currently falls back
+               to a portable Haskell implementation that allocates a
+               constant-sized memory buffer before it enters an inner
+               loop which then uses hGetBufSome and hPutBuf; this avoids
+               lots of tiny allocations as would otherwise be caused by
+               recv and sendAll functions from Network.Socket.ByteString.
+               .
+               This work has been funded by Corsis Research and is used
+               in PortFusion: <http://portfusion.sf.net>
+license:       BSD3
+license-file:  LICENSE
+author:        Cetin Sert <fusion@corsis.eu>
+maintainer:    Cetin Sert <fusion@corsis.eu>
+homepage:      http://fusion.corsis.eu
+category:      Network
+build-type:    Simple
+cabal-version: >=1.2
+copyright:     Copyright © 2012 Cetin Sert
+tested-with:   GHC >= 7.4.3
+
+
+flag portable
+    description: explicitly enable portable splice implemented in Haskell
+    default    : False
+
+
+library
+
+    hs-source-dirs:  src
+
+    exposed-modules: Network.Socket.Splice
+
+    if os(linux) && !flag(portable)
+      build-depends: base    >= 4 && <= 6,
+                     network >= 2 && <= 4,
+                     unix    >= 2 && <= 4
+      cpp-options: -DLINUX_SPLICE
+      ghc-options: -O2 -O3 -fllvm -optlo-O3
+    else
+      build-depends: base    >= 4 && <= 6,
+                     network >= 2 && <= 4
+      cpp-options: -ULINUX_SPLICE
+      ghc-options: -O2 -O3
+
+
+package-hashes:
+    MD5:e0a70ecffe197b7780f10312271eeb23
+    SHA1:911e5a9469e67f24de60c0747da13ba596994c8f
+    SHA256:fa2a03499ce575e4c36aa41ed48d38d21c0c2c5c2421308d96315e00fa2141ff
+    SHA512:8d2c3556faab1361a7487193475a637e29ac3c193d0469e843c49bb1565df8122f68cd2dcc6a018e97869dcbacc96fab97a9f89b1105b4acb04267694bec28f3
+    Skein512_512:c1cc2fb5a4bda05cae2c72dac12a2248f06da4be61d276105d3a35d025e45109ebbc431c94d9549852087e6b2563c17fa842dd0d3f2dd9fddfee87e1be7a7fcb
+
+package-locations:
+    https://hackage.haskell.org/package/splice-0.1/splice-0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/splice-0.1.tar.gz
+

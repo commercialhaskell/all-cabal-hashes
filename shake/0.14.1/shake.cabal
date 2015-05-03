@@ -1,0 +1,294 @@
+cabal-version:      >= 1.10
+build-type:         Simple
+name:               shake
+version:            0.14.1
+x-revision: 1
+license:            BSD3
+license-file:       LICENSE
+category:           Development
+author:             Neil Mitchell <ndmitchell@gmail.com>
+maintainer:         Neil Mitchell <ndmitchell@gmail.com>
+copyright:          Neil Mitchell 2011-2014
+synopsis:           Build system library, like Make, but more accurate dependencies.
+description:
+    Shake is a Haskell library for writing build systems - designed as a
+    replacement for @make@. See "Development.Shake" for an introduction,
+    including an example. Further examples are included in the Cabal tarball,
+    under the @Examples@ directory. The homepage contains links to a user
+    manual, an academic paper and further information:
+    <http://www.shakebuild.com/>
+    .
+    To use Shake the user writes a Haskell program
+    that imports "Development.Shake", defines some build rules, and calls
+    the 'Development.Shake.shakeArgs' function. Thanks to do notation and infix
+    operators, a simple Shake build system
+    is not too dissimilar from a simple Makefile. However, as build systems
+    get more complex, Shake is able to take advantage of the excellent
+    abstraction facilities offered by Haskell and easily support much larger
+    projects. The Shake library provides all the standard features available in other
+    build systems, including automatic parallelism and minimal rebuilds.
+    Shake also provides more accurate dependency tracking, including seamless
+    support for generated files, and dependencies on system information
+    (e.g. compiler version).
+homepage:           http://www.shakebuild.com/
+bug-reports:        https://github.com/ndmitchell/shake/issues
+tested-with:        GHC==7.8.3, GHC==7.6.3, GHC==7.4.2, GHC==7.2.2
+extra-source-files:
+    src/Test/C/constants.c
+    src/Test/C/constants.h
+    src/Test/C/main.c
+    src/Test/MakeTutor/Makefile
+    src/Test/MakeTutor/hellofunc.c
+    src/Test/MakeTutor/hellomake.c
+    src/Test/MakeTutor/hellomake.h
+    src/Test/Tar/list.txt
+    src/Test/Ninja/*.ninja
+    src/Test/Ninja/*.output
+    src/Test/Progress/*.prog
+    src/Paths.hs
+    CHANGES.txt
+    README.md
+    docs/Manual.md
+    docs/Ninja.md
+    docs/Why.md
+    docs/shake-progress.png
+
+data-files:
+    html/viz.js
+    html/profile.html
+    html/progress.html
+    html/shake-logic.js
+    html/shake-progress.js
+    html/shake-ui.js
+    html/shake-util.js
+    docs/manual/build.bat
+    docs/manual/Build.hs
+    docs/manual/build.sh
+    docs/manual/constants.c
+    docs/manual/constants.h
+    docs/manual/main.c
+
+source-repository head
+    type:     git
+    location: https://github.com/ndmitchell/shake.git
+
+flag portable
+    default: False
+    description: Obtain FileTime using portable functions
+
+library
+    default-language: Haskell2010
+    hs-source-dirs:   src
+    build-depends:
+        base == 4.*,
+        old-time,
+        directory,
+        hashable >= 1.1.2.3,
+        binary,
+        filepath < 1.3.1,
+        process >= 1.1,
+        unordered-containers >= 0.2.1,
+        bytestring,
+        utf8-string >= 0.3,
+        time,
+        random,
+        js-jquery,
+        js-flot,
+        transformers >= 0.2,
+        extra >= 0.7,
+        deepseq >= 1.1
+
+    if flag(portable)
+        cpp-options: -DPORTABLE
+    else
+        if !os(windows)
+            build-depends: unix >= 2.5.1
+
+    exposed-modules:
+        Development.Shake
+        Development.Shake.Classes
+        Development.Shake.Command
+        Development.Shake.Config
+        Development.Shake.FilePath
+        Development.Shake.Rule
+        Development.Shake.Util
+
+    other-modules:
+        Development.Ninja.Env
+        Development.Ninja.Lexer
+        Development.Ninja.Parse
+        Development.Ninja.Type
+        Development.Shake.Args
+        Development.Shake.ByteString
+        Development.Shake.Core
+        Development.Shake.Database
+        Development.Shake.Demo
+        Development.Shake.Derived
+        Development.Shake.Errors
+        Development.Shake.FileInfo
+        Development.Shake.FilePattern
+        Development.Shake.Monad
+        Development.Shake.Pool
+        Development.Shake.Profile
+        Development.Shake.Progress
+        Development.Shake.Resource
+        Development.Shake.Rules.Directory
+        Development.Shake.Rules.File
+        Development.Shake.Rules.Files
+        Development.Shake.Rules.Oracle
+        Development.Shake.Rules.OrderOnly
+        Development.Shake.Rules.Rerun
+        Development.Shake.Shake
+        Development.Shake.Special
+        Development.Shake.Storage
+        Development.Shake.Types
+        Development.Shake.Value
+        General.Bilist
+        General.Binary
+        General.Cleanup
+        General.Concurrent
+        General.Extra
+        General.Intern
+        General.Prelude
+        General.String
+        General.Template
+        General.Timing
+        Paths_shake
+
+
+executable shake
+    default-language: Haskell2010
+    hs-source-dirs:   src
+    ghc-options: -main-is Run.main
+    main-is: Run.hs
+    ghc-options: -threaded -rtsopts
+    if impl(ghc >= 7.4)
+        ghc-options: "-with-rtsopts=-I0 -qg -qb"
+    else
+        -- -qg/-qb segfaults in GHC 7.2
+        ghc-options: -with-rtsopts=-I0
+    build-depends:
+        base == 4.*,
+        old-time,
+        directory,
+        hashable >= 1.1.2.3,
+        binary,
+        filepath,
+        process >= 1.1,
+        unordered-containers >= 0.2.1,
+        bytestring,
+        utf8-string >= 0.3,
+        time,
+        random,
+        js-jquery,
+        js-flot,
+        transformers >= 0.2,
+        extra >= 0.7,
+        deepseq >= 1.1
+
+    if flag(portable)
+        cpp-options: -DPORTABLE
+    else
+        if !os(windows)
+            build-depends: unix >= 2.5.1
+
+    other-modules:
+        Development.Make.All
+        Development.Make.Env
+        Development.Make.Parse
+        Development.Make.Rules
+        Development.Make.Type
+        Development.Ninja.All
+        Run
+
+
+test-suite shake-test
+    default-language: Haskell2010
+    type: exitcode-stdio-1.0
+    ghc-options: -main-is Test.main
+    main-is: Test.hs
+    hs-source-dirs: src
+    ghc-options: -threaded -rtsopts
+    build-depends:
+        base == 4.*,
+        old-time,
+        directory,
+        hashable >= 1.1.2.3,
+        binary,
+        filepath,
+        process >= 1.1,
+        unordered-containers >= 0.2.1,
+        bytestring,
+        utf8-string >= 0.3,
+        time,
+        random,
+        js-jquery,
+        js-flot,
+        transformers >= 0.2,
+        deepseq >= 1.1,
+        extra >= 0.7,
+        QuickCheck >= 2.0
+
+    if flag(portable)
+        cpp-options: -DPORTABLE
+    else
+        if !os(windows)
+            build-depends: unix >= 2.5.1
+
+    other-modules:
+        Development.Make.All
+        Development.Make.Env
+        Development.Make.Parse
+        Development.Make.Rules
+        Development.Make.Type
+        Development.Ninja.All
+        Development.Ninja.Parse
+        Development.Ninja.Type
+        Run
+        Test.Type
+        Test.Assume
+        Test.Basic
+        Test.Benchmark
+        Test.C
+        Test.Cache
+        Test.Command
+        Test.Config
+        Test.Digest
+        Test.Directory
+        Test.Docs
+        Test.Errors
+        Test.FilePath
+        Test.FilePattern
+        Test.Files
+        Test.Journal
+        Test.Lint
+        Test.Live
+        Test.Makefile
+        Test.Manual
+        Test.Monad
+        Test.Ninja
+        Test.Oracle
+        Test.OrderOnly
+        Test.Pool
+        Test.Progress
+        Test.Random
+        Test.Resources
+        Test.Self
+        Test.Tar
+        Test.Throttle
+        Test.Unicode
+        Test.Util
+        Test.Verbosity
+
+
+package-hashes:
+    MD5:8059054f955755302ca4638ebafa2fef
+    SHA1:7efae23a537a4e9e4360a8a7e68d6da58d74dab2
+    SHA256:ca914ebed23ac9dfe2bc5db45b271cf8a9293388f9234bfaf6e1423e6e6e3a80
+    SHA512:69d31704a02750237bc372f8c1330e960877e872c08be2b4612f5f49a7cc1bc5aa6a4bc1e815ce7e86f480da0440d7a7f606c3dd9ee198845ee1b0799be52f8a
+    Skein512_512:9b2a570ef37d211b34a9a4cd756ebbf5c6c99c066d3f3713cb710e202e4816740c9c4dc20670ce787966bf2bb17a384d122fd33902a5cfde30255a6eee119766
+
+package-locations:
+    https://hackage.haskell.org/package/shake-0.14.1/shake-0.14.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/shake-0.14.1.tar.gz
+

@@ -1,0 +1,87 @@
+Name:                   simple-sendfile
+Version:                0.2.16
+Author:                 Kazu Yamamoto <kazu@iij.ad.jp>
+Maintainer:             Kazu Yamamoto <kazu@iij.ad.jp>
+License:                BSD3
+License-File:           LICENSE
+Synopsis:               Cross platform library for the sendfile system call
+Description:            Cross platform library for the sendfile system call.
+                        This library tries to call minimum system calls which
+                        are the bottleneck of web servers.
+Category:               Network
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+
+Flag allow-bsd
+  Description:          Allow use of BSD sendfile (disable on GNU/kFreeBSD)
+  Default:              True
+
+Library
+  Default-Language:     Haskell2010
+  GHC-Options:          -Wall
+  Exposed-Modules:      Network.Sendfile
+  Other-Modules:        Network.Sendfile.Types
+  Build-Depends:        base >= 4 && < 5
+                      , network
+                      , bytestring
+                      , resourcet
+  -- NetBSD and OpenBSD don't have sendfile
+  if os(freebsd) && flag(allow-bsd)
+    CPP-Options:        -DOS_BSD
+    Other-Modules:      Network.Sendfile.BSD
+                        Network.Sendfile.IOVec
+    Build-Depends:      unix
+  else
+    if os(darwin)
+      CPP-Options:      -DOS_MacOS
+      Other-Modules:    Network.Sendfile.BSD
+                        Network.Sendfile.IOVec
+      Build-Depends:    unix
+    else
+      if os(linux)
+        CPP-Options:    -DOS_Linux
+        Other-Modules:  Network.Sendfile.Linux
+        Build-Depends:  unix
+      else
+        Other-Modules:  Network.Sendfile.Fallback
+        Build-Depends:  conduit         >= 1.0 && < 1.3
+                      , conduit-extra   >= 1.0 && < 1.2
+                      , transformers    >= 0.2.2 && < 0.5
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       test
+  Main-Is:              Spec.hs
+  GHC-Options:          -Wall
+  Other-Modules:        SendfileSpec
+  Build-Depends:        base
+                      , HUnit
+                      , bytestring
+                      , conduit
+                      , conduit-extra
+                      , resourcet
+                      , directory
+                      , hspec >= 1.3
+                      , network
+                      , network-conduit
+                      , process
+                      , simple-sendfile
+                      , unix
+
+Source-Repository head
+  Type:                 git
+  Location:             git://github.com/kazu-yamamoto/simple-sendfile
+
+
+package-hashes:
+    MD5:df286591d4941192a407068d93de63b5
+    SHA1:3b83e4b43cb91fb6567f2a8f77abcee05778ff1d
+    SHA256:eb3594f33f705594283a816c9d9a0d0fd9179f317b484210cb05c6500e3f3275
+    SHA512:f9b19f610cab149e1361b40c894cae03244a6a7167a1f8a0d59f219d07fc37c09dfd1b28cf2a379f9fc923afc28318a8e5b1ad9e0ca73649120d854b80bafb29
+    Skein512_512:fe49bbf8a23989306b9855f7584b838c92c2d89d655442292002ab2b5a16534760870f18733c151afe6b277870d53a429550bf5dc3ea6c301d8a14239d3562a2
+
+package-locations:
+    https://hackage.haskell.org/package/simple-sendfile-0.2.16/simple-sendfile-0.2.16.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/simple-sendfile-0.2.16.tar.gz
+

@@ -1,0 +1,182 @@
+name:           snap-server
+version:        0.2.9
+synopsis:       A fast, iteratee-based, epoll-enabled web server for the Snap Framework
+description:
+  This is the first developer prerelease of the Snap framework.  Snap is a
+  simple and fast web development framework and server written in Haskell. For
+  more information or to download the latest version, you can visit the Snap
+  project website at <http://snapframework.com/>.
+  .
+  The Snap HTTP server is a high performance, epoll-enabled, iteratee-based web
+  server library written in Haskell. Together with the @snap-core@ library upon
+  which it depends, it provides a clean and efficient Haskell programming
+  interface to the HTTP protocol.
+  .
+  Higher-level facilities for building web applications (like user/session
+  management, component interfaces, data modeling, etc.) are planned but not
+  yet implemented, so this release will mostly be of interest for those who:
+  .
+  * need a fast and minimal HTTP API at roughly the same level of abstraction
+    as Java servlets, or
+  .
+  * are interested in contributing to the Snap Framework project.
+
+license:        BSD3
+license-file:   LICENSE
+author:         James Sanders, Gregory Collins, Doug Beardsley
+maintainer:     snap@snapframework.com
+build-type:     Simple
+cabal-version:  >= 1.6
+homepage:       http://snapframework.com/
+category:       Web
+
+extra-source-files:
+  CONTRIBUTORS,
+  extra/fonts/DroidSerif-Bold.eot,
+  extra/fonts/DroidSerif-Bold.svg,
+  extra/fonts/DroidSerif-Bold.ttf,
+  extra/fonts/DroidSerif-Bold.woff,
+  extra/fonts/DroidSerif-BoldItalic.eot,
+  extra/fonts/DroidSerif-BoldItalic.svg,
+  extra/fonts/DroidSerif-BoldItalic.ttf,
+  extra/fonts/DroidSerif-BoldItalic.woff,
+  extra/fonts/DroidSerif-Italic.eot,
+  extra/fonts/DroidSerif-Italic.svg,
+  extra/fonts/DroidSerif-Italic.ttf,
+  extra/fonts/DroidSerif-Italic.woff,
+  extra/fonts/DroidSerif-Regular.eot,
+  extra/fonts/DroidSerif-Regular.svg,
+  extra/fonts/DroidSerif-Regular.ttf,
+  extra/fonts/DroidSerif-Regular.woff,
+  extra/haddock.css,
+  extra/hscolour.css,
+  extra/logo.gif,
+  haddock.sh,
+  LICENSE,
+  README.md,
+  README.SNAP.md,
+  test/benchmark/Benchmark.hs,
+  test/benchmark/Snap/Internal/Http/Parser/Benchmark.hs,
+  test/data/fileServe/foo.bin,
+  test/data/fileServe/foo.bin.bin.bin,
+  test/data/fileServe/foo.html,
+  test/data/fileServe/foo.txt,
+  test/pongserver/Main.hs,
+  test/pongserver/Paths_snap_server.hs,
+  test/runTestsAndCoverage.sh,
+  test/snap-server-testsuite.cabal,
+  test/suite/Paths_snap_server.hs,
+  test/suite/Data/HashMap/Concurrent/Tests.hs,
+  test/suite/Snap/Internal/Http/Parser/Tests.hs,
+  test/suite/Snap/Internal/Http/Parser/Tests.hs,
+  test/suite/Snap/Internal/Http/Server/Tests.hs,
+  test/suite/Snap/Test/Common.hs,
+  test/suite/TestSuite.hs
+
+
+Flag libev
+    Description: Use libev?
+    Default:     False
+
+Flag portable
+  Description: Compile in cross-platform mode. No platform-specific code or
+               optimizations such as C routines will be used.
+  Default: False
+
+
+Library
+  hs-source-dirs: src
+
+  exposed-modules:
+    Snap.Http.Server,
+    Snap.Http.Server.Config,
+    System.FastLogger
+
+  other-modules:
+    Data.HashMap.Concurrent,
+    Paths_snap_server,
+    Snap.Internal.Http.Parser,
+    Snap.Internal.Http.Server,  
+    Snap.Internal.Http.Server.Date
+
+  build-depends:
+    array >= 0.2 && <0.4,
+    attoparsec >= 0.8.0.2 && < 0.9,
+    attoparsec-iteratee >= 0.1.1 && <0.2,
+    base >= 4 && < 5,
+    bytestring,
+    bytestring-nums,
+    bytestring-show >= 0.3.2 && < 0.4,
+    cereal >= 0.3 && < 0.4,
+    containers,
+    directory-tree,
+    dlist >= 0.5 && < 0.6,
+    filepath,
+    iteratee >= 0.3.1 && <0.4,
+    monads-fd,
+    murmur-hash >= 0.1 && < 0.2,
+    network == 2.2.1.*,
+    old-locale,
+    snap-core >= 0.2.9 && <0.3,
+    time,
+    transformers,
+    unix-compat,
+    vector >= 0.6 && <0.7
+
+  if flag(portable) || os(windows)
+    cpp-options: -DPORTABLE
+  else
+    build-depends: unix
+
+  if flag(libev)
+    build-depends: hlibev >= 0.2.8 && < 0.3
+    other-modules: Snap.Internal.Http.Server.LibevBackend
+    cpp-options: -DLIBEV
+  else
+    build-depends: network-bytestring >= 0.1.2 && < 0.2,
+                   PSQueue >= 1.1 && <1.2
+
+    other-modules: Snap.Internal.Http.Server.SimpleBackend
+
+  if os(linux) && !flag(portable)
+    cpp-options: -DLINUX -DHAS_SENDFILE
+    other-modules:
+      System.SendFile,
+      System.SendFile.Linux
+
+  if os(darwin) && !flag(portable)
+    cpp-options: -DOSX -DHAS_SENDFILE
+    other-modules:
+      System.SendFile,
+      System.SendFile.Darwin
+
+  if os(freebsd) && !flag(portable)
+    cpp-options: -DFREEBSD -DHAS_SENDFILE
+    other-modules:
+      System.SendFile,
+      System.SendFile.FreeBSD
+
+  ghc-prof-options: -prof -auto-all
+
+  if impl(ghc >= 6.12.0)
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2 -fno-warn-unused-do-bind
+  else
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+
+
+source-repository head
+  type:     git
+  location: http://git.snapframework.com/snap-server.git
+
+
+package-hashes:
+    MD5:992ce4059eee8c8a8d8f9b05de1d41e6
+    SHA1:2cb707cf584d4207703b3e0d15860c3735075e38
+    SHA256:7e6e6997e9a32ad7fa1a514e091148b74cb2fe6e5e90ae5f64ea6a8256f66f72
+    SHA512:38afc85574ef6a69272545583c56850e92571e2c082ccb8f0b7fcc88187aac6d692d72d5b807160dd800cf6158fa3fe534801e49349f620976981c3032b44b44
+    Skein512_512:f55db992c4524740bf7fdf9fea2ed16c6f4364982011398eda0d31f951499b31ff50021fefce3684bd02b7be6d9d1426406d194a7c85c97cea23c79a83b299bb
+
+package-locations:
+    https://hackage.haskell.org/package/snap-server-0.2.9/snap-server-0.2.9.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/snap-server-0.2.9.tar.gz
+

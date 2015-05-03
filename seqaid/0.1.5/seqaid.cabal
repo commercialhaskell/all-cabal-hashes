@@ -1,0 +1,322 @@
+
+name:                seqaid
+version:             0.1.5
+synopsis:            Dynamic strictness control, including space leak repair
+description:         Seqaid is a GHC plugin for non-invasive auto-instrumentation of dynamic strictness (and parallelism) control, shortly to include optimisation for automated space leak relief using minimal strictification. [The optimiser is still in development however.]
+                     .
+                     Refer to the seqaid <http://www.fremissant.net/seqaid homepage> for more information.
+                     .
+                     Please share your comments on this <http://www.reddit.com/r/haskell/comments/2pscxh/ann_deepseqbounded_seqaid_leaky/ reddit> discussion.
+homepage:            http://www.fremissant.net/seqaid
+license:             BSD3
+license-file:        LICENSE
+author:              Andrew G. Seniuk
+maintainer:          Andrew Seniuk <rasfar@gmail.com>
+category:            Compiler Plugin
+--bug-reports:       
+bug-reports:         Andrew Seniuk <rasfar@gmail.com>
+build-type:          Simple
+cabal-version:       >= 1.10
+tested-with:         GHC==7.8.1, GHC==7.8.3
+--tested-with:         GHC==7.6.3, GHC==7.8.1, GHC==7.8.3
+
+extra-source-files:    HTML/*.html
+                     , HTML/*.css
+                     , README
+--                   , tests/*.hs
+--                   , tests/Makefile
+
+-- source-repository head
+--   type: git
+--   location: 
+
+-- XXX
+-- A few of the latest flags are not used very consistently,
+-- and there are probably bugs related:
+--   ONLY_TOP_LEVEL_INJECTIONS
+--   INFER_TOP_LEVEL_TYPES
+--   SEQAIDPP_TYPES
+--  (DEMO_MODE)
+--  (... the rest, basically! ...)
+
+-- There were about twice as many flags, so I've done what I can,
+-- but not ready to throw away the alternative code branches
+-- for the remaining yet.  In a few minor version bumps, will
+-- probably have done away with most of the rest.
+
+Flag TRY_INJECT_NOINLINE_ON_REQUESTED_BINDS
+  Description: If we can prevent inling of injected binds (without requiring user edits), that would probably be a good trade off in terms of lost optimiser oppportunities in exchange for assurance that the bind won't be inlined. This didn't work, and is a poor solution anyway.
+--Default:     True
+  Default:     False
+
+Flag SEQABLE_ONLY
+  Description: Like NFDATAN_ONLY, but for newer Seqable module.
+--Default:     True
+  Default:     False
+
+Flag TH_TYPE_IN_TYPES_ANN
+  Description: Actually this is just preparatory, haven't gone down this road far yet. (We would like a TH.Type to Type.Type conversion function in the GHC API. Then we'd just send the list of Type.Type for direct use by the Core-plugin downstream).
+--Default:     True
+  Default:     False
+
+Flag SEQAIDPP_TYPES
+  Description: Rather than choose types to seqinj for based on the types of the top-level binds, use seqaidpp to parse the types from seqaid.config. This stays on perpetually, finally, and could be removed soon.
+  Default:     True
+--Default:     False
+
+-- Flag ONLY_TOP_LEVEL_INJECTIONS
+--   Description: Like it says; as opposed to descending to (potentially) wrap subexpressions ... the latter which has just become possible due to seqaidpp.
+-- --Default:     True
+--   Default:     False
+
+Flag INFER_TOP_LEVEL_TYPES
+  Description: If True, then TH/modulespection will be used as it has been, to blanket-inject all top-level functions (at least, those not explicitly or implicitly excluded). Now, if False, only RHS's with result types in the "types" list for the module (in seqaid.config) will be wrapped (again, at least those not explicitly or implicitly excluded).
+--Default:     True
+  Default:     False
+
+Flag DEMO_MODE
+  Description: This is the only working mode in the first release. (And it only works when tested on the "leaky" package.) The switch exists to exclude hashable/hashtables deps (and subdeps) from the first release, while I can continue to work on this aspect in the development head.
+  Default:     True
+--Default:     False
+
+Flag DBG_SEQAID
+  Description: When set, every call to seqaidDispatch emits a line of info.
+  Default:     True
+--Default:     False
+
+Flag NO_TOP_LEVEL_SEQINJ_DUMMIES
+  Description: If have to inject a class and instance anyway to evade DCE, no need for the old top-level seqinj_ declarations (we hope...).
+--Default:     True
+  Default:     False
+
+Flag NFDATAN_ONLY
+  Description: To simplify debugging.
+--Default:     True
+  Default:     False
+
+-- This only applies to NFDATAN_ONLY, since NFDataP has Typeable as
+-- a superclass already. (The point is, you can set this False, and
+-- get rid of as much class/instance cruft as possible in the Core,
+-- for help debugging.)
+Flag SHOW_TYPE
+  Description: Include Typeable instance for (show . typeOf) in seqaidDispatch
+  Default:     True
+--Default:     False
+
+library {
+
+  exposed-modules:
+    Seqaid.Plugin
+    Seqaid.Config
+    Seqaid.Ann
+    Seqaid.TH
+    Seqaid.Core
+    Seqaid.Runtime
+    Seqaid.Global
+    Seqaid.Optim
+
+--other-modules:
+
+  build-depends:
+
+      base == 4.*
+
+    -- GHC plugin stuff:
+    , ghc >= 7.4 && < 7.9
+    , syb <= 0.4.2
+
+    -- Not used in Core.hs plugin part anymore; but there may
+    -- be GHC API code coming in Seqaid.TH that uses GHC.Paths.
+--  , ghc-paths <= 0.1.0.9
+
+    -- used to try to bring types into scope that are needed
+    -- for CoreM-level (Simplifier) injections; works except
+    -- for polymorphic types such as [a]. Now looking to extend
+    -- the TH code to USE the GHC API, which I didn't realise
+    -- was possible but see modulespec package...
+    , template-haskell == 2.9.*
+    , modulespection >= 0.1.2
+    , th-expand-syns == 0.3.*
+
+    -- low-level forcing libraries
+    , deepseq-bounded >= 0.5.0 && <= 0.5.3
+
+    -- at least for IntMap
+    , containers == 0.5.*
+    -- or would regex-posix be better?
+    , regex-pcre <= 0.94.4
+    -- to use regex API
+    , array == 0.5.*
+    -- ended up wanting this for State, for a SYB everywhereM traversal
+    , mtl == 2.1.*
+--  , mtl == 2.1.3.*
+--  , mtl == 2.1.3.1
+
+    -- In the end (although it's already a sub-dep), seqaid did end up
+    -- depending directly on SOP, since now there's a splice in Seqaid.TH
+    -- which calls a generics-sop TH splice itself.
+    -- ... But that doesn't save us, because the "deriving instance"
+    -- decls are put there by seqaidpp [indeed that was the whole reason
+    -- I finally crumbed and reached for a preprocessor!] -- that's
+    -- pre-TH, so pre our ability to know whether it's a synonym or not...
+--  , generics-sop == 0.1.*
+
+  if flag(SEQABLE_ONLY)
+    build-depends:
+        generics-sop == 0.1.*
+
+  if ! flag(DEMO_MODE)
+    build-depends:
+      -- Unfortunately, hashtables brings in the majority of our deps!
+      --   text       : 43 modules (hashable and hashtables)
+      --   hashable   :  3 modules (hashable and hashtables)
+      --   hashtables : 12 modules (hashables)
+      --   primitive  : 10 modules (hashables)
+      --   vector     : 19 modules (hashables)
+      -- Ouch! (this only really matters for sandbox builds)
+        hashtables == 1.2.*
+      -- Need to include this anyway, since this is where "hash" function
+      -- comes from (and hashtables doesn't export it).
+      -- For building IntMap or HashTable keys from unique strings.
+--    , hashable == 1.2.*
+      , hashable == 1.2.3.*
+
+    -- Useful in debugging...
+--  , sai-shape-syb == 0.3.*
+    -- for debugging only (though deepseq-bounded re-exports these anyhow)
+--  , deepseq-generics == 0.1.1.2
+--  , deepseq == 1.3.0.2
+
+  ghc-options: -optP-Wundef -fno-warn-overlapping-patterns
+  ghc-options:                  -funbox-strict-fields -fwarn-tabs
+--ghc-options:        -Wall -O2 -funbox-strict-fields -fwarn-tabs
+
+  -- The following extra options are to handle multiline String literals
+  -- in the presence of CPP
+  -- http://stackoverflow.com/questions/2549167/cpp-extension-and-multiline-literals-in-haskell
+  -- I prefer string gaps to unlines [ l1, l2, ... ] b/c then lines
+  -- can start at the left margin!
+  ghc-options:        -pgmP cpphs -optP --cpp
+
+
+  if flag(SEQABLE_ONLY)
+     cpp-options: -DSEQABLE_ONLY=1
+  else
+     cpp-options: -DSEQABLE_ONLY=0
+
+  if flag(TH_TYPE_IN_TYPES_ANN)
+     cpp-options: -DTH_TYPE_IN_TYPES_ANN=1
+  else
+     cpp-options: -DTH_TYPE_IN_TYPES_ANN=0
+
+  if flag(SEQAIDPP_TYPES)
+     cpp-options: -DSEQAIDPP_TYPES=1
+  else
+     cpp-options: -DSEQAIDPP_TYPES=0
+
+--if flag(ONLY_TOP_LEVEL_INJECTIONS)
+--   cpp-options: -DONLY_TOP_LEVEL_INJECTIONS=1
+--else
+--   cpp-options: -DONLY_TOP_LEVEL_INJECTIONS=0
+
+  if flag(INFER_TOP_LEVEL_TYPES)
+     cpp-options: -DINFER_TOP_LEVEL_TYPES=1
+  else
+     cpp-options: -DINFER_TOP_LEVEL_TYPES=0
+
+  if flag(DEMO_MODE)
+     cpp-options: -DDEMO_MODE=1
+  else
+     cpp-options: -DDEMO_MODE=0
+
+  if flag(DBG_SEQAID)
+     cpp-options: -DDBG_SEQAID=1
+  else
+     cpp-options: -DDBG_SEQAID=0
+
+  if flag(NO_TOP_LEVEL_SEQINJ_DUMMIES)
+     cpp-options: -DNO_TOP_LEVEL_SEQINJ_DUMMIES=1
+  else
+     cpp-options: -DNO_TOP_LEVEL_SEQINJ_DUMMIES=0
+
+  if flag(NFDATAN_ONLY)
+     cpp-options: -DNFDATAN_ONLY=1
+  else
+     cpp-options: -DNFDATAN_ONLY=0
+
+  if flag(SHOW_TYPE)
+     cpp-options: -DSHOW_TYPE=1
+  else
+     cpp-options: -DSHOW_TYPE=0
+
+  default-extensions: CPP
+  default-language:   Haskell2010
+}
+
+-- XXX Note that the flags in library section are NOT present here.
+-- (Which is fine so long as the executable's code doesn't try to use them;
+-- and will get a warning anyhow if it does.)
+executable seqaid {
+-- It seems you cannot put the seqaid Main module in Seqaid.Main namespace?
+  hs-source-dirs:     .
+  main-is:            Seqaid/Demo.hs
+--other-modules:
+--other-extensions:
+  build-depends:
+      base == 4.*
+    , temporary == 1.2.*
+    , directory == 1.2.*
+    , process == 1.2.*
+  ghc-options:                  -funbox-strict-fields -fwarn-tabs -threaded
+--ghc-options:        -Wall -O2 -funbox-strict-fields -fwarn-tabs -threaded
+
+  -- The following extra options are to handle multiline String literals
+  -- in the presence of CPP
+  -- http://stackoverflow.com/questions/2549167/cpp-extension-and-multiline-literals-in-haskell
+  -- I prefer string gaps to unlines [ l1, l2, ... ] b/c then lines
+  -- can start at the left margin!
+  ghc-options: -pgmP cpphs -optP --cpp
+  ghc-options: -optP-Wundef -fno-warn-overlapping-patterns
+
+  if os(windows)
+     cpp-options: -DIS_WINDOWS=1
+  else
+     cpp-options: -DIS_WINDOWS=0
+
+  default-extensions: CPP
+  default-language:   Haskell2010
+}
+
+-- XXX Note that the flags in library section are NOT present here.
+-- (Which is fine so long as the executable's code doesn't try to use them;
+-- and will get a warning anyhow if it does.)
+executable seqaidpp {
+  hs-source-dirs:     .
+  main-is:            Seqaid/Prepro.hs
+  build-depends:
+      base == 4.*
+    , regex-base <= 0.93.2
+    , regex-pcre <= 0.94.4
+-- (process may still be uncommented b/c using to debug...)
+    , process == 1.2.*
+    , directory == 1.2.*
+    , Cabal >= 1.18
+--ghc-options:
+  default-language:   Haskell2010
+  ghc-options: -pgmP cpphs -optP --cpp
+  ghc-options: -optP-Wundef -fno-warn-overlapping-patterns
+}
+
+
+
+package-hashes:
+    MD5:e6675dc24fe8d274feee20f12abb2033
+    SHA1:043426c0ab607c18ee468edf44514a6c82aa1926
+    SHA256:db05733917412072386be5c5c6e3aa31c68bf484e2de1f5d24337a5eac2b0d51
+    SHA512:189e5cb1d6faf03d9e5347f4719b1c8ca0e7902f93459cf02886b223e81052ead6d6f18e6a390a9ac4d5a02065e4ca8b7499fed58dfb19d6c8e8edbc2247ef11
+    Skein512_512:011022271354925736d002461f6693f095e75df9968395915f10376b331010e7742bd67941f648acd14d2279474578a21b1f6f99d3293e617c236d712bd8409c
+
+package-locations:
+    https://hackage.haskell.org/package/seqaid-0.1.5/seqaid-0.1.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/seqaid-0.1.5.tar.gz
+

@@ -1,0 +1,82 @@
+name:           speculation
+version:        0.6.0
+license:        BSD3
+license-file:   LICENSE
+author:         Edward A. Kmett
+maintainer:     Edward A. Kmett <ekmett@gmail.com>
+stability:      experimental
+homepage:       http://github.com/ekmett/speculation
+category:       Concurrency
+synopsis:       A framework for safe, programmable, speculative parallelism
+description:
+ A framework for safe, programmable, speculative parallelism, loosely based on:
+ .
+ *  Prakash Prabhu, G. Ramalingam, and Kapil Vaswani, \"/Safe Programmable Speculative Parallelism/\",
+    In the proceedings of Programming Language Design and Implementation (PLDI) Vol 45, Issue 6 (June 2010) pp 50-61.
+    <http://research.microsoft.com/pubs/118795/pldi026-vaswani.pdf>
+ .
+ This package provides speculative function application and speculative folds. Speculative STM transactions take the place
+ of the transactional rollback machinery from the paper.
+ .
+ For example:
+ . 
+ @'spec' g f a@ evaluates @f g@ while forcing @a@, if @g == a@ then @f g@ is returned, otherwise @f a@ is evaluated and returned. Furthermore, if the argument has already been evaluated, we skip the @f g@ computation entirely. If a good guess at the value of @a@ is available, this is one way to induce parallelism in an otherwise sequential task. However, if the guess isn\'t available more cheaply than the actual answer, then this saves no work and if the guess is wrong, you risk evaluating the function twice. 
+ .
+ The best-case timeline looks like:
+ .
+ > [---- f g ----]
+ >    [----- a -----]
+ > [-- spec g f a --]
+ .
+ The worst-case timeline looks like:
+ .
+ > [---- f g ----]
+ >    [----- a -----]
+ >                  [---- f a ----]
+ > [------- spec g f a -----------]
+ .
+ Compare these to the timeline of @f $! a@:
+ .
+ > [---- a -----]
+ >              [---- f a ----]
+ .
+ 'specSTM' provides a similar time table for STM actions, but also rolls back side-effects.
+ . 
+ /Changes in 0.6.0:/
+ .
+ * Upgraded the comparisons used by the STM combinators STM actions, so they can check for other STM side-effects.
+ .
+ /Changes in 0.5.1:/
+ . 
+ * Exposed unsafeGetTagBits and unsafeIsEvaluated
+
+copyright:          (c) 2010 Edward A. Kmett
+build-type:         Simple
+cabal-version:      >=1.2
+tested-with:        GHC==6.12.1
+extra-source-files: README.markdown
+
+library
+  ghc-options: -Wall
+
+  build-depends:
+    base >= 4 && < 6,
+    parallel >= 2.2 && < 2.3,
+    stm >= 2.1 && < 2.2
+
+  exposed-modules:
+    Control.Concurrent.Speculation
+    Data.Foldable.Speculation
+
+
+package-hashes:
+    MD5:fb2eac83cb9bacd73188db47cc43af42
+    SHA1:f09d0384467a1662fe7410a1bab7fcd03994bb28
+    SHA256:10ecafd73247afe5e9866fb9898fdc1fa048c75363c637981a1a0d14ea33f8e7
+    SHA512:f7d5d4c9f084114f72c336d8013fbb0329fe3191b55a6904b57cee15b5d59763f7c164fb96893a7d8498e04e90f5c77381cbc32d0cc11a76b40711c9ba2fe3a9
+    Skein512_512:7680bc68b6065cf1d483f92cf4565d32f1cf9a8f2f7909bb70db59dad0eef854f3f522fb467a576c1d8d8888c2554b3d8575e959afd740992f03671284c8f151
+
+package-locations:
+    https://hackage.haskell.org/package/speculation-0.6.0/speculation-0.6.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/speculation-0.6.0.tar.gz
+

@@ -1,0 +1,235 @@
+name: shaker
+version: 0.4.2
+cabal-version: >= 1.8
+build-type: Custom
+license: BSD3
+license-file: LICENSE
+copyright: Copyright (c) 2010 Anthonin Bonnefoy
+author: Anthonin Bonnefoy
+maintainer: anthonin.bonnefoy@gmail.com
+homepage: http://github.com/bonnefoa/Shaker
+bug-reports: http://github.com/bonnefoa/Shaker/issues 
+Stability:alpha
+Tested-With:GHC == 6.12.3
+category: Development
+synopsis: simple and interactive command-line build tool
+description: 
+  Shaker is a build tool which allow to simply compile or launch test on an haskell project and provides some interesting features like continuous action. With continuous action, an action (compile or test) will be automatically executed when a source modification is detected.
+  .
+  All configuration are made via cabal; Shaker will read cabal configuration to discover source directories, compilation options and targets to compile.
+  .
+  /Usage/
+  .
+  The cabal configuration file should be generated beforehand with /cabal configure/. If you change your cabal configuration, you will need to recreate the configuration file.
+  .
+  /Launch interactive prompt/
+  .
+  In the root of your haskell project, launch shaker. An interactive prompt will allow you to execute different actions. 
+  .
+  /Launch a shaker action from command-line/
+  .
+  In the root of your haskell project, launch shaker with your action as a command argument; shaker will execute the given action and exit. See examples for more details.
+  .
+  /Action execution/
+  .
+  [@Simple Execution@] An action can be launched normally, by entering the action name. 
+  .
+  [@Multiple action execution@] You can specify multiple action to execute simply by separating action by spaces.
+  .
+  [@Continuous Action@] A continuous action will execute the action when a file modification has been detected.
+  Every action are elligible to continuous action, you simply need to prefix them with '~'. To stop a continuous action, simply use ^C.
+  .
+  /Available actions/
+  .
+  [@compile@] Compile the project. Targets of the compilation are main files (in case of executable) and exposed modules (in case of library).
+  .
+  [@fullcompile@] Compile all hs files found in source directory. It is usefull to compile sources not declared in cabal. Since it is not possible to compile multiple modules with main, all modules with a main function are excluded.
+  .
+  [@help@] Print all available action.
+  .
+  [@clean@] Clean the directory containing .o and .hi files.
+  .
+  [@test@] Launch all quickcheck properties and hunit tests of the project using test-framework. You can provide one or several regexps as argument and shaker will execute all tests matching one regexp. Quickcheck properties and HUnit tests are automatically discovered using GHC Api. All functions begining with “prop_” are considered as quickcheck properties and all functions of type Test.HUnit.Lang.Assertion and TestCase are considered as HUnit tests. 
+  .
+  [@test-module@] Same as test but test-module takes one or several module patterns as arguments.
+  .
+  [@itest@] Launch all quickcheck properties and hunit tests using test-framework on compiled modules. Same as test, you can give a regexp as argument. This action is only useful when used with continuous action. 
+  .
+  [@itest-module@] Same as itest but itest-module takes one or several module patterns as arguments.
+  .
+  [@quit@] Exit the application. You can also use ^C or ^D to exit shaker.
+  . 
+  /Examples with interactive prompt/
+  .
+  [@% compile@] Simply compile the project
+  .
+  [@% clean compile@] Clean and compile the project
+  .
+  [@% ~compile@] Switch to continuous mode and will compile the project when sources are modified.
+  .
+  [@% ~clean compile@] Switch to continuous mode and will clean and compile the project when sources are modified.
+  .
+  [@% test@] Execute all tests in the project
+  .
+  [@% ~itest@] Switch to continuous mode and execute tests on compiled modules.
+  .
+  [@% test prop_.*@] Execute all quickcheck properties of the project. 
+  .
+  [@% test testExecute.* testFilter.* @] Execute all tests matching testExecute.* or testFilter.*
+  .
+  [@% test-module Regex Refle@] Launch all tests in modules matching Regex.* or Refle.*
+  .
+  [@% ~itest-module Regex Refle@] Launch all tests in modules matching Regex.* or Refle.* only when they are build.
+  . 
+  /Examples with command-line/
+  .
+  [@% shaker fullcompile@] Launch shaker, execute the fullcompile action and give back the control.
+  . 
+  [@% shaker \"~fullcompile\" @] Launch shaker, continuously execute the fullcompile action until shaker is interrupted.
+  . 
+
+
+extra-source-files: README TODO testsuite/tests/resources/invalidMain/dist/setup-config
+    testsuite/tests/resources/invalidMain/src/Main.hs
+    testsuite/tests/resources/invalidMain/tests/Dummy.hs
+    testsuite/tests/resources/invalidMain/invalidMain.cabal
+    testsuite/tests/resources/cabalTest/dist/setup-config
+    testsuite/tests/resources/cabalTest/cabalTest.cabal
+    testsuite/tests/resources/cabalTest/src/Main.hs
+    testsuite/tests/resources/cabalTest/src/CabalTest.hs
+    testsuite/tests/resources/noSourceConfig/noHsSource.hs
+    testsuite/tests/resources/noSourceConfig/noHsSource.cabal
+    testsuite/tests/resources/noSourceConfig/dist/setup-config
+
+source-repository head
+  type:     git
+  location: git://github.com/bonnefoa/Shaker.git 
+
+source-repository this
+  type:     git
+  location: git://github.com/bonnefoa/Shaker.git 
+  tag:      0.4.2
+
+Library 
+  ghc-options: -Wall -fno-warn-orphans 
+  hs-source-dirs:  src
+  exposed-modules:
+    Shaker.Parser
+    Shaker.Action.Standard
+    Shaker.Action.Test
+    Shaker.Action.Compile
+    Shaker.Conductor
+    Shaker.Config
+    Shaker.TestTH
+    Shaker.PluginConfig
+    Shaker.Reflexivite
+    Shaker.Regex
+    Shaker.Cli
+    Shaker.Io
+    Shaker.SourceHelper
+    Shaker.Cabal.CabalInfo
+    Shaker.Type
+    Shaker.Listener
+  build-depends: base == 4.*
+                 ,Cabal == 1.8.*
+                 ,containers == 0.3.*
+                 ,haskeline == 0.6.*
+                 ,directory == 1.0.*
+                 ,filepath == 1.1.*
+                 ,ghc == 6.*
+                 ,ghc-paths == 0.1.*
+                 ,haskell98 == 1.0.*
+                 ,mtl == 1.1.*
+                 ,parsec == 3.*
+                 ,regex-posix == 0.94.*
+                 ,old-time >= 1.0.0
+                 ,bytestring >= 0.9.1.0
+                 ,HUnit == 1.2.*
+                 ,QuickCheck == 2.*
+                 ,template-haskell >= 2.4.0.0
+                 ,test-framework == 0.3.*
+                 ,test-framework-hunit == 0.2.*
+                 ,test-framework-quickcheck2 == 0.2.*
+
+Executable shaker
+  Main-Is: Shaker.hs
+  ghc-options: -Wall -fno-warn-orphans 
+  hs-source-dirs: prog src
+  build-depends: base == 4.*
+                 ,Cabal == 1.8.*
+                 ,containers == 0.3.*
+                 ,haskeline == 0.6.*
+                 ,directory == 1.0.*
+                 ,filepath == 1.1.*
+                 ,ghc == 6.*
+                 ,ghc-paths == 0.1.*
+                 ,haskell98 == 1.0.*
+                 ,mtl == 1.1.*
+                 ,parsec == 3.*
+                 ,regex-posix == 0.94.*
+                 ,old-time >= 1.0.0
+                 ,bytestring >= 0.9.1.0
+                 ,HUnit == 1.2.*
+                 ,QuickCheck == 2.*
+                 ,template-haskell >= 2.4.0.0
+                 ,test-framework == 0.3.*
+                 ,test-framework-hunit == 0.2.*
+                 ,test-framework-quickcheck2 == 0.2.*
+
+flag test
+  description: Build test program.
+  default:     False
+
+Executable test
+  hs-source-dirs:  testsuite/tests src 
+  main-is:         RunTestTH.hs
+  ghc-options: -Wall -fno-warn-orphans
+  other-modules: 
+    RunTestTH
+    Shaker.RegexTest
+    Shaker.Properties
+    Shaker.Action.CompileTest
+    Shaker.IoTest
+    Shaker.CliTest
+    Shaker.CommonTest
+    Shaker.ParserTest
+    Shaker.SourceHelperTest
+    Shaker.Cabal.CabalInfoTest
+    Shaker.ListenerTest
+    Shaker.ReflexiviteTest
+    Shaker.ConductorTest
+  build-depends: base == 4.*
+                 ,Cabal == 1.8.*
+                 ,containers == 0.3.*
+                 ,haskeline == 0.6.*
+                 ,directory == 1.0.*
+                 ,filepath == 1.1.*
+                 ,ghc == 6.*
+                 ,ghc-paths == 0.1.*
+                 ,haskell98 == 1.0.*
+                 ,mtl == 1.1.*
+                 ,parsec == 3.*
+                 ,regex-posix == 0.94.*
+                 ,old-time >= 1.0.0
+                 ,bytestring >= 0.9.1.0
+                 ,HUnit == 1.2.*
+                 ,QuickCheck == 2.*
+                 ,template-haskell >= 2.4.0.0
+                 ,test-framework == 0.3.*
+                 ,test-framework-hunit == 0.2.*
+                 ,test-framework-quickcheck2 == 0.2.*
+  if !flag(test)
+    buildable:     False
+
+
+package-hashes:
+    MD5:6023770f544eb83bb34bd4c40bdd1c38
+    SHA1:0f341fa1f85add030c59b41e7d0103a3d94c39da
+    SHA256:bd64c62fe232c7e5a4b281d08b483269f45c0e9a613490bc00fbab4727e29320
+    SHA512:3ab339aba46bea69eb4ad90ff0a469866a757db0a7aaeefd3c24172330485dd5a419029a66f7b6c7315f6a85b2562b04d5faeda8190200c66b39f1f25d9aab12
+    Skein512_512:95926305be02b87921120c1d15ca0f44ce768fadbfee43bf5418ced70eecd2cb06b20a64ec99eb16809eac59a0a742bb71e34327663c072158700053b41bf81f
+
+package-locations:
+    https://hackage.haskell.org/package/shaker-0.4.2/shaker-0.4.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/shaker-0.4.2.tar.gz
+

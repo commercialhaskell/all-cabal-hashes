@@ -1,0 +1,176 @@
+Name:                storablevector
+Version:             0.2.6
+Category:            Data
+Synopsis:            Fast, packed, strict storable arrays with a list interface like ByteString
+Description:
+    Fast, packed, strict storable arrays
+    with a list interface,
+    a chunky lazy list interface with variable chunk size
+    and an interface for write access via the @ST@ monad.
+    This is much like @bytestring@ and @binary@ but can be used for every 'Foreign.Storable.Storable' type.
+    See also packages
+        <http://hackage.haskell.org/cgi-bin/hackage-scripts/package/vector>,
+        <http://hackage.haskell.org/cgi-bin/hackage-scripts/package/uvector>
+    with a similar intention.
+    .
+    We do not provide advanced fusion optimization,
+    since especially for lazy vectors
+    this would either be incorrect or not applicable.
+    For fusion see <http://hackage.haskell.org/cgi-bin/hackage-scripts/package/storablevector-streamfusion>.
+License:             BSD3
+License-file:        LICENSE
+Author:              Spencer Janssen <sjanssen@cse.unl.edu>, Henning Thielemann <storablevector@henning-thielemann.de>
+Maintainer:          Henning Thielemann <storablevector@henning-thielemann.de>
+Homepage:            http://www.haskell.org/haskellwiki/Storable_Vector
+Stability:           Experimental
+Build-Type:          Simple
+Tested-With:         GHC==6.8.2, JHC==0.7.3
+Cabal-Version:       >=1.6
+Extra-Source-Files:
+  foreign-ptr/fast/Data/StorableVector/Memory.hs
+  foreign-ptr/slow/Data/StorableVector/Memory.hs
+  foreign-ptr/jhc/Data/StorableVector/Memory.hs
+
+Flag splitBase
+  description: Choose the new smaller, split-up base package.
+
+Flag separateSYB
+  description: Data.Generics available in separate package.
+
+Flag functorInstance
+  description: Use a custom Functor instance for pairs and functions
+
+Flag buildTests
+  description: Build test executables
+  default:     False
+
+Source-Repository head
+  type:     darcs
+  location: http://code.haskell.org/storablevector/
+
+Source-Repository this
+  type:     darcs
+  location: http://code.haskell.org/storablevector/
+  tag:      0.2.6
+
+Library
+  Build-Depends:
+    non-negative >= 0.0.4 && <0.1,
+    utility-ht >= 0.0.5 && <0.1,
+    transformers >=0.2 && <0.3,
+    QuickCheck >= 1 && < 3
+
+  If impl(jhc)
+    Hs-Source-Dirs: foreign-ptr/jhc
+    Build-Depends:
+      statethread >=0.1 && <0.2,
+      base >=1 && <2
+  Else
+    Hs-Source-Dirs: foreign-ptr/slow
+    If flag(splitBase)
+      If flag(separateSYB)
+        Build-Depends:
+          base >=4 && <5,
+          syb >=0.1 && <0.2
+      Else
+        Build-Depends:
+          base >=3 && <4
+    Else
+      Build-Depends: base >=1 && <2
+
+  Extensions:          CPP, ForeignFunctionInterface
+  GHC-Options:         -Wall -funbox-strict-fields
+  Hs-Source-Dirs:      .
+
+  Exposed-Modules:
+    Data.StorableVector
+    Data.StorableVector.Base
+    Data.StorableVector.Pointer
+    Data.StorableVector.Lazy
+    Data.StorableVector.Lazy.Builder
+    Data.StorableVector.Lazy.Pattern
+    Data.StorableVector.Lazy.Pointer
+    Data.StorableVector.ST.Strict
+    Data.StorableVector.ST.Lazy
+
+  If !impl(jhc)
+    Other-Modules:
+      -- Cursor has no mature interface so far
+      Data.StorableVector.Cursor
+
+  Other-Modules:
+    Data.StorableVector.Memory
+    Data.StorableVector.ST.Private
+    Data.StorableVector.Lazy.PointerPrivate
+    Data.StorableVector.Lazy.PointerPrivateIndex
+
+
+
+Executable test
+  GHC-Options:         -Wall -funbox-strict-fields
+  Hs-Source-Dirs:      ., foreign-ptr/slow, tests
+  Main-Is:             tests.hs
+  Other-Modules:       QuickCheckUtils, Instances
+  Extensions:          CPP, ForeignFunctionInterface
+  If flag(buildTests)
+    Build-Depends:
+      bytestring >= 0.9 && < 0.10,
+      QuickCheck >= 1 && < 3
+    If flag(splitBase)
+      Build-Depends:     random >= 1.0 && < 1.1
+      If flag(functorInstance)
+        Hs-Source-Dirs:    tests-2
+        Build-Depends:     base >= 3 && <4
+      Else
+        Hs-Source-Dirs:    tests-1
+        Build-Depends:     base >= 4 && <5
+    Else
+      Hs-Source-Dirs:    tests-1
+      Build-Depends:     base >= 1.0 && < 2
+  Else
+    Buildable:         False
+
+Executable speedtest
+  GHC-Options:         -Wall
+  -- -fvia-C -optc-ffast-math -optc-O3 -optc-ftree-vectorize
+  Main-Is:             SpeedTestChorus.hs
+  Other-Modules:
+    Data.StorableVector.Private
+  Extensions:          CPP, ForeignFunctionInterface
+  Hs-Source-Dirs:      ., foreign-ptr/slow, speedtest
+  If flag(buildTests)
+    Build-Depends:
+      sample-frame >=0.0.1 && <0.1,
+      deepseq >=1.1 && <1.2
+    If flag(splitBase)
+      Build-Depends:   base >= 3 && <5
+    Else
+      Build-Depends:   base >= 1.0 && < 2
+  Else
+    Buildable:         False
+
+Executable speedpointer
+  GHC-Options:         -Wall
+  Main-Is:             Pointer.hs
+  Extensions:          CPP, ForeignFunctionInterface
+  Hs-Source-Dirs:      ., foreign-ptr/slow, speedtest
+  If flag(buildTests)
+    If flag(splitBase)
+      Build-Depends:   base >= 3 && <5
+    Else
+      Build-Depends:   base >= 1.0 && < 2
+  Else
+    Buildable:         False
+
+
+package-hashes:
+    MD5:5aba064f7c88e500f6d3f1df5f629b63
+    SHA1:69d0daab27ec93279b85d7a607801753a1704301
+    SHA256:71db217e642007eea4ef1e1803a263d4d729447784fe4d9a37dbdca31af4890e
+    SHA512:a207f4303e91122cece2bd592016d3a7e97600620f8a212466b6f6b9551bde33cf16d7e3c055bc3f280558896dcbe1d62d39ba71410b30d0c853977abe4d5ff7
+    Skein512_512:8f45e3ce7809fee182a3fa2fbc13fb0282af8ee13ea6abbe36095b51a7de448e77f89b69444df03b242347f9b3c76a97f9344b13ad41f4cc5739d8718bb16abe
+
+package-locations:
+    https://hackage.haskell.org/package/storablevector-0.2.6/storablevector-0.2.6.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/storablevector-0.2.6.tar.gz
+

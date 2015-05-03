@@ -1,0 +1,170 @@
+build-type:	Simple
+cabal-version:	>= 1.8
+
+name:		sasl
+version:	0.0.0.2
+stability:	Experimental
+author:		Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+maintainer:	Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+homepage:	https://github.com/YoshikuniJujo/sasl/wiki
+
+license:	BSD3
+license-file:	LICENSE
+
+category:	Network
+synopsis:	SASL implementation using simple-pipe
+description:
+    Example programs
+    .
+    SCRAM-SHA-1 Client sample
+    .
+    scramSha1sv.txt
+    .
+    > r=00DEADBEEF007658cddf-0e44-4de2-87df-4132bce97f4,s=cGVwcGVy,i=4492
+    > v=q0+IZgUtQTHYItaurlNyET1imLI=
+    > success
+    .
+    examples/clientS.hs
+    .
+    extensions
+    .
+    * OverloadedStrings
+    .
+    * PackageImports
+    .
+    > import "monads-tf" Control.Monad.State
+    > import Data.Pipe
+    > import Data.Pipe.ByteString
+    > import System.IO
+    > import Network.Sasl
+    > import Network.Sasl.ScramSha1.Client
+    >
+    > import qualified Data.ByteString as BS
+    >
+    > data St = St [(BS.ByteString, BS.ByteString)] deriving Show
+    > 
+    > instance SaslState St where
+    > 	getSaslState (St s) = s
+    > 	putSaslState s _ = St s
+    >
+    > serverFile :: String
+    > serverFile = "examples/scramSha1sv.txt"
+    >
+    > main :: IO ()
+    > main = do
+    > 	let	(_, (_, p)) = sasl
+    > 	r <- runPipe (fromFileLn serverFile =$= input =$= p =$= toHandleLn stdout)
+    > 		`runStateT` St [
+    > 			("username", "yoshikuni"),
+    > 			("password", "password"),
+    > 			("cnonce", "00DEADBEEF00") ]
+    > 	print r
+    >
+    > input :: Pipe BS.ByteString (Either Success BS.ByteString) (StateT St IO) ()
+    > input = await >>= \mbs -> case mbs of
+    > 	Just "success" -> yield . Left $ Success Nothing
+    > 	Just ch -> yield (Right ch) >> input
+    > 	_ -> return ()
+    .
+    SCRAM-SHA-1 Server sample
+    .
+    scramSha1cl.txt
+    .
+    > n,,n=yoshikuni,r=00DEADBEEF00
+    > c=biws,r=00DEADBEEF007658cddf-0e44-4de2-87df-4132bce97f4,p=zup7ghwpAW43cP4Xu3YZTNnHo0g=
+    >
+    .
+    examples/serverS.hs
+    .
+    extensions
+    .
+    * OverloadedStrings
+    .
+    * PackageImports
+    .
+    > import "monads-tf" Control.Monad.State
+    > import Data.Pipe
+    > import Data.Pipe.ByteString
+    > import System.IO
+    > import Network.Sasl
+    > import Network.Sasl.ScramSha1.Server
+    >
+    > import qualified Data.ByteString as BS
+    >
+    > data St = St [(BS.ByteString, BS.ByteString)] deriving Show
+    >
+    > instance SaslState St where
+    > 	getSaslState (St s) = s
+    > 	putSaslState s _ = St s
+    >
+    > clientFile :: String
+    > clientFile = "examples/scramSha1cl.txt"
+    >
+    > main :: IO ()
+    > main = do
+    > 	let	slt = "pepper"
+    > 		i = 4492
+    > 		(stk, svk) = salt "password" slt i
+    > 		(_, (_, p)) = sasl $ \"yoshikuni" -> return (slt, stk, svk, i)
+    > 	r <- runPipe (fromFileLn clientFile =$= p =$= output =$= toHandleLn stdout)
+    > 		`runStateT` St [("snonce", "7658cddf-0e44-4de2-87df-4132bce97f4")]
+    > 	print r
+    >
+    > output :: Pipe (Either Success BS.ByteString) BS.ByteString (StateT St IO) ()
+    > output = await >>= \mch -> case mch of
+    > 	Just (Left (Success Nothing)) -> yield "success"
+    > 	Just (Left (Success (Just bs))) -> yield bs
+    > 	Just (Right bs) -> yield bs >> output
+    > 	_ -> return ()
+    .
+    See examples directory for more examples.
+
+extra-source-files:
+    examples/clientD.hs
+    examples/serverD.hs
+    examples/clientS.hs
+    examples/serverS.hs
+    examples/clientP.hs
+    examples/serverP.hs
+    examples/clientE.hs
+    examples/serverE.hs
+
+source-repository	head
+    type:	git
+    location:	git://github.com/YoshikuniJujo/sasl.git
+
+source-repository	this
+    type:	git
+    location:	git://github.com/YoshikuniJujo/sasl.git
+    tag:	sasl-0.0.0.2
+
+library
+    hs-source-dirs:	src
+    exposed-modules:
+        Network.Sasl,
+        Network.Sasl.Plain.Client, Network.Sasl.Plain.Server,
+        Network.Sasl.External.Client, Network.Sasl.External.Server,
+        Network.Sasl.DigestMd5.Client, Network.Sasl.DigestMd5.Server,
+        Network.Sasl.ScramSha1.Client, Network.Sasl.ScramSha1.Server
+    other-modules:
+        Network.Sasl.DigestMd5.DigestMd5, Network.Sasl.DigestMd5.Papillon,
+        Network.Sasl.ScramSha1.Fields, Network.Sasl.ScramSha1.Hmac,
+        Network.Sasl.ScramSha1.ScramSha1, Network.Sasl.ScramSha1.Functions
+    build-depends:
+        base == 4.*, bytestring == 0.10.*, simple-pipe == 0.0.0.*,
+        papillon == 0.1.*, cryptohash == 0.11.*, base64-bytestring == 1.0.*,
+        monads-tf == 0.1.*
+    ghc-options:	-Wall
+
+
+package-hashes:
+    MD5:b7f1f9fbc70fcc12853584a5c3a474d4
+    SHA1:8896679e5800fd819d27f652d28fb47aefba7aa8
+    SHA256:46f092b8735cf80a8e73479a1ebeecd76309e317c38d1161ffdc7114770a9b09
+    SHA512:3b8f0f33c2b782a9ea3ce75c22aff9eba586ed9912ce9de12c087abbc55ce9a15a26b8bb45170b9a94528eaa52bf683bd2f3a32d774815c106d273826297aa6f
+    Skein512_512:d0ddeb0544d1ae75aa5b0ba4a0c8cbaaa23669e91dd0031f950d36df75978654f82643527826aa47dd34d35e2f5fa6d4c27c1d12784e6ff6db52b06ed4ec6dae
+
+package-locations:
+    https://hackage.haskell.org/package/sasl-0.0.0.2/sasl-0.0.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/sasl-0.0.0.2.tar.gz
+

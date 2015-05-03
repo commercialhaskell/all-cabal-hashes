@@ -1,0 +1,117 @@
+Name:                storablevector-streamfusion
+Version:             0.0
+Category:            Data
+Synopsis:            Conversion between storablevector and stream-fusion lists with fusion
+Description:
+    This package brings together the best of two worlds:
+    The flexibility of plain lists and speed of low-level arrays.
+    Lists are lazy per element,
+    thus allowing for elegant tying-the-knot algorithms
+    and correct fusion of subsequent operations,
+    and they support any element type, including functions.
+    Storablevectors do not have these features.
+    Instead they are fast, including very fast access via indices,
+    they are memory efficient and allow simple exchange with C.
+    .
+    This package provides the canonical functions
+    for conversion from StorableVector to Stream and back.
+    By a simple fusion rule
+    they let the interim Stream based lists disappear in many situations,
+    resulting in fast low-level loops.
+    Such fusion could not be correct on StorableVectors.
+    E.g. consider
+    .
+    > import qualified Data.StorableVector.Lazy as SV
+    > SV.zipWith f (SV.unfoldr size g a) (SV.cons b (SV.unfoldr size h c))
+    .
+    which yields a storable vector with the chunk structure
+    .
+    > [1, size, size, ...]
+    .
+    and the following strictness behaviour:
+    For computation of the first value of the result,
+    the first chunk with size @size@ of @SV.unfoldr size g a@
+    has to be fully evaluated.
+    This has two advantages:
+    Firstly, you do not really want that behaviour,
+    but you accept it for the sake of overall performance.
+    Secondly, the odd behaviour cannot easily be preserved by fusion,
+    and we must resist to tell the optimizer incorrect rules.
+    .
+    So here is the solution: Write
+    .
+    > import qualified Data.StorableVector.Lazy.Stream as SVG
+    > import qualified Data.List.Stream as Stream
+    > SVG.from chunkSize $
+    >    Stream.zipWith f
+    >       (Stream.unfoldr g a)
+    >       (Stream.cons b (Stream.unfoldr h c))
+    .
+    and get two advantages.
+    First: You do not have to pass the @size@ parameter at the leaves,
+    but only once at the top.
+    Second: Fusion jumps in and turns everything in a single efficient @SV.unfoldr@.
+License:             BSD3
+License-file:        LICENSE
+Author:              Henning Thielemann <storablevector@henning-thielemann.de>
+Maintainer:          Henning Thielemann <storablevector@henning-thielemann.de>
+Homepage:            http://www.haskell.org/haskellwiki/Storable_Vector
+Package-URL:         http://code.haskell.org/~thielema/storablevector-streamfusion/
+Stability:           Experimental
+Build-Type:          Simple
+Tested-With:         GHC==6.8.2
+Cabal-Version:       >=1.2
+
+Flag splitBase
+  description: Choose the new smaller, split-up base package.
+
+Flag buildTests
+  description: Build test executables
+  default:     False
+
+Library
+  Build-Depends:
+    storablevector >=0.2 && <0.3,
+    stream-fusion >=0.1 && <0.2,
+    utility-ht >=0.0.1 && <0.1
+  If flag(splitBase)
+    Build-Depends: base >= 3
+  Else
+    Build-Depends: base >= 1.0 && < 2
+
+  GHC-Options:         -Wall -funbox-strict-fields
+  Hs-Source-Dirs:      src
+
+  Exposed-Modules:
+    Data.StorableVector.Stream
+    Data.StorableVector.Lazy.Stream
+
+
+Executable speedtest
+  GHC-Options:         -Wall -funbox-strict-fields -fexcess-precision -ddump-simpl-stats
+  Hs-Source-Dirs:      src, test
+  Main-Is:             Speed.hs
+  Build-Depends:
+    stream-fusion >=0.1 && <0.2,
+    old-time >=1.0 && <1.1,
+    binary >=0.4 && <0.5,
+    bytestring >= 0.9 && < 0.10
+  If flag(splitBase)
+    Build-Depends:     base >= 3
+  Else
+    Build-Depends:     base >= 1.0 && < 2
+  if !flag(buildTests)
+    Buildable:         False
+
+
+package-hashes:
+    MD5:a7babc6ecde7874d245558bb88c09252
+    SHA1:71ec1503003b018941f7e15ea28537c1df0794d8
+    SHA256:d52cd96003f494733840cba6e0f83fd2a5900ceaa5e180b38a48b800f254f6e1
+    SHA512:37b97353985c16fb2938dbb6af5a09d4e6951eb180402eeafb0b0f88b795e0e84e73dfb225e787811430124da10b0c15016b3c33ee0a1eec6ef38e6f373ffbdc
+    Skein512_512:80ae46f0aa6ab13066c4ac50484c05ad7927a974d300e146f7ab57ea7c22167de33fc2c144118cb116c75837efd0db7eee387bbda836b978df47c1f6701af571
+
+package-locations:
+    https://hackage.haskell.org/package/storablevector-streamfusion-0.0/storablevector-streamfusion-0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/storablevector-streamfusion-0.0.tar.gz
+

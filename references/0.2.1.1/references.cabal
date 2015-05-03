@@ -1,0 +1,95 @@
+name:                references
+version:             0.2.1.1
+x-revision: 1
+synopsis:            Generalization of lenses, folds and traversals to handle monads and addition.
+description:         References can read, write or update parts of the data.
+		     They are first-class values, can be passed in functions, transformed, combined.
+		     References generalize lenses, folds and traversals for haskell (see: <https://hackage.haskell.org/package/lens>).
+		     .
+		     There are two things that references can do but the previously mentioned access methods don't.
+		     .
+		      * References can cooperate with monads, for example IO.
+                     .
+		      * References can be added using the @&+&@ operator, to create new lenses more easily.
+		     .
+		     Basic idea taken from the currently not maintained package <https://hackage.haskell.org/package/yall>. 
+		     .
+		     An example use of the references (a logger application that spawns new threads to update a global log):
+		     .
+		     > logger =
+		     >   (forever $ do
+		     >      log <- logChan ^! chan&logRecord    -- Extract the log record from the received log message
+		     >      thrId <- forkIO (do time <- getTime
+		     >                          ioref&lastLogTime != time $ logDB     -- Update the last logging time mutable log database
+		     >                          let logMsg = senderThread .- show     -- Transform the thread id to a string and
+		     >                                         $ loggingTime .= time  -- update the time
+		     >                                         $ log                  -- inside the log message
+		     >                          ioref&debugInfos !~ addLogEntry log $ logDB  -- update the table of log entries
+		     >                          mvar !- (+1) $ count )
+		     >      mvar !- (thrId:) $ updaters                               -- Record the spawned thread
+		     >     ) `catch` stopUpdaters updaters
+		     >   where stopUpdaters updaters ThreadKilled =    
+		     >           mvar&traverse *!| killThread $ updaters              -- Kill all spawned threads before stopping
+		     .
+		     There are a bunch of predefined references for datatypes included in standard libraries.
+		     .
+		     New references can be created in several ways:
+		     .
+		      * From getter, setter and updater, using the @reference@ function.
+		     .
+              * From getter and setter, using one of the simplified functions (@lens@, @simplePartial@, @partial@, ...).
+		     .
+		      * Using the `Data.Traversal` instance on a datatype to generate a traversal of each element.
+		     .
+		      * Using lenses from `Control.Lens` package. There are a lot of packages defining lenses, folds and traversals
+		        for various data structures, so it is very useful that all of them can simply be converted into a reference.
+		     .
+		      * Generating references for newly defined records using the `makeReferences` Template Haskell function.
+		     .
+
+
+
+homepage:            https://github.com/lazac/references
+license:             BSD3
+license-file:        LICENSE
+author:              Boldizsar Nemeth
+maintainer:          nboldi@elte.hu
+-- copyright:           
+category:            Control
+build-type:          Simple
+cabal-version:       >=1.8
+
+library
+  exposed-modules:     Control.Reference
+                     , Control.Reference.TH.MonadInstances
+                     , Control.Reference.TH.Monad
+                     , Control.Reference.TH.Records
+                     , Control.Reference.TH.Tuple
+                     , Control.Reference.Examples.TH
+                     , Control.Reference.Representation
+                     , Control.Reference.Operators
+                     , Control.Reference.Predefined
+                     , Control.Reference.TupleInstances
+                     , Control.Reference.InternalInterface
+  build-depends:       base >=4.6 && <5 
+                     , mtl ==2.2.*
+                     , transformers ==0.4.*
+                     , containers ==0.5.*
+                     , either ==4.3.*
+                     , template-haskell >=2.8 && <3
+                     , transformers-base >= 0.4 && <0.5
+                     , monad-control >= 0.3 && <0.4
+                     , lifted-base >= 0.2 && <0.3
+
+
+package-hashes:
+    MD5:2b7f42b056dc8685808af060d46ee3e4
+    SHA1:4a50ad58079814ad758ba9d02b7db35c88a7841b
+    SHA256:93ffb0a7c8b17afa2292ee4352f22d38d6b0338571a3401d933ee691e08e4cd7
+    SHA512:3e249d7b7e24332dfb482c94c950b0c2be01a8330c843ad413ada02471c2b2708be4ce3a2f9fa6865e4e245f3d53e6fb63a9c56639abf7a4ad0b79ad68daebbf
+    Skein512_512:620e56729a670ed86fef464023720dc68943bc28381c91321a514f635f8c30624d4dd8749b1244480143aecae98b7a2f118c1172f58def40eb49e580f1f70491
+
+package-locations:
+    https://hackage.haskell.org/package/references-0.2.1.1/references-0.2.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/references-0.2.1.1.tar.gz
+

@@ -1,0 +1,177 @@
+name:           snap-core
+version:        0.5.1.1
+synopsis:       Snap: A Haskell Web Framework (Core)
+
+description:
+  Snap is a simple and fast web development framework and server written in
+  Haskell. For more information or to download the latest version, you can
+  visit the Snap project website at <http://snapframework.com/>.
+  .
+  This library contains the core definitions and types for the Snap framework,
+  including:
+  .
+    1. Primitive types and functions for HTTP (requests, responses, cookies,
+       post/query parameters, etc)
+  .
+    2. Type aliases and helper functions for Iteratee I/O
+  .
+    3. A monad for programming web handlers called \"Snap\", inspired by
+       happstack's (<http://happstack.com/index.html>), which allows:
+  .
+       * Stateful access to the HTTP request and response objects
+  .
+       * Monadic failure (i.e. MonadPlus/Alternative instances) for declining
+         to handle requests and chaining handlers together
+  .
+       * Early termination of the computation if you know early what you want
+         to return and want to prevent further monadic processing
+  .
+  /Quick start/: The 'Snap' monad and HTTP definitions are in "Snap.Types",
+  some iteratee utilities are in "Snap.Iteratee".
+  .
+  Higher-level facilities for building web applications (like user/session
+  management, component interfaces, data modeling, etc.) are planned but not
+  yet implemented, so this release will mostly be of interest for those who:
+  .
+  * need a fast and minimal HTTP API at roughly the same level of abstraction
+    as Java servlets, or
+  .
+  * are interested in contributing to the Snap Framework project.
+
+license:        BSD3
+license-file:   LICENSE
+author:         James Sanders, Shu-yu Guo, Gregory Collins, Doug Beardsley
+maintainer:     snap@snapframework.com
+build-type:     Simple
+cabal-version:  >= 1.6
+homepage:       http://snapframework.com/
+category:       Web
+
+extra-source-files:
+  test/suite/TestSuite.hs,
+  cbits/timefuncs.c,
+  CONTRIBUTORS,
+  extra/haddock.css,
+  extra/hscolour.css,
+  extra/logo.gif,
+  haddock.sh,
+  LICENSE,
+  README.md,
+  README.SNAP.md,
+  Setup.hs,
+  test/data/fileServe/foo.bin,
+  test/data/fileServe/foo.bin.bin.bin,
+  test/data/fileServe/foo.html,
+  test/data/fileServe/foo.txt,
+  test/data/fileServe/mydir1/index.txt,
+  test/data/fileServe/mydir2/foo.txt,
+  test/data/fileServe/mydir3/altindex.html,
+  test/runTestsAndCoverage.sh,
+  test/snap-core-testsuite.cabal,
+  test/suite/Snap/Internal/Http/Types/Tests.hs,
+  test/suite/Snap/Internal/Routing/Tests.hs,
+  test/suite/Snap/Iteratee/Tests.hs,
+  test/suite/Snap/Test/Common.hs,
+  test/suite/Snap/Types/Tests.hs,
+  test/suite/Snap/Util/FileServe/Tests.hs,
+  test/suite/Snap/Util/FileUploads/Tests.hs,
+  test/suite/Snap/Util/GZip/Tests.hs
+
+
+Flag portable
+  Description: Compile in cross-platform mode. No platform-specific code or
+               optimizations such as C routines will be used.
+  Default: False
+
+
+Flag debug
+  Description: Enable debug logging code. With this flag, Snap will
+               test the DEBUG environment variable to decide whether to do
+               logging, and this introduces a tiny amount of overhead
+               (a call into a function pointer) because the calls to 'debug'
+               cannot be inlined.
+               
+  Default: False
+
+
+Library
+  hs-source-dirs: src
+
+  if !flag(debug)
+    cpp-options: -DNODEBUG
+
+  if flag(portable) || os(windows)
+    cpp-options: -DPORTABLE
+  else
+    c-sources: cbits/timefuncs.c
+    include-dirs: cbits
+    build-depends: bytestring-mmap >= 0.2.2 && <0.3
+
+  exposed-modules:
+    Snap.Types,
+    Snap.Iteratee,
+    Snap.Internal.Debug,
+    Snap.Internal.Http.Types,
+    Snap.Internal.Iteratee.Debug,
+    Snap.Internal.Parsing,
+    Snap.Util.FileServe,
+    Snap.Util.FileUploads,
+    Snap.Util.GZip,
+    Snap.Util.Readable
+
+  other-modules:
+    Snap.Internal.Instances,
+    Snap.Internal.Iteratee.BoyerMooreHorspool,
+    Snap.Internal.Routing,
+    Snap.Internal.Types
+
+
+  build-depends:
+    attoparsec >= 0.8.0.2 && < 0.9,
+    attoparsec-enumerator >= 0.2.0.3,
+    base >= 4 && < 5,
+    blaze-builder >= 0.2.1.4 && <0.4,
+    bytestring,
+    bytestring-nums,
+    case-insensitive >= 0.2 && < 0.3,
+    containers,
+    deepseq >= 1.1 && <1.2,
+    directory,
+    dlist >= 0.5 && < 0.6,
+    enumerator >= 0.4.7 && < 0.5,
+    filepath,
+    MonadCatchIO-transformers >= 0.2.1 && < 0.3,
+    mtl == 2.0.*,
+    old-locale,
+    old-time,
+    text >= 0.11 && <0.12,
+    time,
+    transformers == 0.2.*,
+    unix-compat == 0.2.*,
+    vector >= 0.6 && <0.8,
+    zlib
+
+  ghc-prof-options: -prof -auto-all
+
+  if impl(ghc >= 6.12.0)
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+                 -fno-warn-unused-do-bind
+  else
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+
+source-repository head
+  type:     git
+  location: http://git.snapframework.com/snap-core.git
+
+
+package-hashes:
+    MD5:ad7ae31b3820185289f4f48a8524544f
+    SHA1:81250846df079ce3e4c433815e1a9bac75994efe
+    SHA256:2d042f9366694f8fa87527eaf024aed53cffc5e61ee26496db903cd1fbee8915
+    SHA512:495eca275377f01aa072c659aa301170a4b72f15710671614ef4afc249a5703d9d731afc0629f4a523cb120121da07197cacddd22b20fdfb18194930459d4eaa
+    Skein512_512:85d08234e87f67f8beff6606a85bd4cdafe2d6df222e7fd4e45404c565f3a17a9161149cac555e37f1103e5b496badf5d5ecfdd5a73da47aa0d172c82aa12c4d
+
+package-locations:
+    https://hackage.haskell.org/package/snap-core-0.5.1.1/snap-core-0.5.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/snap-core-0.5.1.1.tar.gz
+

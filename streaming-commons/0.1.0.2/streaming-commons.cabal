@@ -1,0 +1,117 @@
+name:                streaming-commons
+version:             0.1.0.2
+x-revision: 1
+synopsis:            Common lower-level functions needed by various streaming data libraries
+description:         Provides low-dependency functionality commonly needed by various streaming data libraries, such as conduit and pipes.
+homepage:            https://github.com/fpco/streaming-commons
+license:             MIT
+license-file:        LICENSE
+author:              Michael Snoyman, Gabriel Gonzalez
+maintainer:          michael@snoyman.com
+-- copyright:           
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.8
+extra-source-files:
+    test/filesystem/*.txt
+    test/filesystem/bin/*.txt
+    include/*.h
+    cbits/*.c
+    test/LICENSE.gz
+
+library
+  exposed-modules:     Data.Streaming.FileRead
+                       Data.Streaming.Filesystem
+                       Data.Streaming.Network
+                       Data.Streaming.Network.Internal
+                       Data.Streaming.Text
+                       Data.Streaming.Zlib
+                       Data.Streaming.Zlib.Lowlevel
+
+  -- Due to cabal bugs, not making inclusion of this dependent on text version.
+  -- For more information, see: https://github.com/fpco/text-stream-decode/issues/1
+  other-modules:       Data.Text.Internal.Unsafe.Char
+                       Data.Text.Internal.Unsafe.Shift
+                       Data.Text.Internal.Encoding.Utf8
+                       Data.Text.Internal.Encoding.Utf16
+                       Data.Text.Internal.Encoding.Utf32
+
+  build-depends:       base >= 4.4 && < 5
+                     , bytestring
+                     , directory
+                     , network
+                     , text
+                     , transformers
+                     , zlib
+
+  c-sources:           cbits/zlib-helper.c
+                       cbits/text-helper.c
+  include-dirs:        include
+
+  if os(windows)
+    build-depends:     Win32
+                     , filepath
+    cpp-options:       -DWINDOWS
+    other-modules:     System.Win32File
+  else
+    build-depends:     unix
+
+test-suite test
+    hs-source-dirs: test
+    main-is:        Spec.hs
+    type:           exitcode-stdio-1.0
+    ghc-options:    -Wall -threaded
+    other-modules:  Data.Streaming.FileReadSpec
+                    Data.Streaming.FilesystemSpec
+                    Data.Streaming.TextSpec
+                    Data.Streaming.ZlibSpec
+    build-depends:  base
+                  , streaming-commons
+                  , hspec >= 1.8
+
+                  , QuickCheck
+                  , bytestring
+                  , deepseq
+                  , text
+                  , zlib
+
+  if os(windows)
+    cpp-options:       -DWINDOWS
+  else
+    build-depends:     unix
+
+benchmark count-chars
+    type: exitcode-stdio-1.0
+    hs-source-dirs: bench
+    build-depends:  base
+                  , criterion
+                  , bytestring
+                  , text
+    main-is:        count-chars.hs
+    ghc-options:    -Wall -O2
+
+benchmark decode-memory-usage
+    type: exitcode-stdio-1.0
+    hs-source-dirs: bench
+    build-depends:  base
+                  , bytestring
+                  , text
+    main-is:        decode-memory-usage.hs
+    ghc-options:    -Wall -O2 -with-rtsopts=-s
+
+source-repository head
+  type:     git
+  location: git://github.com/fpco/streaming-commons.git
+
+
+package-hashes:
+    MD5:499e8eb1d8dfa9b6e74f33a7e5223ddd
+    SHA1:d4f33cf7162ad365ae8302c0791c889969b8f7ff
+    SHA256:0c8919074a440f58512295e789104eec6eea3cbc3513887007e2ddb2e986b4c5
+    SHA512:2a3a7db4edb2efbb8bf329e84a903ea7d5030c2180d601500eff93cf65cfe8af0aac5cc9266f8aaff4a08a361611da2c2555e44cd59b51dde2739f3c26e4a4df
+    Skein512_512:eaae54ad7795d04429a5e12f18e9dcedf6c95824a6bba192668d02a3b2464a28f5cb8fb06f1adabefc096cdd9c75552ea2d27872179bfe5caa22ae181ddbc894
+
+package-locations:
+    https://hackage.haskell.org/package/streaming-commons-0.1.0.2/streaming-commons-0.1.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/streaming-commons-0.1.0.2.tar.gz
+

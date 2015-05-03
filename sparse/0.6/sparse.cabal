@@ -1,0 +1,166 @@
+name:          sparse
+category:      Data, Vector
+version:       0.6
+license:       BSD3
+cabal-version: >= 1.8
+license-file:  LICENSE
+author:        Edward A. Kmett
+maintainer:    Edward A. Kmett <ekmett@gmail.com>
+stability:     experimental
+homepage:      http://github.com/ekmett/sparse
+bug-reports:   http://github.com/ekmett/sparse/issues
+copyright:     Copyright (C) 2013 Edward A. Kmett
+build-type:    Custom
+synopsis:      A playground of sparse linear algebra primitives using Morton ordering
+
+extra-source-files:
+  .ghci
+  .travis.yml
+  .gitignore
+  .vim.custom
+
+description:
+  A playground of sparse linear algebra primitives using Morton ordering
+  .
+  The design of this library is describe in the following articles on FP Complete's School of Haskell.
+  .
+  1. <https://www.fpcomplete.com/user/edwardk/revisiting-matrix-multiplication-part-1>
+  .
+  2. <https://www.fpcomplete.com/user/edwardk/revisiting-matrix-multiplication-part-2>
+  .
+  3. <https://www.fpcomplete.com/user/edwardk/revisiting-matrix-multiplication-part-3>
+  .
+  4. <https://www.fpcomplete.com/user/edwardk/revisiting-matrix-multiplication-part-4>
+  .
+  5. <https://www.fpcomplete.com/user/edwardk/revisiting-matrix-multiplication-part-5>
+
+source-repository head
+  type: git
+  location: git://github.com/ekmett/sparse.git
+
+-- Build the properties test if we're building tests
+flag test-properties
+  default: True
+  manual: True
+
+-- You can disable the doctests test suite with -f-test-doctests
+flag test-doctests
+  default: True
+  manual: True
+
+flag optimize
+  default: False
+  manual: True
+
+flag llvm
+  default: False
+  manual: True
+
+library
+  build-depends:
+    base              >= 4     && < 5,
+    contravariant     >= 0.4.2 && < 1,
+    deepseq           >= 1.1   && < 1.4,
+    hybrid-vectors    >= 0.1   && < 1,
+    lens              >= 3.9   && < 4,
+    primitive         >= 0.5   && < 0.6,
+    transformers      >= 0.3   && < 0.4,
+    vector            >= 0.10  && < 0.11,
+    vector-algorithms >= 0.5   && < 0.6
+
+  hs-source-dirs: src
+
+  exposed-modules:
+    Sparse.Matrix
+    Sparse.Matrix.Internal.Fusion
+    Sparse.Matrix.Internal.Heap
+    Sparse.Matrix.Internal.Key
+
+  ghc-options: -Wall
+
+  if flag(optimize)
+    ghc-options: -O2
+  else
+    ghc-options: -O0
+
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  if impl(ghc<6.13)
+    Ghc-Options: -finline-if-enough-args -fno-method-sharing
+
+test-suite properties
+  type: exitcode-stdio-1.0
+  main-is: properties.hs
+  hs-source-dirs: tests
+  ghc-options: -w -threaded -rtsopts -with-rtsopts=-N -fsimpl-tick-factor=400
+  if !flag(test-properties)
+    buildable: False
+  else
+    build-depends:
+      base,
+      containers,
+      hybrid-vectors,
+      lens,
+      linear                     >= 1.2 && < 2,
+      QuickCheck                 >= 2.5,
+      sparse,
+      test-framework             >= 0.6,
+      test-framework-quickcheck2 >= 0.3,
+      test-framework-th          >= 0.2,
+      transformers,
+      vector
+
+-- Verify the results of the examples
+test-suite doctests
+  type:           exitcode-stdio-1.0
+  main-is:        doctests.hs
+  ghc-options:    -Wall -threaded
+  hs-source-dirs: tests
+
+  if !flag(test-doctests)
+    buildable: False
+  else
+    build-depends:
+      base,
+      bytestring,
+      containers,
+      directory      >= 1.0,
+      deepseq,
+      doctest        >= 0.9.1,
+      filepath,
+      mtl,
+      semigroups     >= 0.9,
+      simple-reflect >= 0.3.1
+
+  if impl(ghc<7.6.1)
+    ghc-options: -Werror
+
+-- matrix-matrix multiplication
+benchmark mm
+  type:           exitcode-stdio-1.0
+  main-is:        mm.hs
+  ghc-options:    -Wall -O2 -threaded -fdicts-cheap -funbox-strict-fields -fsimpl-tick-factor=400000
+  hs-source-dirs: benchmarks
+  build-depends:
+    array,
+    base,
+    criterion,
+    deepseq,
+    sparse,
+    vector
+
+
+
+
+package-hashes:
+    MD5:86e8c0f392736a25c066d727be56b1e7
+    SHA1:c73ecb85c5c125c7be3ee0c95d06d72ee0477e68
+    SHA256:b9b6ff8f62fa8e88d8edd7be6463c2a0b487a092ff322fe92330cc9158f667f1
+    SHA512:cc543eb36aeb5df97538c459f1b4230af720ff59b2eebffab58d936463847a4d404e3c859fcfad9212d1fc57a3198e020925d35c632b4cd27be6bd9613906bda
+    Skein512_512:eab2c06312490a23652a4f0bde4b5de8522dbc4a481c8bee1fe5ad1c1af5610936935ca0d3256c95264381254d528f5e898fcc9188e073b21a0352e46f2ef74d
+
+package-locations:
+    https://hackage.haskell.org/package/sparse-0.6/sparse-0.6.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/sparse-0.6.tar.gz
+

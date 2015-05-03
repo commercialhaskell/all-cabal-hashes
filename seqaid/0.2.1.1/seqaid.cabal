@@ -1,0 +1,500 @@
+
+-------------------------------------------------------------------------------
+
+name:                seqaid
+version:             0.2.1.1
+synopsis:            Dynamic strictness control, including space leak repair
+license:             BSD3
+license-file:        LICENSE
+author:              Andrew G. Seniuk
+maintainer:          Andrew Seniuk <rasfar@gmail.com>
+homepage:            http://fremissant.net/seqaid
+bug-reports:         http://fremissant.net/seqaid/trac
+---bug-reports:         Andrew Seniuk <rasfar@gmail.com>
+category:            Compiler Plugin
+--hackage-tags:        parallel, leak, space, strictness, forcing, diagnostic, remedial, auto-instrumentation, instrumentation, tools, bsd3, ghc-plugin, program, library
+build-type:          Simple
+stability:           provisional, nascent
+cabal-version:       >= 1.18
+
+-- NOTE: Version of GHC /must/ be >= 7.8, due to need to use TH >= 2.9.
+-- Could possibly relax to TH >= 2.8 (which would include GHC 7.6.*),
+-- but would need to stop using AnnP and related features of TH 2.9.
+--tested-with:         GHC==7.8.1, GHC==7.8.3, GHC==7.8.4, GHC==7.10.1
+tested-with:         GHC==7.8.1, GHC==7.8.3, GHC==7.8.4
+--tested-with:         GHC==7.8.*, GHC==7.10.1  -- illegal syntax (Cabal 1.20)
+--tested-with:         GHC==7.6.3, GHC==7.8.1, GHC==7.8.3, GHC==7.8.4
+
+description:         Seqaid is a GHC plugin providing non-invasive auto-instrumentation of Haskell projects, for dynamic strictness (and parallelism) control. This will soon include optimisation for automated space leak relief using minimal strictification. [The optimiser is still in development however.]
+                     .
+                     Refer to the seqaid <http://www.fremissant.net/seqaid homepage> for more information.
+                     .
+                     Please share your comments on this <http://www.reddit.com/r/haskell/comments/2pscxh/ann_deepseqbounded_seqaid_leaky/ reddit> discussion.
+
+extra-source-files:
+      README
+    , changelog.txt
+    , hackage-tags.txt
+    , HTML/*.html
+    , HTML/*.css
+    , release-announcement.txt
+    , deepseq-bounded-seqaid-leaky.html
+    , deepseq-bounded-seqaid-leaky.css
+
+-- source-repository head
+--   type: git
+--   location: 
+
+-------------------------------------------------------------------------------
+
+-- There were about twice as many flags, so I've done what I can,
+-- but not ready to throw away the alternative code branches
+-- for the remaining yet.  In a few minor version bumps, will
+-- probably have done away with most of the rest.
+
+Flag HELLO_HACKAGE_VISITOR
+  Description: [Note to those reading on Hackage:] Please ignore these flags, which would be better presented in a collapsed state. The flags are mostly for development purposes.
+  Default: False
+  Manual: True
+
+Flag GHC_710
+  Description: (Still broken for GHC 7.10.) Until I learn how to test GHC version in the .cabal file, we need a flag, since some build-depends must be excluded completely. (CPP testing __GLASGOW_HASKELL__ is then used the rest of the way, in the source files.)
+--Default: True
+  Default: False
+  Manual: True
+
+Flag SAI_FORK
+  Description: .
+--Default: True
+  Default: False
+  Manual: True
+
+Flag TRY_INJECT_NOINLINE_ON_REQUESTED_BINDS
+  Description: If we can prevent inlining of injected binds (without requiring user edits), that would probably be a good trade-off in terms of lost optimiser opportunities in exchange for assurance that the bind won't be inlined. This didn't work, and is a poor solution anyway.
+--Default: True
+  Default: False
+  Manual: True
+
+Flag SEQABLE_ONLY
+  Description: Like NFDATAN_ONLY, but for newer Seqable module.
+--Default: True
+  Default: False
+  Manual: True
+
+Flag TH_TYPE_IN_TYPES_ANN
+  Description: Actually this is just preparatory, haven't gone down this road far yet. (We would like a TH.Type to Type.Type conversion function in the GHC API. Then we'd just send the list of Type.Type for direct use by the Core-plugin downstream).
+--Default: True
+  Default: False
+  Manual: True
+
+Flag SEQAIDPP_TYPES
+  Description: Rather than choose types to seqinj for based on the types of the top-level binds, use seqaidpp to parse the types from seqaid.config. This stays on perpetually, finally, and could be removed soon.
+  Default: True
+--Default: False
+  Manual: True
+
+-- Flag ONLY_TOP_LEVEL_INJECTIONS
+--   Description: Like it says; as opposed to descending to (potentially) wrap subexpressions ... the latter which has just become possible due to seqaidpp.
+-- --Default: True
+--   Default: False
+--   Manual: True
+
+Flag INFER_TOP_LEVEL_TYPES
+  Description: If True, then TH will be used as it has been, to blanket-inject all top-level functions (at least, those not explicitly or implicitly excluded). Now, if False, only RHS's with result types in the "types" list for the module (in seqaid.config) will be wrapped (again, at least those not explicitly or implicitly excluded).
+--Default: True
+  Default: False
+  Manual: True
+
+Flag DEMO_MODE
+  Description: This is the only working mode so far. (And it only works when tested on the "leaky" package.) The switch exists to exclude hashable/hashtables deps (and subdeps) from the first release, while I can continue to work on this aspect in the development head.
+  Default: True
+--Default: False
+  Manual: True
+
+Flag DBG_SEQAID
+  Description: When set, seqaidDispatch emits status lines periodically.
+  Default: True
+--Default: False
+  Manual: True
+
+Flag NO_TOP_LEVEL_SEQINJ_DUMMIES
+  Description: If have to inject a class and instance anyway to evade DCE, no need for the old top-level seqinj_ declarations (we hope...). (But it turned out they were all still needed.)
+--Default: True
+  Default: False
+  Manual: True
+
+Flag NFDATAN_ONLY
+  Description: To simplify debugging.
+--Default: True
+  Default: False
+  Manual: True
+
+-- This only applies to NFDATAN_ONLY, since NFDataP has Typeable as
+-- a superclass already. (The point is, you can set this False, and
+-- get rid of as much class/instance cruft as possible in the Core,
+-- to help debugging.)
+Flag SHOW_TYPE
+  Description: Include Typeable instance for (show . typeOf) in seqaidDispatch
+  Default: True
+--Default: False
+  Manual: True
+
+-- This does indeed work for me (it is auto-toggled when cpphs is unavailable).
+-- Default to False, since it seems more likely there's a native cpp, than
+-- that a cpphs installation works smoothly.
+Flag USE_CPPHS
+  Description: Non-manual flag to allow the build system to try cpphs first, and if that fails, then to try system-wide cpp (typically GNU). I've actually toggled the default, so the build system will try for a system-wide cpp first, and failing that, will try to use cpphs, installing it if necessary. I prefer cpp. I am not getting my most invaluable -Wundef option with cpphs using -optP-Wundef -optP--cpp in my ghc-options. Does cpphs implement it? Not sure...
+  Default: False
+--Default: True
+  Manual: False
+
+-------------------------------------------------------------------------------
+
+library {
+
+  exposed-modules:
+    Seqaid.Plugin
+    Seqaid.Config
+    Seqaid.Ann
+    Seqaid.TH
+    Seqaid.Core
+    Seqaid.Runtime
+    Seqaid.Global
+    Seqaid.Optim
+
+  -- It's not possible for Cabal flags to conditionally
+  -- include other-modules.  So, there needs to be additional
+  -- CPP guards in the source modules...
+  other-modules:
+      Seqaid.TH_extra
+    , Seqaid.TH_710
+    , Seqaid.TH_extra_710
+
+  other-modules:
+
+  -- These are the dependencies of modulespection which, at this
+  -- time (20150106), are not (otherwise) also dependencies of seqaid.
+  -- Later: Really? I thought temporary was... (Oh! only of seqaid exe.)
+  if flag(GHC_710)
+    build-depends:
+         ghc-paths == 0.1.*
+       , temporary == 1.2.*
+       , transformers == 0.4.*
+       , exceptions == 0.6.*
+       , filepath == 1.3.*
+  else
+    build-depends:
+         ghc-paths == 0.1.*
+       , temporary == 1.2.*
+       , transformers == 0.3.*
+       , exceptions == 0.5.*
+       , filepath == 1.3.*
+
+  build-depends:
+      base == 4.*
+
+  -- We don't really depend on the cpphs /library/, but installing
+  -- the library also installs the cpphs executable, so in case
+  -- build-tools doesn't nab it, this ought to!
+  if flag(USE_CPPHS)
+     build-depends:
+         cpphs >= 1.14
+
+  if flag(GHC_710)
+     build-depends:
+         ghc == 7.10.*
+       , template-haskell == 2.10.*
+-- Later: Minimally excerpted, and patched for GHC 7.10.
+--     , modulespection > 0.1.2.1
+-- Later: Where do I use it though??...
+-- Still working on patching th-expand-syns for GHC 7.10.
+-- For now, we do without this feature if 7.10.
+--     , th-expand-syns == 0.3.*
+  else
+     build-depends:
+         -- GHC plugins require  >= 7.4
+         -- SOP requires         >= 7.6
+         ghc >= 7.6 && < 7.10
+-- Finally needed to drop to 2.8.* for testing GHC 7.6.3!
+-- *** template-haskell-2.8 is too low -- we need AnnP and ModuleAnnotation!
+-- Probably best to try to find a different transport than annotations
+-- for communicating TH -> Core plugin...
+--     , template-haskell >= 2.8 && < 2.10
+       , template-haskell == 2.9.*
+-- Later: Minimally excerpted, and patched for GHC 7.10.
+--     , modulespection >= 0.1.2
+-- Later: Where do I use it though??...
+--     , th-expand-syns == 0.3.*
+
+  build-depends:
+
+    -- low-level forcing library
+      deepseq-bounded == 0.6.* || == 0.7.*
+
+    -- ad hoc generics
+    , syb <= 0.4.2
+
+    -- Not used in Core.hs plugin part anymore; but there may
+    -- be GHC API code coming in Seqaid.TH that uses GHC.Paths.
+--  , ghc-paths == 0.1.*
+
+    -- at least for IntMap
+    , containers == 0.5.*
+    -- or would regex-posix be better?
+    , regex-pcre <= 0.94.4
+    -- to use regex API
+-- Finally needed to drop to 0.4.* for testing GHC 7.6.3!
+    , array == 0.4.* || == 0.5.*
+--  , array == 0.5.*
+    -- ended up wanting this for State, for a SYB everywhereM traversal
+-- Finally needed to drop to 2.* for testing GHC 7.6.3!
+    , mtl == 2.*
+--  , mtl == 2.1.*
+--  , mtl == 2.1.3.*
+--  , mtl == 2.1.3.1
+
+--  , generics-sop == 0.1.*
+
+  if flag(SEQABLE_ONLY)
+    build-depends:
+        generics-sop == 0.1.*
+
+  if ! flag(DEMO_MODE)
+    build-depends:
+      -- Unfortunately, hashtables brings in the majority of our deps!
+      --   text       : 43 modules (hashable and hashtables)
+      --   hashable   :  3 modules (hashable and hashtables)
+      --   hashtables : 12 modules (hashables)
+      --   primitive  : 10 modules (hashables)
+      --   vector     : 19 modules (hashables)
+      -- Ouch! (this only really matters for sandbox builds)
+        hashtables == 1.2.*
+      -- Need to include this anyway, since this is where "hash" function
+      -- comes from (and hashtables doesn't export it).
+      -- For building IntMap or HashTable keys from unique strings.
+--    , hashable == 1.2.*
+      , hashable == 1.2.3.*
+
+    -- Useful in debugging...
+--  , sai-shape-syb == 0.3.*
+    -- for debugging only (though deepseq-bounded re-exports these anyhow)
+--  , deepseq-generics == 0.1.1.2
+--  , deepseq == 1.3.0.2
+
+  ghc-options: -optP-Wundef -fno-warn-overlapping-patterns
+  ghc-options:                  -funbox-strict-fields -fwarn-tabs
+--ghc-options:        -Wall -O2 -funbox-strict-fields -fwarn-tabs
+
+-- XXX Later yet: Nevertheless, cpphs is the best way to go,
+-- since at least we always know we can install it!  Does it
+-- work to add it to the build-depends?  Finding out...
+-- (Only needs to work for Cabal-with-GHC-7.8 anyhow, as
+-- seqaid is broken for GHC < 7.8 for some time to come anyway.)
+-- XXX LATER: Dependence on cpphs has resulted in broken builds
+-- (see hackage build reports for leaky, at least). So going to
+-- factor out the string gaps...
+  -- The following extra options are to handle multiline String literals
+  -- in the presence of CPP
+  -- http://stackoverflow.com/questions/2549167/cpp-extension-and-multiline-literals-in-haskell
+  -- I prefer string gaps to unlines [ l1, l2, ... ] b/c then lines
+  -- can start at the left margin!
+  if flag(USE_CPPHS)
+     -- Which is most portable, a space after the P or not???
+     -- See the comment on the other branch of this Cabal "condition".
+     ghc-options: -pgmPcpphs -optP--cpp
+--else
+--   -- This is no longer needed, but SINCE WHEN?? i.e. for
+--   -- which versions of GHC (and perhaps cabal-install)?...
+--   -- Without a reasonable means to answer this question
+--   -- (short of tracking down and scouring changelogs
+--   -- in reverse chronological order), the conscientious
+--   -- programmer has no recourse but to try to cover
+--   -- all the bases.
+--   --   But since recent cabal-install screams loudly about it,
+--   -- better comment it out.
+--   ghc-options: -cpp
+
+  if flag(SAI_FORK)
+     cpp-options: -DSAI_FORK=1
+  else
+     cpp-options: -DSAI_FORK=0
+
+  if flag(SEQABLE_ONLY)
+     cpp-options: -DSEQABLE_ONLY=1
+  else
+     cpp-options: -DSEQABLE_ONLY=0
+
+  if flag(TRY_INJECT_NOINLINE_ON_REQUESTED_BINDS)
+     cpp-options: -DTRY_INJECT_NOINLINE_ON_REQUESTED_BINDS=1
+  else
+     cpp-options: -DTRY_INJECT_NOINLINE_ON_REQUESTED_BINDS=0
+
+  if flag(TH_TYPE_IN_TYPES_ANN)
+     cpp-options: -DTH_TYPE_IN_TYPES_ANN=1
+  else
+     cpp-options: -DTH_TYPE_IN_TYPES_ANN=0
+
+  if flag(SEQAIDPP_TYPES)
+     cpp-options: -DSEQAIDPP_TYPES=1
+  else
+     cpp-options: -DSEQAIDPP_TYPES=0
+
+--if flag(ONLY_TOP_LEVEL_INJECTIONS)
+--   cpp-options: -DONLY_TOP_LEVEL_INJECTIONS=1
+--else
+--   cpp-options: -DONLY_TOP_LEVEL_INJECTIONS=0
+
+  if flag(INFER_TOP_LEVEL_TYPES)
+     cpp-options: -DINFER_TOP_LEVEL_TYPES=1
+  else
+     cpp-options: -DINFER_TOP_LEVEL_TYPES=0
+
+  if flag(DEMO_MODE)
+     cpp-options: -DDEMO_MODE=1
+  else
+     cpp-options: -DDEMO_MODE=0
+
+  if flag(DBG_SEQAID)
+     cpp-options: -DDBG_SEQAID=1
+  else
+     cpp-options: -DDBG_SEQAID=0
+
+  if flag(NO_TOP_LEVEL_SEQINJ_DUMMIES)
+     cpp-options: -DNO_TOP_LEVEL_SEQINJ_DUMMIES=1
+  else
+     cpp-options: -DNO_TOP_LEVEL_SEQINJ_DUMMIES=0
+
+  if flag(NFDATAN_ONLY)
+     cpp-options: -DNFDATAN_ONLY=1
+  else
+     cpp-options: -DNFDATAN_ONLY=0
+
+  if flag(SHOW_TYPE)
+     cpp-options: -DSHOW_TYPE=1
+  else
+     cpp-options: -DSHOW_TYPE=0
+
+  default-extensions: CPP
+  default-language:   Haskell2010
+
+}
+
+-------------------------------------------------------------------------------
+
+executable seqaid {
+
+-- It seems you cannot put the seqaid Main module in Seqaid.Main namespace?
+  hs-source-dirs:     .
+  main-is:            Seqaid/Demo.hs
+--other-modules:
+--other-extensions:
+
+  build-depends:
+      base == 4.*
+    , temporary == 1.2.*
+    , directory == 1.2.*
+-- Finally needed to drop to 1.* for testing GHC 7.6.3!
+    , process == 1.*
+--  , process == 1.2.*
+
+  -- We don't really depend on the cpphs /library/, but installing
+  -- the library also installs the cpphs executable, so in case
+  -- build-tools doesn't nab it, this ought to!
+  if flag(USE_CPPHS)
+     build-depends:
+         cpphs >= 1.14
+
+  ghc-options:                  -funbox-strict-fields -fwarn-tabs -threaded
+--ghc-options:        -Wall -O2 -funbox-strict-fields -fwarn-tabs -threaded
+
+  ghc-options: -optP-Wundef -fno-warn-overlapping-patterns
+  -- [See comments in the library part above.]
+  if flag(USE_CPPHS)
+     ghc-options: -pgmPcpphs -optP--cpp
+--else
+--   ghc-options: -cpp
+
+-- Test #ifdef mingw32_HOST_OS instead! (it's built-in to GHC)
+------
+-- XXX LATER: We can do both... If (supposing it's possible?) there's
+-- Windows and Cabal/GHC, but no MinGW (a.k.a. mingw32), we can respond
+-- to that by executing a Cmnd batch script.
+--
+-- And, if it /is/ MinGW, then it's the same bash script as run on *nix...
+  if os(windows)
+     cpp-options: -DIS_WINDOWS=1
+  else
+     cpp-options: -DIS_WINDOWS=0
+
+  default-extensions: CPP
+  default-language:   Haskell2010
+
+}
+
+-------------------------------------------------------------------------------
+
+executable seqaidpp {
+
+  hs-source-dirs:     .
+  main-is:            Seqaid/Prepro.hs
+  build-depends:
+      base == 4.*
+    , regex-base <= 0.93.2
+    , regex-pcre <= 0.94.4
+-- (process may still be uncommented b/c using to debug...)
+-- Finally needed to drop to 1.* for testing GHC 7.6.3!
+    , process == 1.*
+--  , process == 1.2.*
+    , directory == 1.2.*
+--  , Cabal >= 1.20
+--  , Cabal
+    , Cabal >= 1.10
+--  , Cabal >= 1.18
+
+  -- We don't really depend on the cpphs /library/, but installing
+  -- the library also installs the cpphs executable, so in case
+  -- build-tools doesn't nab it, this ought to!
+  if flag(USE_CPPHS)
+     build-depends:
+         cpphs >= 1.14
+
+  ghc-options: -optP-Wundef -fno-warn-overlapping-patterns
+  -- [See comments in the library part above.]
+  if flag(USE_CPPHS)
+     ghc-options: -pgmPcpphs -optP--cpp
+--else
+--   ghc-options: -cpp
+
+  if flag(USE_CPPHS)
+     cpp-options: -DUSE_CPPHS=1
+  else
+     cpp-options: -DUSE_CPPHS=0
+
+  if flag(TRY_INJECT_NOINLINE_ON_REQUESTED_BINDS)
+     cpp-options: -DTRY_INJECT_NOINLINE_ON_REQUESTED_BINDS=1
+  else
+     cpp-options: -DTRY_INJECT_NOINLINE_ON_REQUESTED_BINDS=0
+
+  default-extensions: CPP
+  default-language:   Haskell2010
+
+--ghc-options: -O0
+--ghc-options: -O2
+
+}
+
+-------------------------------------------------------------------------------
+
+
+
+package-hashes:
+    MD5:e54aa07d2545894843556494d99e58a6
+    SHA1:bdfad8f049d9db705ae556365535b5ea45b0d35e
+    SHA256:230c7de64d3d525ac149b58334d033985f5a0ba6a96e423e938b92ac817976be
+    SHA512:a1889575f51b04570a5b22be9aa3fdb05b457fcfd4b07530738505b12c01e62bc4b914f83ac57c2d2cdcde3ce42b7d1a3e026e1981e5a9157c3cc9f6b5584e29
+    Skein512_512:0e3f5b1b0241f571503b986bf3849f2ab2eec791c18cb628391b7472da4a29b88b36575ed73d4d1a52028b684e3460472f86060982f39eb1e6ff7e9ee8d61263
+
+package-locations:
+    https://hackage.haskell.org/package/seqaid-0.2.1.1/seqaid-0.2.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/seqaid-0.2.1.1.tar.gz
+

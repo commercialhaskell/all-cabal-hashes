@@ -1,0 +1,149 @@
+Cabal-version:       >= 1.8
+Name:                skein
+Version:             0.1.0.11
+Synopsis:            Skein, a family of cryptographic hash functions.  Includes Skein-MAC as well.
+License:             BSD3
+License-file:        LICENSE
+Author:              Felipe Lessa <felipe.lessa@gmail.com>, Doug Whiting
+Maintainer:          Felipe Lessa <felipe.lessa@gmail.com>
+Category:            Cryptography
+Build-type:          Simple
+Homepage:            https://github.com/meteficha/skein
+
+Description:
+    Skein (<http://www.skein-hash.info/>) is a family of fast
+    secure cryptographic hash functions designed by Niels
+    Ferguson, Stefan Lucks, Bruce Schneier, Doug Whiting, Mihir
+    Bellare, Tadayoshi Kohno, Jon Callas and Jesse Walker.
+    .
+    This package uses bindings to the optimized C implementation
+    of Skein.  We provide a high-level interface (see module
+    "Crypto.Skein") to some of the Skein use cases.  We also
+    provide a low-level interface (see module
+    "Crypto.Skein.Internal") should you need to use Skein in a
+    different way.
+    .
+    Currently we have support for Skein as cryptographic hash
+    function as Skein as a message authentication code
+    (Skein-MAC).  For examples of how to use this package, see
+    "Crypto.Skein" module documentation.
+
+Extra-source-files:
+    c_impl/optimized/skein.c
+    c_impl/optimized/skein.h
+    c_impl/optimized/skein_block.c
+    c_impl/optimized/skein_debug.c
+    c_impl/optimized/skein_debug.h
+    c_impl/optimized/skein_iv.h
+    c_impl/optimized/skein_port.h
+    c_impl/reference/skein.c
+    c_impl/reference/skein.h
+    c_impl/reference/skein_block.c
+    c_impl/reference/skein_debug.c
+    c_impl/reference/skein_debug.h
+    c_impl/reference/skein_port.h
+    tests/runtests.hs
+
+Data-files:
+    tests/skein_golden_kat.txt
+
+Source-repository head
+  Type:     git
+  Location: git://github.com/meteficha/skein.git
+
+Flag reference
+    Description: Use the reference implementation instead of the optimized one.
+    Default: False
+
+Flag force-endianness
+    Description: Use a manually selected endian when compiling (see flag 'big-endian').
+    Default: False
+
+Flag big-endian
+    Description: When manually selecting the endianness, use big-endian (default is little-endian).
+    Default: False
+
+Library
+    Hs-Source-Dirs: src
+
+    Exposed-modules:
+        Crypto.Skein
+        Crypto.Skein.Internal
+
+    Build-depends:
+        base         >= 3   && < 5,
+        bytestring   >= 0.9,
+        cereal       >= 0.3 && < 0.4,
+        tagged       >= 0.2 && < 0.5,
+        crypto-api   >= 0.6 && < 0.11
+
+    Build-tools: hsc2hs
+    GHC-options: -Wall
+
+    Extensions:
+        BangPatterns
+        CPP
+        ForeignFunctionInterface
+        MultiParamTypeClasses
+
+    Includes:
+        skein.h
+
+    if flag(force-endianness)
+        if flag(big-endian)
+            CC-options: "-DSKEIN_NEED_SWAP=1"
+        else
+            CC-options: "-DSKEIN_NEED_SWAP=0"
+    else
+        if arch(i386) || arch(x86_64)
+            CC-options: "-DSKEIN_NEED_SWAP=0"
+        if arch(ppc) || arch(sparc) || arch(s390) || arch(hppa)
+            CC-options: "-DSKEIN_NEED_SWAP=1"
+
+    if flag(reference)
+        Include-Dirs:
+            c_impl/reference
+        C-sources:
+            c_impl/reference/skein.c
+            c_impl/reference/skein_block.c
+         -- c_impl/reference/skein_debug.c -- not used
+    else
+        Include-Dirs:
+            c_impl/optimized
+        C-sources:
+            c_impl/optimized/skein.c
+            c_impl/optimized/skein_block.c
+         -- c_impl/optimized/skein_debug.c -- not used
+
+
+Test-suite runtests
+    Type: exitcode-stdio-1.0
+    Build-depends:
+        base         >= 3   && < 5,
+        bytestring   >= 0.9,
+        cereal       >= 0.3 && < 0.4,
+        tagged       >= 0.2 && < 0.5,
+        crypto-api   >= 0.6 && < 0.11,
+
+        filepath     == 1.*,
+        hspec        >= 1.3,
+
+        -- finally, our own package
+        skein
+    GHC-options:     -Wall
+    Hs-source-dirs:  tests
+    Main-is:         runtests.hs
+    Other-modules:   Paths_skein
+
+
+package-hashes:
+    MD5:8ff1e36ab79d29cdaa46d31dd617a891
+    SHA1:41aba0de83546e8c506e6c1b466681290e93d1cb
+    SHA256:3808b64716083630c2a900e86006ca3cfedf77b59b3e56e8f271fefeb31b3e9a
+    SHA512:cfc62a98df37c86db9896a0b6b2cf1ffb71465aa96227b743173b349bb88a11c44d29ff28396c08331b94188723223dcb53e913c017ef341facc7821bfab5960
+    Skein512_512:a20ab1b9ea6ea179cec36c28e2b961b0c008da30e210609d9e6cd41724847de77ae33b4b752dbf4a719968f2d0fcd4be6c9809b24c33620c9d6d378404520fff
+
+package-locations:
+    https://hackage.haskell.org/package/skein-0.1.0.11/skein-0.1.0.11.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/skein-0.1.0.11.tar.gz
+
