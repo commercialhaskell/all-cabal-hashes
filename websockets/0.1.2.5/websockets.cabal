@@ -1,0 +1,99 @@
+Name:           websockets
+Version:        0.1.2.5
+
+Cabal-version:  >=1.6
+
+Synopsis:       Server-side WebSocket protocol handshake and communication.
+
+Description:
+ .
+ A library for creating WebSocket-capable servers, where the implemented protocol is defined here: <http://is.gd/eSdLB>.
+ .
+ This library is only tested with Chromium >=7 and Firefox >=4 and is a work in progress.
+ .
+ How do you use this library? Here's how:
+ .
+ * Get a 'Handle' to your connected client.
+ .
+ * Perform the initial handshake with 'shakeHands' (or 'getRequest' and 'putResponse').
+ .
+ * Send and receive strict bytestrings with 'putFrame' and 'getFrame'.
+ .
+ And here's a short example of a server that accepts clients, greets them with a welcome message, checks for disconnects and replies to all messages by echoing them back with an appended meow:
+ .
+ > import Network.WebSockets (shakeHands, getFrame, putFrame)
+ > import Network (listenOn, PortID(PortNumber), accept, withSocketsDo)
+ > import System.IO (Handle, hClose)
+ > import qualified Data.ByteString as B (append, null)
+ > import Data.ByteString.UTF8 (fromString) -- this is from utf8-string
+ > import Control.Monad (forever)
+ > import Control.Concurrent (forkIO)
+ > 
+ > main :: IO ()
+ > main = withSocketsDo $ do
+ >   socket <- listenOn (PortNumber 12345)
+ >   putStrLn "Listening on port 12345."
+ >   forever $ do
+ >     (h, _, _) <- accept socket
+ >     forkIO (talkTo h)
+ > 
+ > 
+ > talkTo :: Handle -> IO ()
+ > talkTo h = do
+ >   request <- shakeHands h
+ >   case request of
+ >     Left error -> putStrLn error
+ >     Right rqst -> do
+ >       putFrame h (fromString "滴水之恩当以涌泉相报")
+ >       putStrLn "Shook hands, sent welcome message."
+ >       talkLoop h
+ >       
+ >   hClose h
+ >   putStrLn "Client quit, closed handle."
+ > 
+ > 
+ > talkLoop :: Handle -> IO ()
+ > talkLoop h = do
+ >   msg <- getFrame h
+ >   if B.null msg
+ >      then return ()
+ >      else do
+ >        putFrame h $ B.append msg (fromString ", MEOW!")
+ >        talkLoop h
+ .
+ The example above will suffice if you wish to accept any WebSocket-capable client, regardless of its origin or target. It won't suffice if you have to filter the incoming clients by the contents of their requests. For that, you can use 'getRequest' and 'putResponse', which allow you to inspect the request details /before/ you send back a response, if any.
+ .
+ If you have any suggestions, bug reports and\/or fixes, feel free to send them to <mailto:sinisa@bidin.cc>.
+
+License:        BSD3
+License-file:   LICENCE
+Copyright:      (c) 2010 Siniša Biđin
+
+Author:         Siniša Biđin
+Maintainer:     Siniša Biđin <sinisa@bidin.cc>
+Bug-reports:    mailto:sinisa@bidin.cc
+
+Stability:      experimental
+Category:       Network
+Tested-with:    GHC ==6.12
+
+Build-type:     Simple
+
+Library
+  Exposed-Modules: Network.WebSockets
+  Build-depends: pureMD5 >=2.1, network >=2.2.1.7, base ==4.*, 
+                 bytestring >=0.9, binary >=0.5, containers >=0.3
+
+
+
+package-hashes:
+    MD5:87a7b6c5104892e13cbef26af6abf504
+    SHA1:2fae602eafc5cc565a407f15271af0b70768804d
+    SHA256:089df9bf28550fe2636236fde1ac1625ee3f9265509ae3388a9bae0e68f446eb
+    SHA512:f23d11037ed6c7cdfb26583c8639e33ab0064b0af80ecb75c3070360310defc1c430517e0dbf1b5c4b48e1b82371d4388b1f7363f2466488f977c7660ee91dee
+    Skein512_512:c16f1d0b7812c9ff79c4140d3b58278365b3dc1ace19cc6368f4937493072f2245788d82b5db5778fa9087ff2d77d7bd5175cbed1b4d85fafca33717373ed002
+
+package-locations:
+    https://hackage.haskell.org/package/websockets-0.1.2.5/websockets-0.1.2.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/websockets-0.1.2.5.tar.gz
+

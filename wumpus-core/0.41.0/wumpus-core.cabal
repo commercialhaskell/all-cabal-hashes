@@ -1,0 +1,273 @@
+name:             wumpus-core
+version:          0.41.0
+license:          BSD3
+license-file:     LICENSE
+copyright:        Stephen Tetley <stephen.tetley@gmail.com>
+maintainer:       Stephen Tetley <stephen.tetley@gmail.com>
+homepage:         http://code.google.com/p/copperbox/
+category:         Graphics
+synopsis:         Pure Haskell PostScript and SVG generation. 
+description:
+  .
+  Wumpus-Core is a low-level library for generating static 2D 
+  vector pictures, its salient feature is portability due to no 
+  FFI dependencies. It can generate PostScript (EPS) files and SVG 
+  files. The generated PostScript code is plain and reasonably 
+  efficient as the use of stack operations, i.e @gsave@ and 
+  @grestore@, is minimized. 
+  .
+  Although Wumpus-Core only generates vector output, the generated 
+  PostScript can be interpreted by GraphicsMagick or a similar 
+  tool to convert EPS files into bitmap image files (e.g JPEGs).
+  .
+  Wumpus-Core makes pictures from /paths/ and text /labels/. Paths 
+  themselves are made from points. The usual affine 
+  transformations (rotations, scaling, translations) can be
+  applied to Pictures. Unlike PostScript there is no notion of a 
+  current point, Wumpus-Core builds pictures in a coordinate-free 
+  style. 
+  .
+  GENERAL DRAWBACKS...
+  .
+  For actually building pictures, diagrams, etc. Wumpus-Core is 
+  very low-level. There is a supplementary package @Wumpus-Basic@ 
+  available that helps create certain types of diagram, but it is
+  experimental - functionality is added and dropped between 
+  releases, it has no stable API.
+  .
+  Some of the design decisions made for Wumpus-Core are not 
+  sophisticated (e.g. how path and text attributes like colour are 
+  handled, and how the bounding boxes of text labels are 
+  calculated), so Wumpus might be limited compared to other 
+  systems. However, the design permits a fairly simple 
+  implementation, which is a priority. 
+  .  
+  .
+  UPDATING from 0.37.0 or earlier to 0.41.0.
+  .
+  There were substantial changes in verion 0.40.0 - hence the 
+  version number jump from 0.37.0. Version 0.41.0 introduces 
+  mostly cosmetic changes, but for upgrading from 0.37.0 or
+  earlier the change-notes that follow are still relevant.
+  .
+  @Core.Picture@ API change - the path construction function has 
+  changed from @path@ to @primPath@. The type of the path segments
+  has changed, the functions @lineTo@ and @curveTo@ now build
+  @AbsPathSegments@ and @primPath@ consumes @AbsPathSegments@.
+  .
+  The Text API has changed substantially, however most user code
+  should only need minor changes. The functions @writePS_latin1@, 
+  @writeEPS_latin1@ and @writeSVG_latin1@ have been removed, code 
+  should be changed to use @writePS@, @writeEPS@ and and 
+  @writeSVG@ respectively. These three functions no longer take a 
+  @TextEncoder@ argument as TextEncoders no longer exist.
+  .
+  The Font Size API has also changed substantially. It now 
+  exports a more consistent set of metrics (consistent with what 
+  is present in font files - the previous version was derived 
+  from hand measurements). It also adds a margin to bounding box
+  calculations, again this is more consistent with how font files 
+  actually work.
+  .
+  The handling of escaped special characters is now more 
+  consistent and the escaping mecahnism has been clarified 
+  (previously the documentation and the implementation were at 
+  odds): PostScript glyph names are delimited between @&@ 
+  (ampersand) and @;@ (semi), Unicode code points are delimited 
+  by @&\#@ (ampersand-hash) and @;@ (semi). Note Wumpus silently 
+  drops mal-formed escape charcters, for robustness this is 
+  preferable to throwing a runtime error, but it does mean the
+  output needs visually checking.
+  .
+  Changelog:
+  . 
+  v0.40.0 to v0.41.0:
+  .
+  * Changed PostScript output to use pre-defined procedures for 
+    circles and ellipses. This should be a significant 
+    optimization for drawings that have many circles or ellipses.
+    For drawings that do not use circles or ellipses, it adds 
+    circa. 75 lines to the generated PostScript which is 
+    tolerable.
+  .
+  * API change - @Core.Text.Base@ no longer exports the 
+    constructor and field label for @EscapedText@, it is now an 
+    opaque type. For a building @EscapedText@ either the existing 
+    /safe/constructor @escapeString@ or the new function 
+    @wrapEscChar@ should be used. For destructing @EscapedText@ 
+    there is a new function @destrEscapedText@.
+  .
+  * API change - the argument order of the functions @rtextlabel@ 
+    and @rescapedlabel@ in @Core.Picture@ has changed. The order 
+    of angle of rotation and the baseline-left has been swapped so 
+    that angle of rotation is first. This matches the other 
+    rotated graphics in @Core.Picture@.
+  .
+  * Upper bounds of Cabal build depends relaxed a bit.
+  . 
+  * Added the @UNil@ type to @Core.Geometry@ and added affine 
+    instances for the UNil type, plus Maybe and Pair. @UNil@ is
+    useful for higher-level drawing (it is used extensively in
+    Wumpus-Basic).
+  .
+  * Added the function @emptyPath@ to @Core.Picture@. This creates 
+    a /null path/ with an empty list of path segments. Null paths 
+    still need a start point - this is minimum needed for bounding 
+    box calculation. Improved the PostScript and SVG output so 
+    there is no code generated for empty paths and textlabels.
+  .
+  * Added @vectorPath@ to @Core.Picture@.
+  .
+  * Added @boundaryCenter@ to @Core.BoundingBox@.
+  .
+  * Improved generated SVG code generation for ellipses / circles.
+  .
+  v0.37.0 to v0.40.0: 
+  .
+  * Text handling substantially revised. SVG text output is now 
+    better aligned to Unicode. The encoding tables for PostScript
+    have been re-thought, the previous implementation had some 
+    serious design flaws that should now be rectified.
+  .
+  * The rules for escaping special characters has been clarified.
+    Previously the documentation suggested 
+    @ampersand-name-semicolon@ could be used to escape glyph names
+    however only @ampersand-hash-name-semicolon@ worked.
+    @ampersand-name-semicolon@ is now the correct way. The 
+    ampersand-hash prefix is for numeric literals - 
+    @ampersand-hash-num_literal-semicolon@.
+  .
+  * Versions of the textlabel functions have been added to 
+    @Core.Picture@ for escape-parsed text. It is useful for 
+    higher-level software to escape the text, do some calculations 
+    then render it - going back to un-escaped text for the 
+    rendering would be inefficient.
+  .
+  * The internal representation of paths has changed. They are now 
+    represented as start-point plus list of /relative/ path 
+    segments rather than start-point plus list of absolute path 
+    segments. Using relative path segments makes it cheaper to
+    move paths with @translate@, although calculating the bounding
+    box and rendering to PostScript is more expensive. The 
+    rationale for the change is that to make complex pictures, 
+    paths are potentially moved many times but the other 
+    operations are only performed once.
+  .
+  * Internal change to Primitives and the PrimCTM - ellipses and
+    labels no longer have a point (center or baseline left)
+    as an element in the datatype, the point is now represented 
+    within the PrimCTM.
+  .
+  * Name change to @Core.Picture@ API - the path construction 
+    function @path@ has been renamed to @primPath@.
+  .
+  * Name change in @Core.FontSize@, the function @textBoundsEnc@
+    has been renamed to @textBoundsEsc@. Wumpus-Core now calls 
+    strings that have been parsed for escape characters 
+    /Escaped Text/ rather than /Encoded Text/.
+  .
+  * Fixed bug where ellipse rotation and scaling calculated the 
+    wrong bounding box.
+  . 
+  * Fixed bug in @illustrateControlPoints@ where the control points
+    were drawn but the original primitive was lost. 
+  .
+  * Added initial support for arbitrary SVG attributes (e.g. 
+    onmouseover handlers) via @annotateGroup@ in @Core.Picture@. 
+    Arbitrary SVG \"defs\" can be written into the defs prologue 
+    by using @writeSVG_defs@ instead of @writeSVG@. This 
+    functionality is mostly untested!
+  .
+  .
+build-type:         Simple
+stability:          unstable
+cabal-version:      >= 1.2
+
+extra-source-files:
+  CHANGES,
+  LICENSE,
+  demo/AffineTest01.hs,
+  demo/AffineTest02.hs,
+  demo/AffineTest03.hs,
+  demo/AffineTestBase.hs,
+  demo/DeltaPic.hs,
+  demo/FontMetrics.hs,
+  demo/Hyperlink.hs,
+  demo/KernPic.hs,
+  demo/LabelPic.hs,
+  demo/Latin1Pic.hs,
+  demo/MultiPic.hs,
+  demo/TextBBox.hs,
+  demo/TransformEllipse.hs,
+  demo/TransformPath.hs,
+  demo/TransformTextlabel.hs,
+  demo/ZOrderPic.hs,
+  doc/Guide.pdf,
+  doc-src/Guide.lhs,
+  doc-src/Makefile,
+  doc-src/WorldFrame.hs
+
+
+
+library
+  hs-source-dirs:     src
+  build-depends:      base            <  5, 
+                      containers      >= 0.3      && <= 0.6, 
+                      time            >= 1.1.3    && <  1.6,
+                      vector-space    >= 0.6      && <  1.0
+                        
+  exposed-modules:
+    Wumpus.Core,
+    Wumpus.Core.AffineTrans,
+    Wumpus.Core.BoundingBox,
+    Wumpus.Core.Colour,
+    Wumpus.Core.FontSize,
+    Wumpus.Core.Geometry,
+    Wumpus.Core.GraphicProps,
+    Wumpus.Core.OutputPostScript,
+    Wumpus.Core.OutputSVG,
+    Wumpus.Core.Picture,
+    Wumpus.Core.PtSize,
+    Wumpus.Core.Text.Base,
+    Wumpus.Core.Text.GlyphIndices,
+    Wumpus.Core.Text.GlyphNames,
+    Wumpus.Core.Text.Latin1Encoding,
+    Wumpus.Core.Text.StandardEncoding,
+    Wumpus.Core.Text.Symbol,
+    Wumpus.Core.VersionNumber,
+    Wumpus.Core.WumpusTypes
+
+  other-modules:
+    Wumpus.Core.PageTranslation,
+    Wumpus.Core.PictureInternal,
+    Wumpus.Core.PostScriptDoc,
+    Wumpus.Core.SVGDoc,
+    Wumpus.Core.TrafoInternal,
+    Wumpus.Core.Utils.Common,
+    Wumpus.Core.Utils.HList,
+    Wumpus.Core.Utils.JoinList,
+    Wumpus.Core.Utils.FormatCombinators
+    
+  extensions:
+    
+
+  ghc-options:
+  
+  includes: 
+  
+
+  
+  
+
+
+package-hashes:
+    MD5:9ca9c3daa3a1de59f13c7cccb2aa6bc1
+    SHA1:c4dd56c2c95401168c27a875ad90ff144ddcfcb1
+    SHA256:6f878715cd1282441047a99795b79b27ccc36619c7f93458d0040819a798b7ef
+    SHA512:4b5c76ec39dab5f1e70d245e804f5972a9b6a522cdac363a629e2d9b7b1b5315794a8ecf3370591fdc6b1f7fb56a5e395f2b3719263c0aa3007646e5a051820e
+    Skein512_512:16d63e62951c78f5c90052e92b148624fcf44564008defff90276ac7acb5cc1b11209508ba7bb0752bece23452951b6d4676145f0ab42d2e4f5cd3e17a01aeb9
+
+package-locations:
+    https://hackage.haskell.org/package/wumpus-core-0.41.0/wumpus-core-0.41.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/wumpus-core-0.41.0.tar.gz
+

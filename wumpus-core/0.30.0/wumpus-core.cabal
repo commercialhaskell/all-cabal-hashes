@@ -1,0 +1,200 @@
+name:             wumpus-core
+version:          0.30.0
+license:          BSD3
+license-file:     LICENSE
+copyright:        Stephen Tetley <stephen.tetley@gmail.com>
+maintainer:       Stephen Tetley <stephen.tetley@gmail.com>
+homepage:         http://code.google.com/p/copperbox/
+category:         Graphics
+synopsis:         Pure Haskell PostScript and SVG generation. 
+description:
+  .
+  Wumpus - (W)riter (M)onad (P)ost (S)cript. 
+  .
+  Wumpus is a kernel library for generating 2D vector pictures, 
+  its salient feature is portability due to no FFI dependencies. 
+  It can generate PostScript (EPS) files and SVG files. The 
+  generated PostScript code is plain [1] and reasonably 
+  efficient as the use of stack operations, i.e @gsave@ and 
+  @grestore@, is minimized.
+  .
+  Pictures in Wumpus are made from /paths/ and text /labels/. 
+  Paths themselves are made from points. The usual affine 
+  transformations (rotations, scaling, translations) can be
+  applied to geometric objects. Unlike PostScript there is no 
+  notion of a current point, Wumpus builds pictures in a
+  coordinate-free style. 
+  .
+  GENERAL DRAWBACKS...
+  .
+  For actually drawing pictures, diagrams, etc. Wumpus is very 
+  low level. There is a supplemantary package @wumpus-basic@ 
+  available that helps create certain types of diagram, but it is
+  experimental - functionality is added an dropped between 
+  releases.
+  .
+  Some of the design decisions made for wumpus-core are not 
+  sophisticated (e.g. how attributes like colour are handled, 
+  and how the bounding boxes of text labels are calculated), so 
+  Wumpus might be limited compared to other systems. However, 
+  the design permits a fairly simple implementation - which is 
+  a priority. Text encoding an exception - I\'m not sure how 
+  reasonable the design is. The current implementation 
+  appears okay for Latin 1 but may be inadequate for other 
+  character sets, so I may have to revise it significantly.
+  .
+  .
+  \[1\] Because the output is simple, straight-line PostScript 
+  code, it is possible to use GraphicsMagick or a similar tool 
+  to convert Wumpus'\s EPS files to many other formats 
+  (bitmaps). 
+  .
+  Changelog:
+  .
+  0.23.0 to 0.30.0:
+  .
+  * Substantial changes - the output machinery has been heavily 
+    modified, the intention was to reduce the use of matrix 
+    transformations in SVG output. Though this goal has not been 
+    achieved, some code-size improvements in the SVG output have 
+    been made. 
+  .
+  * The code generation monads have been changed - Wumpus no 
+    longer uses a writer monad for code generation, but it will
+    keep the Wumpus name.
+  .
+  * Added support for hyperlinks in the SVG output.
+  .
+  * Improved internal pretty printing and added the function 
+    @printPicture@ for debugging.
+  .
+  * The @Core.Colour@ module has been simplified to support just 
+    one (new) type - RGBi, and the conversion type class 
+    @PSColour@ has been eliminated.
+  .
+  * @Core.Picture@ - the type of the @frame@ function has been 
+    changed to take a list of Primitives rather than a single 
+    Primitive. The function @frameMulti@ which previously 
+    provided this functionality has been removed. SVG hyperlinks
+    are now supported for Primitives. 
+  . 
+  * The default font size has been changed to 14 pt. 
+  .
+  * The Path datatype has been renamed PrimPath, likewise Ellipse 
+    is now PrimEllispe and Label becomes PrimLabel.
+  .
+  * @Core.Geometry@ now longer defines an affine frame datatype.
+  .
+  * @Core.BoundingBox@ module changed significantly. The corner 
+    functions (@boundaryBottomLeft@, etc.) have been removed, 
+    along with the plane functions (@leftPlane@, etc.). Some 
+    functions have been given more verbose names - @corners@ is 
+    now @boundaryCorners@, @within@ is now @withinBoundary@ and 
+    @union@ is now @boundaryUnion@. 
+  .
+  0.22.0 TO 0.23.0:
+  . 
+  * @Basic.GraphicsState@ - extracted the font face fields from 
+    @FontAttr@ datatype into a separate datatype @FontFace@.
+  . 
+  * Added @PtSize@ a numeric type wrapping Double. This is 
+    specifically for text size calculations, vis the 
+    @Core.FontSize@ module.
+  .
+  * Changed all functions in @Core.FontSize@ to return @PtSize@
+    instead of a polymorphic type @u@ (where @u@ is an instance 
+    of Fractional). To get to another unit type rather than 
+    FontSize use an explicit conversion that scales the value 
+    accordingly.
+  .
+  * Added FromPtSize class constraints to various functions in
+    @Core.Picture@.
+  .
+  * Added @charWidth@ to @Core.FontSize@.
+  .
+  * Added @vlength@ to @Core.Geometry@
+  .
+  .
+build-type:         Simple
+stability:          unstable
+cabal-version:      >= 1.2
+
+extra-source-files:
+  CHANGES,
+  LICENSE,
+  demo/AffineTest01.hs,
+  demo/AffineTest02.hs,
+  demo/AffineTest03.hs,
+  demo/AffineTestBase.hs,
+  demo/FontMetrics.hs
+  demo/LabelPic.hs,
+  demo/MultiPic.hs,
+  demo/Rotated.hs,
+  demo/Scaled.hs,
+  demo/Translated.hs,
+  demo/ZOrderPic.hs,
+  doc/Guide.pdf,
+  doc-src/Guide.lhs,
+  doc-src/Makefile,
+  doc-src/WorldFrame.hs
+
+
+
+library
+  hs-source-dirs:     src
+  build-depends:      base            <  5, 
+                      containers      >= 0.3      && <= 0.4, 
+                      time            >= 1.1.3    && < 1.2,
+                      vector-space    >= 0.6      && < 1.0,
+                      algebra         >= 0.0.0.1
+                        
+  exposed-modules:
+    Wumpus.Core,
+    Wumpus.Core.AffineTrans,
+    Wumpus.Core.BoundingBox,
+    Wumpus.Core.Colour,
+    Wumpus.Core.FontSize,
+    Wumpus.Core.Geometry,
+    Wumpus.Core.GraphicsState,
+    Wumpus.Core.OutputPostScript,
+    Wumpus.Core.OutputSVG,
+    Wumpus.Core.Picture,
+    Wumpus.Core.PtSize,
+    Wumpus.Core.TextEncoder,
+    Wumpus.Core.TextLatin1,
+    Wumpus.Core.VersionNumber,
+    Wumpus.Core.WumpusTypes
+
+  other-modules:
+    Wumpus.Core.FormatCombinators,
+    Wumpus.Core.PageTranslation,
+    Wumpus.Core.PictureInternal,
+    Wumpus.Core.PostScriptDoc,
+    Wumpus.Core.SVGDoc,
+    Wumpus.Core.OneList,
+    Wumpus.Core.TextInternal,
+    Wumpus.Core.Utils
+    
+  extensions:
+    
+
+  ghc-options:
+  
+  includes: 
+  
+
+  
+  
+
+
+package-hashes:
+    MD5:3c99a43dae16222f1ed29cfaec512a90
+    SHA1:cdab91dbdecc1c38c57b5fe22096eddeceb11dcc
+    SHA256:59aba6777e9f34ec25e312f20cf1738054f4be21aed9dd104a6d325cd1051f0c
+    SHA512:4f0e8039215bb498e3c2f6bea062ebf284fcb7829fd05481c86ce10f677014e63a65c49d2801f5d02c2869f637f68cf6f0e4e4dede61e24c6a9cb8779e5266aa
+    Skein512_512:52bb6b85230aac0c519c92e40d021b3c3a8eb8631c273f60e919a0cae093c05483cd601ad3848ab100979be2a117c63562e796f844a688319b0982fd19fb1ded
+
+package-locations:
+    https://hackage.haskell.org/package/wumpus-core-0.30.0/wumpus-core-0.30.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/wumpus-core-0.30.0.tar.gz
+

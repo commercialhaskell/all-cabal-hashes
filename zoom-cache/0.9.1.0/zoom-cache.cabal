@@ -1,0 +1,182 @@
+Name:                zoom-cache
+
+-- The package version. See the Haskell package versioning policy
+-- (http://www.haskell.org/haskellwiki/Package_versioning_policy) for
+-- standards guiding when and how versions should be incremented.
+Version:             0.9.1.0
+
+Synopsis:            A streamable, seekable, zoomable cache file format
+
+Description:
+    zoom-cache is a fairly simple data file format for storing and summarizing
+    streams of time-series data. The purpose of this format is to make it easy
+    to quickly generate plots; /zooming/ refers to being able to render a
+    window of data, and being able to quickly change the bounds of the window:
+    to move around and to zoom in and out.
+    .
+    This library provides a monadic writing and an iteratee reading interface
+    for zoom-cache files.
+    .
+    What's neat about this format and library? Glad you asked!
+    .
+        * Data can be stored at variable or constant rates. For variable rate
+    data, a timestamp is explicitly written into the file for every value,
+    which is useful for recording events that occur at unpredictable times.
+    Constant rate is useful for regularly sampled data, like most digital
+    audio and video recordings.
+    .
+        * While writing a file, summary blocks (such as minimum, maximum,
+    mean and RMS values) are written out every n samples. The summary blocks
+    are hierarchical, such that after two have been written, a new one
+    containing a merged summary of those is written. After two of those Level
+    1 summary blocks have been written, a new Level 2 summary block combining
+    those is written, and so on.
+    .
+        * You can write your own zoom-cache codecs for custom data types, or
+    to implement custom summary functions. In order to do so you provide a
+    'Summary' data type, functions for encoding and decoding raw data values
+    and summaries, and a function for merging 'Summary' blocks. For details,
+    see "Data.ZoomCache.Codec".
+    .
+        * Writing of raw data blocks is optional, under control of the
+    application. If you already have the raw data stored in an easily
+    accessible format, your zoom-cache files may just contain the summary
+    data. On the other hand, if your input data is the result of expensive
+    calculations you may want to store it along with the summary data so that
+    plots of any level of detail can be rendered from a single file.
+    .
+    When developing applications that read or write zoom-cache files, it should
+    be sufficient to import only the module "Data.ZoomCache".
+    .
+
+License:             BSD3
+License-file:        LICENSE
+Author:              Conrad Parker
+Maintainer:          conrad@metadecks.org
+Stability:           Experimental
+Category:            Development
+
+Cabal-version:       >=1.8
+Build-type:          Simple
+
+-- tests/Properties.hs shouldn't have to go here, but the source files
+-- for the test-suite stanzas don't get picked up by 'cabal sdist'.
+Extra-source-files:
+  tests/Properties.hs
+
+flag splitBase
+  description: Use the split-up base package.
+
+Library
+  if flag(splitBase)
+    build-depends:
+      base >= 3 && < 6
+  else
+    build-depends:
+      base < 3
+
+  Build-Depends:
+    blaze-builder,
+    bytestring                >= 0.9     && < 0.10,
+    containers                >= 0.2     && < 0.5,
+    data-default,
+    iteratee                  >= 0.8.6.0 && < 0.9,
+    iteratee-compress         >= 0.3.0.0 && < 0.4,
+    ListLike                  >= 1.0     && < 4,
+    MonadCatchIO-transformers >  0.2     && < 0.3,
+    mtl                       >= 2.0.0.0 && < 3,
+    QuickCheck                 >= 2.4.0.1,
+    transformers              >= 0.2     && < 0.3,
+    type-level,
+    zlib
+
+  Exposed-modules:
+    Blaze.ByteString.Builder.ZoomCache
+    Data.Iteratee.ZoomCache
+    Data.Iteratee.ZoomCache.Utils
+    Data.ZoomCache
+    Data.ZoomCache.Bool
+    Data.ZoomCache.Codec
+    Data.ZoomCache.Common
+    Data.ZoomCache.Dump
+    Data.ZoomCache.Format
+    Data.ZoomCache.Identify
+    Data.ZoomCache.Multichannel
+    Data.ZoomCache.Multichannel.Common
+    Data.ZoomCache.Multichannel.Internal
+    Data.ZoomCache.Multichannel.List
+    Data.ZoomCache.Multichannel.NList
+    Data.ZoomCache.NList
+    Data.ZoomCache.Numeric
+    Data.ZoomCache.Numeric.Delta
+    Data.ZoomCache.Numeric.FloatMinMax
+    Data.ZoomCache.Numeric.IEEE754
+    Data.ZoomCache.Numeric.Int
+    Data.ZoomCache.Numeric.Internal
+    Data.ZoomCache.Numeric.Types
+    Data.ZoomCache.Numeric.Word
+    Data.ZoomCache.Pretty
+    Data.ZoomCache.TrackSpec
+    Data.ZoomCache.Types
+    Data.ZoomCache.Unit
+    Data.ZoomCache.Write
+
+  Other-modules:
+    Blaze.ByteString.Builder.ZoomCache.Internal
+  
+Executable zoom-cache
+  Main-is:             zoom-cache.hs
+  Hs-Source-Dirs:      ., tools
+  Build-Depends:
+    base >= 3 && < 6,
+    blaze-builder,
+    bytestring                >= 0.9     && < 0.10,
+    containers                >= 0.2     && < 0.5,
+    data-default,
+    iteratee                  >= 0.8.6.0 && < 0.9,
+    iteratee-compress,
+    ListLike                  >= 1.0     && < 4,
+    mtl                       >= 2.0.0.0 && < 3,
+    QuickCheck                 >= 2.4.0.1,
+    transformers              >= 0.2     && < 0.3,
+    type-level,
+    ui-command,
+    zlib
+
+Test-suite tests
+  Type:              exitcode-stdio-1.0
+  Hs-source-dirs:    tests
+  Main-is:           Properties.hs
+  Build-depends:
+    base >= 3 && < 6,
+    blaze-builder,
+    iteratee                   >= 0.8.6.0 && < 0.9,
+    test-framework             >= 0.3.3 && < 0.5,
+    test-framework-quickcheck2 >= 0.2.9 && < 0.3,
+    QuickCheck                 >= 2.4.0.1,
+    random                     == 1.0.*,
+    transformers               >= 0.2     && < 0.3,
+    type-level,
+    zoom-cache
+
+
+------------------------------------------------------------------------
+-- Git repo
+--
+source-repository head
+  type: git
+  location: git://github.com/kfish/zoom-cache.git
+
+
+
+package-hashes:
+    MD5:4f88e906018b35e92f36bee34137d7ad
+    SHA1:57cfbdec6d01abbdc9c34999bb0b7081dee08c37
+    SHA256:167255ce8e3641f2d51f0a9e1df0b7b1124b620ac8506d9ae153c0fdef6c99c5
+    SHA512:e339b227a71e720c93e3f0ea939a5b348d0ccd5094ab1c57b9bc79c5e2f16cd21243d6f9d612416e3ceccdcb6ecfa881bb3f5e0aae6caa9786eb7295aed821e5
+    Skein512_512:01b4b08927d189282352660810db2b07206e2f950bbca11b7bbc1766be259b42de5d18813dff101730c7e39fcd33f13f98aa74805d14fe83b7908e17d69460c7
+
+package-locations:
+    https://hackage.haskell.org/package/zoom-cache-0.9.1.0/zoom-cache-0.9.1.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/zoom-cache-0.9.1.0.tar.gz
+

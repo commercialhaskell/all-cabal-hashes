@@ -1,0 +1,238 @@
+name:             wumpus-core
+version:          0.32.0
+license:          BSD3
+license-file:     LICENSE
+copyright:        Stephen Tetley <stephen.tetley@gmail.com>
+maintainer:       Stephen Tetley <stephen.tetley@gmail.com>
+homepage:         http://code.google.com/p/copperbox/
+category:         Graphics
+synopsis:         Pure Haskell PostScript and SVG generation. 
+description:
+  .
+  Wumpus is a kernel library for generating 2D vector pictures, 
+  its salient feature is portability due to no FFI dependencies. 
+  It can generate PostScript (EPS) files and SVG files. The 
+  generated PostScript code is plain [1] and reasonably 
+  efficient as the use of stack operations, i.e @gsave@ and 
+  @grestore@, is minimized.
+  .
+  Pictures in Wumpus are made from /paths/ and text /labels/. 
+  Paths themselves are made from points. The usual affine 
+  transformations (rotations, scaling, translations) can be
+  applied to Pictures. Unlike PostScript there is no 
+  notion of a current point, Wumpus builds pictures in a
+  coordinate-free style. 
+  .
+  GENERAL DRAWBACKS...
+  .
+  For actually drawing pictures, diagrams, etc. Wumpus is very 
+  low level. There is a supplemantary package @wumpus-basic@ 
+  available that helps create certain types of diagram, but it is
+  experimental - functionality is added an dropped between 
+  releases.
+  .
+  Some of the design decisions made for wumpus-core are not 
+  sophisticated (e.g. how attributes like colour are handled, 
+  and how the bounding boxes of text labels are calculated), so 
+  Wumpus might be limited compared to other systems. However, 
+  the design permits a fairly simple implementation, which is a 
+  priority. 
+  .
+  \[1\] Because the output is simple, straight-line PostScript 
+  code, it is possible to use GraphicsMagick or a similar tool 
+  to convert Wumpus'\s EPS files to many other formats 
+  (bitmaps). 
+  .
+  Changelog:
+  .
+  0.31.0 to 0.32.0:
+  .
+  * Major API changes to @Core.Picture@ for XML hyperlinks.
+    Hyperlinks now group one-or-more Primitives (path or label), 
+    instead of being attached to a single Primitive. This better
+    corresponds with XML but it has made the Picture type more 
+    complicated, and has mandated significant changes to the 
+    Picture API. All the hyperlink variants of the Primitive 
+    constructors have been removed (xcstroke, xfill, xtextlabel, 
+    ...), and hyperlinks are now created with @xlinkGroup@. 
+  .
+  * The type signatures for the /primitive/ constructors (fill, 
+    cstroke, textlabel, ...) in the Picture API have changed and 
+    are now more complicated as there is an extra layer of 
+    indirection in the type hierarchy.
+  .
+  * The primitive constructors for filled and stroked paths and 
+    ellipses have been renamed: @bordered@ is now @fillStroke@,
+    @borderedEllipse@ is now @fillStrokeEllipse@.
+  .
+  * @Core.FontSize@ - the arguments to the function @textBounds@
+    have been changed to take the String in question, rather than 
+    its precomputed length. The size of the string is then 
+    calculated with the new function @charCount@ which takes into 
+    account escaped characters.
+  .
+  * Added @yellow@, @cyan@ and @magenta@ to the predefined 
+    colours in @Core.Colour@.
+  .
+  0.30.0 to 0.31.0:
+  .
+  * Extended the label type to optionally handle horizontal
+    or vertical \"kerning\". This can be efficiently implemented 
+    in SVG.
+  .
+  * Major API change - the Primitive constructors defined in 
+    @Core.PictureLanguage@ are no longer overloaded (@cstroke@, 
+    @ostroke@, @fill@, @textlabel@, @ellipse@). The respective 
+    classes (@Stroke@, @TextLabel@, @Ellipse@) have been removed
+    and the constructors now have monomorphic types. This is 
+    because Wumpus-Core now only has one colour type and stroke
+    attributes are now a single type, so polymorphism became
+    less useful (and the simplicity of monomorphic types became
+    more favourable). @ellipse@ is no longer a constructor 
+    instead there variants @fillEllipse@ and @strokeEllipse@.
+  .
+  * Added support for /bordered/ closed paths - i.e. paths that
+    are both stroked and filled. These can be efficiently drawn 
+    in SVG with a single @path@ element.
+  .
+  * Changed StrokeAttr representation to be a regular data type
+    rather than a list of /deltas/ - i.e. differences to the 
+    graphics state.
+  .
+  * Added SVG font attribute /delta optimizations/ to help reduce 
+    SVG code size - via the @fontDeltaContext@ function in 
+    @Core.Picture@. This functionality was partially inplemented 
+    in the last release using the @GSUpdate@ datatype - this 
+    datatype it is now called @FontCtx@.
+  .
+  * Some internal work documenting text encoding.
+  .
+  0.23.0 to 0.30.0:
+  .
+  * Substantial changes - the output machinery has been heavily 
+    modified, the intention was to reduce the use of matrix 
+    transformations in SVG output. Though this goal has not been 
+    achieved, some code-size improvements in the SVG output have 
+    been made. 
+  .
+  * The code generation monads have been changed - Wumpus no 
+    longer uses a writer monad for code generation, but it will
+    keep the Wumpus name.
+  .
+  * Added support for hyperlinks in the SVG output.
+  .
+  * Improved internal pretty printing and added the function 
+    @printPicture@ for debugging.
+  .
+  * The @Core.Colour@ module has been simplified to support just 
+    one (new) type - RGBi, and the conversion type class 
+    @PSColour@ has been eliminated.
+  .
+  * @Core.Picture@ - the type of the @frame@ function has been 
+    changed to take a list of Primitives rather than a single 
+    Primitive. The function @frameMulti@ which previously 
+    provided this functionality has been removed. SVG hyperlinks
+    are now supported for Primitives. 
+  . 
+  * The default font size has been changed to 14 pt. 
+  .
+  * The Path datatype has been renamed PrimPath, likewise Ellipse 
+    is now PrimEllispe and Label becomes PrimLabel.
+  .
+  * @Core.Geometry@ now longer defines an affine frame datatype.
+  .
+  * @Core.BoundingBox@ module changed significantly. The corner 
+    functions (@boundaryBottomLeft@, etc.) have been removed, 
+    along with the plane functions (@leftPlane@, etc.). Some 
+    functions have been given more verbose names - @corners@ is 
+    now @boundaryCorners@, @within@ is now @withinBoundary@ and 
+    @union@ is now @boundaryUnion@. 
+  .
+  .
+  .
+build-type:         Simple
+stability:          unstable
+cabal-version:      >= 1.2
+
+extra-source-files:
+  CHANGES,
+  LICENSE,
+  demo/AffineTest01.hs,
+  demo/AffineTest02.hs,
+  demo/AffineTest03.hs,
+  demo/AffineTestBase.hs,
+  demo/DeltaPic.hs,
+  demo/FontMetrics.hs,
+  demo/KernPic.hs,
+  demo/LabelPic.hs,
+  demo/Latin1Pic.hs,
+  demo/MultiPic.hs,
+  demo/Rotated.hs,
+  demo/Scaled.hs,
+  demo/Translated.hs,
+  demo/ZOrderPic.hs,
+  doc/Guide.pdf,
+  doc-src/Guide.lhs,
+  doc-src/Makefile,
+  doc-src/WorldFrame.hs
+
+
+
+library
+  hs-source-dirs:     src
+  build-depends:      base            <  5, 
+                      containers      >= 0.3      && <= 0.4, 
+                      time            >= 1.1.3    && < 1.2,
+                      vector-space    >= 0.6      && < 1.0,
+                      algebra         >= 0.0.0.1
+                        
+  exposed-modules:
+    Wumpus.Core,
+    Wumpus.Core.AffineTrans,
+    Wumpus.Core.BoundingBox,
+    Wumpus.Core.Colour,
+    Wumpus.Core.FontSize,
+    Wumpus.Core.Geometry,
+    Wumpus.Core.GraphicsState,
+    Wumpus.Core.OutputPostScript,
+    Wumpus.Core.OutputSVG,
+    Wumpus.Core.Picture,
+    Wumpus.Core.PtSize,
+    Wumpus.Core.TextEncoder,
+    Wumpus.Core.TextLatin1,
+    Wumpus.Core.VersionNumber,
+    Wumpus.Core.WumpusTypes
+
+  other-modules:
+    Wumpus.Core.FormatCombinators,
+    Wumpus.Core.PageTranslation,
+    Wumpus.Core.PictureInternal,
+    Wumpus.Core.PostScriptDoc,
+    Wumpus.Core.SVGDoc,
+    Wumpus.Core.OneList,
+    Wumpus.Core.TextInternal,
+    Wumpus.Core.Utils
+    
+  extensions:
+    
+
+  ghc-options:
+  
+  includes: 
+  
+
+  
+  
+
+
+package-hashes:
+    MD5:68992e186e0a3942ca3ad2244cc4413d
+    SHA1:28d893617ed78e3336b06c2950af2e4a211ce41f
+    SHA256:7e9fa6b218ea3087e177ec4fd512c686a576e26a56c10b57f22a9fe212247cc8
+    SHA512:ab047ef4c9bb8623c5eabbeef12a5d2f97af03d571315b587bc95ae1154e6d0c8a7ff6c491c2ff0c352537231d8ccdfb7bed4dba9bd9149e5cdcbf7b27f08a26
+    Skein512_512:2c383b56364df2bf8a2caeb7091dfbcec0d7d24f8f04c00ed2c5ea42119f0e004403249749c7b6b4e212dc29062bdacf44b045565cab4e230ea60b28aba672b8
+
+package-locations:
+    https://hackage.haskell.org/package/wumpus-core-0.32.0/wumpus-core-0.32.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/wumpus-core-0.32.0.tar.gz
+

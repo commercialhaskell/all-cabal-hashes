@@ -1,0 +1,232 @@
+name:                wreq-sb
+version:             0.4.0.0
+synopsis:            An easy-to-use HTTP client library.
+description:
+  .
+  A web client library that is designed for ease of use.
+  .
+  Tutorial: <http://www.serpentine.com/wreq/tutorial.html>
+  .
+  Features include:
+  .
+  * Simple but powerful `lens`-based API
+  .
+  * A solid test suite, and built on reliable libraries like
+    http-client and lens
+  .
+  * Session handling includes connection keep-alive and pooling, and
+    cookie persistence
+  .
+  * Automatic response body decompression
+  .
+  * Powerful multipart form and file upload handling
+  .
+  * Support for JSON requests and responses, including navigation of
+    schema-less responses
+  .
+  * Basic and OAuth2 bearer authentication
+  .
+  * Early TLS support via the tls package
+homepage:            http://www.serpentine.com/wreq
+bug-reports:         https://github.com/stackbuilders/wreq/issues
+license:             BSD3
+license-file:        LICENSE.md
+author:              Bryan O'Sullivan <bos@serpentine.com>
+maintainer:          bos@serpentine.com
+copyright:           2014 Bryan O'Sullivan
+category:            Web
+build-type:          Custom
+cabal-version:       >=1.10
+extra-source-files:
+  README.md
+  TODO.md
+  changelog.md
+  examples/*.cabal
+  examples/*.hs
+  www/*.css
+  www/*.md
+  www/Makefile
+
+-- disable doctests with -f-doctest
+flag doctest
+  description: enable doctest tests
+  default: True
+  manual: True
+
+-- enable aws with -faws
+flag aws
+  description: enable AWS tests
+  default: False
+  manual: True
+
+-- enable httpbin with -fhttpbin
+flag httpbin
+  description: enable httpbin test daemon
+  default: False
+  manual: True
+
+flag developer
+  description: build in developer mode
+  default: False
+  manual: True
+
+library
+  ghc-options: -Wall -fwarn-tabs -funbox-strict-fields
+  default-language: Haskell98
+
+  exposed-modules:
+    Network.Wreq
+    Network.Wreq.Cache
+    Network.Wreq.Cache.Store
+    Network.Wreq.Lens
+    Network.Wreq.Session
+    Network.Wreq.Types
+  other-modules:
+    Network.Wreq.Internal
+    Network.Wreq.Internal.AWS
+    Network.Wreq.Internal.Lens
+    Network.Wreq.Internal.Link
+    Network.Wreq.Internal.OAuth1
+    Network.Wreq.Internal.Types
+    Network.Wreq.Lens.Machinery
+    Network.Wreq.Lens.TH
+    Paths_wreq_sb
+  build-depends:
+    psqueues >= 0.2,
+    aeson >= 0.7.0.3,
+    attoparsec >= 0.11.1.0,
+    authenticate-oauth == 1.5.*,
+    base >= 4.5 && < 5,
+    base16-bytestring,
+    byteable,
+    bytestring >= 0.9,
+    case-insensitive,
+    containers,
+    cryptohash,
+    exceptions >= 0.5,
+    ghc-prim,
+    hashable,
+    http-client >= 0.4.6,
+    http-client-tls >= 0.2,
+    http-types >= 0.8,
+    lens >= 4.5,
+    lens-aeson,
+    mime-types,
+    old-locale,
+    template-haskell,
+    text,
+    time,
+    unordered-containers
+
+-- A convenient server for testing locally, or if httpbin.org is down.
+executable httpbin
+  hs-source-dirs: httpbin
+  ghc-options:    -Wall -fwarn-tabs -threaded -rtsopts
+  default-language: Haskell98
+  main-is:        HttpBin.hs
+  other-modules:  HttpBin.Server
+
+  if !flag(httpbin)
+    buildable: False
+  else
+    build-depends:
+      aeson >= 0.7,
+      aeson-pretty >= 0.7.1,
+      base >= 4.5 && < 5,
+      base64-bytestring,
+      bytestring,
+      case-insensitive,
+      containers,
+      snap-core,
+      snap-server >= 0.9.4.4,
+      text,
+      time,
+      transformers,
+      unix-compat,
+      uuid
+
+test-suite tests
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: httpbin tests
+  main-is:        Tests.hs
+  ghc-options:    -Wall -fwarn-tabs -funbox-strict-fields -threaded -rtsopts
+  default-language: Haskell98
+  other-modules:
+    Properties.Store
+    UnitTests
+
+  if flag(aws)
+    cpp-options: -DAWS_TESTS
+    other-modules:
+      AWS
+      AWS.Aeson
+      AWS.DynamoDB
+      AWS.IAM
+      AWS.S3
+      AWS.SQS
+
+  if flag(aws)
+    build-depends: base >= 4.7 && < 5
+
+  build-depends:
+    HUnit,
+    QuickCheck >= 2.7,
+    aeson,
+    aeson-pretty >= 0.7.1,
+    base >= 4.5 && < 5,
+    base64-bytestring,
+    bytestring,
+    case-insensitive,
+    containers,
+    hashable,
+    http-client,
+    http-types,
+    lens,
+    lens-aeson,
+    network-info,
+    snap-core,
+    snap-server >= 0.9.4.4,
+    temporary,
+    test-framework,
+    test-framework-hunit,
+    test-framework-quickcheck2,
+    text,
+    time,
+    transformers,
+    unix-compat,
+    uuid,
+    vector,
+    wreq-sb
+
+test-suite doctest
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is:        DocTests.hs
+  ghc-options:    -Wall -fwarn-tabs -threaded
+  default-language: Haskell98
+
+  if !flag(doctest)
+    buildable: False
+  else
+    build-depends:
+      base >= 4.5 && < 5,
+      directory,
+      doctest,
+      filepath
+
+source-repository head
+  type:     git
+  location: https://github.com/stackbuilders/wreq
+
+
+package-hashes:
+    MD5:c23a8d6021ab0c0553d3f88bbd2b95b1
+    SHA1:3a2fce550ccee0172ce00d02591b3bb79aa0a84f
+    SHA256:dfc9c0a13696bbe2521a9d440bd9c8a57b8dccef270bdffb011bf320a7971b54
+    SHA512:48c8ac47c9d4a37abfbb215916ed987f4b74a7055a0085ba63d1af734c90808445470be40e1aebff4f7eb22a095d6042caa51364f0dbc4d43004eae8734efb0a
+    Skein512_512:8c4b82f9e641e37a1e7e3c560786ec9350c2fa8037d8af5c8303b548ad4c8d6235e81e844266d75a8877f1973253e10abb69b4854fabed361bdc72b05c840017
+
+package-locations:
+    https://hackage.haskell.org/package/wreq-sb-0.4.0.0/wreq-sb-0.4.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/wreq-sb-0.4.0.0.tar.gz
+

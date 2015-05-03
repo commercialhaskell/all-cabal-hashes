@@ -1,0 +1,397 @@
+name:           yi
+version:        0.6.0
+category:       Development, Editor
+synopsis:       The Haskell-Scriptable Editor
+description:
+  Yi is a text editor written in Haskell and extensible in Haskell. The goal of the Yi project is
+  to provide a flexible, powerful, and correct editor for haskell hacking.
+license:        GPL
+license-file:   LICENSE
+author:         AUTHORS
+maintainer:     yi-devel@googlegroups.com
+homepage:       http://haskell.org/haskellwiki/Yi
+bug-reports:    http://code.google.com/p/yi-editor/issues/list
+Cabal-Version:  >= 1.6
+tested-with:    GHC==6.10.1
+build-type:     Simple
+data-files:
+  art/yi+lambda-fat.pdf
+  art/yi+lambda-fat.32.png
+  art/dependencies.png
+  art/plain-folder.png
+  art/hs-source-folder.png
+  art/exposed-module.png
+  art/hidden-module.png
+  art/exposed-file-module.png
+  art/hidden-file-module.png
+  art/package.png
+  art/project.png
+  art/c-source.png
+  art/h-source.png
+  art/text-file.png
+  art/license-file.png
+  art/setup-script.png
+  art/setup-script.png
+  examples/yi.hs
+  examples/yi-simple.hs
+extra-source-files: Yi/Lexer/alex.hsinc
+
+flag ghcInterpreter
+  Description: Use the "hint" interpreter for extended commands (M-x) (experimental)
+  Default: False      
+
+flag ghcAPI
+  Description: Enable linking with GHC API for advanced features.
+  Default: False
+  -- Can be useful to disable; ghc package is difficult to rebuild;
+  --  * normally not available for profiling.      
+  --  * links against old/new version of bytestring
+  --  * links against old version of Cabal
+  -- ...
+
+flag vty
+  Description: Provide Vty UI
+
+flag gtk
+  Description: Provide GTK UI
+
+flag pango
+  Description: Provide Pango UI
+
+flag cocoa
+  Description: Provide experimental Cocoa UI
+
+flag testing
+  Description: bake-in the self-checks
+
+library
+    exposed-modules:
+        Yi
+        Yi.Boot
+        Yi.Buffer
+        Yi.Buffer.Basic
+        Yi.Buffer.HighLevel
+        Yi.Buffer.Indent
+        Yi.Buffer.Normal
+        Yi.Buffer.Misc
+        Yi.Buffer.Region
+        Yi.Buffer.Undo
+        Yi.Completion
+        Yi.Config
+        Yi.Config.Default
+        Yi.Core
+        Yi.Debug
+        Yi.Dired
+        Yi.Dynamic
+        Yi.Editor 
+        Yi.Eval
+        Yi.Event
+        Yi.File
+        Yi.History
+        Yi.Hoogle
+        Yi.IReader
+        Yi.IncrementalParse
+        Yi.Interact
+        Yi.Keymap
+        Yi.Keymap.Completion
+        Yi.Keymap.Cua
+        Yi.Keymap.Emacs
+        Yi.Keymap.Emacs.KillRing
+        Yi.Keymap.Emacs.Utils
+        Yi.Keymap.Keys
+        Yi.Keymap.Vim
+        Yi.KillRing
+        Yi.Lexer.Alex
+        Yi.Lexer.Cabal
+        Yi.Lexer.Compilation
+        Yi.Lexer.C
+        Yi.Lexer.ObjectiveC
+        Yi.Lexer.Cplusplus
+        Yi.Lexer.Haskell
+        Yi.Lexer.JavaScript
+        Yi.Lexer.Latex 
+        Yi.Lexer.LiterateHaskell
+        Yi.Lexer.GNUMake
+        Yi.Lexer.OCaml
+        Yi.Lexer.Ott
+        Yi.Lexer.Perl
+        Yi.Lexer.Python
+        Yi.Lexer.Srmc
+        Yi.Lexer.SVNCommit
+        Yi.Main
+        Yi.MiniBuffer
+        Yi.Misc
+        Yi.MkTemp
+        Yi.Mode.Compilation
+        Yi.Mode.Haskell
+        Yi.Mode.IReader
+        Yi.Mode.Interactive
+        Yi.Mode.JavaScript
+        Yi.Mode.Latex
+        Yi.Modes
+        Yi.Monad
+        Yi.Prelude
+        Yi.Process
+        Yi.Rectangle
+        Yi.Regex
+        Yi.Region
+        Yi.Search
+        Yi.String
+        Yi.Style
+        Yi.Style.Library
+        Yi.Syntax
+        Yi.Syntax.BList
+        Yi.Syntax.Haskell
+        Yi.Syntax.JavaScript
+        Yi.Syntax.Latex
+        Yi.Syntax.Layout
+        Yi.Syntax.OnlineTree
+        Yi.Syntax.Paren
+        Yi.Syntax.Tree
+        Yi.Tag
+        Yi.Templates
+        Yi.TextCompletion,
+        Yi.UI.Common
+        Yi.UI.Utils
+        Yi.UI.TabBar
+        Yi.Window
+        Yi.Char.Unicode
+
+    include-dirs:   Yi/Lexer
+    if flag (vty)
+       cpp-options: -DFRONTEND_VTY
+       exposed-modules: Yi.UI.Vty
+       
+    if flag (gtk)
+      cpp-options: -DFRONTEND_GTK
+      exposed-modules: Yi.UI.Gtk
+      other-modules: Yi.UI.Gtk.ProjectTree
+                     Yi.UI.Gtk.Utils
+
+    if flag (pango)
+      cpp-options: -DFRONTEND_PANGO
+      exposed-modules: Yi.UI.Pango
+      other-modules: Yi.UI.Gtk.ProjectTree
+                     Yi.UI.Gtk.Utils
+
+
+    if flag (cocoa)
+      cpp-options: -DFRONTEND_COCOA
+      exposed-modules: Yi.UI.Cocoa
+      other-modules: Yi.UI.Cocoa.Application
+                     Yi.UI.Cocoa.TextStorage
+                     Yi.UI.Cocoa.TextView
+                     Yi.UI.Cocoa.Utils
+
+    if flag (ghcInterpreter)
+      cpp-options: -DGHC_INTERPRETER
+    else
+      other-modules:
+         Yi.Interpreter
+
+    if flag (ghcAPI)
+      cpp-options: -DGHC_API
+
+      exposed-modules:  Yi.Mode.Shim
+      other-modules:
+        Shim.SHM, Shim.SessionMonad, Shim.Hsinfo, Shim.GhcCompat,
+        Shim.ExprSearch, Yi.GHC
+
+    other-modules:
+        Paths_yi,
+        
+        -- "Internal" modules that the user better not see.
+        HConf
+        HConf.Utils
+        HConf.Paths
+        Yi.Buffer.Implementation
+        Data.Prototype
+
+        -- Should probably be split out to another package.
+        Data.ByteRope
+        Data.DelayList
+        Data.Trie
+        Parser.Incremental
+        Shim.CabalInfo
+        Shim.Utils 
+        Shim.ProjectContent
+        System.FriendlyPath
+
+        -- Broken.
+--                Yi.Keymap.Ee,
+--                Yi.Keymap.Gwern,
+--                Yi.Keymap.Joe,
+--                Yi.Keymap.Mg,
+--                Yi.Keymap.Nano,
+--                Yi.Keymap.Vi,
+
+
+executable yi
+        build-tools:   alex >= 2.0.1 && < 3
+        -- haddock >= 2.2,
+        -- it seems harsh to require haddock 2.2 to even configure Yi
+
+        build-depends: Cabal >= 1.6 && < 1.7
+        build-depends: Diff >=0.1 && <0.2
+        build-depends: array, containers,  directory, process, old-locale
+        build-depends: base>=4
+        build-depends: binary == 0.5.*
+        build-depends: bytestring >=0.9.1 && <0.9.2
+        build-depends: derive >=0.1 && <0.2 
+        build-depends: data-accessor == 0.2.*
+        build-depends: data-accessor-monads-fd == 0.2.*
+        build-depends: data-accessor-template == 0.2.*
+        build-depends: filepath>=1.1 && <1.2
+        build-depends: fingertree >= 0 && <0.1
+        build-depends: ghc-paths ==0.1.*
+        build-depends: monads-fd
+        build-depends: pointedlist >= 0.3.1
+        build-depends: pureMD5 >= 0.2.3
+        build-depends: random
+        build-depends: regex-base ==0.93.*
+        build-depends: regex-tdfa == 1.0.*
+        build-depends: rosezipper >= 0.1 && < 0.2
+        build-depends: split == 0.1.*
+        build-depends: time == 1.1.*
+        build-depends: transformers==0.1.*
+        build-depends: utf8-string >= 0.3.1
+        build-depends: uniplate
+        build-depends: unix-compat >=0.1 && <0.2
+
+        ghc-options:   -Wall -fno-warn-orphans -threaded
+        -- orphans are a performance warning, but 
+        -- we need this in Yi.
+-- ghc-options later on get appended to the original
+        ghc-prof-options:   -prof -auto-all
+
+        if !os(mingw32)
+           build-depends: unix
+
+        if flag (vty)
+           build-depends: vty>=3.1.8 && < 4
+           cpp-options: -DFRONTEND_VTY
+
+        if flag (gtk)
+          build-depends: gtk>=0.9.13
+          build-depends: glib>=0.9.13
+          cpp-options: -DFRONTEND_GTK
+
+        if flag (pango)
+          build-depends: gtk>=0.9.13
+          cpp-options: -DFRONTEND_PANGO
+          other-modules: Yi.UI.Gtk.ProjectTree
+                         Yi.UI.Gtk.Utils
+                         Yi.UI.Pango
+
+        if flag (cocoa)
+          build-depends: HOC, HOC-AppKit, HOC-Foundation
+          cpp-options: -DFRONTEND_COCOA
+
+        if flag (ghcInterpreter)
+          cpp-options: -DGHC_INTERPRETER
+          build-depends: hint > 0.3.1 
+          -- requires an unreleased version atm.
+
+        if flag (ghcAPI)
+          build-depends: ghc == 6.8.3 || == 6.10.1
+          build-depends: old-time
+          -- Shim uses old-time
+          cpp-options: -DGHC_API
+
+        if !(flag(vty) || flag (gtk) || flag(cocoa))
+         buildable: False
+
+        main-is:        Main.hs
+
+        other-modules:
+           Yi
+           Yi.Prelude
+           Yi.Boot
+           Yi.Keymap.Emacs
+           Yi.Keymap.Vim
+           Yi.Misc
+           Yi.Modes
+           Yi.Mode.Compilation
+           Yi.Mode.Haskell
+           Yi.Buffer
+           Yi.Buffer.Basic
+           Yi.Keymap.Keys
+           Shim.CabalInfo
+           Shim.Utils
+           Shim.ProjectContent
+           System.FriendlyPath
+           Yi.UI.Common
+
+           Paths_yi
+           Yi.GHC
+
+           Yi.Lexer.Alex
+           Yi.Lexer.Compilation
+           Yi.Lexer.C
+           Yi.Lexer.ObjectiveC
+           Yi.Lexer.Cplusplus
+           Yi.Lexer.Haskell
+           Yi.Lexer.JavaScript
+           Yi.Lexer.LiterateHaskell
+           Yi.Lexer.Latex 
+           Yi.Lexer.Srmc
+           Yi.Lexer.Cabal
+           Yi.Lexer.GNUMake
+           Yi.Lexer.OCaml
+           Yi.Lexer.Ott
+           Yi.Lexer.Perl
+           Yi.Lexer.Python
+           Yi.Lexer.SVNCommit
+
+           Yi.Syntax
+           Yi.Syntax.BList
+           Yi.Syntax.JavaScript
+           Yi.Syntax.Layout
+           Yi.Syntax.OnlineTree
+           Yi.Syntax.Paren
+           Yi.Syntax.Latex
+           Yi.Syntax.Tree
+
+           Yi.Mode.Interactive
+
+           Yi.Buffer.Indent
+           Yi.Buffer.HighLevel, Yi.Buffer.Implementation,
+           Yi.Buffer.Normal, Yi.Buffer.Region, Yi.Completion, Yi.Core,
+           Yi.Debug, Yi.Dired, Yi.Dynamic, Yi.Editor, Yi.Eval, Yi.Event, Data.ByteRope, Yi.History,
+           Yi.Interact, Yi.Keymap, Yi.Keymap.Completion,
+           Yi.Keymap.Emacs.KillRing, 
+           Yi.Keymap.Emacs.Utils, Yi.Main, Yi.MkTemp, Yi.Monad, Yi.Process,
+           Yi.Search, Yi.String, Yi.Style, Yi.Templates, Yi.TextCompletion,
+           Yi.Buffer.Undo, Yi.Window,
+           Yi.MiniBuffer
+           Yi.File
+           Yi.KillRing
+           Yi.IncrementalParse
+           Yi.UI.Utils
+           HConf
+           HConf.Utils
+           HConf.Paths
+           -- Should probably be split out to another package.
+           Data.DelayList
+
+        include-dirs:   Yi/Lexer
+
+        if flag(testing)
+            cpp-options:    -DTESTING
+            hs-source-dirs: . tests/
+            other-modules: Driver, TestSuite
+            build-depends: QuickCheck >= 2
+            build-depends: random
+
+
+package-hashes:
+    MD5:545c9312b10c6b93008f76a3fc79c33c
+    SHA1:1fdb774a9ee12d5b817b2782c79df89c63e2ea5f
+    SHA256:030628db16c04dee69a21e44fb366fd48da1066bdd185dea19fae5a05e020ad9
+    SHA512:84a4833199ca7dcd97836b9763e037e8aad9a5e8ce65c312a074347a4c44108b9d522209afca101e4cb12ddac124e79582ccaf0d6907b12ee3d43917852da3d9
+    Skein512_512:172d2a897e935033eecb3af79bf0e53e1fd61f4f1613e79190a2c5af8bdf85d465f99cae2cbee9847f7125682fac01561cfc9ab6a9f8acff8d8700ad8fc7c90a
+
+package-locations:
+    https://hackage.haskell.org/package/yi-0.6.0/yi-0.6.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/yi-0.6.0.tar.gz
+

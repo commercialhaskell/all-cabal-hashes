@@ -1,0 +1,242 @@
+name:             wumpus-core
+version:          0.18.0
+license:          BSD3
+license-file:     LICENSE
+copyright:        Stephen Tetley <stephen.tetley@gmail.com>
+maintainer:       Stephen Tetley <stephen.tetley@gmail.com>
+homepage:         http://code.google.com/p/copperbox/
+category:         Graphics
+synopsis:         Pure Haskell PostScript and SVG generation. 
+description:
+  .
+  Wumpus - (W)riter (M)onad (P)ost (S)cript. 
+  .
+  Wumpus is a library for generating 2D vector pictures, its 
+  salient feature is portability due to no FFI dependencies. 
+  It can generate PostScript (EPS) files and SVG files. The 
+  generated PostScript code is plain [1] and reasonably 
+  efficient as the use of stack operations, i.e @gsave@ and 
+  @grestore@ is minimized.
+  .
+  Pictures in Wumpus are made from /paths/ and text /labels/. 
+  Paths themselves are made from points. The usual affine 
+  transformations (rotations, scaling, translations) can be
+  applied to geometric objects. Unlike PostScript there 
+  is no notion of a current point, Wumpus builds pictures in a
+  coordinate-free style. 
+  .
+  With recent revisions, I\'ve added some extra helper modules
+  that are not really part of the \"core\", but they provide 
+  lists of named colours and /safe/ fonts, plus some code  
+  (Extra.PictureLanguage) that has been moved out of the
+  wumpus-core namespace because it is somewhat \"higher-level\". 
+  .
+  WARNING...
+  .
+  With revision 0.18.0, I\'ve changed the internals a bit so that 
+  Primitives (paths, text labels) support affine transformations. 
+  In the end, this didn\'t changed the API significantly, though 
+  with the next revision, I want to look at changing the 
+  PostScript output - swapping some uses of @concat@ to @moveto@; 
+  so again there is the possibility of significant changes 
+  between this revision and the next one.
+  .
+  Also the module, Core.BoundingBox, is still a candidate for 
+  reworking, as it has too many functions that do not offer 
+  distinct functionality. Some functions were removed in 
+  revision 0.17.0 and some more are likely to follow. 
+  .
+  NOTE...
+  .
+  One consequence of adding affine transformations for primitives
+  is that the bounding box of a primitive under transformation 
+  may be tighter than than the bounding box of transformed 
+  picture containing the same primitive, i.e.:
+  . 
+  @liftToPicture (transform PRIM) /= transform (liftToPicture PRIM)@
+  .
+  Where liftToPicture is usually @frame@ from 
+  @Wumpus.Core.Picture@.
+  .
+  This is because the bounding box of a transformed picture is 
+  calculated by applying the transformation to the corner points 
+  of its (previous) bounding box rather than finding the bounding 
+  box union of all the composite primitives.
+  .
+  GENERAL DRAWBACKS...
+  .
+  For actually drawing pictures, diagrams, etc. Wumpus is very 
+  low level. I\'m working on a complementary package 
+  @wumpus-extra@ with higher-level stuff (polygons, arrows etc.)
+  but it is too unstable for Hackage. Preview releases can be
+  found at <http://code.google.com/p/copperbox/> though.
+  .
+  Some of the design decisions made for wumpus-core are not 
+  sophisticated (e.g. how attributes like colour are 
+  handled, and how the bounding boxes of text labels are 
+  calculated), so Wumpus might be limited compared to other 
+  systems. However, the design permits a simple implementation - 
+  which is a priority. Text encoding an exception - I\'m not 
+  sure how reasonable the design is. The current implementation 
+  appears okay for Latin 1 but may be inadequate for other 
+  character sets, so I may have to revise it significantly.
+  .
+  .
+  \[1\] Because the output is simple, straight-line PostScript 
+  code, it is possible to use GraphicsMagick or a similar tool to 
+  convert Wumpus'\s EPS files to many other formats (bitmaps). 
+  .
+  Changelog:
+  .
+  0.17.0 to 0.18.0:
+  .
+  * Added instances of the affine operation classes (Scale, 
+    Rotate ...) for Primitives (path, text label, ellipse).
+  .
+  * Added some picture composition functions to Core.Picture.
+    These are useful for testing where the type class 
+    complications of Extra.PictureLanguage are an overhead.  
+  .
+  * Added iRGB to Core.Colour - create RGB colours with 
+    integer components [0..255] - and iHSB, iGrey.
+  .
+  * Added some test modules for the affine transformations.
+    These illustrate a quirk in Wumpus where, under affine 
+    transformation, Pictures may generate a larger bounding box 
+    than composite primitives.
+  .
+  * Minor change - ztextlabal changed to use 24pt type rather 
+    than 12pt. 
+  .
+  * Corrected the cabal file to include the correct files for 
+    the manual. The Haskell source file @WorldFrame.hs@ was 
+    missing with the generated file @WorldFrame.eps@ incorrectly 
+    included instead.
+  .
+  0.16.0 to 0.17.0:
+  .
+  * Added Core.WumpusTypes to export opaque versions of
+    datatypes from Core.PictureInternal. This should make
+    the Haddock documentation more cohesive.
+  . 
+  * Moved the Core.PictureLanguage module into the Extra
+    namespace (Extra.PictureLanguage). This module may change
+    in detail, if not in spirit in the future as I'm not 
+    very happy with it. Also this module is somewhat 
+    \"higher-level\" than the modules in wumpus-core, so 
+    a different home seems fitting. 
+  . 
+  * Removed CardinalPoint and boundaryPoint from BoundingBox.
+  .
+  * Argument order of 'textlabel' and 'ztextlabel' changed so
+    that Point2 is the last argument.
+  .
+  * PathSegment constructor names changed - this is an internal
+    change as the constructors are not exported.
+  .
+  * Primitive type changed - moved Ellipse properties into 
+    PrimEllipse type - internal change.
+  .
+  * Removed dependency on \'old-time\'.
+  .
+  0.15.0 to 0.16.0:
+  .
+  * Additions to Core.Geometry (direction, pvec, vangle, 
+    circularModulo).
+  .
+  * Fixed error with langle due to not accounting for circle 
+    quadrants in Core.Geometry.
+  .
+  * Point2 now derives Ord - so it can be used as a key for
+    Data.Map.
+  .
+  * Added escape-character handling to text output in PostScript.
+    This was causing a nasty bug where a drawing would completely
+    fail when special chars shown (GhostView gives little hint of 
+    what is wrong when such errors are present).
+  . 
+  * Changed BoundingBox operation 'corners' to return a 4-tuple
+    rather than a list.
+  .  
+  * Added centeredAt to PictureLanguage
+  .
+  .
+build-type:         Simple
+stability:          unstable
+cabal-version:      >= 1.2
+
+extra-source-files:
+  CHANGES,
+  LICENSE,
+  demo/AffineTest01.hs,
+  demo/AffineTest02.hs,
+  demo/AffineTest03.hs,
+  demo/AffineTest04.hs,
+  demo/AffineTestBase.hs,
+  demo/FontPic.hs,
+  demo/LabelPic.hs,
+  demo/Picture.hs,
+  doc/Guide.pdf,
+  doc-src/Guide.lhs,
+  doc-src/Makefile,
+  doc-src/WorldFrame.hs
+
+
+
+library
+  hs-source-dirs:     src
+  build-depends:      base < 5, containers,
+                      time >= 1.1.3 && < 1.2,
+                      wl-pprint, vector-space, 
+                      monadLib, xml, algebra
+                        
+  exposed-modules:
+    Wumpus.Core,
+    Wumpus.Core.AffineTrans,
+    Wumpus.Core.BoundingBox,
+    Wumpus.Core.Colour,
+    Wumpus.Core.FontSize,
+    Wumpus.Core.Geometry,
+    Wumpus.Core.GraphicsState,
+    Wumpus.Core.OutputPostScript,
+    Wumpus.Core.OutputSVG,
+    Wumpus.Core.Picture,
+    Wumpus.Core.TextEncoder,
+    Wumpus.Core.TextLatin1,
+    Wumpus.Core.VersionNumber,
+    Wumpus.Core.WumpusTypes,
+    Wumpus.Extra.PictureLanguage,
+    Wumpus.Extra.SafeFonts,
+    Wumpus.Extra.SVGColours,
+    Wumpus.Extra.X11Colours
+
+  other-modules:
+    Wumpus.Core.PictureInternal,
+    Wumpus.Core.PostScript,
+    Wumpus.Core.SVG,
+    Wumpus.Core.TextEncodingInternal,
+    Wumpus.Core.Utils
+    
+  extensions:
+    
+
+  ghc-options:
+  
+  includes: 
+  
+
+  
+  
+
+
+package-hashes:
+    MD5:77bc70d44cfd47323959a77a03d18128
+    SHA1:0f7d1a246b2c71e901f3d8def0167fce928406a5
+    SHA256:209932cace41dbbd7d23338e7c1926dbf2c9b4fc44a10d1ad2a8b7526c10cc8b
+    SHA512:f77aee7ee3e1fa59ab312daacda47fb42732ff8d8e24266ce9bb70b5feeca5a22aed3913350494afdd3d9499ed1e86d4a51f09d4f08e5ce8ab1281e1883cc099
+    Skein512_512:cddb2f6c43de3ae9128e8d53c8da86acacb8fbeb68af755917046b7843856e0178c3d18b59d2335d726e82943f10d5650ff15452d1ab5256294553b00d291563
+
+package-locations:
+    https://hackage.haskell.org/package/wumpus-core-0.18.0/wumpus-core-0.18.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/wumpus-core-0.18.0.tar.gz
+

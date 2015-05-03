@@ -1,0 +1,140 @@
+build-type:	Simple
+cabal-version:	>= 1.8
+
+name:		xml-push
+version:	0.0.0.6
+stability:	Experimenmtal
+author:		Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+maintainer:	Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+homepage:	https://github.com/YoshikuniJujo/xml-push/wiki
+
+license:	BSD3
+license-file:	LICENSE
+
+category:	Network
+synopsis:	Push XML from/to client to/from server over XMPP or HTTP
+description:
+    examples/TestSimple.hs
+    .
+    extensions
+    .
+    * ScopedTypeVariables
+    .
+    > module TestSimple (testSimple) where
+    >
+    > import Control.Monad
+    > import Control.Concurrent
+    > import Data.Maybe
+    > import Data.Pipe
+    > import Data.Pipe.ByteString
+    > import System.IO
+    > import Text.XML.Pipe
+    > import Network.XmlPush
+    > import Network.XmlPush.Simple
+    >
+    > testSimple :: Handle -> IO ()
+    > testSimple h = do
+    > 	(sp :: SimplePusher Handle) <- generate (One h) ()
+    > 	void . forkIO . runPipe_ $ readFrom sp
+    > 		=$= convert (xmlString . (: []))
+    > 		=$= toHandle stdout
+    > 	runPipe_ $ fromHandle stdin
+    > 		=$= xmlEvent
+    > 		=$= convert fromJust
+    > 		=$= xmlNode []
+    > 		=$= writeTo sp
+    .
+    examples/simpleClient
+    .
+    > import Network
+    > import TestSimple
+    >
+    > main :: IO ()
+    > main = testSimple =<< connectTo "localhost" (PortNumber 54492)
+    .
+    examples/simpleServer
+    .
+    > import Control.Monad
+    > import Control.Concurrent
+    > import Network
+    >
+    > import TestSimple
+    >
+    > main :: IO ()
+    > main = forever . (void . forkIO . testSimple . fst3 =<<) . accept
+    > 	=<< listenOn (PortNumber 54492)
+    >
+    > fst3 :: (a, b, c) -> a
+    > fst3 (x, _, _) = x
+    .
+
+extra-source-files:
+    examples/simpleClient.hs
+    examples/simpleServer.hs
+    examples/TestSimple.hs
+    examples/TestPusher.hs
+    examples/FilePusher.hs
+    examples/simple.hs
+    examples/xmpp.hs
+    examples/xmppTls.hs
+    examples/httpPullCl.hs
+    examples/httpPullSv.hs
+    examples/httpPullTlsCl.hs
+    examples/httpPullTlsSv.hs
+    examples/httpPushT.hs
+    examples/httpPushE.hs
+    examples/httpPushTlsT.hs
+    examples/httpPushTlsE.hs
+
+data-files:
+    certs/cacert.sample_pem
+    certs/localhost.sample_key
+    certs/localhost.sample_crt
+    certs/yoshikuni.sample_key
+    certs/yoshikuni.sample_crt
+
+source-repository	head
+    type:	git
+    location:	git://github.com/YoshikuniJujo/xml-push.git
+
+source-repository	this
+    type:	git
+    location:	git://github.com/YoshikuniJujo/xml-push.git
+    tag:	xml-push-0.0.0.6
+
+library
+    hs-source-dirs:	src
+    exposed-modules:
+        Network.XmlPush, Network.XmlPush.Simple
+        Network.XmlPush.Xmpp, Network.XmlPush.Xmpp.Tls
+        Network.XmlPush.HttpPull.Client, Network.XmlPush.HttpPull.Server
+        Network.XmlPush.HttpPull.Tls.Client, Network.XmlPush.HttpPull.Tls.Server
+        Network.XmlPush.HttpPush, Network.XmlPush.HttpPush.Tls
+    other-modules:
+        Network.XmlPush.Tls.Client
+        Network.XmlPush.Tls.Server
+        Network.XmlPush.Xmpp.Common
+        Network.XmlPush.HttpPull.Client.Common
+        Network.XmlPush.HttpPull.Server.Common
+        Network.XmlPush.HttpPush.Common
+    build-depends:
+        base == 4.*, peyotls == 0.1.*, simple-pipe == 0.0.*, xml-pipe == 0.0.*,
+        handle-like == 0.1.*, monad-control == 0.3.*, transformers-base == 0.4.*,
+        monads-tf == 0.1.*, bytestring == 0.10.*, xmpipe == 0.0.*, sasl == 0.0.*,
+        random == 1.0.*, uuid == 1.3.*, stm == 2.4.*, crypto-random == 0.0.*,
+        x509 == 1.4.*, x509-store == 1.4.*, tighttp == 0.0.*
+    ghc-options:	-Wall
+    extensions:		DoAndIfThenElse
+
+
+package-hashes:
+    MD5:0aefdf839ee8c4c8f486ecd5fa8d3086
+    SHA1:1066ec123240b17a2e78d0a509ae3c9863a23781
+    SHA256:160c34503feadc358b15a338aba003d257fe8e18e4fd2d40d9be82abe17d3b24
+    SHA512:7103f0d4fd977fa16668c422f3f9bf995c3599b4def5589b7b178e8a7b61115162ce6c498ad57f4974b0efebcc6ca779d6c02bd14bca39dbc565804a8d3a6e2a
+    Skein512_512:2194f1d0bcda18b1c8dc404e76c89d9d0f8d7b9892338e7cd91de91761fac9cb8f6009bdab4a6355c2deec861fe8ae3dd669e78cdd023f7472a080a659b89c2a
+
+package-locations:
+    https://hackage.haskell.org/package/xml-push-0.0.0.6/xml-push-0.0.0.6.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/xml-push-0.0.0.6.tar.gz
+

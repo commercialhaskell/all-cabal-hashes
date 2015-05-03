@@ -1,0 +1,97 @@
+name:            zlib
+version:         0.6.0.1
+copyright:       (c) 2006-2015 Duncan Coutts
+license:         BSD3
+license-file:    LICENSE
+author:          Duncan Coutts <duncan@community.haskell.org>
+maintainer:      Duncan Coutts <duncan@community.haskell.org>
+category:        Codec
+synopsis:        Compression and decompression in the gzip and zlib formats
+description:     This package provides a pure interface for compressing and 
+                 decompressing streams of data represented as lazy 
+                 'ByteString's. It uses the zlib C library so it has high
+                 performance. It supports the \"zlib\", \"gzip\" and \"raw\"
+                 compression formats.
+                 .
+                 It provides a convenient high level API suitable for most
+                 tasks and for the few cases where more control is needed it
+                 provides access to the full zlib feature set.
+build-type:      Simple
+cabal-version:   >= 1.10
+extra-source-files: changelog
+                    -- zlib C sources (for Windows)
+                    cbits/crc32.h cbits/inffast.h cbits/inflate.h
+                    cbits/trees.h cbits/deflate.h cbits/inffixed.h
+                    cbits/inftrees.h cbits/zutil.h cbits/gzguts.h
+                    -- test data files
+                    test/data/bad-crc.gz test/data/custom-dict.zlib
+                    test/data/custom-dict.zlib-dict test/data/hello.gz
+                    test/data/not-gzip test/data/two-files.gz
+                    -- demo programs:
+                    examples/gzip.hs examples/gunzip.hs
+
+source-repository head
+  type: darcs
+  location: http://code.haskell.org/zlib/
+
+library
+  exposed-modules: Codec.Compression.GZip,
+                   Codec.Compression.Zlib,
+                   Codec.Compression.Zlib.Raw,
+                   Codec.Compression.Zlib.Internal
+  other-modules:   Codec.Compression.Zlib.Stream
+  if impl(ghc < 7)
+    default-language: Haskell98
+  else
+    default-language: Haskell2010
+  other-extensions: CPP, ForeignFunctionInterface, RankNTypes, BangPatterns,
+                    DeriveDataTypeable
+  if impl(ghc >= 7.2)
+    other-extensions: DeriveGeneric
+  build-depends:   base >= 4 && < 5,
+                   bytestring >= 0.9 && < 0.12
+  if impl(ghc >= 7.2 && < 7.6)
+    build-depends: ghc-prim
+  includes:        zlib.h
+  ghc-options:     -Wall -fwarn-tabs
+  if !os(windows)
+    -- Normally we use the the standard system zlib:
+    extra-libraries: z
+  else
+    -- However for the benefit of users of Windows (which does not have zlib
+    -- by default) we bundle a complete copy of the C sources of zlib-1.2.8
+    c-sources:     cbits/adler32.c cbits/compress.c cbits/crc32.c
+                   cbits/deflate.c cbits/infback.c
+                   cbits/inffast.c cbits/inflate.c cbits/inftrees.c
+                   cbits/trees.c cbits/uncompr.c cbits/zutil.c
+    include-dirs:  cbits
+    install-includes: zlib.h zconf.h
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is:         Test.hs
+  other-modules:   Utils,
+                   Test.Codec.Compression.Zlib.Internal,
+                   Test.Codec.Compression.Zlib.Stream
+  hs-source-dirs:  test
+  default-language: Haskell2010
+  build-depends:   base, bytestring, zlib,
+                   QuickCheck       == 2.*,
+                   HUnit            == 1.2.*,
+                   tasty            >= 0.8 && < 0.11,
+                   tasty-quickcheck == 0.8.*,
+                   tasty-hunit      == 0.8.*
+  ghc-options:     -Wall
+
+
+package-hashes:
+    MD5:2bffcf7aeee2abe9ea9b7736b5b6b968
+    SHA1:7a42063fc5ff72f39708566e7cefe2bdf10abe4c
+    SHA256:8ab5fa63ff16beff4513ff6a2acfdc68f6c0bf836694a7b9bc629b829f3fa077
+    SHA512:1142dec6f0dd93574ddcf22a7e3d1d3661e4fae701788751c1d924421dc7555fe704a84a9db143f5427bcac6cb501e8bcce3a2051d3f1c362aef67b48387c13f
+    Skein512_512:ca3e02822b670d46b92388bca4bce4fcb5a36e78a357ce561b6d4dd45899d497dbfb8f7b8b636238c09cd2d7b6418cea4f065c645975058793fff2b4cb6d46e3
+
+package-locations:
+    https://hackage.haskell.org/package/zlib-0.6.0.1/zlib-0.6.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/zlib-0.6.0.1.tar.gz
+

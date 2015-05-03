@@ -1,0 +1,206 @@
+name:             wumpus-core
+version:          0.51.0
+license:          BSD3
+license-file:     LICENSE
+copyright:        Stephen Tetley <stephen.tetley@gmail.com>
+maintainer:       Stephen Tetley <stephen.tetley@gmail.com>
+homepage:         http://code.google.com/p/copperbox/
+category:         Graphics
+synopsis:         Pure Haskell PostScript and SVG generation. 
+description:
+  .
+  Wumpus-Core is a low-level library for generating static 2D 
+  vector pictures, its salient feature is portability due to no 
+  FFI dependencies. It can generate PostScript (EPS) files and SVG 
+  files. The generated PostScript code is plain and reasonably 
+  efficient as the use of stack operations, i.e @gsave@ and 
+  @grestore@, is minimized. 
+  .
+  Although Wumpus-Core only generates vector output, the generated 
+  PostScript can be interpreted by GraphicsMagick or a similar 
+  tool to convert EPS files into bitmap image files (e.g JPEGs).
+  .
+  Wumpus-Core makes pictures from /paths/ and text /labels/. Paths 
+  themselves are made from points. The usual affine 
+  transformations (rotations, scaling, translations) can be
+  applied to Pictures. Unlike PostScript there is no notion of a 
+  current point, Wumpus-Core builds pictures in a coordinate-free 
+  style. 
+  .
+  GENERAL DRAWBACKS...
+  .
+  For actually building pictures, diagrams, etc. Wumpus-Core is 
+  very low-level. There are two supplementary packages 
+  @Wumpus-Basic@ and @Wumpus-Drawing@ also on Hackage that aim to 
+  be a higher-level basis for creating certain types of diagram, 
+  but they are experimental - functionality is added and dropped 
+  between releases and curently the API is too unstable to write 
+  code upon (they should be considered a technology preview rather
+  than re-usable libraries).
+  .
+  Also, some of the design decisions made for Wumpus-Core are not 
+  sophisticated - e.g. how path and text attributes like colour 
+  are handled, and how the bounding boxes of text labels are 
+  calculated. Compared to other systems, Wumpus might be rather 
+  limited, however, the design permits a fairly simple 
+  implementation.
+  .  
+  .
+  Changelog:
+  .
+  v0.50.0 to v0.51.0:
+  .
+  * Added special cases to handle continuity to the function 
+    @lineDirection@ in @Core.Geometry@.
+  .
+  * Added @zeroVec@ to @Core.Geometry@.
+  . 
+  * Extended some Haddock documentation.
+  .
+  v0.43.0 to v0.50.0:
+  .
+  * Major change hence the version number jump - the notion of 
+    parametric unit has been removed from the @Picture@ objects 
+    (it for remains the @Geometric@ objects @Point2@, @Vec2@ etc.). 
+    Certain useful units, e.g. @em@ and @en@, are contextual on 
+    the \"current point size\", and having a parametric unit here 
+    was actually a hinderance to supporting units properly in 
+    higher-level layers. Now all Picture objects (those defined 
+    or exported from @Core.Picture@) are fixed to use Double 
+    - representing PostScript points. Higher level layers that 
+    intend to support alternative units must translate drawing 
+    objects to PostScript point measurements /before/ calling the 
+    Picture API. Geometric objects - objects defined in 
+    @Core.Geometry@, e.g. @Point2@, @Vec2@ - are still polymorphic 
+    on unit. 
+  .  
+  * Picture API change - Various function names changed.
+    @lineTo@ becomes @absLineTo@ and @curveTo@ becomes 
+    @absCurveTo@. The path builders are qualified with /Prim/, 
+    @vertexPath@ becomes @vertexPrimPath@, @vectorPath@ becomes 
+    @vectorPrimPath@, @emptyPath@ becomes @emptyPrimPath@ and 
+    @curvedPath@ becomes @curvedPrimPath@. @xlink@ becomes 
+    @xlinkPrim@.
+  . 
+  * API change - @PtSize@ data type replaced by @AfmUnit@ for font 
+    measurements.
+  .
+  * API and representation change - clipping paths are represented
+    as @Primitive@ constructor rather than a @Picture@ constructor.
+    This should make them more useful. The type of the function 
+    @clip@ in @Core.Picture@ has likewise changed.
+  .
+  * Picture API change - changed @primPath@ to @absPrimPath@, added
+    the functions @relPrimPath@, @relLineTo@, @relCurveTo@.
+  . 
+  * Added the class @Tolerance@ to @Core.Geometry@ and made the Eq 
+    instances of @Point2@, @Vec2@ and @BoundingBox@ tolerant. 
+    Tolerance accounts for a fairly lax equality on floating point 
+    numbers - it is suitable for Wumpus (printing) where high 
+    accuracy is needed.
+  .
+  v0.42.1 to v0.43.0:
+  .
+  * API change - the function @bezierCircle@ in @Core.Geometry@
+    has changed. It now implements a better method of drawing 
+    circles with Bezier curves and no longer needs the 
+    subvision factor. The old circle drawing function has been 
+    retained as @subdivisionCircle@ as it is useful for 
+    corroborating @bezierCircle@, but the general use of 
+    @subdivisionCircle@ should be avoided.
+  . 
+  * Added a function @bezierEllipse@ to @Core.Geometry@.
+  .
+build-type:         Simple
+stability:          unstable
+cabal-version:      >= 1.2
+
+extra-source-files:
+  CHANGES,
+  LICENSE,
+  demo/AffineTest01.hs,
+  demo/AffineTest02.hs,
+  demo/AffineTest03.hs,
+  demo/AffineTestBase.hs,
+  demo/ClipPic.hs,
+  demo/DeltaPic.hs,
+  demo/EllipsePic.hs,
+  demo/FontMetrics.hs,
+  demo/Hyperlink.hs,
+  demo/KernPic.hs,
+  demo/LabelPic.hs,
+  demo/Latin1Pic.hs,
+  demo/MultiPic.hs,
+  demo/TextBBox.hs,
+  demo/TransformEllipse.hs,
+  demo/TransformPath.hs,
+  demo/TransformTextlabel.hs,
+  demo/ZOrderPic.hs,
+  doc/Guide.pdf,
+  doc-src/Guide.lhs,
+  doc-src/Makefile,
+  doc-src/WorldFrame.hs
+
+
+
+library
+  hs-source-dirs:     src
+  build-depends:      base            <  5, 
+                      containers      >= 0.3      && <= 0.6, 
+                      time            >= 1.1.3    && <  1.6,
+                      vector-space    >= 0.6      && <  1.0
+                        
+  exposed-modules:
+    Wumpus.Core,
+    Wumpus.Core.AffineTrans,
+    Wumpus.Core.BoundingBox,
+    Wumpus.Core.Colour,
+    Wumpus.Core.FontSize,
+    Wumpus.Core.Geometry,
+    Wumpus.Core.GraphicProps,
+    Wumpus.Core.OutputPostScript,
+    Wumpus.Core.OutputSVG,
+    Wumpus.Core.Picture,
+    Wumpus.Core.Text.Base,
+    Wumpus.Core.Text.GlyphIndices,
+    Wumpus.Core.Text.GlyphNames,
+    Wumpus.Core.Text.Latin1Encoding,
+    Wumpus.Core.Text.StandardEncoding,
+    Wumpus.Core.Text.Symbol,
+    Wumpus.Core.VersionNumber,
+    Wumpus.Core.WumpusTypes
+
+  other-modules:
+    Wumpus.Core.PageTranslation,
+    Wumpus.Core.PictureInternal,
+    Wumpus.Core.PostScriptDoc,
+    Wumpus.Core.SVGDoc,
+    Wumpus.Core.TrafoInternal,
+    Wumpus.Core.Utils.Common,
+    Wumpus.Core.Utils.HList,
+    Wumpus.Core.Utils.JoinList,
+    Wumpus.Core.Utils.FormatCombinators
+    
+  extensions:
+    
+
+  ghc-options:
+  
+  includes: 
+  
+
+  
+  
+
+
+package-hashes:
+    MD5:427bb3dc5881194fd48102cb17ac4219
+    SHA1:49b26a5210bcf3c306fe21a720ebbc697885afc3
+    SHA256:d52100acb5cc747070643480c8d5ef15f7ab946e6cea374c0018a40482bac4f7
+    SHA512:f6551a05dd29538e1c7c797a501d391f692917fe1ee70e33c067b5bb3f84ddcd5b0b9f0f79afa2c5bfb04a7d5257a8b2cad15eb77ad316a64469f99e123fd2e9
+    Skein512_512:a936e54799413321abfe97b8c6f886442451712035317b49e91cba08eac72bf27599f14ff39f40d23b9d0085d9fe94713ab89024d03ebe8e8cf3741ab3446327
+
+package-locations:
+    https://hackage.haskell.org/package/wumpus-core-0.51.0/wumpus-core-0.51.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/wumpus-core-0.51.0.tar.gz
+

@@ -1,0 +1,180 @@
+Name:                warp
+Version:             3.0.0.8
+Synopsis:            A fast, light-weight web server for WAI applications.
+License:             MIT
+License-file:        LICENSE
+Author:              Michael Snoyman, Kazu Yamamoto, Matt Brown
+Maintainer:          michael@snoyman.com
+Homepage:            http://github.com/yesodweb/wai
+Category:            Web, Yesod
+Build-Type:          Simple
+Cabal-Version:       >=1.8
+Stability:           Stable
+Description:
+    The premier WAI handler. For more information, see <http://steve.vinoski.net/blog/2011/05/01/warp-a-haskell-web-server/>.
+    .
+    Changelog
+    .
+    [3.0.0] WAI no longer uses conduit for its streaming interface.
+    .
+    [2.1.0] The @onOpen@ and @onClose@ settings now provide the @SockAddr@ of the client, and @onOpen@ can return a @Bool@ which will close the connection. The @responseRaw@ response has been added, which provides a more elegant way to handle WebSockets than the previous @settingsIntercept@. The old settings accessors have been deprecated in favor of new setters, which will allow settings changes to be made in the future without breaking backwards compatibility.
+    .
+    [2.0.0] ResourceT is not used anymore. Request and Response is now abstract data types. To use their constructors, Internal module should be imported.
+    .
+    [1.3.9] Support for byte range requests.
+    .
+    [1.3.7] Sockets now have FD_CLOEXEC set on them. This behavior is more secure, and the change should not affect the vast majority of use cases. However, it appeared that this is buggy and is fixed in 2.0.0.
+extra-source-files:  attic/hex
+
+Flag network-bytestring
+    Default: False
+
+Flag allow-sendfilefd
+    Description: Allow use of sendfileFd (not available on GNU/kFreeBSD)
+    Default:     True
+
+Flag warp-debug
+    Description: print debug output. not suitable for production
+    Default:     False
+
+Library
+  Build-Depends:     base                      >= 3        && < 5
+                   , array
+                   , auto-update               >= 0.1.1    && < 0.2
+                   , blaze-builder             >= 0.3.3  && < 0.4
+                   , bytestring                >= 0.9.1.4
+                   , case-insensitive          >= 0.2
+                   , ghc-prim
+                   , http-types                >= 0.8.5
+                   , simple-sendfile           >= 0.2.7    && < 0.3
+                   , unix-compat               >= 0.2
+                   , void
+                   , wai                       >= 3.0      && < 3.1
+                   , text
+                   , streaming-commons         >= 0.1.2
+  if flag(network-bytestring)
+      Build-Depends: network                   >= 2.2.1.5  && < 2.2.3
+                   , network-bytestring        >= 0.1.3    && < 0.1.4
+  else
+      Build-Depends: network               >= 2.3
+  Exposed-modules:   Network.Wai.Handler.Warp
+                     Network.Wai.Handler.Warp.Buffer
+                     Network.Wai.Handler.Warp.Timeout
+                     Network.Wai.Handler.Warp.Internal
+  Other-modules:     Network.Wai.Handler.Warp.Conduit
+                     Network.Wai.Handler.Warp.Date
+                     Network.Wai.Handler.Warp.FdCache
+                     Network.Wai.Handler.Warp.Header
+                     Network.Wai.Handler.Warp.IO
+                     Network.Wai.Handler.Warp.IORef
+                     Network.Wai.Handler.Warp.ReadInt
+                     Network.Wai.Handler.Warp.Recv
+                     Network.Wai.Handler.Warp.Request
+                     Network.Wai.Handler.Warp.RequestHeader
+                     Network.Wai.Handler.Warp.Response
+                     Network.Wai.Handler.Warp.ResponseHeader
+                     Network.Wai.Handler.Warp.Run
+                     Network.Wai.Handler.Warp.SendFile
+                     Network.Wai.Handler.Warp.Settings
+                     Network.Wai.Handler.Warp.Types
+                     Network.Wai.Handler.Warp.Windows
+                     Paths_warp
+  Ghc-Options:       -Wall
+
+  if flag(warp-debug)
+      Cpp-Options:   -DWARP_DEBUG
+  if (os(linux) || os(freebsd) || os(darwin)) && flag(allow-sendfilefd)
+      Cpp-Options:   -DSENDFILEFD
+      Build-Depends: hashable
+      Other-modules: Network.Wai.Handler.Warp.MultiMap
+  if os(windows)
+      Cpp-Options:   -DWINDOWS
+      Build-Depends: time
+                   , old-locale
+  else
+      Build-Depends: unix
+                   , http-date
+
+Test-Suite doctest
+  Type:                 exitcode-stdio-1.0
+  HS-Source-Dirs:       test
+  Ghc-Options:          -threaded -Wall
+  Main-Is:              doctests.hs
+  Build-Depends:        base
+                      , doctest >= 0.9.3
+
+Test-Suite spec
+    Main-Is:         Spec.hs
+    Other-modules:   ConduitSpec
+                     ExceptionSpec
+                     FdCacheSpec
+                     MultiMapSpec
+                     ReadIntSpec
+                     RequestSpec
+                     ResponseHeaderSpec
+                     ResponseSpec
+                     RunSpec
+    Hs-Source-Dirs:  test, .
+    Type:            exitcode-stdio-1.0
+
+    Ghc-Options:     -Wall
+    Build-Depends:   base >= 4 && < 5
+                   , array
+                   , auto-update
+                   , blaze-builder             >= 0.3.3    && < 0.4
+                   , bytestring                >= 0.9.1.4
+                   , case-insensitive          >= 0.2
+                   , ghc-prim
+                   , HTTP
+                   , http-types                >= 0.8.4
+                   , lifted-base               >= 0.1
+                   , simple-sendfile           >= 0.2.4    && < 0.3
+                   , transformers              >= 0.2.2
+                   , unix-compat               >= 0.2
+                   , void
+                   , wai
+                   , network
+                   , HUnit
+                   , QuickCheck
+                   , hspec                     >= 1.3
+                   , time
+                   , old-locale
+                   , text
+                   , streaming-commons >= 0.1.1
+                   , async
+
+  if (os(linux) || os(freebsd) || os(darwin)) && flag(allow-sendfilefd)
+    Cpp-Options:   -DSENDFILEFD
+    Build-Depends: unix
+                 , hashable
+                 , http-date
+  if os(windows)
+      Cpp-Options:   -DWINDOWS
+
+Benchmark parser
+    Type:           exitcode-stdio-1.0
+    Main-Is:        Parser.hs
+    HS-Source-Dirs: bench .
+    Build-Depends:  base
+                  , bytestring
+                  , criterion
+                  , http-types
+                  , network
+                  , network
+
+Source-Repository head
+  Type:     git
+  Location: git://github.com/yesodweb/wai.git
+
+
+package-hashes:
+    MD5:9f56dab9f2a1c011b00222badbdde489
+    SHA1:5805179ce30df46ea4744608d905463c10ad1ec9
+    SHA256:68668808f8557f10a4e587d668b55740ec1087660ffe8732b0a2b500191c1b3b
+    SHA512:1a010292895b838e7048e4d9c3c60a4a9b45c788a86e7cdb7468bc0c3d768b91df4fda6253bd4061dc8a2d8278eb7380b2f0dbfbc5ea5a74ede1d22df756503a
+    Skein512_512:d0010470727eb3e447c68fa16e4dea9ae3f0872477abc80d49955bff958de344d8290dca7584033ca20d0ea192cb084048d6fc731e4ce17ba2d092b3ca5464b7
+
+package-locations:
+    https://hackage.haskell.org/package/warp-3.0.0.8/warp-3.0.0.8.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/warp-3.0.0.8.tar.gz
+

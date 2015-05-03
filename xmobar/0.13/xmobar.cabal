@@ -1,0 +1,134 @@
+name:               xmobar
+version:            0.13
+homepage:           http://projects.haskell.org/xmobar/
+bug-reports:        http://code.google.com/p/xmobar/issues
+synopsis:           A Minimalistic Text Based Status Bar
+description: 	    Xmobar is a minimalistic text based status bar.
+		    .
+                    Inspired by the Ion3 status bar, it supports similar
+                    features, like dynamic color management, output templates,
+                    and extensibility through plugins.
+category:           System
+license:            BSD3
+license-file:       LICENSE
+author:             Andrea Rossato
+maintainer:         Jose A. Ortega Ruiz <jao@gnu.org>
+cabal-version:      >= 1.6
+build-type:         Simple
+
+extra-source-files: README, NEWS,
+                    samples/xmobar.config, samples/xmonadpropwrite.hs
+                    samples/Plugins/helloworld.config,
+                    samples/Plugins/HelloWorld.hs
+
+source-repository head
+  type:      git
+  location:  git://github.com/jaor/xmobar.git
+  branch:    master
+
+flag small_base
+  description: Choose the new smaller, split-up base package.
+
+flag with_xft
+  description: Use Xft to render text. UTF-8 support included.
+  default: False
+
+flag with_utf8
+  description: With UTF-8 support.
+  default: True
+
+flag with_inotify
+  description: inotify support (modern Linux only). Required for the Mail and MBox plugins.
+  default: False
+
+flag with_iwlib
+  description: Wireless info support. Required for the Wireless plugin, needs iwlib installed.
+  default: False
+
+flag with_mpd
+  description: MPD support. Needs libmpd installed.
+  default: False
+
+flag all_extensions
+  description: Includes all optional extensions.
+  default: False
+
+flag with_alsa
+  description: Use alsa-mixer to get the volume from soundcards.
+  default: False
+
+executable xmobar
+    hs-source-dirs:     src
+    main-is:            Main.hs
+    other-modules:
+      Xmobar, Config, Parsers, Commands, XUtil, StatFS, Runnable,
+      Plugins, Plugins.CommandReader, Plugins.Date, Plugins.EWMH,
+      Plugins.PipeReader, Plugins.StdinReader, Plugins.XMonadLog,
+      Plugins.Utils, Plugins.Monitors, Plugins.Monitors.Batt,
+      Plugins.Monitors.Common, Plugins.Monitors.CoreCommon,
+      Plugins.Monitors.CoreTemp, Plugins.Monitors.CpuFreq,
+      Plugins.Monitors.Cpu, Plugins.Monitors.Disk, Plugins.Monitors.Mem,
+      Plugins.Monitors.MultiCpu, Plugins.Monitors.Net,
+      Plugins.Monitors.Swap, Plugins.Monitors.Thermal,
+      Plugins.Monitors.ThermalZone, Plugins.Monitors.Top,
+      Plugins.Monitors.Uptime, Plugins.Monitors.Weather
+
+    ghc-prof-options:   -prof -auto-all
+
+    if true
+       ghc-options: -funbox-strict-fields -Wall
+
+    if impl (ghc == 6.10.1) && arch (x86_64)
+       ghc-options: -O0
+
+    if impl (ghc >= 6.12.1)
+       ghc-options: -fno-warn-unused-do-bind
+
+    build-depends: X11>=1.3.0, mtl, unix, parsec, filepath, stm, time
+
+    if flag(small_base)
+       build-depends: base == 4.*, containers, process, old-time, old-locale, bytestring, directory
+
+    else
+       build-depends: base < 3
+
+    if flag(with_xft) || flag(all_extensions)
+       build-depends: utf8-string, X11-xft >= 0.2
+       cpp-options: -DXFT
+
+    if flag(with_utf8) || flag(all_extensions)
+       build-depends: utf8-string
+       cpp-options: -DUTF8
+
+    if flag(with_inotify) || flag(all_extensions)
+       build-depends: hinotify
+       other-modules: Plugins.Mail, Plugins.MBox
+       cpp-options: -DINOTIFY
+
+    if flag(with_iwlib) || flag(all_extensions)
+       extra-libraries: iw
+       other-modules: IWlib, Plugins.Monitors.Wireless
+       cpp-options: -DIWLIB
+
+    if flag(with_mpd) || flag(all_extensions)
+       build-depends: libmpd >= 0.5
+       other-modules: Plugins.Monitors.MPD
+       cpp-options: -DLIBMPD
+
+    if flag(with_alsa) || flag(all_extensions)
+       build-depends: alsa-mixer == 0.1.*
+       other-modules: Plugins.Monitors.Volume
+       cpp-options: -DALSA
+
+
+package-hashes:
+    MD5:f7946236c068b1e7944f16b7c0732857
+    SHA1:a1e9312319a378b2d60fc9388d3e8158e87b835f
+    SHA256:c7c151c12491e230310a7ae22796cfe3f79d8731ddc453b661b509bb81da4a46
+    SHA512:303293deed974ec566f44618e8adb469392e9858e048d9e7606cb545b9ffc4dc143b65cd9433bf44817baf9a54fb5e07f3112661fd5b97d1e42816ec191528e3
+    Skein512_512:fd9206e6728808a09ec3d6f88c425c8cc701d44b25f9890b6102ab5d24fa466be1a5794191e9370e2b92dde5403523a51cf602ecb969606a9b139fde8e7685a2
+
+package-locations:
+    https://hackage.haskell.org/package/xmobar-0.13/xmobar-0.13.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/xmobar-0.13.tar.gz
+

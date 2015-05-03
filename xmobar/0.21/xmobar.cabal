@@ -1,0 +1,180 @@
+name:               xmobar
+version:            0.21
+homepage:           http://xmobar.org
+synopsis:           A Minimalistic Text Based Status Bar
+description: 	    Xmobar is a minimalistic text based status bar.
+		    .
+                    Inspired by the Ion3 status bar, it supports similar
+                    features, like dynamic color management, output templates,
+                    and extensibility through plugins.
+category:           System
+license:            BSD3
+license-file:       license
+author:             Andrea Rossato and Jose A. Ortega Ruiz
+maintainer:         Jose A. Ortega Ruiz <jao@gnu.org>
+bug-reports:        https://github.com/jaor/xmobar/issues
+cabal-version:      >= 1.6
+build-type:         Simple
+
+extra-source-files: readme.md, news.md,
+                    samples/xmobar.config, samples/xmonadpropwrite.hs
+                    samples/Plugins/helloworld.config,
+                    samples/Plugins/HelloWorld.hs
+
+source-repository head
+  type:      git
+  location:  git://github.com/jaor/xmobar.git
+  branch:    master
+
+flag with_xft
+  description: Use Xft to render text. UTF-8 support included.
+  default: False
+
+flag with_utf8
+  description: With UTF-8 support.
+  default: True
+
+flag with_inotify
+  description: inotify support (modern Linux only). Required for the Mail and MBox plugins.
+  default: False
+
+flag with_iwlib
+  description: Wireless info support. Required for the Wireless plugin, needs iwlib installed.
+  default: False
+
+flag with_mpd
+  description: MPD support. Needs libmpd installed.
+  default: False
+
+flag all_extensions
+  description: Includes all optional extensions.
+  default: False
+
+flag with_alsa
+  description: Use alsa-mixer to get the volume from soundcards.
+  default: False
+
+flag with_datezone
+  description: Enables localized date support.
+  default: False
+
+flag with_mpris
+  description: MPRIS v1, v2 support.
+  default: False
+
+flag with_dbus
+  description: Publish a service on the session bus for controlling xmobar.
+  default: False
+
+flag with_threaded
+  description: Use threaded runtime.
+  default: False
+
+executable xmobar
+    hs-source-dirs:     src
+    main-is:            Main.hs
+    other-modules:
+      Xmobar, Actions, Bitmap, Config, Parsers, Commands, Localize,
+      XUtil, StatFS, Runnable, ColorCache, Window, Signal,
+      Plugins, Plugins.BufferedPipeReader,
+      Plugins.CommandReader, Plugins.Date, Plugins.EWMH,
+      Plugins.PipeReader, Plugins.StdinReader, Plugins.XMonadLog,
+      Plugins.Utils, Plugins.Kbd, Plugins.Locks, Plugins.Monitors,
+      Plugins.Monitors.Batt, Plugins.Monitors.Common,
+      Plugins.Monitors.CoreCommon, Plugins.Monitors.CoreTemp,
+      Plugins.Monitors.CpuFreq, Plugins.Monitors.Cpu,
+      Plugins.Monitors.Disk, Plugins.Monitors.Mem,
+      Plugins.Monitors.MultiCpu, Plugins.Monitors.Net,
+      Plugins.Monitors.Swap, Plugins.Monitors.Thermal,
+      Plugins.Monitors.ThermalZone, Plugins.Monitors.Top,
+      Plugins.Monitors.Uptime, Plugins.Monitors.Weather,
+      Plugins.Monitors.Bright, Plugins.Monitors.CatInt
+
+    ghc-prof-options:   -prof -auto-all
+    ghc-options: -funbox-strict-fields -Wall -fno-warn-unused-do-bind
+    extra-libraries: Xrandr
+
+    build-depends:
+      base == 4.*,
+      containers,
+      regex-compat,
+      process,
+      old-locale,
+      bytestring,
+      directory,
+      unix,
+      time,
+      filepath,
+      X11 >= 1.6.1,
+      mtl >= 2.0 && < 2.3,
+      parsec == 3.1.*,
+      HTTP >= 4000,
+      stm >= 2.3 && < 2.5
+
+    if flag(with_threaded)
+       -- -threaded is a workaround for 100% CPU busy loop
+       -- (http://hackage.haskell.org/trac/ghc/ticket/4934).
+       -- See also comments in https://github.com/jaor/xmobar/pull/36
+       ghc-options: -threaded
+       cpp-options: -DTHREADED_RUNTIME
+
+    if impl (ghc < 7)
+       cpp-options: -DGHC6
+
+    if flag(with_xft) || flag(all_extensions)
+       build-depends: utf8-string == 0.3.*, X11-xft >= 0.2 && < 0.4
+       other-modules: MinXft
+       cpp-options: -DXFT
+
+    if flag(with_utf8) || flag(all_extensions)
+       build-depends: utf8-string == 0.3.*
+       cpp-options: -DUTF8
+
+    if flag(with_inotify) || flag(all_extensions)
+       build-depends: hinotify == 0.3.*
+       other-modules: Plugins.Mail, Plugins.MBox
+       cpp-options: -DINOTIFY
+
+    if flag(with_iwlib) || flag(all_extensions)
+       extra-libraries: iw
+       other-modules: IWlib, Plugins.Monitors.Wireless
+       cpp-options: -DIWLIB
+
+    if flag(with_mpd) || flag(all_extensions)
+       build-depends: libmpd == 0.8.*
+       other-modules: Plugins.Monitors.MPD
+       cpp-options: -DLIBMPD
+
+    if flag(with_alsa) || flag(all_extensions)
+       build-depends: alsa-mixer == 0.2.*
+       build-depends: alsa-core == 0.5.*
+       other-modules: Plugins.Monitors.Volume
+       cpp-options: -DALSA
+
+    if flag(with_datezone) || flag(all_extensions)
+       build-depends: timezone-olson == 0.1.*, timezone-series == 0.1.*
+       other-modules: Plugins.DateZone
+       cpp-options: -DDATEZONE
+
+    if flag(with_mpris) || flag(all_extensions)
+       build-depends: dbus >= 0.10
+       other-modules: Plugins.Monitors.Mpris
+       cpp-options: -DMPRIS
+
+    if flag(with_dbus) || flag(all_extensions)
+       build-depends: dbus >= 0.10
+       other-modules: IPC.DBus
+       cpp-options: -DDBUS
+
+
+package-hashes:
+    MD5:8d4442d3772ad9f475d96b955fda220d
+    SHA1:5b166bce0b7630c16c4908c3c0344826884bcf03
+    SHA256:f576b6c090db0d8ea8497106dfa8098c529ec620d41d5e2791a47e04d0d20fc0
+    SHA512:0dd6e348ff05cb72d21491ee7c8b157b5da238fee569f4a30bf702f08b39aa648e7b51413864ffb333dbb80537d1f165532d52e86ae53e81e673d20e11d80859
+    Skein512_512:76cde96dedc8ac4f917c94f0edb34908f5bfc65f8cb243b83ba31614d548f2510e0eea1992a88f9485d73aa1ea703bd179631de00604fd88ee6825a8a6e6ff21
+
+package-locations:
+    https://hackage.haskell.org/package/xmobar-0.21/xmobar-0.21.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/xmobar-0.21.tar.gz
+

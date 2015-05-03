@@ -1,0 +1,137 @@
+build-type:	Simple
+cabal-version:	>= 1.8
+
+name:		xml-pipe
+version:	0.0.0.4
+stability:	Experimental
+author:		Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+maintainer:	Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+homepage:	https://github.com/YoshikuniJujo/xml-pipe/wiki
+
+license:	BSD3
+license-file:	LICENSE
+
+category:	XML
+synopsis:	XML parser which uses simple-pipe
+description:
+    This package process subset of XML and is still far from perfect, now.
+    .
+    Example programs
+    .
+    examples/indians.hs
+    .
+    extensions
+    .
+    * OverloadedStrings
+    .
+    * PackageImports
+    .
+    > import Control.Monad
+    > import "monads-tf" Control.Monad.Trans
+    > import Data.Maybe
+    > import Data.Pipe
+    > import Data.Pipe.List
+    > import Text.XML.Pipe
+    >
+    > import qualified Data.ByteString.Char8 as BSC
+    >
+    > littleIndians :: Int -> BSC.ByteString
+    > littleIndians n = "<indians>" `BSC.append`
+    > 	BSC.pack (show n) `BSC.append` " little, " `BSC.append`
+    > 	BSC.pack (show $ n + 1) `BSC.append` " little, " `BSC.append`
+    > 	BSC.pack (show $ n + 2) `BSC.append` " little Indians" `BSC.append`
+    > 	"</indians>"
+    >
+    > infiniteIndians :: [BSC.ByteString]
+    > infiniteIndians = map littleIndians [1, 4 .. ]
+    >
+    > xml :: [BSC.ByteString]
+    > xml = "<?xml version='1.0'?><song>" : infiniteIndians
+    >
+    > main :: IO ()
+    > main = void . runPipe $ fromList xml
+    > 	=$= xmlEvent
+    > 	=$= convert fromJust
+    > 	=$= (xmlBegin >>= xmlNode)
+    > 	=$= takeP 8
+    > 	=$= printP
+    >
+    > takeP :: Monad m => Int -> Pipe a a m ()
+    > takeP 0 = return ()
+    > takeP n = do
+    > 	mx <- await
+    > 	maybe (return ()) (\x -> yield x >> takeP (n - 1)) mx
+    >
+    > convert :: Monad m => (a -> b) -> Pipe a b m ()
+    > convert f = do
+    > 	mx <- await
+    > 	maybe (return ()) (\x -> yield (f x) >> convert f) mx
+    >
+    > printP :: Show a => Pipe a () IO ()
+    > printP = do
+    > 	mx <- await
+    > 	maybe (return ()) (\x -> lift (print x) >> printP) mx
+    .
+    examples/starttls.hs
+    .
+    It process STARTTLS of XMPP as client.
+    The fllowings are only main part.
+    .
+    > main :: IO ()
+    > main = do
+    > 	h <- connectTo "localhost" (PortNumber 5222)
+    > 	BS.hPut h $ xmlString begin
+    > 	BS.hPut h $ xmlString startTls
+    > 	void . runPipe $ handleP h
+    > 		=$= xmlEvent
+    > 		=$= convert fromJust
+    > 		=$= (xmlBegin >>= xmlNodeUntil isProceed)
+    > 		=$= printP
+    > 	ca <- readCertificateStore ["cacert.sample_pem"]
+    > 	g <- cprgCreate <$> createEntropyPool :: IO SystemRNG
+    > 	(`run` g) $ do
+    > 		p <- open' h "localhost" ["TLS_RSA_WITH_AES_128_CBC_SHA"] [] ca
+    > 		hlPut p $ xmlString begin
+    > 		void . runPipe $ handleP p
+    > 			=$= xmlEvent
+    > 			=$= convert fromJust
+    > 			=$= (xmlBegin >>= xmlNode)
+    > 			=$= printP
+    .
+
+extra-source-files:
+    examples/indians.hs
+    examples/starttls.hs
+
+source-repository	head
+    type:	git
+    location:	git://github.com/YoshikuniJujo/xml-pipe.git
+
+source-repository	this
+    type:	git
+    location:	git://github.com/YoshikuniJujo/xml-pipe.git
+    tag:	xml-pipe-0.0.0.4
+
+library
+    hs-source-dirs:	src
+    exposed-modules:	Text.XML.Pipe
+    other-modules:
+        Text.XML.XmlEvent, Text.XML.Lexer, Text.XML.Papillon, Text.XML.XmlCreate
+    build-depends:
+        base == 4.*, bytestring == 0.10.*, simple-pipe == 0.0.0.6,
+        papillon == 0.1.*
+    ghc-options:	-Wall
+    extensions:		DoAndIfThenElse, PatternGuards
+
+
+package-hashes:
+    MD5:68f3601a75832ed13240b2841e621a93
+    SHA1:2ee516f77d4d812c435653eed442462ff15ed5a6
+    SHA256:8257ba842e5c696d41d5e79315c720ddad1df65aaf34f19a87689eccc2564b66
+    SHA512:e188da57f5a512735f45da931134fa87d2fa9fa01ee3ce4d82a6bf62ca05884b91564596250146d5d498f8d7b648d2f896494f6593fb77f8d4d87b3078227b03
+    Skein512_512:734e09241da45cbcb7cfa70e97ffacdd1c324323748d6ae2ec13f0b4d696de5cfda7064ca2011d473dada48142a19903f1c46f4b741cbe01ca55923185d63451
+
+package-locations:
+    https://hackage.haskell.org/package/xml-pipe-0.0.0.4/xml-pipe-0.0.0.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/xml-pipe-0.0.0.4.tar.gz
+

@@ -1,0 +1,389 @@
+name:           yi
+version:        0.6.5.0
+category:       Development, Editor
+synopsis:       The Haskell-Scriptable Editor
+description:
+  Yi is a text editor written in Haskell and extensible in Haskell. The goal of the Yi project is
+  to provide a flexible, powerful, and correct editor for haskell hacking.
+license:        GPL
+license-file:   LICENSE
+author:         AUTHORS
+maintainer:     yi-devel@googlegroups.com
+homepage:       http://haskell.org/haskellwiki/Yi
+bug-reports:    http://code.google.com/p/yi-editor/issues/list
+Cabal-Version:  >= 1.10
+tested-with:    GHC==7.0.2
+build-type:     Simple
+
+data-files:
+  art/*.png
+  art/*.pdf
+  example-configs/*.hs
+
+extra-source-files: src/library/Yi/Lexer/common.hsinc
+
+-- Frontends
+flag cocoa
+  Default: False
+  Description: "Build with Cocoa frontend"
+
+flag pango
+  Default: False
+  Description: "Build with Pango frontend"
+
+flag vte
+  Default: False
+  Description: "Build with Vte frontend"
+
+flag vty
+  Default: True
+  Description: "Build with Vty frontend"
+
+flag scion
+  Default: False
+  Description: Use the scion library to provide extra commands that interface with GHC (experimental)
+
+flag ghcAPI
+  Description: Enable linking with GHC API for advanced features.
+  Default: False
+  -- Can be useful to disable; ghc package is difficult to rebuild;
+  --  * normally not available for profiling.
+  --  * links against old/new version of bytestring
+  --  * links against old version of Cabal
+  -- ...
+
+flag hacking
+  Default: False
+  Description:
+     Hacking mode:
+        * Create HackerMain.hs by copying your ~/.yi/yi.hs
+        * Skip library compilation
+        * You can run yi in-place with dist/build/yi/yi
+
+flag testing
+  Description: bake-in the self-checks
+
+flag dochack
+  Default: False
+  Description:
+      Hack to get Haddock documentation, by disabling executables.
+         * this is a workaround for a cabal bug; see Issue #347
+         * do a 'cabal install yi -fdochack' followed by 'cabal install yi' to get yi and the documentation
+
+library
+  hs-source-dirs: src/library
+  default-language: Haskell2010
+
+  if flag(hacking)
+    buildable: False
+
+  exposed-modules:
+    Yi
+    Yi.Boot
+    Yi.Buffer
+    Yi.Buffer.Basic
+    Yi.Buffer.HighLevel
+    Yi.Buffer.Indent
+    Yi.Buffer.Normal
+    Yi.Buffer.Misc
+    Yi.Buffer.Region
+    Yi.Buffer.Undo
+    Yi.Command
+    Yi.Completion
+    Yi.Config
+    Yi.Config.Default
+    Yi.Config.Misc
+    Yi.Config.Simple
+    Yi.Config.Simple.Types
+    Yi.Core
+    Yi.Debug
+    Yi.Dired
+    Yi.Dynamic
+    Yi.Editor
+    Yi.Eval
+    Yi.Event
+    Yi.File
+    Yi.History
+    Yi.Hoogle
+    Yi.Hooks
+    Yi.IReader
+    Yi.IncrementalParse
+    Yi.Interact
+    Yi.Keymap
+    Yi.Keymap.Completion
+    Yi.Keymap.Cua
+    Yi.Keymap.Emacs
+    Yi.Keymap.Emacs.KillRing
+    Yi.Keymap.Emacs.Utils
+    Yi.Keymap.Keys
+    Yi.Keymap.Vim
+    Yi.KillRing
+    Yi.Layout
+    Yi.Lexer.Abella
+    Yi.Lexer.Alex
+    Yi.Lexer.Cabal
+    Yi.Lexer.Compilation
+    Yi.Lexer.C
+    Yi.Lexer.ObjectiveC
+    Yi.Lexer.Cplusplus
+    Yi.Lexer.Haskell
+    Yi.Lexer.JavaScript
+    Yi.Lexer.Java
+    Yi.Lexer.Latex
+    Yi.Lexer.LiterateHaskell
+    Yi.Lexer.GitCommit
+    Yi.Lexer.GNUMake
+    Yi.Lexer.OCaml
+    Yi.Lexer.Ott
+    Yi.Lexer.Perl
+    Yi.Lexer.Python
+    Yi.Lexer.Ruby
+    Yi.Lexer.Srmc
+    Yi.Lexer.SVNCommit
+    Yi.Lexer.Whitespace
+    Yi.Main
+    Yi.MiniBuffer
+    Yi.Misc
+    Yi.Mode.Abella
+    Yi.Mode.Buffers
+    Yi.Mode.Compilation
+    Yi.Mode.Haskell
+    Yi.Mode.Haskell.Dollarify
+    Yi.Mode.IReader
+    Yi.Mode.Interactive
+    Yi.Mode.JavaScript
+    Yi.Mode.Latex
+    Yi.Modes
+    Yi.Monad
+    Yi.Prelude
+    Yi.Process
+    Yi.Rectangle
+    Yi.Regex
+    Yi.Region
+    Yi.Snippets
+    Yi.Snippets.Haskell
+    Yi.Search
+    Yi.String
+    Yi.Style
+    Yi.Style.Library
+    Yi.Syntax
+    Yi.Syntax.Driver
+    Yi.Syntax.Haskell
+    Yi.Syntax.JavaScript
+    Yi.Syntax.Latex
+    Yi.Syntax.Layout
+    Yi.Syntax.OnlineTree
+    Yi.Syntax.Paren
+    Yi.Syntax.Tree
+    Yi.Syntax.Strokes.Haskell
+    Yi.Tab
+    Yi.Tag
+    Yi.TextCompletion,
+    Yi.UI.Common
+    Yi.UI.Batch
+    Yi.UI.Utils
+    Yi.UI.TabBar
+    Yi.Verifier.JavaScript
+    Yi.Window
+    Yi.Char.Unicode
+
+    -- This is super bad. This shouldn't be exposed (and we should just
+    -- depend on a premade ropes library). Needed in yi-pango.
+    Data.Rope
+    Data.Prototype
+    Parser.Incremental
+
+  build-depends:
+    Cabal >= 1.10 && < 1.15,
+    Diff >=0.1 && <0.2,
+    array, containers,  directory, process, old-locale,
+    base >= 4 && < 5,
+    binary == 0.5.*,
+    bytestring >= 0.9.1 && < 0.9.3,
+    cautious-file >= 1.0.1,
+    concrete-typerep == 0.1.*,
+    derive >=2.4 && <2.7,
+    data-accessor >= 0.2.1.4 && < 0.3,
+    data-accessor-mtl == 0.2.*,
+    data-accessor-template >= 0.2.1.3 && < 0.2.2,
+    dlist >=0.4.1,
+    dyre >=0.7,
+    filepath>=1.1 && <1.4,
+    fingertree >= 0 && <0.1,
+    ghc-paths ==0.1.*,
+    hashable < 1.2,
+    hint > 0.3.1,
+    mtl >= 0.1.0.1,
+    pointedlist >= 0.3.5 && <0.4,
+    pureMD5 >= 0.2.3,
+    random,
+    regex-base ==0.93.*,
+    regex-tdfa == 1.1.*,
+    rosezipper >= 0.1 && < 0.3,
+    split == 0.1.*,
+    template-haskell >= 2.4 && < 2.8,
+    time >= 1.1 && < 1.5,
+    utf8-string >= 0.3.1,
+    uniplate,
+    unix-compat >=0.1 && <0.4,
+    unordered-containers >= 0.1.3 && < 0.3
+
+  build-tools: alex
+  ghc-options: -Wall -fno-warn-orphans
+  if flag(hacking)
+    ghc-prof-options: -prof -auto-all
+
+  if impl(ghc >=7.2)
+     default-extensions: NondecreasingIndentation
+
+  if impl(ghc >=7.2)
+     default-extensions: NondecreasingIndentation
+
+  if !os(windows)
+    build-depends:
+      unix
+
+  include-dirs:   src/library/Yi/Lexer
+
+  if flag(testing)
+    cpp-options: -DTESTING
+    hs-source-dirs: src/tests
+    other-modules: Driver, TestSuite
+    build-depends:
+      QuickCheck >= 2.1.0.2,
+      random
+
+  -- Frontends
+  if flag(cocoa)
+    exposed-modules:
+      Yi.UI.Cocoa
+    other-modules:
+      Yi.UI.Cocoa.Application
+      Yi.UI.Cocoa.TextStorage
+      Yi.UI.Cocoa.TextView
+      Yi.UI.Cocoa.Utils
+    build-depends:
+      HOC,
+      HOC-AppKit,
+      HOC-Foundation
+    cpp-options: -DFRONTEND_COCOA
+
+  if flag(pango)
+    exposed-modules:
+      Yi.UI.Pango
+      Yi.UI.Pango.Control
+    other-modules:
+      Yi.UI.Pango.Layouts
+      Yi.UI.Pango.Utils
+    build-depends:
+      gtk ==0.12.*,
+      glib ==0.12.*,
+      pango ==0.12.*
+    cpp-options: -DFRONTEND_PANGO
+
+  if flag(vte)
+    exposed-modules:
+      Yi.UI.Vte
+    build-depends:
+      gtk ==0.12.*,
+      glib ==0.12.*,
+      pango ==0.12.*,
+      vte ==0.12.*,
+      executable-path
+    cpp-options: -DFRONTEND_VTE
+
+  if flag(vty)
+    exposed-modules:
+      Yi.UI.Vty
+    build-depends:
+      unix-compat >=0.1 && <0.4,
+      vty >= 4.7.0.0 && <5
+    cpp-options: -DFRONTEND_VTY
+
+  if flag (scion)
+    cpp-options: -DSCION
+    exposed-modules: Yi.Scion
+    build-depends: scion == 0.1.*,
+      ghc >= 7,
+      ghc-syb-utils
+
+  if flag (ghcAPI)
+    cpp-options: -DGHC_API
+
+    exposed-modules: Yi.Mode.Shim
+    other-modules:
+      Shim.SHM, Shim.SessionMonad, Shim.Hsinfo, Shim.GhcCompat,
+      Shim.ExprSearch, Yi.GHC
+
+  other-modules:
+    Paths_yi,
+
+    -- "Internal" modules that the user better not see.
+    Yi.Buffer.Implementation
+
+    -- Should probably be split out to another package.
+    Data.DelayList
+    Data.Trie
+    Shim.CabalInfo
+    Shim.Utils
+    Shim.ProjectContent
+    System.CanonicalizePath
+    System.FriendlyPath
+
+    -- Broken.
+--            Yi.Keymap.Ee,
+--            Yi.Keymap.Gwern,
+--            Yi.Keymap.Joe,
+--            Yi.Keymap.Mg,
+--            Yi.Keymap.Nano,
+--            Yi.Keymap.Vi,
+
+executable parserTest
+  -- Don't build this for now, has compilation trouble.
+  buildable: False
+
+  hs-source-dirs: src/parsertest
+  default-language: Haskell2010
+
+  if !flag(hacking) || flag(dochack)
+    buildable: False
+
+  main-is: ParserTest/ParserTest.hs
+
+  build-depends:
+    base >=4 && <5,
+    array,
+    containers,
+    directory,
+    filepath>=1.1 && <1.4
+  if !flag(dochack)
+    build-depends: yi
+
+executable yi
+  hs-source-dirs: src/executable
+  default-language: Haskell2010
+
+  if flag(dochack)
+    buildable: False
+
+  main-is: Main.hs
+
+  build-depends:
+    base >=4 && <5
+  if !flag(dochack)
+    build-depends: yi
+  build-tools: alex
+  ghc-options: -threaded
+
+
+package-hashes:
+    MD5:fb8a6c9387502b4619cb384215b74c0e
+    SHA1:52c6b55a81b40d19eafbfb4763e05d46a0334a35
+    SHA256:f7d61a2a970ddd69012d56f02fc9e83d692046164ab7d76fb700311c772e06e1
+    SHA512:7c9405947169b8961943b573e250033853dd77cdd0434b8de41256eabae13ba6c2fc3d022e25484aaabf290cc0447f46f52ed87e584a3be9e8cec272858039f8
+    Skein512_512:a1ab0c0c72137d89b1201423813aeaf0d14c2961c6fed96b6113b3f7b6ecd7aa14bcae40d2c38e31f441dbc595cc7afae3fecc32706ebe7f2a5ffb2403280405
+
+package-locations:
+    https://hackage.haskell.org/package/yi-0.6.5.0/yi-0.6.5.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/yi-0.6.5.0.tar.gz
+

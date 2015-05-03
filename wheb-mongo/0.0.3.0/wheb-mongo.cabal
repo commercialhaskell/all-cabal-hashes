@@ -1,0 +1,85 @@
+name:                wheb-mongo
+version:             0.0.3.0
+synopsis:            MongoDB plugin for Wheb
+homepage:            https://github.com/hansonkd/Wheb-Framework
+license:             BSD3
+license-file:        LICENSE
+author:              Kyle Hanson
+maintainer:          hanooter@gmail.com
+category:            Database
+build-type:          Simple
+cabal-version:       >=1.8
+description:         
+  Wheb plugin for MongoDB.
+  .
+  * Implements SessionBackend and AuthBackend instances using MongoDB and Wheb.
+  .
+  * Creates simple interface for arbitrary MongoDB actions using <http://hackage.haskell.org/package/Wheb Wheb>
+  .
+  * Creates simple interface for arbitrary MongoDB actions using <http://hackage.haskell.org/package/mongoDB mongoDB>
+  .
+  For a complete example, see the examples folder at <https://github.com/hansonkd/Wheb-Framework/tree/master/examples github>
+  . 
+  You can override the collection names for the Auth and Session documents by using 'addSetting' and setting keys for \"session-collection\"
+  and \"auth-collection\"
+  .
+  > opts <- generateOptions $ do
+  >    addSetting "session-collection" "my-collection"
+  .
+  Reimplimentation of official example below. Use with language extensions /OvererloadedStrings/ & /ExtendedDefaultRules/.
+  .
+  >  import qualified Data.Text.Lazy as T
+  >  
+  >  import           Web.Wheb
+  >  import           Web.Wheb.Plugins.Mongo
+  >  
+  >  data MyApp = MyApp MongoContainer
+  >  data MyRequestState = MyRequestState
+  >  
+  >  instance MongoApp MyApp where
+  >      getMongoContainer (MyApp mc) = mc
+  >  
+  >  homePage :: WhebHandler MyApp MyRequestState
+  >  homePage = do
+  >      teams <- runAction $ rest =<< find (select [] "team")
+  >      text $ T.intercalate " | " $ map spack teams
+  >  
+  >  main :: IO ()
+  >  main = do
+  >    opts <- generateOptions $ do
+  >      addGET "." rootPat $ homePage
+  >      mongo <- initMongo "127.0.0.1:27017" "master"
+  >      return (MyApp mongo, MyRequestState)
+  >
+  >    runRawHandler opts $ do
+  >      runAction $ do
+  >          delete (select [] "team")
+  >          insertMany "team" [
+  >              ["name" =: "Yankees", "home" =: ["city" =: "New York", "state" =: "NY"], "league" =: "American"],
+  >              ["name" =: "Mets", "home" =: ["city" =: "New York", "state" =: "NY"], "league" =: "National"],
+  >              ["name" =: "Phillies", "home" =: ["city" =: "Philadelphia", "state" =: "PA"], "league" =: "National"],
+  >              ["name" =: "Red Sox", "home" =: ["city" =: "Boston", "state" =: "MA"], "league" =: "American"] ]
+  >  
+  >    runWhebServer opts
+
+library
+  exposed-modules:     Web.Wheb.Plugins.Mongo
+  build-depends:       base >=4.7 && <4.8, 
+                       text >= 1.0 && < 1.2, 
+                       mongoDB >=2.0 && < 2.1, 
+                       Wheb >=0.3 && < 0.4, 
+                       bson >=0.3 && <0.4, 
+                       mtl >= 2.1 && < 2.3
+  
+
+package-hashes:
+    MD5:da5350870e3373cdbdb380841ded772c
+    SHA1:6b6c1d0b4f28af0baf1b3fc915a82400006467ff
+    SHA256:9e3597f9b6559ec1955889acddc6ff482cf04d65da6229ce38f072d925d0b3f7
+    SHA512:c0d3465cb0e86d1c3730286e8872973c3ba2360d6f4f4e73fbadb7c0cb3b923cc376fd4bbd6932d1bbddc7973073d69b59e1128e9e8f93e6ab5a592f18957d1c
+    Skein512_512:43b705570149ff9a982537a37d456327fd79371fa983ac88d40e280d6558a15c13365d3d8891930f8fb356e87815ccbf46deed95ae4821b4758ba82ce83f2cb3
+
+package-locations:
+    https://hackage.haskell.org/package/wheb-mongo-0.0.3.0/wheb-mongo-0.0.3.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/wheb-mongo-0.0.3.0.tar.gz
+

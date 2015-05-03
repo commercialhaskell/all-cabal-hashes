@@ -1,0 +1,144 @@
+name:                wai-routing
+version:             0.8
+synopsis:            Declarative routing for WAI.
+license:             OtherLicense
+license-file:        LICENSE
+author:              Toralf Wittner
+maintainer:          Toralf Wittner <tw@dtex.org>
+copyright:           (c) 2014 Toralf Wittner
+homepage:            https://github.com/twittner/wai-routing/
+bug-reports:         https://github.com/twittner/wai-routing/issues
+stability:           experimental
+category:            Web
+build-type:          Simple
+cabal-version:       >= 1.10
+
+extra-source-files:
+    README.md
+    CHANGELOG.md
+    examples/*.hs
+
+description:
+    Enables the declaration of \"routes\" which handle requests to a
+    specific URL.
+    .
+    The set of possible handlers can be restricted by \"predicates\",
+    which operate on WAI requests and have to be true or else the
+    handler will not be called.
+    .
+    Example:
+    .
+    >import Data.ByteString (ByteString)
+    >import Data.Text (Text)
+    >import Network.Wai
+    >import Network.Wai.Predicate
+    >import Network.Wai.Routing
+    >import Network.Wai.Handler.Warp
+    >
+    >main :: IO ()
+    >main = run 8080 (route (prepare start))
+    >
+    >start :: Monad m => Routes a m ()
+    >start = do
+    >    get "/user/:name" fetchUser $
+    >        capture "name"
+    >
+    >    get "/user/find" findUser $
+    >        query "byName" ||| query "byId"
+    >
+    >    delete "/user/:name" rmUser $
+    >        capture "name" .&. opt (cookie "foo")
+    >
+    >fetchUser :: Monad m => Text -> m Response
+    >fetchUser name = ...
+    >
+    >findUser :: Monad m => Either ByteString Word64 -> m Response
+    >findUser (Left  name)  = ...
+    >findUser (Right ident) = ...
+    >
+    >rmUser :: Monad m => Text ::: Maybe Int -> m Response
+    >rmUser (name ::: foo)  = ...
+
+source-repository head
+    type:             git
+    location:         git://github.com/twittner/wai-routing.git
+
+library
+    default-language: Haskell2010
+    hs-source-dirs:   src
+    ghc-options:      -Wall -O2 -fwarn-tabs -funbox-strict-fields
+    ghc-prof-options: -prof -auto-all
+
+    exposed-modules:
+        Network.Wai.Routing
+        Network.Wai.Routing.Request
+        Network.Wai.Routing.Route
+        Network.Wai.Routing.Predicate
+
+    build-depends:
+        attoparsec       >= 0.10  && < 0.12
+      , base             == 4.*
+      , bytestring       >= 0.9   && < 0.11
+      , bytestring-from  >= 0.2   && < 0.4
+      , cookie           == 0.4.*
+      , case-insensitive >= 1.1   && < 1.3
+      , http-types       == 0.8.*
+      , transformers     >= 0.3   && < 0.5
+      , wai              >= 2.0   && < 2.2
+      , wai-predicates   >= 0.6   && < 0.7
+      , wai-route        == 0.1.*
+
+test-suite wai-routing-tests
+    type:             exitcode-stdio-1.0
+    default-language: Haskell2010
+    hs-source-dirs:   test
+    main-is:          TestSuite.hs
+    ghc-options:      -Wall -O2 -fwarn-tabs
+    ghc-prof-options: -prof -auto-all
+
+    other-modules:
+        Tests.Wai.Route
+        Tests.Wai.Util
+
+    build-depends:
+        base             == 4.*
+      , blaze-builder    == 0.3.*
+      , bytestring
+      , case-insensitive
+      , http-types
+      , HUnit
+      , QuickCheck
+      , tasty            >= 0.8
+      , tasty-hunit      >= 0.8
+      , tasty-quickcheck >= 0.8
+      , wai
+      , wai-predicates
+      , wai-routing
+
+benchmark wai-routing-bench
+    type:             exitcode-stdio-1.0
+    default-language: Haskell2010
+    main-is:          Bench.hs
+    hs-source-dirs:   bench
+    ghc-options:      -Wall -O2 -fwarn-tabs
+    build-depends:
+        base          == 4.*
+      , criterion     == 0.8.*
+      , http-types
+      , wai
+      , wai-predicates
+      , wai-routing
+
+
+
+package-hashes:
+    MD5:bcc55a4755c623dd9b47b417dcc38e6f
+    SHA1:5660c21ad7bbe12ed09c62461586d779aabcaae6
+    SHA256:94486f7c3ac358e3e88e25474a60a775e30db2adec6f52d3496da8139b1067bb
+    SHA512:9e498c5d7877145fcd72bd2c7b915af5aae50d1b6c8121590200f6a1fc940c7fcff959e730eb4e468e7a22d2af519687ea741893e357fa04d6e8e799470a5b99
+    Skein512_512:d4b6d7c28cf243676648911e6be13a2cfa831857c9a4dd9bad973a97ea734c76c5aaa6e0eacebc8e00fb865d35a626bcda2adba4babff6134f721853079c4fdf
+
+package-locations:
+    https://hackage.haskell.org/package/wai-routing-0.8/wai-routing-0.8.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/wai-routing-0.8.tar.gz
+
