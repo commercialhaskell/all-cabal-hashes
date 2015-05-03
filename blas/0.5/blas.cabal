@@ -1,0 +1,184 @@
+name:            blas
+version:         0.5
+homepage:        http://stat.stanford.edu/~patperry/code/blas
+synopsis:        Bindings to the BLAS library
+description:
+    The BLAS (Basic Linear Algebra Subprograms) are routines that provide
+    standard building blocks for performing basic vector and matrix operations. 
+    The Level 1 BLAS perform scalar, vector and vector-vector operations, the 
+    Level 2 BLAS perform matrix-vector operations, and the Level 3 BLAS perform
+    matrix-matrix operations. Because the BLAS are efficient, portable, and
+    widely available, they are commonly used in the development of high quality
+    linear algebra software, LAPACK for example.
+    .
+    For more information, see the Netlib BLAS webpage:
+    <http://www.netlib.org/blas/> 
+    .
+category:        Math
+license:         BSD3
+license-file:    LICENSE
+copyright:       (c) 2008. Patrick Perry <patperry@stanford.edu>
+author:          Patrick Perry
+maintainer:      Patrick Perry <patperry@stanford.edu>
+cabal-version:   >= 1.2.0
+build-type:      Custom
+tested-with:     GHC == 6.8.2
+
+extra-source-files:     INSTALL
+                        NEWS
+                        tests/Makefile
+                        tests/Banded.hs
+                        tests/Diag.hs
+                        tests/Matrix.hs
+                        tests/Perm.hs
+                        tests/HermMatrix.hs
+                        tests/HermBanded.hs
+                        tests/TriBanded.hs
+                        tests/TriMatrix.hs
+                        tests/Vector.hs
+
+
+-- Below are the flags for specifying which CBLAS to link with.  If no flag
+-- is specified, the default is to use ATLAS.  To use the "custom" flag, you
+-- must edit the section at the end of the file with the name and location
+-- of the CBLAS library you want to use.
+
+flag atlas
+    description:    Link with ATLAS.
+    default:        False
+
+flag gsl
+    description:    Link with GSL unoptimized CBLAS.
+    default:        False
+
+flag mkl
+    description:    Link with Intel MKL.
+    default:        False
+
+flag veclib
+    description:    Link with Mac OS X vecLib.
+    default:        False
+    
+flag custom
+    description:    Link with a custom CBLAS.  
+    default:        False
+    -- You must edit this file below to use this option.  
+
+library
+    exposed-modules:    BLAS.Access
+                        BLAS.C
+                            BLAS.C.Level1
+                            BLAS.C.Level2
+                            BLAS.C.Level3
+                            BLAS.C.Types
+                        BLAS.Elem
+                            BLAS.Elem.Base
+                        BLAS.Internal
+                        BLAS.Matrix
+                            BLAS.Matrix.Base
+                            BLAS.Matrix.Immutable
+                            BLAS.Matrix.ReadOnly
+                            BLAS.Matrix.Solve
+                                BLAS.Matrix.Solve.Immutable
+                                BLAS.Matrix.Solve.ReadOnly
+                        BLAS.Tensor
+                            BLAS.Tensor.Base
+                            BLAS.Tensor.Dense
+                                BLAS.Tensor.Dense.Immutable
+                                BLAS.Tensor.Dense.ReadOnly
+                            BLAS.Tensor.Immutable
+                            BLAS.Tensor.ReadOnly
+                            BLAS.Tensor.Mutable
+                            BLAS.Tensor.Scalable
+                        BLAS.Types
+                        BLAS.Vector
+                        
+                        Data.Matrix.Banded
+                            Data.Matrix.Banded.IO
+                            Data.Matrix.Banded.Internal
+                            Data.Matrix.Banded.Operations
+                        
+                        Data.Matrix.Diag
+                        
+                        Data.Matrix.Dense
+                            Data.Matrix.Dense.IO
+                            Data.Matrix.Dense.Internal
+                            Data.Matrix.Dense.Operations
+                        
+                        Data.Matrix.Perm
+                        
+                        Data.Matrix.Herm
+                            Data.Matrix.Herm.Banded
+                            Data.Matrix.Herm.Dense
+                        
+                        Data.Matrix.Tri
+                            Data.Matrix.Tri.Banded
+                            Data.Matrix.Tri.Dense
+                        
+                        Data.Vector.Dense
+                            Data.Vector.Dense.IO
+                            Data.Vector.Dense.Internal
+                            Data.Vector.Dense.Operations
+                        
+                        Test.QuickCheck.Complex
+                        Test.QuickCheck.Permutation
+                        Test.QuickCheck.Vector
+                        Test.QuickCheck.Vector.Dense
+                        Test.QuickCheck.Matrix
+                        Test.QuickCheck.Matrix.Banded
+                        Test.QuickCheck.Matrix.Dense
+                        Test.QuickCheck.Matrix.Diag
+                        Test.QuickCheck.Matrix.Perm
+                        Test.QuickCheck.Matrix.Herm.Banded
+                        Test.QuickCheck.Matrix.Herm.Dense
+                        Test.QuickCheck.Matrix.Tri.Banded
+                        Test.QuickCheck.Matrix.Tri.Dense
+                        
+    other-modules:      BLAS.C.Double
+                        BLAS.C.Zomplex    
+                        
+    ghc-options:        -Wall                   
+    extensions:         BangPatterns, EmptyDataDecls, FlexibleContexts, 
+                        FlexibleInstances, ForeignFunctionInterface, 
+                        FunctionalDependencies, MultiParamTypeClasses
+    build-depends:      base, ieee, permutation, storable-complex, QuickCheck
+
+    
+    if flag(atlas)
+        extra-libraries:    cblas atlas
+      
+    if flag(gsl)
+        extra-libraries:    gslcblas
+
+    if flag(mkl)
+      if arch(x86_64)
+        extra-libraries:    mkl_lapack mkl_intel_lp64 mkl_sequential mkl_core
+      else
+        extra-libraries:    mkl_lapack mkl_intel mkl_sequential mkl_core
+
+    if flag(veclib)
+        extra-libraries:    cblas
+
+    if flag(custom)
+        -- CUSTOM CBLAS LIBS GO HERE
+        extra-libraries:    
+        
+        -- PATH TO CUSTOM LIB DIR GOES HERE 
+        extra-lib-dirs:     
+    
+    -- fall back to ATLAS if no flag is specified
+    if !flag(atlas) && !flag(gsl) && !flag(mkl) && !flag(veclib) && !flag(custom)
+        extra-libraries:    cblas atlas
+    
+
+package-hashes:
+    MD5:5e6adb460958b6e2ed1371c4b021dc73
+    SHA1:f709e0cdaf8bc1f08a43018e57130f586a9225db
+    SHA256:69d840bd8b8e928536f8f31329a5d6a9096e03725bd28c1ab24fa3b7cd4223c7
+    SHA512:42fee0dc7fff20ba0ac1b1c1df3bad6ebb8773b157a954d6c3647daaa19a003e53acbd1ee34163fc65763aafe19c28e6b6eed78dc38b06f1163f285634c1f52c
+    Skein512_512:adcbd205cd55507716f06d8cadd7b5b51aa0eea5f6fdbbf4caae688be20e656919bd78c653f5464bb5188d1ba074d66843037333896078f197c50fb33e12b594
+
+package-locations:
+    https://hackage.haskell.org/package/blas-0.5/blas-0.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/blas-0.5.tar.gz
+

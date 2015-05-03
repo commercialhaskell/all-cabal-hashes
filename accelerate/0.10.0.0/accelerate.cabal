@@ -1,0 +1,273 @@
+Name:                   accelerate
+Version:                0.10.0.0
+Cabal-version:          >= 1.6
+Tested-with:            GHC >= 7.0.3
+Build-type:             Simple
+
+Synopsis:               An embedded language for accelerated array processing
+Description:            This library defines an embedded language for
+                        regular, multi-dimensional array computations with
+                        multiple backends to facilitate high-performance
+                        implementations.  Currently, there are two backends:
+                        (1) an interpreter that serves as a reference
+                        implementation of the intended semantics of the
+                        language and (2) a CUDA backend generating code for
+                        CUDA-capable NVIDIA GPUs.
+                        .
+                        To use the CUDA backend, you need to have CUDA version 3.x
+                        installed.  The CUDA backend currently doesn't support 'Char'
+                        and 'Bool' arrays.
+                        .
+                        An experimental OpenCL backend is available at <https://github.com/HIPERFIT/accelerate-opencl>
+                        and an experimental multicore CPU backend building on the Repa array library
+                        is available at <https://github.com/blambo/accelerate-repa>.
+                        .
+                        Known bugs: <https://github.com/mchakravarty/accelerate/issues>
+                        .
+                        * New in 0.10.0.0: Complete sharing recovery for scalar expressions (but
+                            currently disabled by default). Also bug fixes in array sharing recovery
+                            and a few new convenience functions.
+                        .
+                        * New in 0.9.0.0: Streaming, precompilation, Repa-style indices, stencils, 
+                            more scans, rank-polymorphic fold, generate, block I/O & many bug fixes
+                        .
+                        * New in 0.8.1.0: bug fixes and some performance tweaks
+                        .
+                        * New in 0.8.0.0: 'replicate', 'slice' and 'foldSeg' supported in the
+                            CUDA backend; frontend and interpreter support for 'stencil'; bug fixes
+                        .
+                        * New in 0.7.1.0: the CUDA backend and a number of scalar functions
+                        .
+                        For documentation, see the homepage and <https://github.com/mchakravarty/accelerate/wiki>.
+License:                BSD3
+License-file:           LICENSE
+Author:                 Manuel M T Chakravarty,
+                        Gabriele Keller,
+                        Sean Lee,
+                        Ben Lever,
+                        Trevor L. McDonell,
+                        Sean Seefried
+Maintainer:             Manuel M T Chakravarty <chak@cse.unsw.edu.au>
+Homepage:               http://www.cse.unsw.edu.au/~chak/project/accelerate/
+Bug-reports:            https://github.com/mchakravarty/accelerate/issues
+
+Category:               Compilers/Interpreters, Concurrency, Data
+Stability:              Experimental
+
+-- Should be in the Library stanza, and only enabled for the CUDA backend,
+-- but Cabal does not support that.
+Data-files:             cubits/accelerate_cuda_extras.h
+                        cubits/accelerate_cuda_function.h
+                        cubits/accelerate_cuda_shape.h
+                        cubits/accelerate_cuda_stencil.h
+                        cubits/accelerate_cuda_texture.h
+                        cubits/accelerate_cuda_util.h
+                        cubits/generate.inl
+                        cubits/backpermute.inl
+                        cubits/fold.inl
+                        cubits/foldAll.inl
+                        cubits/foldSeg.inl
+                        cubits/map.inl
+                        cubits/stencil.inl
+                        cubits/stencil2.inl
+                        cubits/permute.inl
+                        cubits/reduce.inl
+                        cubits/replicate.inl
+                        cubits/scan.inl
+                        cubits/scan1.inl
+                        cubits/slice.inl
+                        cubits/zipWith.inl
+                        cubits/thrust/safe_scan_intervals.inl
+                        cubits/thrust/inclusive_scan.inl
+                        cubits/thrust/exclusive_scan.inl
+
+Extra-source-files:     INSTALL
+                        include/accelerate.h
+                        utils/README
+                        utils/Paths_accelerate.hs
+                        utils/dot_ghci
+
+Flag llvm
+  Description:          Enable the LLVM backend (sequential)
+  Default:              False
+
+Flag cuda
+  Description:          Enable the CUDA parallel backend for NVIDIA GPUs
+  Default:              True
+
+Flag more-pp
+  Description:          Enable HTML and Graphviz pretty printing.
+  Default:              False
+
+Flag pcache
+  Description:          Enable the persistent caching of the compiled CUDA modules (experimental)
+  Default:              False
+
+Flag test-suite
+  Description:          Export extra test modules
+  Default:              False
+
+Flag bounds-checks
+  Description:          Enable bounds checking
+  Default:              True
+
+Flag unsafe-checks
+  Description:          Enable bounds checking in unsafe operations
+  Default:              False
+
+Flag internal-checks
+  Description:          Enable internal consistency checks
+  Default:              False
+
+Flag io
+  Description:          Provide access to the block copy I/O functionality
+  Default:              False
+
+Flag inplace
+  Default:              False
+
+Library
+  Build-depends:        array           >= 0.3 && < 0.5,
+                        base            == 4.*,
+                        containers      >= 0.3 && < 0.5,
+                        directory       >= 1.0 && < 1.2,
+                        ghc-prim        == 0.2.*,
+                        mtl             == 2.0.*,
+                        pretty          >= 1.0 && < 1.2
+
+  Include-Dirs:         include
+
+  if flag(llvm)
+    Build-depends:      llvm            >= 0.6.8
+
+  if flag(cuda)
+    Build-depends:      binary          == 0.5.*,
+                        bytestring      == 0.9.*,
+                        cuda            >= 0.2.2,
+                        fclabels        >= 1.0 && < 1.2,
+                        filepath        >= 1.0 && < 1.4,
+                        language-c      >= 0.3 && < 0.5,
+                        transformers    == 0.2.*,
+                        unix            >= 2.4 && < 2.6,
+                        zlib            == 0.5.* && < 0.5.3.2
+
+  if flag(io)
+    Build-depends:      bytestring      == 0.9.*,
+                        vector          == 0.9.*
+
+--  if flag(test-suite)
+--    Build-depends:      QuickCheck      == 2.*
+
+  if flag(more-pp)
+    Build-depends:      bytestring      == 0.9.*,
+                        blaze-html      == 0.3.*,
+                        text            == 0.10.*
+
+  if flag(inplace)
+    hs-source-dirs:     . utils
+
+  Exposed-modules:      Data.Array.Accelerate
+                        Data.Array.Accelerate.Interpreter
+                        Data.Array.Accelerate.Analysis.Shape
+                        Data.Array.Accelerate.Analysis.Type
+                        Data.Array.Accelerate.Array.Sugar
+                        Data.Array.Accelerate.Array.Representation
+                        Data.Array.Accelerate.Smart
+                        Data.Array.Accelerate.AST
+                        Data.Array.Accelerate.Array.Data
+                        Data.Array.Accelerate.Tuple
+                        Data.Array.Accelerate.Type
+                        Data.Array.Accelerate.Pretty
+
+--  If flag(llvm)
+--    Exposed-modules:    Data.Array.Accelerate.LLVM
+
+  if flag(cuda)
+    Exposed-modules:    Data.Array.Accelerate.CUDA
+
+  if flag(io)
+    Other-modules:      Data.Array.Accelerate.IO.BlockCopy
+    Exposed-modules:    Data.Array.Accelerate.IO
+                        Data.Array.Accelerate.IO.Ptr
+                        Data.Array.Accelerate.IO.ByteString
+                        Data.Array.Accelerate.IO.Vector
+
+--  If flag(test-suite)
+--    Exposed-modules:    Data.Array.Accelerate.Test
+--    Other-modules:      Data.Array.Accelerate.Test.QuickCheck
+--                        Data.Array.Accelerate.Test.QuickCheck.Arbitrary
+
+  Other-modules:        Data.Array.Accelerate.Internal.Check
+                        Data.Array.Accelerate.Array.Delayed
+                        Data.Array.Accelerate.Analysis.Stencil
+                        Data.Array.Accelerate.Debug
+                        Data.Array.Accelerate.Language
+                        Data.Array.Accelerate.Prelude
+                        Data.Array.Accelerate.Pretty.Print
+                        Data.Array.Accelerate.Pretty.Traverse
+                        Paths_accelerate
+
+  if flag(more-pp)
+    Other-modules:      Data.Array.Accelerate.Pretty.HTML
+                        Data.Array.Accelerate.Pretty.Graphviz
+
+
+--  If flag(llvm)
+--    Other-modules:      Data.Array.Accelerate.LLVM.CodeGen
+
+  if flag(cuda)
+    CPP-options:        -DACCELERATE_CUDA_BACKEND
+    Other-modules:      Data.Array.Accelerate.CUDA.Analysis.Device
+                        Data.Array.Accelerate.CUDA.Analysis.Hash
+                        Data.Array.Accelerate.CUDA.Analysis.Launch
+                        Data.Array.Accelerate.CUDA.Array.Data
+                        Data.Array.Accelerate.CUDA.CodeGen.Data
+                        Data.Array.Accelerate.CUDA.CodeGen.Skeleton
+                        Data.Array.Accelerate.CUDA.CodeGen.Stencil
+                        Data.Array.Accelerate.CUDA.CodeGen.Tuple
+                        Data.Array.Accelerate.CUDA.CodeGen.Util
+                        Data.Array.Accelerate.CUDA.CodeGen
+                        Data.Array.Accelerate.CUDA.Compile
+                        Data.Array.Accelerate.CUDA.Execute
+                        Data.Array.Accelerate.CUDA.State
+
+  if flag(pcache)
+    CPP-options:        -DACCELERATE_CUDA_PERSISTENT_CACHE
+
+  if flag(bounds-checks)
+    cpp-options:        -DACCELERATE_BOUNDS_CHECKS
+
+  if flag(unsafe-checks)
+    cpp-options:        -DACCELERATE_UNSAFE_CHECKS
+
+  if flag(internal-checks)
+    cpp-options:        -DACCELERATE_INTERNAL_CHECKS
+
+  ghc-options:          -O2 -Wall -funbox-strict-fields -fno-warn-name-shadowing
+
+  if impl(ghc >= 7.0)
+    ghc-options:        -fspec-constr-count=25
+
+  Extensions:           BangPatterns, CPP, DeriveDataTypeable, EmptyDataDecls,
+                        FlexibleContexts, FlexibleInstances, GADTs, MagicHash,
+                        MultiParamTypeClasses, PatternGuards, RankNTypes,
+                        ScopedTypeVariables, StandaloneDeriving,
+                        TemplateHaskell, TupleSections, TypeFamilies,
+                        TypeOperators, TypeSynonymInstances, UnboxedTuples
+
+Source-repository head
+  Type:                 git
+  Location:             git://github.com/mchakravarty/accelerate.git
+
+
+package-hashes:
+    MD5:ed61563c5f27f44d294f55d9ce95b4cc
+    SHA1:fb2fa7d7589f8dbdfdf106cb1d77647d60dfa596
+    SHA256:c453802de795f8cdb599d470d9d77b77e4dd3a16c2041ba080c2f04ff19bb18f
+    SHA512:e5fa7089e5270260288a8ff53790202cb8ec0481687ed3295322e202677c250e8e9255f5c9686db352ded28b9aa8026277eac225388382b73e1b1d058218d983
+    Skein512_512:1456fe9b80f1e1d65c7a8e73541aadd91959a469654e460b7bfb1b2c6835854443a138c2ed5a1a8bdaaa9d58aba3c8b246c291f04b0b92b563cad7b7bdc21ee6
+
+package-locations:
+    https://hackage.haskell.org/package/accelerate-0.10.0.0/accelerate-0.10.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/accelerate-0.10.0.0.tar.gz
+

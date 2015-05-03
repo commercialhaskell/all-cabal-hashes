@@ -1,0 +1,188 @@
+Name:               abcBridge
+Version:            0.12
+Synopsis:           Bindings for ABC, A System for Sequential
+                    Synthesis and Verification
+Description:        Bindings for ABC focused on creating And-Inverter
+                    Graphs (AIG) and then performing synthesis and
+                    equivalence checking.
+License:            BSD3
+License-file:       LICENSE
+Author:             Galois Inc.
+Maintainer:         jhendrix@galois.com
+Copyright:          (c) 2010-2015 Galois Inc.
+Category:           Data
+build-type:         Custom
+cabal-Version:      >= 1.18
+
+extra-source-files:
+  include/*.h
+  cbits/*.c
+  scripts/*.sh
+  tests/eijk.S298.S.aig
+
+flag enable-extra-tests
+  Description: Enable building the long-test and find-segfault utility progams
+  Default: False
+
+flag enable-pthreads
+  Description: Turn on multithreading
+  Default: True
+
+source-repository head
+  type: git
+  location: https://github.com/GaloisInc/abcBridge.git
+
+library
+  Hs-source-dirs:       src
+  Exposed-modules:
+    Data.ABC
+    Data.ABC.AIG
+    Data.ABC.GIA
+    Data.ABC.Internal.Field
+    Data.ABC.Internal.ABCGlobal
+    Data.ABC.Internal.VecInt
+    Data.ABC.Internal.VecPtr
+    Data.ABC.Internal.ABC
+    Data.ABC.Internal.Main
+    Data.ABC.Internal.FRAIG
+    Data.ABC.Internal.GIA
+    Data.ABC.Internal.CEC
+    Data.ABC.Internal.IO
+    Data.ABC.Internal.AIG
+    Data.ABC.Internal.GiaAig
+    Data.ABC.Internal.CNF
+    Data.ABC.Internal.Orphan
+  other-modules:
+    Data.ABC.Util
+  Default-Language:     Haskell98
+  Default-Extensions:   ForeignFunctionInterface,
+                        CPP,
+                        FlexibleContexts,
+                        MultiParamTypeClasses,
+                        EmptyDataDecls
+  Ghc-options:          -Wall -fno-ignore-asserts
+  -- Ghc-prof-options:     -auto-all -caf-all
+  -- -U__BLOCKS__ to work around https://github.com/haskell/c2hs/issues/29
+  Cc-options:           -U__BLOCKS__ -U__has_attribute -w
+
+  if flag(enable-pthreads) {
+    Cc-options: -DABC_USE_PTHREADS
+    Extra-libraries: pthread
+  }
+
+  if os(windows) {
+     Cc-options: -D_WIN32
+  }
+
+  if !os(windows) {
+    --Cc-options:             -rdynamic
+    if arch(x86_64) {
+      Cc-options:           -DLIN64
+    } else {
+      Cc-options:           -DLIN
+    }
+  }
+  Include-dirs:         include
+
+
+  Build-depends:
+    base >= 4,
+    aig >= 0.2.1,
+    containers,
+    directory,
+    vector
+  Extra-libraries:      abc
+  Build-tools:          c2hs
+  C-sources:            cbits/abcbridge.c
+                        cbits/abcbridge_qbf.c
+                        cbits/cnfWriteHeader.c
+                        cbits/abcBridgeGiaDup.c
+                        cbits/pthread_stubs.c
+
+test-suite abc-test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: tests
+
+  ghc-options: -Wall
+  -- ghc-prof-options: -fprof-auto
+
+  default-Language: Haskell98
+
+  other-modules:
+    Tests.Basic
+    Tests.Operations
+    Tests.QBF
+  main-is:
+    abc-test.hs
+  build-depends:
+    base == 4.*,
+    abcBridge,
+    aig,
+    directory,
+    vector,
+
+    tasty,
+    tasty-ant-xml,
+    tasty-hunit,
+    tasty-quickcheck >= 0.8.1,
+    QuickCheck >= 2.7
+
+
+Executable find-segfault
+  hs-source-dirs: tests
+  ghc-options: -Wall
+
+  default-Language: Haskell2010
+
+  main-is:
+    find-segfault.hs
+
+  if !flag(enable-extra-tests)
+     buildable: False
+  else
+     buildable: True
+     build-depends:
+       base == 4.*,
+       abcBridge,
+       aig,
+       directory,
+       vector,
+       random,
+       tf-random,
+       unix >= 2.7,
+       tasty,
+       tasty-hunit,
+       tasty-quickcheck,
+       QuickCheck >= 2.7
+
+
+
+Executable long-test
+  hs-source-dirs: tests
+
+  if !flag(enable-extra-tests)
+     buildable: False
+
+  ghc-options: -Wall
+  -- ghc-prof-options: -fprof-auto
+
+  default-Language: Haskell98
+
+  main-is:
+    long-test.hs
+  build-depends:
+    base == 4.*,
+    abcBridge
+
+
+package-hashes:
+    MD5:60f4c3088ce5b8a2f80cddbe942d906b
+    SHA1:6377fa6ef1b4d0af261241ae50daf9f163fd8099
+    SHA256:5216be6961d83e1a98438499aa9e3192a7eb55f41cb86842d38c392095846290
+    SHA512:75380934d2e82add22940142b95f41e3b512fe1f3966fe30458cb21c36226c1328cfd9710a4dfe2ae4e8591f7c46ccf217456668f04a00b56102ce257a331671
+    Skein512_512:ada780463924bbbff4e5136e029530801ea24a349888d1fe6160a82963f45b3cadd8f6ee699e7141dc0becee32d03e28d21e1c15cba91e82878efe61d0da1114
+
+package-locations:
+    https://hackage.haskell.org/package/abcBridge-0.12/abcBridge-0.12.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/abcBridge-0.12.tar.gz
+

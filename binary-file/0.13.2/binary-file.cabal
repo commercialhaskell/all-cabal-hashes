@@ -1,0 +1,104 @@
+build-type:	Simple
+cabal-version:	>= 1.8
+
+name:		binary-file
+version:	0.13.2
+stability:	experimental
+author:		Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+maintainer:	Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+
+license:	BSD3
+license-file:	LICENSE
+
+category:	File
+synopsis:	read/write binary file
+description:
+
+    See example directory's sample code.
+    .
+    > runghc -XQuasiQuotes -XTypeFamilies -XFlexibleInstances exam.hs some.bmp
+    .
+    exam.hs:
+    .
+    > import File.Binary
+    > import File.Binary.Data.LittleEndian
+    > import System.Environment
+    > import Data.ByteString.Lazy as BSL
+    >
+    > main = do
+    >	[inf] <- getArgs
+    >   cnt <- BS.readFile inf
+    >	let (bmp, rest) = fromBinary () cnt :: (Bitmap, String)
+    >	print bmp
+    >
+    > instance Field (Int, Int, Int) where
+    >    type FieldArgument (Int, Int, Int) = ()
+    >    fromBinary _ s = let
+    >        (b, rest) = toType 1 s
+    >        (g, rest') = toType 1 rest
+    >        (r, rest'') = toType 1 rest' in
+    >        ((b, g, r), snd $ getBytes 1 1 rest'')
+    >    toBinary _ (b, g, r) = concatBinary [
+    >        fromType 1 b, fromType 1 g, fromType 1 r,
+    >        makeBinary $ BSL.singleton 0]
+    >
+    > [binary|
+    >
+    > Bitmap
+    >
+    > 2: "BM"
+    > 4: file_size
+    > 2: 0
+    > 2: 0
+    > 4: offset
+    >
+    > 4: 40
+    > 4: width
+    > 4: height
+    > 2: 1
+    > 2: bits_per_pixel
+    > 4: compression
+    > 4: image_size
+    > 4: resolutionH
+    > 4: resolutionV
+    > 4: color_num
+    > 4: important_color_num
+    > ((), Just color_num)<[(Int, Int, Int)]>: colors
+    > ((), image_size)<String>: image
+    >
+    > |]
+    .
+
+extra-source-files:	examples/readPNG.hs
+
+source-repository	head
+    type:	git
+    location:	git://github.com/YoshikuniJujo/binary-file.git
+
+source-repository	this
+    type:	git
+    location:	git://github.com/YoshikuniJujo/binary-file.git
+    tag:	0.13.2
+
+library
+    hs-source-dirs:	src
+    exposed-modules:	File.Binary,
+        File.Binary.Data.LittleEndian,
+        File.Binary.Data.BigEndian
+    other-modules:	QuoteBinaryStructure, ParseBinaryStructure, Classes
+    build-depends:	base > 3 && < 5, template-haskell, peggy, bytestring,
+        monads-tf
+    ghc-options:	-Wall
+
+
+package-hashes:
+    MD5:b0b068bd345588eda546b668f3636142
+    SHA1:febdf479b8cd306ad7a85b11a95b0844f5773bef
+    SHA256:bcbcbe9dde1bc619b7f3ee842fffef3f47effbb3564801e9ef6954de8c5e9d45
+    SHA512:43415ba8b3fefc8767f245e1a209f89e3347843cda0d9a13c2f84d96d2acc903462aa14cf5879e4d2f318371870fb5ac7d950da94c2e9437bdcbbba497dcd7f4
+    Skein512_512:a60f64dc66f98356fae7742b8ef2fae52371f939eeb743ecfc0866fd3b65933b9671e3077ec752b817da7618a5ab42458d77e06fad84fd15eb97a72e54009ffa
+
+package-locations:
+    https://hackage.haskell.org/package/binary-file-0.13.2/binary-file-0.13.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/binary-file-0.13.2.tar.gz
+

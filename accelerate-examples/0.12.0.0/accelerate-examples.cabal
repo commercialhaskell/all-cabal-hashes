@@ -1,0 +1,223 @@
+Name:                   accelerate-examples
+Version:                0.12.0.0
+License:                BSD3
+License-file:           LICENSE
+Author:                 The Accelerate Team
+Maintainer:             Trevor L. McDonell <tmcdonell@cse.unsw.edu.au>
+Category:               Compilers/Interpreters, Concurrency, Data, Parallelism
+Stability:              Experimental
+Build-type:             Simple
+Cabal-version:          >=1.6
+Homepage:               http://www.cse.unsw.edu.au/~chak/project/accelerate/
+
+Synopsis:               Examples using the Accelerate library
+Description:            This package defines a number of example programs for verification and
+                        performance testing of the Accelerate language and associated backend
+                        implementations. By default the package attempts to build with all available
+                        backends, but this might not be desirable or even possible depending on your
+                        available hardware. To disable a specific component, install with the extra
+                        cabal flag(s):
+                        .
+                        . > cabal install accelerate-examples -f-opt
+                        .
+                        Where the available options are:
+                        .
+                        * cuda: A parallel CUDA backend for NVIDIA GPUs
+                        .
+                        * opencl: A parallel OpenCL backend
+                        .
+                        * io: Extra tests for reading and writing arrays in various formats
+                        .
+
+Flag cuda
+  Description:          Enable the CUDA parallel backend for NVIDIA GPUs
+  Default:              True
+
+Flag opencl
+  Description:          Enable the OpenCL parallel backend
+  Default:              True
+
+Flag io
+  Description:          Provide access to the block copy I/O functionality
+  Default:              True
+
+
+-- Run some basic randomised tests of the primitive library operations, and unit
+-- tests of known (hopefully prior) failures.
+--
+Executable accelerate-quickcheck
+  Main-is:              Main.hs
+  hs-source-dirs:       examples/quickcheck/
+
+  other-modules:        Config
+                        Arbitrary.Array
+                        Arbitrary.Shape
+                        Test.Base
+                        Test.IndexSpace
+                        Test.Mapping
+                        Test.PrefixSum
+                        Test.Reduction
+
+  ghc-options:          -Wall -O2
+                        -threaded
+                        -fpedantic-bottoms
+                        -fno-warn-orphans
+                        -fno-full-laziness
+                        -fno-excess-precision
+  if impl(ghc >= 7.0)
+    ghc-options:        -rtsopts
+
+  if flag(cuda)
+    CPP-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda                 >= 0.12,
+                        cuda                            >= 0.4
+
+  if flag(opencl)
+    CPP-options:        -DACCELERATE_OPENCL_BACKEND
+    build-depends:      accelerate-opencl               == 0.1.*
+
+  build-depends:        accelerate                      >= 0.12,
+                        QuickCheck                      >= 2.0,
+                        test-framework                  >= 0.5,
+                        test-framework-quickcheck2      >= 0.2,
+                        random
+
+
+-- The main examples program including verification and timing tests for several
+-- simple accelerate programs
+--
+Executable accelerate-examples
+  Main-is:              Main.hs
+  hs-source-dirs:       examples/tests
+                        examples/tests/io
+                        examples/tests/image-processing
+                        examples/tests/primitives
+                        examples/tests/simple
+
+  other-modules:        Benchmark, Config, Random, Test, Util, Validate,
+
+                        -- tests:
+                        --  image-processing
+                        Canny, IntegralImage, PGM,
+
+                        --  io
+                        BlockCopy, VectorCopy,
+
+                        --  primitives
+                        Backpermute, Fold, FoldSeg, Gather, Map, Permute, ScanSeg,
+                        Scatter, Stencil, Stencil2, Vector, Zip, ZipWith,
+
+                        --  simple
+                        BlackScholes, DotP, Filter, Radix, SASUM, SAXPY,
+                        SharingRecovery, SliceExamples, SMVM, SMVM.Matrix, SMVM.MatrixMarket
+
+
+  c-sources:            examples/tests/io/fill_with_values.cpp
+  extra-libraries:      stdc++
+
+  ghc-options:          -Wall -O2
+  if impl(ghc >= 7.0)
+    ghc-options:        -rtsopts
+
+  if flag(cuda)
+    CPP-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         >= 0.12
+
+  if flag(opencl)
+    CPP-options:        -DACCELERATE_OPENCL_BACKEND
+    build-depends:      accelerate-opencl       == 0.1.*
+
+  if flag(io)
+    CPP-options:        -DACCELERATE_IO
+    build-depends:      accelerate-io           >= 0.12
+
+  build-depends:        accelerate              >= 0.12,
+                        array                   >= 0.3,
+                        attoparsec              >= 0.10,
+                        base                    == 4.*,
+                        bytestring              >= 0.9,
+                        bytestring-lexing       >= 0.2,
+                        cmdargs                 >= 0.6,
+                        criterion               >= 0.5,
+                        deepseq                 >= 1.1,
+                        directory               >= 1.0,
+                        filepath                >= 1.0,
+                        hashtables              >= 1.0.1,
+                        mtl                     >= 1.1,
+                        mwc-random              >= 0.8,
+                        pgm                     >= 0.1,
+                        pretty                  >= 1.0,
+                        vector                  >= 0.7,
+                        vector-algorithms       >= 0.4
+
+
+-- A quasicrystal demo as the sum of waves in a plane
+--
+Executable accelerate-crystal
+  hs-source-dirs:       examples/crystal
+  Main-is:              Main.hs
+  other-modules:        Config
+  ghc-options:          -O2 -Wall
+  if impl(ghc >= 7.0)
+    ghc-options:        -rtsopts
+
+  if flag(cuda)
+    CPP-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         >= 0.12
+
+  if flag(opencl)
+    CPP-options:        -DACCELERATE_OPENCL_BACKEND
+    build-depends:      accelerate-opencl       == 0.1.*
+
+  build-depends:        accelerate              >= 0.12,
+                        base                    == 4.*,
+                        criterion               >= 0.5,
+                        fclabels                >= 1.0,
+                        gloss                   >= 1.5
+
+
+-- A stable fluid simulation
+--
+Executable accelerate-fluid
+  Main-is:              Main.hs
+  hs-source-dirs:       examples/fluid/src
+  other-modules:        Config
+                        Event
+                        Fluid
+                        Type
+                        World
+
+  ghc-options:          -O2 -Wall
+
+  if flag(cuda)
+    cpp-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         >= 0.12
+
+  Build-depends:        accelerate              >= 0.12,
+                        accelerate-io           >= 0.12,
+                        base                    == 4.*,
+                        bmp                     >= 1.2,
+                        criterion               >= 0.5,
+                        fclabels                >= 1.0,
+                        gloss                   >= 1.7
+
+
+source-repository head
+  type:                 git
+  location:             https://github.com/AccelerateHS/accelerate-examples
+
+-- vim: nospell
+--
+
+
+package-hashes:
+    MD5:f929f2b0b82ad6e753672880a5256a14
+    SHA1:5adf668a3bd50e4de392eb1c9dabb9af4560c7c4
+    SHA256:30299738f23ca375210b922dc80076cbefec52227ad5dd357b1bd16d4876b322
+    SHA512:d345c060750d1a04c12ff90ded53fec3960f6e4cc812349695f5644e7ff355bfddfa12a0373918434781b78b6f15af90d3f884ad273f82b2b7ce8ce1f217bded
+    Skein512_512:57507f5133ffb70c8acc663b3de37fa083722b4a9a62a0521fe7927f8fdf45440fbb818fec9288704f79fceb5d89f440aade5aecb0f40516a2c18f156b33b8b0
+
+package-locations:
+    https://hackage.haskell.org/package/accelerate-examples-0.12.0.0/accelerate-examples-0.12.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/accelerate-examples-0.12.0.0.tar.gz
+

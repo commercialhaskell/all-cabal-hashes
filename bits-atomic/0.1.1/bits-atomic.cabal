@@ -1,0 +1,82 @@
+Name:               bits-atomic
+Version:            0.1.1
+License:            BSD3
+License-File:       License.txt
+Maintainer:         Gabriel Wicke <wicke@wikidev.net>
+Author:             Gabriel Wicke <wicke@wikidev.net>
+Synopsis:       Atomic bit operations on memory locations 
+                for low-level synchronization
+Description:        
+ Atomic operations including CAS (compare-and-swap), lock and fetch & add
+ suitable for low-level shared-memory synchronization.
+ .
+ The implementation is using GCC's builtin atomic operations in C wrappers
+ called through the FFI.
+ .
+ /Testing:/ The following commands can be used to compile and run the test suite:
+ .
+    > cabal unpack bits-atomic && cd bits-atomic-* # if not yet locally available
+    > cabal configure -ftest
+    > cabal build
+    > cabal test
+Category:           Data, Concurrency, Foreign
+Stability:          experimental
+Build-Type:         Custom
+Cabal-Version: >= 1.6
+Extra-Source-Files: cbits/atomic-bitops-gcc.c cbits/atomic-bitops-gcc.h
+Source-Repository head
+    type: mercurial
+    location: http://dev.wikidev.net/hg/bits-atomic/
+
+library
+    Exposed-Modules:  Data.Bits.Atomic
+    Build-Depends:    base >= 4 && < 6
+    GHC-Options:      -Wall -O2 -funbox-strict-fields
+    GHC-Prof-Options: -auto-all
+    C-Sources:        cbits/atomic-bitops-gcc.c
+    CC-Options:       -Wall
+    if os (linux)
+        CC-Options: -fomit-frame-pointer -march=native
+    Include-Dirs:     cbits
+    Install-Includes: atomic-bitops-gcc.h
+    -- Try link-time optimization (inlining) with gcc 4.5:
+    -- CC-Options:       -fomit-frame-pointer -march=native -Wall -flto
+    --LD-Options:     -flto
+
+flag test
+    description: Build test program.
+    default:     False
+
+Executable test
+    if flag(test)
+        buildable:  True
+        build-depends:   
+                    base >= 4 && < 6, 
+                    QuickCheck, 
+                    HUnit,
+                    test-framework-quickcheck2,
+                    test-framework-hunit,
+                    test-framework
+    else
+        buildable:  False
+    hs-source-dirs:  ., test
+    other-modules:   Data.Bits.Atomic
+    main-is:         test.hs
+    GHC-Options:      -O2 -funbox-strict-fields -threaded -fhpc
+    GHC-Prof-Options: -auto-all
+
+    Include-Dirs:     cbits
+    C-Sources:        cbits/atomic-bitops-gcc.c
+
+
+package-hashes:
+    MD5:b068031e324268fbd408d3846080a121
+    SHA1:e434a99c997119cf03c15ebdc012c8e6414c7ce9
+    SHA256:34fd8096b3a54e1cb4e327f1b3f4e8d5cebb6f51fd0dc3f9fef3337f06317b06
+    SHA512:21a211dfbc5a3c2af0eb43fe525a97e07bed9103a2b8ea24dc70ae47a1c08fd8852204f445812db4d4e83a93d29853bee041a415df6f02a9edfc4209e72d24cb
+    Skein512_512:2d5bc8d1bd996a73ad2735894bb19616c3ebe5c1a529c28e151d6fe6ee9bb7b25b29f2fbe945a44ff30c477646256065874699c6891eb78fbabfdf1e51b1dd19
+
+package-locations:
+    https://hackage.haskell.org/package/bits-atomic-0.1.1/bits-atomic-0.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/bits-atomic-0.1.1.tar.gz
+

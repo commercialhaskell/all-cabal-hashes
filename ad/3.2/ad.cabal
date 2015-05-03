@@ -1,0 +1,163 @@
+name:         ad
+version:      3.2
+x-revision: 1
+license:      BSD3
+license-File: LICENSE
+copyright:    (c) Edward Kmett 2010-2012,
+              (c) Barak Pearlmutter and Jeffrey Mark Siskind 2008-2009
+author:       Edward Kmett
+maintainer:   ekmett@gmail.com
+stability:    Experimental
+category:     Math
+homepage:     http://github.com/ekmett/ad
+bug-reports:  http://github.com/ekmett/ad/issues
+build-type:   Simple
+cabal-version: >= 1.8
+extra-source-files: TODO .travis.yml CHANGELOG.markdown README.markdown
+synopsis:     Automatic Differentiation
+description:
+    Forward-, reverse- and mixed- mode automatic differentiation combinators with a common API.
+    .
+    Type-level \"branding\" is used to both prevent the end user from confusing infinitesimals
+    and to limit unsafe access to the implementation details of each Mode.
+    .
+    Each mode has a separate module full of combinators.
+    .
+    * @Numeric.AD.Mode.Forward@ provides basic forward-mode AD. It is good for computing simple derivatives.
+    .
+    * @Numeric.AD.Mode.Reverse@ uses benign side-effects to compute reverse-mode AD. It is good for computing gradients in one pass. It generates a tree-like tape that needs to be topologically sorted in the end.
+    .
+    * @Numeric.AD.Mode.Wengert@ uses benign side-effects to compute reverse-mode AD. It is good for computing gradients in one pass. It generates a Wengert list (linear tape) using @Data.Reflection@.
+    .
+    * @Numeric.AD.Mode.Sparse@ computes a sparse forward-mode AD tower. It is good for higher derivatives or large numbers of outputs.
+    .
+    * @Numeric.AD.Mode.Tower@ computes a dense forward-mode AD tower useful for higher derivatives of single input functions.
+    .
+    * @Numeric.AD@ computes using whichever mode or combination thereof is suitable to each individual combinator.
+    .
+    While not every mode can provide all operations, the following basic operations are supported, modified as
+    appropriate by the suffixes below:
+    .
+    * 'grad' computes the gradient (partial derivatives) of a function at a point.
+    .
+    * 'jacobian' computes the Jacobian matrix of a function at a point.
+    .
+    * 'diff' computes the derivative of a function at a point.
+    .
+    * 'du' computes a directional derivative of a function at a point.
+    .
+    * 'hessian' computes the Hessian matrix (matrix of second partial derivatives) of a function at a point.
+    .
+    The following suffixes alter the meanings of the functions above as follows:
+    .
+    * @\'@ -- also return the answer
+    .
+    * @With@ lets the user supply a function to blend the input with the output
+    .
+    * @F@ is a version of the base function lifted to return a 'Traversable' (or 'Functor') result
+    .
+    * @s@ means the function returns all higher derivatives in a list or f-branching 'Stream'
+    .
+    * @T@ means the result is transposed with respect to the traditional formulation.
+    .
+    * @0@ means that the resulting derivative list is padded with 0s at the end.
+
+source-repository head
+  type: git
+  location: git://github.com/ekmett/ad.git
+
+library
+  extensions: CPP
+  hs-source-dirs: src
+
+  other-extensions:
+    BangPatterns
+    DeriveDataTypeable
+    FlexibleContexts
+    FlexibleInstances
+    FunctionalDependencies
+    GeneralizedNewtypeDeriving
+    MultiParamTypeClasses
+    PatternGuards
+    Rank2Types
+    ScopedTypeVariables
+    TemplateHaskell
+    TypeFamilies
+    TypeOperators
+    UndecidableInstances
+
+  build-depends:
+    array            >= 0.2 && < 0.5,
+    base             >= 4.5 && < 5,
+    comonad          == 3.0.*,
+    containers       >= 0.2 && < 0.6,
+    data-reify       >= 0.6 && < 0.7,
+    free             >= 3.0 && <= 3.3,
+    mtl,
+    reflection       >= 1.1.6 && < 1.2,
+    tagged           >= 0.4.2.1 && < 0.5,
+    template-haskell >= 2.5 && < 2.9
+
+  exposed-modules:
+    Numeric.AD
+    Numeric.AD.Types
+
+    Numeric.AD.Newton
+    Numeric.AD.Halley
+
+    Numeric.AD.Mode.Wengert
+    Numeric.AD.Mode.Directed
+    Numeric.AD.Mode.Forward
+    Numeric.AD.Mode.Reverse
+    Numeric.AD.Mode.Tower
+    Numeric.AD.Mode.Sparse
+
+    Numeric.AD.Variadic
+    Numeric.AD.Variadic.Reverse
+    Numeric.AD.Variadic.Sparse
+
+    Numeric.AD.Internal.Classes
+    Numeric.AD.Internal.Combinators
+    Numeric.AD.Internal.Forward
+    Numeric.AD.Internal.Tower
+    Numeric.AD.Internal.Reverse
+    Numeric.AD.Internal.Var
+    Numeric.AD.Internal.Wengert
+    Numeric.AD.Internal.Sparse
+    Numeric.AD.Internal.Dense
+    Numeric.AD.Internal.Composition
+
+  other-modules:
+    Numeric.AD.Internal.Types
+    Numeric.AD.Internal.Jet
+    Numeric.AD.Internal.Identity
+
+  ghc-options: -Wall -fspec-constr -fdicts-cheap -O2
+
+-- Verify the results of the examples
+test-suite doctests
+  type:    exitcode-stdio-1.0
+  main-is: doctests.hs
+  build-depends:
+    base,
+    directory,
+    doctest >= 0.9.0.1 && <= 0.10,
+    filepath,
+    mtl
+  ghc-options: -Wall -threaded
+  if impl(ghc<7.6)
+    ghc-options: -Werror
+  hs-source-dirs: tests
+
+
+package-hashes:
+    MD5:a317c942321973fc070a64be3f5a1e1d
+    SHA1:17d5c81f7f8baa57621b98028b854f1546f54779
+    SHA256:397f919af2b01c4e95e6268b16e7fc283b9801997a695f37c91904bf6b108f06
+    SHA512:35e829c136833bb4c49cbabc0dda4229ba7d910fc77ef2ccae9a15a665c9cfd7ffc4a14c490497d47a1336785e002a9037388f3268c66cb6a72e397c0def4cbd
+    Skein512_512:f95acdc22800b6da0e4c6f91eeff36d30a8ea458a2df095390d59acc6b84189a162aae098a9bee085280dd40f94a9770b0b495fe9a46331b8f8555546acbdead
+
+package-locations:
+    https://hackage.haskell.org/package/ad-3.2/ad-3.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/ad-3.2.tar.gz
+

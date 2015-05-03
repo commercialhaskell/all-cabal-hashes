@@ -1,0 +1,154 @@
+name:                apiary
+version:             0.12.0
+synopsis:            Simple and type safe web framework that can be automatically generate API document.
+description:
+  Simple and type safe web framework that can be automatically generate API document.
+  .
+  @
+  &#123;-&#35; LANGUAGE QuasiQuotes &#35;-&#125;
+  &#123;-&#35; LANGUAGE OverloadedStrings &#35;-&#125;
+  .
+  import Web.Apiary
+  import Network.Wai.Handler.Warp
+  import qualified Data.ByteString.Lazy.Char8 as L
+  .
+  main :: IO ()
+  main = run 3000 . runApiary def $ do
+  &#32;&#32;[capture|/:Int|] . (&#34;name&#34; =: pLazyByteString) . stdMethod GET . action $ \\age name -> do
+  &#32;&#32;&#32;&#32;&#32;&#32;guard (age >= 18)
+  &#32;&#32;&#32;&#32;&#32;&#32;contentType &#34;text/html&#34;
+  &#32;&#32;&#32;&#32;&#32;&#32;lbs . L.concat $ [&#34;&#60;h1&#62;Hello, &#34;, name, &#34;!&#60;/h1&#62;\\n&#34;]
+  @
+  .
+  @
+  $ curl localhost:3000
+  404 Page Notfound.
+  $ curl 'localhost:3000/20?name=arice'
+  &#60;h1&#62;Hello, arice!&#60;/h1&#62;
+  $ curl 'localhost:3000/15?name=bob'
+  404 Page Notfound.
+  $ curl -XPOST 'localhost:3000/20?name=arice'
+  404 Page Notfound.
+  @
+  .
+    * Nestable route handling(Apiary Monad; capture, stdMethod and more.).
+  .
+    * type safe route filter.
+  .
+    * auto generate API documentation(https://github.com/philopon/apiary/blob/master/examples/api.hs>).
+  .
+  more examples: <https://github.com/philopon/apiary/blob/master/examples/>
+
+license:             MIT
+license-file:        LICENSE
+author:              HirotomoMoriwaki<philopon.dependence@gmail.com>
+maintainer:          HirotomoMoriwaki<philopon.dependence@gmail.com>
+Homepage:            https://github.com/philopon/apiary
+Bug-reports:         https://github.com/philopon/apiary/issues
+copyright:           (c) 2014 Hirotomo Moriwaki
+category:            Web
+build-type:          Simple
+stability:           experimental
+-- extra-source-files:  
+cabal-version:       >=1.10
+
+flag wai3
+  description: use wai-3.0
+  default: True
+
+library
+  exposed-modules:     Web.Apiary
+                       Web.Apiary.Wai
+
+                       Control.Monad.Apiary
+                       Control.Monad.Apiary.Filter
+                       Control.Monad.Apiary.Filter.Internal
+                       Control.Monad.Apiary.Filter.Internal.Strategy
+                       Control.Monad.Apiary.Action
+
+                       Data.Apiary.SList
+                       Data.Apiary.Param
+                       Data.Apiary.Document
+
+  other-modules:       Control.Monad.Apiary.Internal
+                       Control.Monad.Apiary.Action.Internal
+                       Control.Monad.Apiary.Filter.Internal.Capture
+                       Control.Monad.Apiary.Filter.Internal.Capture.TH
+                       Web.Apiary.TH
+  other-extensions:    KindSignatures
+                     , DataKinds
+                     , TypeOperators
+                     , GADTs
+                     , TypeFamilies
+
+                     , Rank2Types
+                       
+  build-depends:       base                 >=4.6   && <4.8
+                     , template-haskell     >=2.8   && <2.10
+                     , mtl                  >=2.1   && <2.3
+                     , monad-control        >=0.3   && <0.4
+                     , transformers-base    >=0.4   && <0.5
+
+                     , text                 >=1.1   && <1.2
+                     , bytestring           >=0.10  && <0.11
+                     , blaze-builder        >=0.3   && <0.4
+                     , data-default-class   >=0.0   && <0.1
+                     , reflection           >=1.4   && <1.5
+
+                     , http-types           >=0.8   && <0.9
+                     , mime-types           >=0.1   && <0.2
+                     , exceptions           >=0.6   && <0.7
+                     , blaze-html           >=0.7   && <0.8
+
+  if impl(ghc < 7.8)
+    build-depends:     tagged               >=0.7   && <0.8
+
+  if flag(wai3)
+    build-depends:     wai                  >=3.0   && <3.1
+                     , wai-extra            >=3.0   && <3.1
+    cpp-options:       -DWAI3
+  else
+    build-depends:     wai                  >=2.1   && <2.2
+                     , wai-extra            >=2.1   && <2.2
+                     , conduit              >=1.1   && <1.2
+
+  hs-source-dirs:      src
+  ghc-options:         -O2 -Wall
+  default-language:    Haskell2010
+
+test-suite test-framework
+  main-is:             main.hs
+  type:                exitcode-stdio-1.0
+  build-depends:       base                 >=4.6   && <4.8
+                     , test-framework       >=0.8   && <0.9
+                     , test-framework-hunit >=0.3   && <0.4
+                     , apiary
+                     , bytestring           >=0.10  && <0.11
+                     , http-types           >=0.8   && <0.9
+  if flag(wai3)
+    build-depends:     wai                  >=3.0   && <3.1
+                     , wai-extra            >=3.0   && <3.1
+  else
+    build-depends:     wai                  >=2.1   && <2.2
+                     , wai-test             >=2.0   && <2.1
+
+  hs-source-dirs:      test
+  ghc-options:         -O2 -Wall -fno-warn-missing-signatures
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: git://github.com/philopon/apiary.git
+
+
+package-hashes:
+    MD5:51a5ffd75a61616c0909c6801459d039
+    SHA1:4c17caaae54e3b8d576bcc950fe4cb5485893da7
+    SHA256:f2694ceaaab8b23f15e949d0a35d4044f964cb6d90efd2058c22e8b04a111a7c
+    SHA512:e32fef2f583cc869b4c31f761c7f31272d995c8a4ad74cae97e7ffb481ab864e8552d96a296016b1559b24a2ca2d4f6c5df58668da9ac91f61aed6e00e743e59
+    Skein512_512:905ff3aa6eb183d33f1e42351b6c3ea6af703a657ee1c08a3e7f1d54c31cb6e57b22dfd767c996d037cdb6a0801d60fda7e231727e982c85db9d9ef41e4c64f7
+
+package-locations:
+    https://hackage.haskell.org/package/apiary-0.12.0/apiary-0.12.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/apiary-0.12.0.tar.gz
+

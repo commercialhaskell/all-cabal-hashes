@@ -1,0 +1,100 @@
+Name:               altfloat
+Version:            0.3
+License:            OtherLicense
+License-File:       LICENSE
+Cabal-Version:      >= 1.6
+Author:             Nick Bowler
+Maintainer:         nbowler@draconx.ca
+Homepage:           http://repo.or.cz/w/altfloat.git
+Stability:          experimental
+Category:           Numerical
+Build-Type:         Configure
+Extra-Source-Files: configure.ac, configure, altfloat.buildinfo.in, cfloat.h
+                    config.h.in examples/*.hs
+Extra-Tmp-Files:    altfloat.buildinfo, config.status config.log, config.cache
+                    config.h
+Synopsis:           Alternative floating point support for GHC.
+Description:
+    A replacement for the standard Haskell floating point types and supporting
+    functions.  There are a number of shortcomings which I feel severely hinder
+    Haskell's utility for numerical computation.  These shortcomings include
+    .
+    * There is no way to sanely convert between Haskell's floating types -- not
+    even between Double and CDouble.  The implementation of the 'realToFrac'
+    function goes through 'Rational', which loses information as 'Rational'
+    cannot represent all floating point values.
+    .
+    * Making floating types an instance of 'Ord' makes no sense.  'Ord' is for
+    totally ordered data types, which floats are not.  As a result, a number of
+    library functions (such as 'max' and 'sort') produce nonsensical results.
+    .
+    * The 'Enum' instance for floating types similarly makes little sense.
+    While 'fromEnum' and 'toEnum' functions use 'Int' instead of 'Integer',
+    limiting their usefulness, 'pred' and 'succ' can be defined in a much more
+    useful way.
+    .
+    * Functions that should care about negative zeros, such as 'signum' and
+    'abs', do not.
+    .
+    * Some functions, such as 'floor', have nonsensical behaviour for
+    non-finite input.
+    .
+    * The selection of floating point library functions pales in comparison to
+    C.  This problem is made worse since, as noted above, it is impossible to
+    convert losslessly from 'Double' to 'CDouble' in order to use the FFI.
+    .
+    * There is no mechanism for handling rounding modes or exceptions.
+    .
+    This package is intended to address all of the above issues, and more.
+    Also provided, for convenience, is an alternative to the standard Prelude
+    which includes features from this library and the non-overlapping parts of
+    the standard Prelude.
+
+Source-Repository head
+    Type:     git
+    Location: git://repo.or.cz/altfloat.git
+
+Flag SplitInteger
+    Description: Use the new split integer packages that come with GHC 6.12.
+
+Flag IntegerGmp
+    Description: Use the integer-gmp package as opposed to integer-simple.
+
+Library
+    Build-Depends: base >= 4 && < 5, ghc-prim
+
+    if flag(SplitInteger)
+        if flag(IntegerGmp)
+            Build-Depends: integer-gmp
+        else
+            Build-Depends: integer-simple
+    else
+        Build-Depends: integer
+
+    Include-Dirs: .
+    C-Sources: cfloat.c c99-compat.c
+    Exposed-Modules:
+        Data.Floating.CMath,
+        Data.Floating.Classes,
+        Data.Floating.Types,
+        Data.Floating.Types.Double,
+        Data.Floating.Types.Float,
+        Data.Floating.Prelude,
+        Data.Floating.Environment,
+        Data.Floating,
+        Data.Poset
+    Other-Modules:
+        Data.Floating.Instances, Data.Poset.Internal, Data.Poset.Instances
+
+
+package-hashes:
+    MD5:c0f3fd5695727757e3ae788ea1189cab
+    SHA1:9feb3cf289f17dfffc5cba02d7fd3ba2b097901a
+    SHA256:b58ccd926f0cc5677695765d01b8bd9ef3f45f2c9c86d56880cbf7760132990d
+    SHA512:02344805c76b83bf24b16765c55ed4bb264d5fd067a6b13e78c108b823c324eeea96a461a0a3bc761c2f6bffe2ab84209d6b23f229b060eb086d690041e44429
+    Skein512_512:912ef3b0a6e1198a5a6e0ed6aa3648c8a5f5bf7164bb4fe4a9aa473ebfb67d9a3bd04b1efcd34f98a79c9993c088a68d03cc4f02f7a382eb716d1ae75b4a9d33
+
+package-locations:
+    https://hackage.haskell.org/package/altfloat-0.3/altfloat-0.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/altfloat-0.3.tar.gz
+

@@ -1,0 +1,124 @@
+name:                blas-hs
+version:             0.1.1.0
+synopsis:            Low-level Haskell bindings to Blas.
+description:
+  This package provides a complete low-level binding to Blas via the foreign
+  function interface, allowing Haskell programs to take advantage of optimized
+  routines for vector and matrix operations in Haskell.
+  .
+  More information can be found at the
+  <https://github.com/Rufflewind/blas-hs repository>.
+homepage:            https://github.com/Rufflewind/blas-hs
+bug-reports:         https://github.com/Rufflewind/blas-hs/issues
+license:             MIT
+license-file:        LICENSE
+author:              Phil Ruffwind
+maintainer:          rf@rufflewind.com
+copyright:           (c) 2014 Phil Ruffwind
+category:            Math
+build-type:          Simple
+cabal-version:       >=1.8
+                     -- *** 1.8 --- 1.14 === 1.21 ---
+
+source-repository head
+  type:                git
+  location:            https://github.com/Rufflewind/blas-hs
+
+flag no-netlib
+  description: Do not link with the reference Blas from Netlib.
+  default:     False
+flag no-accelerate
+  description: Do not link with the Accelerate Framework.  Has no effect
+               except on Darwin and Mac OS X.
+  default:     False
+flag openblas
+  description: Link with the OpenBLAS library.
+  default:     False
+flag mkl
+  description: Link with the Intel Math Kernel Library.
+  default:     False
+flag cblas
+  description: Link with the CBlas wrapper in addition to everything else.
+  default:     False
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Blas.Primitive.Types
+                       Blas.Primitive.Safe
+                       Blas.Primitive.Unsafe
+                       Blas.Generic.Safe
+                       Blas.Generic.Unsafe
+                       Blas.Specialized.Float.Safe
+                       Blas.Specialized.Double.Safe
+                       Blas.Specialized.ComplexFloat.Safe
+                       Blas.Specialized.ComplexDouble.Safe
+                       Blas.Specialized.Float.Unsafe
+                       Blas.Specialized.Double.Unsafe
+                       Blas.Specialized.ComplexFloat.Unsafe
+                       Blas.Specialized.ComplexDouble.Unsafe
+  other-modules:       BlasCTypes
+                       FFI
+  other-extensions:    FlexibleInstances
+                     , ForeignFunctionInterface
+                     , TypeFamilies
+  ghc-options:         -Wall
+  build-depends:       base >=4.5 && <5
+                       -- *** 4.5 === 4.8 ---
+                       -- 4.4 does not export constructors for CFloat et al
+                     , storable-complex >=0.2 && <1
+                       -- *** 0.2 === 0.3 ---
+                       -- 0.1 is buggy
+
+  -- Both `extra-libraries` and `ld-options` control the linking of `blas-hs`
+  -- with the existing Blas implementation (e.g. ACML, OpenBLAS, MKL).
+  --
+  -- Note: If `blas-hs` is compiled as a static library, these flags have no
+  --       effect, so the user of `blas-hs` is then responsible for linking
+  --       against the libraries.
+  --
+
+  -- custom configuration
+  extra-libraries:
+  ld-options:
+
+  if flag(cblas)
+    extra-libraries: cblas
+  if flag(mkl)
+    -- Single Dynamic Library interface requires MKL 10.3+
+    extra-libraries: mkl_rt pthread m
+    ld-options:      -fopenmp
+  else
+    if flag(openblas)
+      extra-libraries: openblas
+    else
+      if (os(darwin) || os(osx)) && !flag(no-accelerate)
+        frameworks:      Accelerate
+      else
+        if !flag(no-netlib)
+          extra-libraries: blas
+
+test-suite test
+  hs-source-dirs:      tests
+  type:                exitcode-stdio-1.0
+  main-is:             MainTest.hs
+  other-extensions:    Rank2Types
+  other-modules:       TestUtils
+  build-depends:       base
+                     , blas-hs
+
+                     , vector >=0.8 && <1
+                       -- *** 0.8 === 0.11 ---
+                       -- 0.7 has a different definition of MVector
+
+
+package-hashes:
+    MD5:8a085fa2e65f01fee458b7ee4078aab0
+    SHA1:505dc8cc9582dfc57c4c71b986f6cea70f85c20e
+    SHA256:80e06b0927982b391d239f8656ed437cd29665969d1a078ea4e42a2bf196b086
+    SHA512:6e60be8ebfca546999fa959c8d8882621eb029b43f4de767d8604bf012cd97a6c1ee155c0f4eb9e2405a1b5be62a8fc03cfefa4464142c00d785ba95fb3a5860
+    Skein512_512:9010b613ddb28f21e6c3dda80ffc379943b5d5942e034c9e90762363a78cc9c32f87f85e1a4e04a1c15fb5aa85fb8f583c4ab23042acf7ce19332a1f6022ae04
+
+package-locations:
+    https://hackage.haskell.org/package/blas-hs-0.1.1.0/blas-hs-0.1.1.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/blas-hs-0.1.1.0.tar.gz
+

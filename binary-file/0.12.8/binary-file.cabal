@@ -1,0 +1,110 @@
+build-type:	Simple
+cabal-version:	>= 1.8
+
+name:		binary-file
+version:	0.12.8
+stability:	experimental
+author:		Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+maintainer:	Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+
+license:	BSD3
+license-file:	LICENSE
+
+category:	File
+synopsis:	read/write binary file
+description:
+
+    > runghc -XQuasiQuotes exam.hs some.bmp out.bmp
+    .
+    exam.hs:
+    .
+    > import File.Binary
+    > import File.Binary.Data.LittleEndian
+    > import System.Environment
+    > import Data.ByteString as BS
+    >
+    > main = do
+    >	[inf, outf] <- getArgs
+    >
+    >   cnt <- BS.readFile inf
+    >	let bmp = readBitmap $ cnt `BS.append` replicate 20 ' '
+    >	print bmp
+    >
+    >	let out = writeBitmap bmp {
+    >		authorFirst = "Yoshikuni ",
+    >		authorSecond = "Jujo      "
+    >	 }
+    >   BS.writeFile outf out
+    >
+    > instance RetType (Int, Int, Int) where
+    >    type Argument (Int, Int, Int) = ()
+    >    fromType _ (b, g, r) = cc $ [
+    >        fromType 1 b, fromType 1 g, fromType 1 r, zero]
+    >    toType _ str = let
+    >        (b, rest) = toType 1 str
+    >        (g, rest') = toType 1 rest
+    >        (r, rest'') = toType 1 rest' in
+    >        ((b, g, r), dp 1 rest'')
+    >
+    > [binary|
+    >
+    > Bitmap
+    >
+    > 2: "BM"
+    > 4: fileSize
+    > 2: 0
+    > 2: 0
+    > 4: offset
+    >
+    > 4: 40
+    > 4: bitmapWidth
+    > 4: bitmapHeight
+    > 2: 1
+    > 2: bitsPerPixel
+    > 4: compressionMethod
+    > 4: imageSize
+    > 4: horizontalResolution
+    > 4: verticalResolution
+    > 4: numberOfColors
+    > 4: importantColors
+    > ((), Just numberOfColors)<[(Int, Int, Int)]>: colors
+    > imageSize<BS.ByteString>: image
+    >
+    > ((), Just 10)<String>: authorFirst
+    > ((), Just 10)<String>: authorSecond
+    > 
+    > |]
+    .
+
+extra-source-files:	examples/readPNG.hs
+
+source-repository	head
+    type:	git
+    location:	git://github.com/YoshikuniJujo/binary-file.git
+
+source-repository	this
+    type:	git
+    location:	git://github.com/YoshikuniJujo/binary-file.git
+    tag:	0.12.7
+
+library
+    hs-source-dirs:	src
+    exposed-modules:	File.Binary,
+        File.Binary.Data.LittleEndian,
+        File.Binary.Data.BigEndian
+    other-modules:	QuoteBinaryStructure, ParseBinaryStructure, Classes
+    build-depends:	base > 3 && < 5, template-haskell, peggy, bytestring
+    ghc-options:	-Wall
+
+
+package-hashes:
+    MD5:97f6bb470e3d6e9492ad6a72f455abb6
+    SHA1:029dc210e0752537edbc2ab075958fb24126e454
+    SHA256:b155bc27714a4553866a947e3fbf4edb996b6ee830264f02db88b12558b59d94
+    SHA512:645fe722428267bf08ca6b9cf86c87451c2cc9bb1d34654943e773df00b303ab193ae2c9404a374c2214ca552be7d2a066ad691a19a87d14b83a628c8095d4e2
+    Skein512_512:7909ed84ae8a0944d771552e67602704613c7149edcfb6d19c50062bbf57953a0d5b1cecd76349b3ddb6ae2121f6ed73562d47584cb23f83d7792a6cfb10548e
+
+package-locations:
+    https://hackage.haskell.org/package/binary-file-0.12.8/binary-file-0.12.8.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/binary-file-0.12.8.tar.gz
+

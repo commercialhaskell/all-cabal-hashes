@@ -1,0 +1,798 @@
+Name:                   accelerate-examples
+Version:                0.15.0.0
+x-revision: 1
+Cabal-version:          >=1.6
+Tested-with:            GHC == 7.8.*
+Build-type:             Simple
+
+Synopsis:               Examples using the Accelerate library
+Description:
+  This package demonstrates a number of computation kernels and applications
+  showcasing the /Accelerate/ language and associated backend implementations.
+  It is also used for performance and regression testing.
+  .
+  Refer to the main /Accelerate/ package for more information:
+  <http://hackage.haskell.org/package/accelerate>
+  .
+
+License:                BSD3
+License-file:           LICENSE
+Author:                 The Accelerate Team
+Maintainer:             Trevor L. McDonell <tmcdonell@cse.unsw.edu.au>
+Homepage:               https://github.com/AccelerateHS/accelerate-examples
+Bug-reports:            https://github.com/AccelerateHS/accelerate/issues
+
+Category:               Compilers/Interpreters, Concurrency, Data, Parallelism
+Stability:              Experimental
+
+Extra-source-files:     data/hashcat/README.md
+                        data/matrices/README.md
+
+Flag gui
+  Description:          Enable gloss-based GUIs, where applicable. If not
+                        enabled, the application always runs in benchmark mode.
+  Default:              True
+
+Flag ekg
+  Description:          Enable EKG remote monitoring server at <http://localhost:8000>
+  Default:              True
+
+Flag cuda
+  Description:          Enable the CUDA parallel backend for NVIDIA GPUs
+  Default:              True
+
+Flag opencl
+  Description:          Enable the OpenCL parallel backend
+  Default:              False
+
+Flag llvm-cpu
+  Description:          Enable the LLVM backend for multicore CPUs
+  Default:              True
+
+Flag llvm-gpu
+  Description:          Enable the LLVM backend for NVIDIA CPUs
+  Default:              True
+
+Flag llvm-multi
+  Description:          Enable the multi-device LLVM backend
+  Default:              True
+
+
+-- Flags to specify which programs to build
+--
+Flag nofib
+  Description:          Regression test suite
+  Default:              True
+
+Flag smvm
+  Description:          Sparse-matrix vector multiplication benchmark
+  Default:              True
+
+Flag crystal
+  Description:          A visualisation of a sum of waves in a plane
+  Default:              True
+
+Flag canny
+  Description:          Canny edge detection benchmark
+  Default:              True
+
+Flag mandelbrot
+  Description:          A Mandelbrot fractal benchmark
+  Default:              True
+
+Flag fluid
+  Description:          An interactive particle-based fluid simulation
+  Default:              True
+
+Flag nbody
+  Description:          Simulation of gravitational attraction between solid particles
+  Default:              True
+
+Flag smoothlife
+  Description:          A cellular automata simulation
+  Default:              True
+
+Flag hashcat
+  Description:          A "password recovery" application for MD5 cracking
+  Default:              True
+
+Flag fft
+  Description:          Simple FFT-based high/low-pass image filtering
+  Default:              True
+
+Flag pagerank
+  Description:          Implementation of the PageRank algorithm
+  Default:              True
+
+Flag ray
+  Description:          A simple real-time ray tracer
+  Default:              True
+
+Flag kmeans
+  Description:          An implementation of k-means clustering in a plane
+  Default:              True
+
+
+-- The main test program. This includes randomised quickcheck testing for array
+-- primitives, unit tests, imaginary/spectral/real programs, and benchmarks.
+--
+-- TODO: add an analysis script to scrape benchmark results
+--
+Executable accelerate-nofib
+  Main-is:              Main.hs
+  hs-source-dirs:       lib
+                        examples/nofib
+                        examples/smvm
+
+  other-modules:        Config ParseArgs Monitoring
+                        QuickCheck.Arbitrary.Array
+                        QuickCheck.Arbitrary.Shape
+                        Test.Base
+                        Test.FFT
+                        Test.IO
+                        Test.IO.Ptr
+                        Test.IO.Vector
+                        Test.Imaginary
+                        Test.Imaginary.DotP
+                        Test.Imaginary.SASUM
+                        Test.Imaginary.SAXPY
+                        Test.Issues
+                        Test.Issues.Issue93
+                        Test.Issues.Issue102
+                        Test.Issues.Issue114
+                        Test.Issues.Issue119
+                        Test.Issues.Issue123
+                        Test.Issues.Issue137
+                        Test.Issues.Issue168
+                        Test.Issues.Issue184
+                        Test.Issues.Issue185
+                        Test.Issues.Issue187
+                        Test.Prelude
+                        Test.Prelude.Filter
+                        Test.Prelude.IndexSpace
+                        Test.Prelude.Mapping
+                        Test.Prelude.PrefixSum
+                        Test.Prelude.Reduction
+                        Test.Prelude.Replicate
+                        Test.Prelude.Stencil
+                        Test.Sharing
+                        Test.Spectral
+                        Test.Spectral.BlackScholes
+                        Test.Spectral.SMVM
+                        Test.Spectral.RadixSort
+
+  ghc-options:          -Wall -O2
+                        -threaded
+                        -fpedantic-bottoms
+                        -fno-full-laziness
+                        -fno-excess-precision
+                        -eventlog
+                        -rtsopts
+
+  ghc-prof-options:     -auto-all
+
+  extra-libraries:      stdc++
+  c-sources:            examples/nofib/Test/IO/fill_with_values.cpp
+                        examples/nofib/Test/Spectral/BlackScholes.cpp
+
+  if flag(cuda)
+    CPP-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda                 == 0.15.*
+    other-modules:      Test.Foreign
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native          == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx             == 0.15.*
+
+  if flag(ekg)
+    CPP-options:        -DACCELERATE_ENABLE_EKG
+    build-depends:      ekg                             >= 0.3
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(nofib)
+    buildable:          False
+  else
+    build-depends:      accelerate                      == 0.15.*,
+                        accelerate-fft                  == 0.15.*,
+                        accelerate-io                   == 0.15.*,
+                        base                            == 4.7.*,
+                        array                           >= 0.3,
+                        containers                      >= 0.5,
+                        criterion                       >= 0.5 && < 1.0,
+                        fclabels                        >= 2.0,
+                        HUnit                           >= 1.2,
+                        QuickCheck                      >= 2.7,
+                        test-framework                  >= 0.5,
+                        test-framework-hunit            >= 0.3,
+                        test-framework-quickcheck2      >= 0.2,
+                        random
+
+
+-- Sparse matrix vector multiplication
+-- -----------------------------------
+
+Executable accelerate-smvm
+  hs-source-dirs:       examples/smvm lib
+  Main-is:              Main.hs
+  other-modules:        ParseArgs Monitoring
+                        Config
+                        Matrix
+                        MatrixMarket
+                        SMVM
+
+  ghc-options:          -O2 -Wall -threaded -rtsopts -eventlog
+  ghc-prof-options:     -auto-all
+
+  if impl(ghc >= 7.6)
+    ghc-options:        -fsimpl-tick-factor=130
+
+  if flag(cuda)
+    CPP-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         == 0.15.*
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if flag(ekg)
+    CPP-options:        -DACCELERATE_ENABLE_EKG
+    build-depends:      ekg                     >= 0.3
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(smvm)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        base                    == 4.7.*,
+                        attoparsec              >= 0.10,
+                        bytestring              >= 0.9,
+                        bytestring-lexing       >= 0.2,
+                        criterion               >= 0.5 && < 1.0,
+                        fclabels                >= 2.0,
+                        primitive               >= 0.5,
+                        mwc-random              >= 0.8,
+                        vector                  >= 0.7,
+                        vector-algorithms       >= 0.4
+
+
+-- A quasicrystal demo as the sum of waves in a plane
+-- --------------------------------------------------
+
+Executable accelerate-crystal
+  hs-source-dirs:       examples/crystal lib
+  Main-is:              Main.hs
+  other-modules:        Config ParseArgs Monitoring
+
+  ghc-options:          -O2 -Wall -threaded -rtsopts -eventlog
+  ghc-prof-options:     -auto-all
+
+  if flag(gui)
+    CPP-options:        -DACCELERATE_ENABLE_GUI
+
+  if flag(cuda)
+    CPP-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         == 0.15.*
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if flag(ekg)
+    CPP-options:        -DACCELERATE_ENABLE_EKG
+    build-depends:      ekg                     >= 0.3
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(crystal)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        base                    == 4.7.*,
+                        criterion               >= 0.5 && < 1.0,
+                        fclabels                >= 2.0,
+                        gloss-raster-accelerate >= 1.7
+
+
+-- Image edge detection
+-- --------------------
+
+Executable accelerate-canny
+  hs-source-dirs:       examples/canny/src-acc lib
+  Main-is:              Main.hs
+  other-modules:        Config ParseArgs Canny Wildfire Monitoring
+
+  ghc-options:          -Wall
+                        -threaded
+                        -Odph
+                        -fllvm
+                        -optlo-O3
+                        -eventlog
+                        -rtsopts
+
+  ghc-prof-options:     -auto-all
+
+  if flag(cuda)
+    CPP-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         == 0.15.*
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if flag(ekg)
+    CPP-options:        -DACCELERATE_ENABLE_EKG
+    build-depends:      ekg                     >= 0.3
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(canny)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        accelerate-io           == 0.15.*,
+                        base                    == 4.7.*,
+                        criterion               >= 0.5 && < 1.0,
+                        fclabels                >= 2.0,
+                        repa                    >= 3.1,
+                        repa-io                 >= 3.1,
+                        vector                  >= 0.7
+
+
+-- A simple mandelbrot generator
+-- -----------------------------
+
+Executable accelerate-mandelbrot
+  hs-source-dirs:       examples/mandelbrot lib
+  Main-is:              Main.hs
+  other-modules:        Config World Mandel ParseArgs Monitoring
+
+  ghc-options:          -O2 -Wall -threaded -eventlog -rtsopts
+  ghc-prof-options:     -auto-all
+
+  if flag(gui)
+    CPP-options:        -DACCELERATE_ENABLE_GUI
+
+  if flag(cuda)
+    CPP-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         == 0.15.*
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*,
+                        accelerate-llvm
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if flag(llvm-cpu) && flag(llvm-gpu) && flag(llvm-multi)
+    CPP-options:        -DACCELERATE_LLVM_MULTIDEV_BACKEND
+    build-depends:      accelerate-llvm-multidev== 0.15.*
+
+  if flag(ekg)
+    CPP-options:        -DACCELERATE_ENABLE_EKG
+    build-depends:      ekg                     >= 0.3
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(mandelbrot)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        accelerate-io           == 0.15.*,
+                        base                    == 4.7.*,
+                        criterion               >= 0.5 && < 1.0,
+                        fclabels                >= 2.0,
+                        gloss                   >= 1.7,
+                        gloss-accelerate        >= 1.7
+
+
+-- A stable fluid simulation
+-- -------------------------
+
+Executable accelerate-fluid
+  Main-is:              Main.hs
+  hs-source-dirs:       examples/fluid/src-acc lib
+  other-modules:        Config ParseArgs Monitoring
+                        Event
+                        Fluid
+                        Type
+                        World
+
+  ghc-options:          -O2 -Wall -threaded -eventlog -rtsopts
+  ghc-prof-options:     -auto-all
+
+  if flag(gui)
+    CPP-options:        -DACCELERATE_ENABLE_GUI
+
+  if flag(cuda)
+    cpp-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         == 0.15.*
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if flag(ekg)
+    CPP-options:        -DACCELERATE_ENABLE_EKG
+    build-depends:      ekg                     >= 0.3
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(fluid)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        accelerate-io           == 0.15.*,
+                        base                    == 4.7.*,
+                        bmp                     >= 1.2,
+                        criterion               >= 0.5 && < 1.0,
+                        fclabels                >= 2.0,
+                        gloss                   >= 1.7
+
+
+-- Simulation of gravitational attraction between solid particles
+-- --------------------------------------------------------------
+
+Executable accelerate-nbody
+  Main-is:              Main.hs
+  hs-source-dirs:       examples/n-body lib
+  other-modules:        Config ParseArgs Monitoring
+                        Common.Body
+                        Common.Dump
+                        Common.Tree
+                        Common.Type
+                        Common.Util
+                        Common.World
+                        Gloss.Draw
+                        Gloss.Event
+                        Gloss.Simulate
+                        Random.Array
+                        Random.Position
+                        Solver.BarnsHut
+                        Solver.Naive1
+                        Solver.Naive2
+
+  ghc-options:          -O2 -Wall -threaded -eventlog -rtsopts
+  ghc-prof-options:     -auto-all
+
+  if flag(gui)
+    cpp-options:        -DACCELERATE_ENABLE_GUI
+
+  if flag(cuda)
+    cpp-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         == 0.15.*
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if flag(ekg)
+    CPP-options:        -DACCELERATE_ENABLE_EKG
+    build-depends:      ekg                     >= 0.3
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(nbody)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        base                    == 4.7.*,
+                        criterion               >= 0.5 && < 1.0,
+                        fclabels                >= 2.0,
+                        gloss                   >= 1.7,
+                        mwc-random              >= 0.8
+
+
+-- A celular automata
+-- ------------------
+
+Executable accelerate-smoothlife
+  Main-is:              Main.hs
+  hs-source-dirs:       examples/smoothlife lib
+  other-modules:        Config ParseArgs Monitoring
+                        SmoothLife
+                        Gloss.Draw
+                        Gloss.Event
+                        Gloss.Simulate
+                        Random.Array
+                        Random.Splat
+
+  ghc-options:          -O2 -Wall -threaded -threaded -rtsopts
+  ghc-prof-options:     -auto-all
+
+  if flag(gui)
+    cpp-options:        -DACCELERATE_ENABLE_GUI
+
+  if flag(cuda)
+    cpp-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         == 0.15.*
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if flag(ekg)
+    CPP-options:        -DACCELERATE_ENABLE_EKG
+    build-depends:      ekg                     >= 0.3
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(smoothlife)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        accelerate-fft          == 0.15.*,
+                        accelerate-io           == 0.15.*,
+                        base                    == 4.7.*,
+                        criterion               >= 0.5 && < 1.0,
+                        fclabels                >= 2.0,
+                        gloss                   >= 1.7,
+                        gloss-accelerate        >= 1.7,
+                        mwc-random              >= 0.8
+
+
+-- A password recovery tool
+-- ------------------------
+
+Executable accelerate-hashcat
+  Main-is:              Main.hs
+  hs-source-dirs:       examples/hashcat lib
+  other-modules:        Config ParseArgs Monitoring
+                        Digest
+                        MD5
+                        Util
+
+  ghc-options:          -O2 -Wall -threaded -threaded -rtsopts
+  ghc-prof-options:     -auto-all
+
+  if flag(cuda)
+    cpp-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         == 0.15.*
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if flag(ekg)
+    CPP-options:        -DACCELERATE_ENABLE_EKG
+    build-depends:      ekg                     >= 0.3
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(hashcat)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        base                    == 4.7.*,
+                        bytestring              >= 0.9,
+                        bytestring-lexing       >= 0.2,
+                        cereal                  >= 0.3,
+                        criterion               >= 0.5 && < 1.0,
+                        fclabels                >= 2.0,
+                        mwc-random              >= 0.8
+
+-- FFT examples
+-- ------------
+
+Executable accelerate-fft
+  Main-is:              Main.hs
+  hs-source-dirs:       examples/fft/src-acc lib
+  other-modules:        Config
+                        ParseArgs
+                        HighPass
+                        FFT
+
+  ghc-options:          -O2 -Wall -threaded -threaded -rtsopts
+  ghc-prof-options:     -auto-all
+
+  if flag(cuda)
+    cpp-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         == 0.15.*
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if !flag(fft)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        accelerate-io           == 0.15.*,
+                        accelerate-fft          == 0.15.*,
+                        base                    == 4.7.*,
+                        criterion               >= 0.5 && < 1.0,
+                        fclabels                >= 2.0,
+                        filepath                >= 1.0
+
+-- PageRank
+-- --------
+
+Executable accelerate-pagerank
+  Main-is:              Main.hs
+  hs-source-dirs:       examples/pagerank lib
+  other-modules:        Config
+                        Page
+                        Progress
+                        Rank
+                        Step
+                        Count
+                        Rank
+                        Step
+                        Load
+  ghc-options:          -rtsopts -threaded -O2
+
+  if flag(cuda)
+    cpp-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         == 0.15.*
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if !flag(pagerank)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        accelerate-io           == 0.15.*,
+                        base                    == 4.7.*,
+                        bytestring              >= 0.9.2,
+                        containers              >= 0.4.2,
+                        criterion               >= 0.5 && < 1.0,
+                        directory               >= 1.1,
+                        fclabels                >= 1.0,
+                        vector                  >= 0.9,
+                        vector-algorithms       >= 0.5.4
+
+
+-- Ray tracer
+-- ----------
+
+Executable accelerate-ray
+  Main-is:              Main.hs
+  hs-source-dirs:       examples/ray lib
+  other-modules:        ParseArgs Monitoring
+                        Config
+                        Vec3
+                        Gloss.Draw
+                        Gloss.Event
+                        Ray.Intersect
+                        Ray.Trace
+                        Scene.Light
+                        Scene.Object
+                        Scene.State
+                        Scene.World
+
+  if !flag(ray)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        accelerate-io           == 0.15.*,
+                        base                    == 4.7.*,
+                        criterion               >= 0.5 && < 1.0,
+                        fclabels                >= 1.0,
+                        gloss                   == 1.8.*,
+                        gloss-accelerate        == 1.8.*,
+                        gloss-raster-accelerate == 1.8.*
+
+  if flag(cuda)
+    cpp-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         >= 0.15
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if flag(llvm-cpu) && flag(llvm-gpu) && flag(llvm-multi)
+    CPP-options:        -DACCELERATE_LLVM_MULTIDEV_BACKEND
+    build-depends:      accelerate-llvm-multidev== 0.15.*
+
+  if flag(ekg)
+    cpp-options:        -DACCELERATE_ENABLE_EKG
+    build-depends:      ekg                     >= 0.3
+    ghc-options:        -with-rtsopts=-T
+
+  if flag(gui)
+    CPP-options:        -DACCELERATE_ENABLE_GUI
+
+  ghc-options:          -Wall -O2 -threaded -threaded -rtsopts
+  ghc-prof-options:     -auto-all
+
+
+-- K-means
+-- -------
+
+Executable accelerate-kmeans
+  Main-is:              Main.hs
+  hs-source-dirs:       examples/kmeans lib
+  other-modules:        ParseArgs Monitoring
+                        Config
+                        Main
+                        Kmeans
+
+  if !flag(kmeans)
+    buildable:          False
+  else
+    build-depends:      accelerate              == 0.15.*,
+                        base                    == 4.7.*,
+                        binary                  >= 0.7,
+                        criterion               >= 0.5 && < 1.0,
+                        normaldistribution,
+                        random
+
+  if flag(cuda)
+    cpp-options:        -DACCELERATE_CUDA_BACKEND
+    build-depends:      accelerate-cuda         >= 0.15
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:      accelerate-llvm-native  == 0.15.*
+
+  if flag(llvm-gpu)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:      accelerate-llvm-ptx     == 0.15.*
+
+  if flag(ekg)
+    cpp-options:        -DACCELERATE_ENABLE_EKG
+    build-depends:      ekg                     >= 0.3
+    ghc-options:        -with-rtsopts=-T
+
+  ghc-options:          -Wall -O2 -threaded -threaded -rtsopts
+  ghc-prof-options:     -auto-all
+
+
+source-repository this
+  type:                 git
+  location:             https://github.com/AccelerateHS/accelerate-examples
+  branch:               release/0.15
+  tag:                  0.15.0.0
+
+
+package-hashes:
+    MD5:0c2d58acb1b47ec646ce295de38a6918
+    SHA1:ef98b516c1f468884571c7905191a3ac83fed4bc
+    SHA256:381fcfb49b51216579f96596422c06e350780c0c8bb11798742da2e53358dcc9
+    SHA512:02d1c4d24cda8519228d2d1cea243a0979fdab3a17b69bd177525fe2d868745589c87ed8d1b6d990ad02ccb88a6fd35fcf08be07b0823ae2d3c3ba5ca6d067df
+    Skein512_512:2c8d6565c763a9d1263ab7beff5db78b9207486828080acca99df3719ce91894931ef1414c38da1036d06058f24396543130926770b154a22db0597b3148ec1b
+
+package-locations:
+    https://hackage.haskell.org/package/accelerate-examples-0.15.0.0/accelerate-examples-0.15.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/accelerate-examples-0.15.0.0.tar.gz
+

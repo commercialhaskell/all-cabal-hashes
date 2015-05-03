@@ -1,0 +1,116 @@
+name:          bindings-levmar
+version:       1.0.0.2
+cabal-version: >= 1.6
+build-type:    Simple
+stability:     provisional
+author:        Roel van Dijk <vandijk.roel@gmail.com> & Bas van Dijk <v.dijk.bas@gmail.com>
+maintainer:    Roel van Dijk <vandijk.roel@gmail.com> & Bas van Dijk <v.dijk.bas@gmail.com>
+copyright:     2009–2011 Roel van Dijk & Bas van Dijk
+license:       OtherLicense
+license-file:  LICENSE
+homepage:      https://github.com/basvandijk/bindings-levmar
+bug-reports:   https://github.com/basvandijk/bindings-levmar/issues
+category:      Numerical, FFI
+synopsis:      Low level bindings to the C levmar (Levenberg-Marquardt) library
+description:   See the @levmar@ package for a high-level wrapper
+               around this package.
+               .
+               The Levenberg-Marquardt algorithm is an iterative
+               technique that finds a local minimum of a function that
+               is expressed as the sum of squares of nonlinear
+               functions. It has become a standard technique for
+               nonlinear least-squares problems and can be thought of
+               as a combination of steepest descent and the
+               Gauss-Newton method. When the current solution is far
+               from the correct one, the algorithm behaves like a
+               steepest descent method: slow, but guaranteed to
+               converge. When the current solution is close to the
+               correct solution, it becomes a Gauss-Newton method.
+               .
+               Both unconstrained and constrained (under linear
+               equations and box constraints) Levenberg-Marquardt
+               variants are included.  All functions have Double and
+               Float variants.
+               .
+               See: <http://www.ics.forth.gr/~lourakis/levmar/>
+               .
+	       Note that the included C library is lightly patched to
+	       make it pure. This way the functions can be used inside
+	       @unsafePerformIO@.
+	       .
+               A note regarding the license:
+               .
+               All files EXCEPT those in the levmar-2.4 directory fall
+               under the BSD3 license. The levmar C library, which is
+               bundled with this binding, falls under the GPL. If you
+               build a program which is linked with this binding then
+               it is also linked with levmar. This means such a
+               program can only by distributed under the terms of the
+               GPL.
+
+extra-source-files: README.markdown
+                  , levmar-2.4/LICENSE
+                  , levmar-2.4/*.h
+                  , levmar-2.4/*.c
+                  , levmar-2.4/*.txt
+                  , levmar-2.4/Makefile
+                  , levmar-2.4/Makefile.icc
+                  , levmar-2.4/Makefile.vc
+                  , levmar-2.4/levmar.vcproj
+                  , levmar-2.4/matlab/*.m
+                  , levmar-2.4/matlab/*.c
+                  , levmar-2.4/matlab/*.txt
+                  , levmar-2.4/matlab/Makefile
+                  , levmar-2.4/matlab/Makefile.w32
+
+flag mkl
+  description: Link with Intel's MKL optimized libraries.
+  default:     False
+
+flag accelerate
+  description: Use the accelerate framework for LAPACK/BLAS on OS X
+  default:     False
+
+source-repository head
+  type: git
+  location: git://github.com/basvandijk/bindings-levmar.git
+
+library
+  build-depends: base         >= 3      && < 4.6
+               , bindings-DSL >= 1.0.15 && < 1.1
+  exposed-modules: Bindings.LevMar
+  ghc-options: -Wall
+  cc-options: -D_OPENMP
+  include-dirs: levmar-2.4
+  c-sources:
+    levmar-2.4/Axb.c
+    levmar-2.4/lm.c
+    levmar-2.4/lmbc.c
+    levmar-2.4/lmblec.c
+    levmar-2.4/lmlec.c
+    levmar-2.4/misc.c
+
+  if flag(mkl)
+    extra-libraries: mkl_lapack mkl_sequential mkl_core
+    if arch(x86_64)
+      extra-libraries: mkl_intel_lp64
+    else
+      extra-libraries: mkl_intel
+  else
+    extra-libraries: lapack blas
+
+  if flag(accelerate)
+    frameworks: Accelerate
+
+
+package-hashes:
+    MD5:8679d5de9db42a8f328c9f70602e42ae
+    SHA1:d703ea9eacf9bc4c23dcde5acac5da219dc7e38b
+    SHA256:535998cbd689dc7b7bf164b0a6b6fb93824b44cf1d5ff2e4d56894fcc6130fd5
+    SHA512:923abadd0e5b40ac03ec3542dab446c10727d84b9845f37a49e4337ab959f1c4fc4eb1863b0728ed5f71bccb2d9ee7c3b711af73acc89eeb2e441d6ef8856f8a
+    Skein512_512:b1504d6da73c73f368c24f6682d00347bcee257790e9f35951e39b6f2e2b0cd340b46b4436a7aeeffdce03428731bf9190e194cd13a93f14113c10c59137b392
+
+package-locations:
+    https://hackage.haskell.org/package/bindings-levmar-1.0.0.2/bindings-levmar-1.0.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/bindings-levmar-1.0.0.2.tar.gz
+

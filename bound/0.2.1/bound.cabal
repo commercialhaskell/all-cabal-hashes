@@ -1,0 +1,132 @@
+name:          bound
+category:      Language, Compilers/Interpreters
+version:       0.2.1
+license:       BSD3
+cabal-version: >= 1.6
+license-file:  LICENSE
+author:        Edward A. Kmett
+maintainer:    Edward A. Kmett <ekmett@gmail.com>
+stability:     experimental
+homepage:      http://github.com/ekmett/bound/
+bug-reports:   http://github.com/ekmett/bound/issues
+copyright:     Copyright (C) 2012 Edward A. Kmett
+synopsis:      Haskell 98 Locally-Nameless Generalized de Bruijn Terms
+description:
+   We represent the target language itself as an ideal monad supplied by the
+   user, and provide a 'Scope' monad transformer for introducing bound variables
+   in user supplied terms. Users supply a 'Monad' and 'Traversable' instance, and
+   we traverse to find free variables, and use the Monad to perform substitution
+   that avoids bound variables.
+   .
+   An untyped lambda calculus:
+   .
+   > import Bound
+   > import Prelude.Extras
+   .
+   > infixl 9 :@
+   > data Exp a = V a | Exp a :@ Exp a | Lam (Scope () Exp a)
+   >  deriving (Eq,Ord,Show,Read,Functor,Foldable,Traversable)
+   .
+   > instance Eq1 Exp   where (==#)      = (==)
+   > instance Ord1 Exp  where compare1   = compare
+   > instance Show1 Exp where showsPrec1 = showsPrec
+   > instance Read1 Exp where readsPrec1 = readsPrec
+   > instance Applicative Exp where pure = V; (<*>) = ap
+   .
+   > instance Monad Exp where
+   >   return = V
+   >   V a      >>= f = f a
+   >   (x :@ y) >>= f = (x >>= f) :@ (y >>= f)
+   >   Lam e    >>= f = Lam (e >>>= f)
+   >
+   > lam :: Eq a => a -> Exp a -> Exp a
+   > lam v b = Lam (abstract1 v b)
+   .
+   > whnf :: Exp a -> Exp a
+   > whnf (f :@ a) = case whnf f of
+   >   Lam b -> whnf (instantiate1 a b)
+   >   f'    -> f' :@ a
+   > whnf e = e
+   .
+   The classes from Prelude.Extras are used to facilitate the automatic deriving
+   of 'Eq', 'Ord', 'Show', and 'Read' in the presence of polymorphic recursion used
+   inside 'Scope'.
+   .
+   The goal of this package is to make it as easy as possible to deal with name
+   binding without forcing an awkward monadic style on the user.
+   .
+   With generalized de Bruijn term you can 'lift' whole trees instead of just
+   applying 'succ' to individual variables, weakening the all variables bound
+   by a scope. and by giving binders more structure we can permit easy
+   simultaneous substitution.
+   .
+   The approach was first elaborated upon by Richard Bird and Ross Patterson 
+   in \"de Bruijn notation as a nested data type\", available from
+   <http://www.cs.uwyo.edu/~jlc/courses/5000_fall_08/debruijn_as_nested_datatype.pdf>
+   .
+   However, the combinators they used required higher rank types. Here we
+   demonstrate that the higher rank @gfold@ combinator they used isn't necessary
+   to build the monad and use a monad transformer to encapsulate the novel
+   recursion pattern in their generalized de Bruijn representation. It is named
+   'Scope' to match up with the terminology and usage pattern from Conor McBride
+   and James McKinna's \"I am not a number: I am a free variable\", available from
+   <http://www.cs.st-andrews.ac.uk/~james/RESEARCH/notanum.pdf>, but since the
+   set of variables is visible in the type, we can provide stronger type safety
+   guarantees.
+   .
+   There are longer examples in the @examples/@ folder:
+   .
+   <https://github.com/ekmett/bound/tree/master/examples>
+   .
+   (1) /Simple.hs/ provides an untyped lambda calculus with recursive let bindings.
+     and includes an evaluator for the untyped lambda calculus and a longer example
+     taken from Lennart Augustsson's "λ-calculus cooked four ways" available from
+     <http://www.augustsson.net/Darcs/Lambda/top.pdf>
+   .
+   2. /Derived.hs/ shows how much of the API can be automated with DeriveTraversable
+     and adds combinators for building binders that support pattern matching.
+   .
+   3. /Overkill.hs/ provides very strongly typed pattern matching many modern type
+     extensions, including polymorphic kinds to ensure type safety. In general,
+     the approach taken by Derived seems to deliver a better power to weight ratio.
+
+build-type:    Simple
+extra-source-files:
+  .travis.yml
+  examples/Simple.hs
+  examples/Deriving.hs
+  examples/Overkill.hs
+  README.markdown
+
+source-repository head
+  type: git
+  location: git://github.com/ekmett/bound.git
+
+library
+  build-depends:
+    base           >= 4     && < 5,
+    bifunctors     >= 0.1.3 && < 0.2,
+    prelude-extras >= 0.2   && < 0.3,
+    transformers   >= 0.2   && < 0.4
+
+  exposed-modules:
+    Bound
+    Bound.Class
+    Bound.Scope
+    Bound.Term
+    Bound.Var
+
+  ghc-options: -Wall -O2 -fspec-constr -fdicts-cheap
+
+
+package-hashes:
+    MD5:c4f407a41c23783ebdba554cc1feb5c7
+    SHA1:d200dc9623ebfa27351920d1ba9df0cf995f6bf0
+    SHA256:27ba865d0899e318fa53edb3f8fc41f267d69e28089de00e9afddee56883ec88
+    SHA512:ff26a970047469cab6bdfb728e691ab6c8f8082e2579729636eaccda665a2f51ff01c92b00b21e7bdae6d7c2ceec618695c675da873289e5127bdc18b389155f
+    Skein512_512:83ae6de4476e84f276ae2530251f5d5f1de7f6f06883f87e253c5d9a4c9d543edea9684995f945b74c23d89e1b945c68fb1e7c5a95845490726893bdd69c820f
+
+package-locations:
+    https://hackage.haskell.org/package/bound-0.2.1/bound-0.2.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/bound-0.2.1.tar.gz
+

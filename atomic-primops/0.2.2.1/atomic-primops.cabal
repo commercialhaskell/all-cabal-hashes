@@ -1,0 +1,101 @@
+Name:                atomic-primops
+Version:             0.2.2.1
+License:             BSD3
+License-file:        LICENSE
+Author:              Ryan Newton
+Maintainer:          rrnewton@gmail.com
+Category:            Data
+Stability:           Provisional
+-- Portability:         non-portabile (x86_64)
+Build-type:          Custom
+-- TODO: This requirement needs to be bumped to 1.17 when the latest cabal is
+-- released.  This package triggers issue #1284:
+Cabal-version:       >=1.8
+HomePage: https://github.com/rrnewton/haskell-lockfree-queue/wiki
+
+-- Version History:
+-- 0.1.0.0 -- initial release
+-- 0.1.0.2 -- disable profiling
+-- 0.2 -- Critical bugfix and add Counter.
+-- 0.2.2 -- Add more counters
+-- 0.2.2.1 -- Minor, add warning.
+
+Synopsis: A safe approach to CAS and other atomic ops in Haskell.
+
+Description:
+
+  WARNING: Your program MUST be built with "ghc -threaded" if you depend on this library.
+           The library depends on threaded Haskell RTS, which is only conditionally linked.
+           If you don't do this you will see an error at link time about "cas" being missing.
+  . 
+  After GHC 7.4 a new `casMutVar#` primop became available, but it's
+  difficult to use safely, because pointer equality is a highly
+  unstable property in Haskell.  This library provides a safer method
+  based on the concept of "Tickets".
+ .
+  Also, this library uses the "foreign primop" capability of GHC to
+  add access to other variants that may be of
+  interest, specifically, compare and swap inside an array.
+
+Extra-Source-Files:  DEVLOG.md,
+                     testing/runTest.hs, testing/Test.hs, testing/test-atomic-primops.cabal
+--                    Makefile, Test.hs, README.md
+
+Flag debug
+    Description: Enable extra internal checks.
+    Default: False
+
+Library
+  exposed-modules:   Data.Atomics
+                     Data.Atomics.Internal
+                     Data.Atomics.Counter
+                     Data.Atomics.Counter.IORef
+                     Data.Atomics.Counter.Reference
+                     Data.Atomics.Counter.Foreign
+  ghc-options: -O2 -funbox-strict-fields
+
+  -- casMutVar# had a bug in GHC 7.2, thus we require GHC 7.4 or greater
+  -- (base 4.5 or greater). We also need the "Any" kind.
+  build-depends:     base >= 4.5.0.0 && < 4.7, ghc-prim, primitive, Cabal,
+                     bits-atomic
+
+  -- TODO: Try to push support back to 7.0:
+  -- Ah, but if we don't USE casMutVar# in this package we are ok:
+  -- build-depends:     base >= 4.3, ghc-prim, primitive
+
+  Include-Dirs:     cbits
+  C-Sources:        cbits/primops.cmm
+  CC-Options:       -Wall
+  ghc-prof-options: -DGHC_PROFILING_ON
+  -- if( cabal-version < 1.17 ) {
+  --   ghc-prof-options: ERROR_DO_NOT_BUILD_THIS_WITH_PROFILING_YET__SEE_CABAL_ISSUE_1284
+  -- }
+
+  if flag(debug)
+    cpp-options: -DDEBUG_ATOMICS
+
+-- -- [2013.04.08] This isn't working presently:
+-- -- I'm having problems with building it along with the library; see DEVLOG.
+-- -- Switching to a separate package in ./testing/ 
+-- Test-Suite test-atomic-primops
+--     type:       exitcode-stdio-1.0
+
+
+Source-Repository head
+    Type:         git
+    Location:     git://github.com/rrnewton/haskell-lockfree-queue.git
+
+
+
+
+package-hashes:
+    MD5:e77dd6e49d5482032637fd529afab8e3
+    SHA1:68819fb7764ececa594c6e34a138efa9e392d1f0
+    SHA256:a36fd9bfc62b20d692e49256aeef4880efedbac9c9b8b3917380ae2c6697bd9b
+    SHA512:d57b98d8894466add6ef8c24e97d0001ebf4919296e68a8acc48be9f897f8a4fdb7d939925cff07f4a6624328ec6116ec01bd667b93aa45414da82d7052ce5f6
+    Skein512_512:3027248f89418b219abe8c1058c6330d1b5011cf15c42ab80579439dcf8bd6f6be273520e6b04510b4d8be91f851b8f040cc84521ec55ad775cc9f1dfb64c3fd
+
+package-locations:
+    https://hackage.haskell.org/package/atomic-primops-0.2.2.1/atomic-primops-0.2.2.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/atomic-primops-0.2.2.1.tar.gz
+

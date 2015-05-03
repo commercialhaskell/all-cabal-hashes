@@ -1,0 +1,227 @@
+name:               arbtt
+version:            0.8.1
+license:            GPL
+license-file:       LICENSE
+category:           Desktop
+cabal-version:      >= 1.10
+build-type:         Simple
+author:             Joachim Breitner <mail@joachim-breitner.de>
+maintainer:         Joachim Breitner <mail@joachim-breitner.de>
+copyright:          Joachim Breitner 2009-2013
+synopsis:           Automatic Rule-Based Time Tracker
+description:
+    arbtt is a background daemon that stores which windows are open, which one
+    has the focus and how long since your last action (and possbly more sources
+    later), and stores this. It is also a program that will, based on
+    expressive rules you specify, derive what you were doing, and what for.
+    .
+    The documentation, which includes the changelog, can also be found at
+    <http://arbtt.nomeata.de/doc/users_guide/>.
+    .
+    WARNING: The log file might contain very sensitive private data. Make sure
+    you understand the consequences of a full-time logger and be careful with this
+    data.
+homepage:           http://arbtt.nomeata.de/
+
+extra-source-files:
+    categorize.cfg, arbtt-capture.desktop, README.md,
+    doc/arbtt.xml, doc/fptools.css, doc/Makefile,
+    setup.iss, modpath.iss,
+    tests/*.log, tests/*.out, tests/*.in, tests/*.cfg
+
+executable arbtt-capture
+    main-is:            capture-main.hs
+    hs-source-dirs:     src
+    build-depends:
+        base == 4.5.* || == 4.6.* || == 4.7.*,
+        filepath, directory, transformers, time >= 1.4, utf8-string,
+        aeson == 0.6.* || == 0.7.*,
+        array == 0.4.* || == 0.5.*,
+        binary >= 0.5,
+        bytestring, deepseq, strict, old-locale
+    other-modules:
+        Data
+        Data.MyText
+        Data.Binary.StringRef
+        CommonStartup
+        Capture
+        TimeLog
+        UpgradeLog1
+        LeftFold
+    
+    ghc-options: -rtsopts
+
+    if os(windows) 
+        extra-libraries: psapi
+        cpp-options:    -DWIN32
+        ghc-options:    -optl-mwindows
+        other-modules:
+            Capture.Win32
+            Graphics.Win32.Window.Extra
+            System.Win32.Mutex
+        build-depends:
+             Win32
+    else
+        extra-libraries: Xss
+        other-modules:
+            Capture.X11
+            Graphics.X11.XScreenSaver
+            System.Locale.SetLocale
+        build-depends:
+            X11 > 1.4.4, unix
+    default-language: Haskell98
+
+executable arbtt-stats
+    main-is:            stats-main.hs
+    hs-source-dirs:     src
+    build-depends:
+        base == 4.5.* || == 4.6.* || == 4.7.*,
+        parsec == 3.*,
+        containers == 0.5.*,
+        pcre-light, old-locale,
+        binary >= 0.5,
+        deepseq, bytestring, utf8-string, time >= 1.4, strict,
+        transformers, unix, directory, filepath,
+        aeson == 0.6.* || == 0.7.*,
+        array == 0.4.* || == 0.5.*,
+        terminal-progress-bar, bytestring-progress
+    other-modules:
+        Data
+        Data.MyText
+        Data.Binary.StringRef
+        CommonStartup
+        Categorize
+        TimeLog
+        Stats
+        Text.Parsec.ExprFail
+        Text.ParserCombinators.Parsec.ExprFail
+        Text.Regex.PCRE.Light.Text
+        TermSize
+    ghc-options: -rtsopts
+    if os(windows) 
+        cpp-options:    -DWIN32
+    else
+        other-modules:
+            System.Locale.SetLocale
+    default-language: Haskell98
+
+executable arbtt-dump
+    main-is:            dump-main.hs
+    hs-source-dirs:     src
+    build-depends:
+        base == 4.5.* || == 4.6.* || == 4.7.*,
+        parsec == 3.*,
+        containers == 0.5.*,
+        aeson == 0.6.* || == 0.7.*,
+        array == 0.4.* || == 0.5.*,
+        binary >= 0.5,
+        deepseq, bytestring, utf8-string, time >= 1.4, strict,
+        transformers, unix, directory, filepath,
+        old-locale
+    other-modules:
+        Data
+        Data.MyText
+        Data.Binary.StringRef
+        CommonStartup
+        TimeLog
+        DumpFormat
+        Data.List.TakeR
+    ghc-options: -rtsopts
+    if os(windows) 
+        cpp-options:    -DWIN32
+    else
+        other-modules:
+            System.Locale.SetLocale
+    default-language: Haskell98
+
+executable arbtt-import
+    main-is:            import-main.hs
+    hs-source-dirs:     src
+    build-depends:
+        base == 4.5.* || == 4.6.* || == 4.7.*,
+        parsec == 3.*,
+        containers == 0.5.*,
+        binary >= 0.5,
+        deepseq, bytestring, utf8-string, time >= 1.4, strict,
+        transformers, unix, directory, filepath
+    other-modules:
+        Data
+        Data.MyText
+        Data.Binary.StringRef
+        CommonStartup
+        TimeLog
+    ghc-options: -rtsopts
+    if os(windows) 
+        cpp-options:    -DWIN32
+    else
+        other-modules:
+            System.Locale.SetLocale
+    default-language: Haskell98
+
+executable arbtt-recover
+    main-is:            recover-main.hs
+    hs-source-dirs:     src
+    build-depends:
+        base == 4.5.* || == 4.6.* || == 4.7.*,
+        parsec == 3.*, containers == 0.5.*,
+        binary >= 0.5,
+        deepseq, bytestring, utf8-string, time >= 1.4, strict,
+        transformers, unix, directory, filepath
+    other-modules:
+        Data
+        Data.MyText
+        Data.Binary.StringRef
+        CommonStartup
+        TimeLog
+    ghc-options: -rtsopts
+    if os(windows) 
+        cpp-options:    -DWIN32
+    else
+        other-modules:
+            System.Locale.SetLocale
+    default-language: Haskell98
+
+test-suite test
+  Type:
+    exitcode-stdio-1.0
+  Hs-source-dirs:
+    tests
+    src
+  Main-is:
+    test.hs
+  Build-depends:
+      base == 4.5.* || == 4.6.* || == 4.7.*
+      , tasty == 0.7.* || == 0.8.*
+      , tasty-golden >= 2.2.0.2  && <= 2.3
+      , tasty-hunit == 0.2.* || == 0.4.* || == 0.8.*
+      , HUnit == 1.2.*
+      , process-extras == 0.2.*
+      , deepseq
+      , binary >= 0.5
+      , bytestring
+      , utf8-string
+      , time
+      , unix
+      , directory
+      , parsec == 3.*
+      , containers == 0.5.*
+      , pcre-light, old-locale
+      , transformers
+  default-language: Haskell98
+
+source-repository head
+    type:     darcs
+    location: http://darcs.nomeata.de/arbtt
+
+
+package-hashes:
+    MD5:f24dea28fb72ed7266faa21b6201509b
+    SHA1:378e0dc744d37d569e17567355ea6b1e275b3067
+    SHA256:c0bacc45794f43666d8e3520dc4b55e27f88cdbd48d40c014c45ba8baac4f5e3
+    SHA512:75f6677825dc7453e4660c13b36f1d1ab4b03aba68fdec0ab45241f7cbd167614c0229c31ec6370193d06a4cfdeec0f672019523cbcd9886053addf66f09569e
+    Skein512_512:1534ce60b263ce305d9ea7334fb47678bc31705234744cbfe82ab9f8ea28e083e959f563b2c979fc6e8f976bbb16a1180fb52d4c3f809644945008d91bf7b081
+
+package-locations:
+    https://hackage.haskell.org/package/arbtt-0.8.1/arbtt-0.8.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/arbtt-0.8.1.tar.gz
+

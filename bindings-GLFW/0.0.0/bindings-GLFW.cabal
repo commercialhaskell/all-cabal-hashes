@@ -1,0 +1,185 @@
+name:         bindings-GLFW
+version:      0.0.0
+category:     Graphics
+
+author:       Brian Lewis <brian@lorf.org>
+maintainer:   Brian Lewis <brian@lorf.org>
+
+license:      BSD3
+license-file: LICENSE
+
+synopsis:     Low-level bindings to GLFW OpenGL library
+description:
+  Low-level bindings to <http://www.glfw.org/ GLFW>, an open source,
+  multi-platform library for creating windows with OpenGL contexts and managing
+  input and events.
+  .
+  The binding is to
+  <http://www.glfw.org/Version-3.0.1-released.html GLFW 3.0.1, released 2013-06-17>.
+  .
+  /These bindings are too low-level for normal use./ For higher-level bindings,
+  see <http://hackage.haskell.org/package/GLFW-b GLFW-b>.
+  .
+  If you've used GLFW before, you were probably using 2.7.x. There are some
+  significant differences in 3.0.x. Please see the
+  <http://www.glfw.org/docs/3.0/moving.html transition guide>.
+
+cabal-version: >= 1.10
+build-type:    Simple
+
+--------------------------------------------------------------------------------
+
+extra-source-files:
+  README.md
+
+  glfw/deps/EGL/*.h
+  glfw/deps/GL/*.h
+
+  glfw/include/os/unix-like/*.h
+  glfw/include/os/windows/*.h
+  glfw/include/os/darwin/*.h
+  glfw/include/GLFW/*.h
+
+  glfw/src/*.c
+  glfw/src/*.h
+  glfw/src/*.m
+
+--------------------------------------------------------------------------------
+
+flag MacOSXUseChdir
+  description:
+    Mac OS X only. Determines whether 'init' changes the current directory of
+    bundled applications to the 'Contents/Resources' directory.
+  default: True
+
+flag MacOSXUseMenubar
+  description:
+    Mac OS X only. Determines whether the first call to 'createWindow' sets up
+    a minimal menu bar.
+  default: True
+
+--------------------------------------------------------------------------------
+
+library
+  default-language: Haskell2010
+
+  ghc-options: -Wall -O2
+  if impl(ghc >= 6.8)
+    ghc-options: -fwarn-tabs
+
+  exposed-modules:
+    Bindings.GLFW
+
+  build-tools:
+    hsc2hs
+
+  build-depends:
+    base          < 5,
+    bindings-DSL == 1.0.*
+
+  include-dirs:
+    glfw/include
+    glfw/src
+
+  c-sources:
+    glfw/src/clipboard.c
+    glfw/src/context.c
+    glfw/src/gamma.c
+    glfw/src/init.c
+    glfw/src/input.c
+    glfw/src/joystick.c
+    glfw/src/monitor.c
+    glfw/src/time.c
+    glfw/src/window.c
+
+  if os(linux) || os(freebsd)
+    include-dirs:
+      glfw/include/os/unix-like
+    c-sources:
+      glfw/src/x11_clipboard.c
+      glfw/src/x11_gamma.c
+      glfw/src/x11_init.c
+      glfw/src/x11_joystick.c
+      glfw/src/x11_monitor.c
+      glfw/src/x11_time.c
+      glfw/src/x11_unicode.c
+      glfw/src/x11_window.c
+      glfw/src/glx_context.c
+    extra-libraries:
+      GL
+      X11
+      Xi
+      Xrandr
+      Xxf86vm
+      pthread
+
+  if os(darwin)
+    include-dirs:
+       glfw/include/os/darwin
+    c-sources:
+       glfw/src/cocoa_clipboard.m
+       glfw/src/cocoa_init.m
+       glfw/src/cocoa_gamma.c
+       glfw/src/cocoa_time.c
+       glfw/src/cocoa_joystick.m
+       glfw/src/cocoa_monitor.m
+       glfw/src/cocoa_window.m
+       glfw/src/nsgl_context.m
+    if !flag(MacOSXUseChdir)
+      cc-options: -UGLFW_USE_CHDIR
+    if !flag(MacOSXUseMenubar)
+      cc-options: -UGLFW_USE_MENUBAR
+    frameworks: AGL Cocoa OpenGL IOKit CoreFoundation
+
+  if os(mingw32)
+    include-dirs:
+      glfw/include/os/windows
+    c-sources:
+      glfw/src/win32_clipboard.c
+      glfw/src/win32_gamma.c
+      glfw/src/win32_init.c
+      glfw/src/win32_joystick.c
+      glfw/src/win32_monitor.c
+      glfw/src/win32_time.c
+      glfw/src/win32_window.c
+      glfw/src/wgl_context.c
+    extra-libraries:
+      opengl32
+      Gdi32
+
+--------------------------------------------------------------------------------
+
+test-suite main
+  default-language: Haskell2010
+
+  ghc-options: -Wall -O2
+  if impl(ghc >= 6.8)
+    ghc-options: -fwarn-tabs
+
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  build-depends:
+    HUnit                == 1.2.*,
+    base                  < 5,
+    bindings-GLFW        == 0.0.*,
+    test-framework       == 0.8.*,
+    test-framework-hunit == 0.3.*
+
+--------------------------------------------------------------------------------
+
+source-repository head
+  type:     git
+  location: git://github.com/bsl/bindings-GLFW.git
+
+
+package-hashes:
+    MD5:7f0a7176c7bf1cd99ccea956e60e5f45
+    SHA1:2c55e34525fc5364aaeda8a12d201b6ecad22a02
+    SHA256:258ed5802b10789dea0f362409753516f75ac4c8d6fc2bf04b5594cc0ef9ba68
+    SHA512:ae3f62886d7f575516637a2dabe1cb48e36b17ba304ad6420a04299b78c0a1b5592caaf5fae2e504b578eb2622c2ae57d0f70ccd497becef581fe314b6c14fb7
+    Skein512_512:bf6ccf949be8dba1bf045d77c62cb4551e3aa293c0a3a91dc032acf7cd21d1b01de0eccfff04bbaad9482a404c08b992777deebd1ff2ae9f5dab5e90d7d45963
+
+package-locations:
+    https://hackage.haskell.org/package/bindings-GLFW-0.0.0/bindings-GLFW-0.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/bindings-GLFW-0.0.0.tar.gz
+

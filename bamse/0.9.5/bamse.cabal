@@ -1,0 +1,185 @@
+name: bamse
+version: 0.9.5
+Synopsis: A Windows Installer (MSI) generator framework
+Description:
+   Bamse is a framework for building Windows Installers for
+   your Windows applications, giving you a comprehensive set
+   of features to put together MSIs using Haskell.
+   .
+   Bamse lets you author /installer generators/, i.e., applications
+   that will generate Windows Installers when invoked (and pointed
+   at the files and other resources to include for that particular
+   installer instance.) Bamse is also accessible as a library, letting
+   you integrate MSI creation into your codebase.
+   .
+   The package has a number of example /templates/ showing how to
+   specify a generator; /real/ examples that have been used to ship
+   software by a number of projects and companies. See the @templates/@
+   directory; one good way to get started is to modify one of these
+   to suit the needs of the installers you are looking to create.
+   .
+   For a worked example of how to build installers from your Cabal packages,
+   and possibly automatically install them when running the MSI, see @examples/Cabal.hs@
+   (and the README in that directory.)
+category      : System
+license       : BSD3
+license-file  : LICENSE
+author        : Sigbjorn Finne <sof@forkIO.com>
+maintainer    : sof@forkIO.com
+cabal-version :  >= 1.2
+build-type    : Custom
+extra-source-files: README 
+                    license.rtf
+                    icons/folder.exe
+                    icons/star.exe
+                    icons/pdf.exe
+                    icons/html2.exe
+                    icons/cmdIcon.exe
+                    icons/txt.exe
+                    icons/html.exe
+                    icons/hsx.exe
+                    icons/hs.exe
+                    doc/errors.txt
+                    doc/howto.txt
+                    doc/howto.html
+                    doc/index.html
+                    doc/using.txt
+                    doc/using.html
+                    doc/icons.txt
+                    data/license.rtf
+                    data/msi/base.msi
+                    data/msi/UISample.msi
+                    data/msi/Sequence.msi
+                    data/msi/Schema.msi
+		    art/README.txt
+		    art/haskell-banner.bmp
+		    art/haskell-background.bmp
+		    art/ghc-background.bmp
+		    art/ghc-background-3rd.bmp
+		    art/galois-bground.JPG
+		    art/galois-bground-fade.jpg
+		    art/dlgbmp3rd.bmp
+		    art/bground2.bmp
+		    art/bground.bmp
+		    art/banner3.bmp
+		    art/banner2.bmp
+		    art/banner.bmp
+                    tools/msiIcon.h
+                    tools/msiIcon.c
+                    tools/README.txt
+                    tools/Makefile
+                    tools/Wrapper.hs
+                    tools/custWrap.exe
+                    templates/Alex.hs
+                    templates/Bamse.hs
+                    templates/Base.hs
+                    templates/ComPkg.hs
+                    templates/Cryptol.hs
+                    templates/GHC.hs
+                    templates/GaloisPkg.hs
+                    templates/Greencard.hs
+                    templates/HDirectLib.hs
+                    templates/Haddock.hs
+                    templates/Happy.hs
+                    templates/HsDotnet.hs
+                    templates/Hugs98.hs
+                    templates/Hugs98Net.hs
+                    templates/PubCryptol.hs
+                    templates/SOE.hs
+                    examples/Cabal.hs
+                    examples/README
+                    tests/Tests.hs
+
+flag old-base
+  description: Old, monolithic base
+  default: False
+
+flag build-tests
+  default: False
+
+--
+-- To use bamseGen, configure as follows, e.g.,
+--
+--  Setup configure -fbamseGen --ghc-options=-DPACKAGE=Alex
+--
+flag bamseGen
+  description: Build parameterized installer generator (via PACKAGE define)
+  default: False
+
+flag hsdotnet
+  description: Build HsDotnet installer generator
+  default: True
+
+library {
+ Exposed-modules: Bamse.Builder,
+                  Bamse.DiaWriter,
+                  Bamse.Dialog,
+                  Bamse.DialogUtils,
+                  Bamse.GhcPackage,
+                  Bamse.IMonad,
+                  Bamse.MSIExtra,
+                  Bamse.MSITable,
+                  Bamse.Options,
+                  Bamse.Package,
+                  Bamse.PackageGen,
+                  Bamse.PackageUtils,
+                  Bamse.WindowsInstaller,
+                  Bamse.Writer
+ 
+ Other-Modules:   Bamse.Util.Dir,
+                  Bamse.Util.GetOpts,
+                  Bamse.Util.List
+
+ Ghc-Options:     -Wall
+
+ build-depends: com >= 1.2.3 , process, directory, pretty, regex-compat, old-time, filepath
+ if flag(old-base)
+   Build-Depends: base < 3
+ else
+   Build-Depends: base >= 4
+}
+
+executable hsDotnetGen {
+  main-is:              Main.hs
+  CPP-Options:          -DPACKAGE=HsDotnet
+  hs-source-dirs:       . templates
+  ghc-options:          -Wall
+  if flag(hsdotnet) && !flag(bamseGen)
+    Buildable: True
+  else
+    Buildable: False
+}
+
+executable bamseGen {
+  main-is:              Main.hs
+--  CPP-Options:          -DPACKAGE=flag(Package)
+  hs-source-dirs:       . templates
+  ghc-options:          -Wall -idist/build
+  if flag(bamseGen)
+    Buildable: True
+  else
+    Buildable: False
+}
+
+executable runTests {
+  if flag(build-tests)
+     buildable: True
+  else
+     buildable: False
+  Main-Is: tests/Tests.hs
+  build-depends: QuickCheck, HUnit
+  Hs-Source-Dirs: ., tests
+}
+
+
+package-hashes:
+    MD5:2250e59b90ddac2a96370bf71f97c20f
+    SHA1:1a4f7cee7dc6029b3888c2432697868a3462a624
+    SHA256:c8f016f0b599cbea967aeb308e0e463fe5e641656a3cf7b5b7c5559cb9f7d3db
+    SHA512:1c8c96beb58ab6244c4f4615d8811e483a537022d8e5f1db317bff5a9bdf47a2fe20623230633569a417f084a4d2bf92763ddc0cea921ca9048a4d64c28202d1
+    Skein512_512:1d1d4ee3658a39cc6f81216222dedaf8cba323fc19294f853d0d37fd9e4e96ee500b0c7a00d72fb40756497fdbfa96773cd2e88ac96d4f5728b611f4dfa1eac1
+
+package-locations:
+    https://hackage.haskell.org/package/bamse-0.9.5/bamse-0.9.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/bamse-0.9.5.tar.gz
+

@@ -1,0 +1,71 @@
+Name:               bits-extras
+Version:            0.1.1
+License:            BSD3
+License-File:       License.txt
+Maintainer:         Gabriel Wicke <wicke@wikidev.net>
+Author:             Gabriel Wicke <wicke@wikidev.net>
+Synopsis:       Efficient atomic and non-atomic bit operations not found in Data.Bits
+Description:        
+ Mostly wraps low-level bit operations provided by GCC builtins, which
+ translate to specialized instructions where available. 
+ .
+ Atomic operations include CAS (compare-and-swap), lock, fetch & add and
+ similar primitives suitable for low-level shared-memory synchronization.
+ .
+ Primitives from the 'Extras' subpackage would be useful to have in the proper
+ 'Data.Bits' package, although this would probably require broader support
+ across different compiler backends.
+ .
+ The C code dynamically links to @libgcc_s@, which can cause problems in GHCi.
+ GHCi does not currently support sonames and tries to open @libgcc_s.so@ while
+ ignoring e.g. @libgcc_s.so.1@. A possible workaround for GHCi on a linux
+ system: @ln -s \/lib\/libgcc_s.so.1 \/lib\/libgcc_s.so@. Let me know about
+ any other solutions to this issue for GHCi. Regular GHC compilation uses the
+ system linker with soname support and does not run into this issue.
+ .
+ Relevant Hackage tickets:
+ .
+ * <http://hackage.haskell.org/trac/ghc/ticket/3563>
+ .
+ * <http://hackage.haskell.org/trac/ghc/ticket/4102>
+Category:           Data, Concurrency, Foreign
+Stability:          experimental
+Build-Type:         Simple
+Cabal-Version: >= 1.6
+Extra-Source-Files: cbits/bitops-gcc.c cbits/bitops-gcc.h
+Source-Repository head
+    type: mercurial
+    location: http://dev.wikidev.net/hg/bits-extras/
+--extra-tmp-files: cbits/bitops-gcc.h
+library
+    Exposed-Modules:  Data.Bits.Extras Data.Bits.Atomic
+    Build-Depends:    base >= 4 && < 6
+    GHC-Options:      -Wall -O2 -funbox-strict-fields
+    GHC-Prof-Options: -auto-all
+    C-Sources:        cbits/bitops-gcc.c cbits/atomic-bitops-gcc.c
+    --CC-Options:       -O3 -fomit-frame-pointer -march=native -Wall
+    -- Try link-time optimization (inlining) with gcc 4.5:
+    -- CC-Options:       -fomit-frame-pointer -march=native -Wall -flto
+    CC-Options:       -Wall
+    if os (linux)
+        CC-Options: -fomit-frame-pointer -march=native
+    Extra-Libraries:  gcc_s
+    Include-Dirs:     cbits
+    Install-Includes: bitops-gcc.h atomic-bitops-gcc.h
+    Extensions:       ForeignFunctionInterface
+    --Includes:       bitops-gcc.h
+    --LD-Options:     -flto
+    --hs-source-dirs: .
+
+
+package-hashes:
+    MD5:5bc0e395519cf5c2131be92fe5ab99b0
+    SHA1:840a2fb2e43fee6977c1005b982fede17642da58
+    SHA256:03d01c96cbf3de81927137fe880c7cae8ea004b19e7aeaf716cf19a927046e30
+    SHA512:54109ad644b16d46916b9fee7889b87823ad11b844da82a49993e4dfe0ae92e59f422e83832b7c9fe31f6a5385fd159d747d400e18db2c31eb8471b42cd6cc6a
+    Skein512_512:7d7e2972ef56c1c93db4ca59345e361b3796f2693587fa5bad46fadbbd3fe5605a7200a5e4434b029c143920d6c1197320a9aadf3e34a39fe543c07b3173454b
+
+package-locations:
+    https://hackage.haskell.org/package/bits-extras-0.1.1/bits-extras-0.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/bits-extras-0.1.1.tar.gz
+

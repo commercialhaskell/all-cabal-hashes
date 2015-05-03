@@ -1,0 +1,216 @@
+Name:                   accelerate
+Version:                0.8.1.0
+Cabal-version:          >= 1.6
+Tested-with:            GHC >= 6.12.3
+Build-type:             Simple
+
+Synopsis:               An embedded language for accelerated array processing
+Description:            This library defines an embedded language for
+                        regular, multi-dimensional array computations with
+                        multiple backends to facilitate high-performance
+                        implementations.  Currently, there are two backends:
+                        (1) an interpreter that serves as a reference 
+                        implementation of the intended semantics of the
+                        language and (2) a CUDA backend generating code for
+                        CUDA-capable NVIDIA GPUs.
+                        .
+                        To use the CUDA backend, you need to have CUDA version 3.x
+                        installed.  The CUDA backend currently doesn't support 'Char'
+                        and 'Bool' arrays.
+                        .
+                        Known bugs in this version:
+                        <http://trac.haskell.org/accelerate/query?status=new&status=assigned&status=reopened&status=closed&version=0.8.1.0&order=priority>
+                        .
+                        * New in 0.8.1.0: bug fixes and some performance tweaks
+                        .
+                        * New in 0.8.0.0: 'replicate', 'slice' and 'foldSeg' supported in the 
+                            CUDA backend; frontend and interpreter support for 'stencil'; bug fixes
+                        .
+                        * New in 0.7.1.0: the CUDA backend and a number of scalar functions
+License:                BSD3
+License-file:           LICENSE
+Author:                 Manuel M T Chakravarty, 
+                        Gabriele Keller, 
+                        Sean Lee, 
+                        Trevor L. McDonell
+Maintainer:             Manuel M T Chakravarty <chak@cse.unsw.edu.au>
+Homepage:               http://www.cse.unsw.edu.au/~chak/project/accelerate/
+Bug-reports:            http://trac.haskell.org/accelerate
+
+Category:               Compilers/Interpreters, Concurrency, Data
+Stability:              Experimental
+
+-- Should be in the Library stanza, and only enabled for the CUDA backend,
+-- but Cabal does not support that.
+Data-files:             cubits/accelerate_cuda_extras.h
+                        cubits/accelerate_cuda_function.h
+                        cubits/accelerate_cuda_shape.h
+                        cubits/accelerate_cuda_texture.h
+                        cubits/accelerate_cuda_util.h
+                        cubits/backpermute.inl
+                        cubits/fold.inl
+                        cubits/fold_segmented.inl
+                        cubits/map.inl
+                        cubits/permute.inl
+                        cubits/replicate.inl
+                        cubits/slice.inl
+                        cubits/zipWith.inl
+                        cubits/thrust/scan_safe.inl
+
+Extra-source-files:     INSTALL
+                        include/accelerate.h
+                        examples/simple/src/DotP.hs
+                        examples/simple/src/Filter.hs
+                        examples/simple/src/Main.hs
+                        examples/simple/Makefile
+                        examples/simple/src/Random.hs
+                        examples/simple/src/SAXPY.hs
+                        examples/simple/src/SMVM.hs
+                        examples/simple/src/Stencil.hs
+                        examples/simple/src/Square.hs
+                        examples/simple/src/Sum.hs
+                        examples/rasterize/RasterizeAcc.hs
+                        examples/rasterize/rasterize-test1.txt
+                        examples/rasterize/rasterize-test2.txt
+                        examples/rasterize/rasterize-test3.txt
+                        examples/rasterize/rasterize-test4.txt
+                        examples/rasterize/rasterize.hs
+
+Flag llvm
+  Description:          Enable the LLVM backend (sequential)
+  Default:              False
+
+Flag cuda
+  Description:          Enable the CUDA parallel backend for NVIDIA GPUs
+  Default:              True
+
+Flag pcache
+  Description:          Enable the persistent caching of the compiled CUDA modules (experimental)
+  Default:              False
+
+Flag test-suite
+  Description:          Export extra test modules
+  Default:              False
+
+Flag bounds-checks
+  Description:          Enable bounds checking
+  Default:              True
+
+Flag unsafe-checks
+  Description:          Enable bounds checking in unsafe operations
+  Default:              False
+
+Flag internal-checks
+  Description:          Enable internal consistency checks
+  Default:              False
+
+Library
+  Build-depends:        array, 
+                        base == 4.*, 
+                        ghc-prim, 
+                        haskell98,
+                        pretty
+
+  Include-Dirs:         include
+
+  If flag(llvm)
+    Build-depends:      llvm >= 0.6.8
+
+  if flag(cuda)
+    Build-depends:      binary,
+                        bytestring,
+                        containers,
+                        cuda >= 0.2.2 && < 0.3,
+                        directory,
+                        fclabels >= 0.9 && < 1.0,
+                        filepath,
+                        language-c >= 0.3 && < 0.4,
+                        monads-fd,
+                        transformers >= 0.2 && < 0.3,
+                        unix
+
+  if flag(test-suite)
+    Build-depends:      QuickCheck == 2.*
+
+  Exposed-modules:      Data.Array.Accelerate
+                        Data.Array.Accelerate.Interpreter
+--  If flag(llvm)
+--    Exposed-modules:    Data.Array.Accelerate.LLVM
+
+  If flag(cuda)
+    Exposed-modules:    Data.Array.Accelerate.CUDA
+
+  If flag(test-suite)
+    Exposed-modules:    Data.Array.Accelerate.Test
+    Other-modules:      Data.Array.Accelerate.Test.QuickCheck
+                        Data.Array.Accelerate.Test.QuickCheck.Arbitrary
+
+  Other-modules:        Data.Array.Accelerate.Internal.Check
+                        Data.Array.Accelerate.Array.Data
+                        Data.Array.Accelerate.Array.Delayed
+                        Data.Array.Accelerate.Array.Representation
+                        Data.Array.Accelerate.Array.Sugar
+                        Data.Array.Accelerate.Analysis.Type
+                        Data.Array.Accelerate.Analysis.Shape
+                        Data.Array.Accelerate.AST
+                        Data.Array.Accelerate.Debug
+                        Data.Array.Accelerate.Language
+                        Data.Array.Accelerate.Pretty
+                        Data.Array.Accelerate.Smart
+                        Data.Array.Accelerate.Tuple
+                        Data.Array.Accelerate.Type
+                        Paths_accelerate
+--  If flag(llvm)
+--    Other-modules:      Data.Array.Accelerate.LLVM.CodeGen
+
+  If flag(cuda)
+    CPP-options:        -DACCELERATE_CUDA_BACKEND
+    Other-modules:      Data.Array.Accelerate.CUDA.Analysis.Device
+                        Data.Array.Accelerate.CUDA.Analysis.Hash
+                        Data.Array.Accelerate.CUDA.Analysis.Launch
+                        Data.Array.Accelerate.CUDA.Array.Data
+                        Data.Array.Accelerate.CUDA.Array.Device
+                        Data.Array.Accelerate.CUDA.CodeGen.Data
+                        Data.Array.Accelerate.CUDA.CodeGen.Skeleton
+                        Data.Array.Accelerate.CUDA.CodeGen.Tuple
+                        Data.Array.Accelerate.CUDA.CodeGen.Util
+                        Data.Array.Accelerate.CUDA.CodeGen
+                        Data.Array.Accelerate.CUDA.Compile
+                        Data.Array.Accelerate.CUDA.Execute
+                        Data.Array.Accelerate.CUDA.Smart
+                        Data.Array.Accelerate.CUDA.State
+
+  if flag(pcache)
+    CPP-options:        -DACCELERATE_CUDA_PERSISTENT_CACHE
+
+  if flag(bounds-checks)
+    cpp-options:        -DACCELERATE_BOUNDS_CHECKS
+
+  if flag(unsafe-checks)
+    cpp-options:        -DACCELERATE_UNSAFE_CHECKS
+
+  if flag(internal-checks)
+    cpp-options:        -DACCELERATE_INTERNAL_CHECKS
+
+  Ghc-options:          -O2 -Wall -fno-warn-orphans -fno-warn-name-shadowing
+  Extensions:           FlexibleContexts, FlexibleInstances, TypeSynonymInstances,
+                        ExistentialQuantification, GADTs, TypeFamilies, MultiParamTypeClasses,
+                        ScopedTypeVariables, DeriveDataTypeable,
+                        BangPatterns, PatternGuards, TypeOperators, RankNTypes
+
+source-repository head
+  type:                 darcs
+  location:             http://code.haskell.org/accelerate
+
+
+package-hashes:
+    MD5:37c68427c9c8345f6c5a8dc305f5e57f
+    SHA1:8ef69b4bb9dda472a1c360b19254cff0bc2390af
+    SHA256:36633ccde21b459f25241ec0f22dd593aa559475ee709f2339f1f5c6118837da
+    SHA512:df489cf6bb069bec01354e1ddb01eca42fec67e473aa359fac082ca44eeb0051aaab6178af65aa8d1963f10994ffa69b752c92fc7370a2b167482dc455660499
+    Skein512_512:74b69d37b7bc4e0324d55b817a2ce51408833beceb154520c9c6e3d5e71faf14b1b422e513b9b7ef901a76f8fcfbfc96976cb187b6edab5487212a0b5669ff2a
+
+package-locations:
+    https://hackage.haskell.org/package/accelerate-0.8.1.0/accelerate-0.8.1.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/accelerate-0.8.1.0.tar.gz
+

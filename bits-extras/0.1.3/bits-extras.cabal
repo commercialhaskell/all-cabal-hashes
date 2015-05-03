@@ -1,0 +1,107 @@
+Name:               bits-extras
+Version:            0.1.3
+License:            BSD3
+License-File:       License.txt
+Maintainer:         Gabriel Wicke <wicke@wikidev.net>
+Author:             Gabriel Wicke <wicke@wikidev.net>
+Synopsis:       Efficient high-level bit operations not found in Data.Bits
+Description:        
+ This package contains efficient implementations of high-level bit operations
+ missing from Data.Bits. The implementation is based on GCC builtins, which
+ translate to specialized instructions where available.
+ .
+ All operations in this package can also be (less efficiently) implemented in
+ terms of Data.Bits operations.
+ .
+ /Issues:/ A GCC-provided library, @libgcc_s@, is dynamically linked to
+ provide software fallbacks on architectures without instructions
+ corresponding to specific operations. This is currently only expected to work
+ on Linux systems, and even there can lead to issues with GHCi's custom
+ linker. A workaround for GHCi on a linux system: @ln -s \/lib\/libgcc_s.so.1
+ \/lib\/libgcc_s.so@.
+ .
+ The current plan for broader support is to replace the libgcc dependency with
+ built-in fallbacks in C or Haskell code. This needs to closely follow GCC's
+ fall-back behaviour for each architecture. Alternative ideas would be
+ appreciated.
+ .
+ Relevant Hackage tickets:
+ .
+ * <http://hackage.haskell.org/trac/ghc/ticket/3563>
+ .
+ * <http://hackage.haskell.org/trac/ghc/ticket/4102>
+ .
+ /Changes/:
+ .
+ * 0.1.3: Added a first test and tweaked documentation. No functional changes.
+ .
+ * 0.1.2: Moved the 'Data.Bits.Atomic' module to the package @bits-atomic@.
+   Those operations do not depend on libgcc_s and should work wherever GCC 4.X
+   is available.  Link to @bits-atomic@ on hackage:
+   <http://hackage.haskell.org/package/bits-atomic>
+Category:           Data
+Stability:          experimental
+Build-Type:         Simple
+Cabal-Version: >= 1.6
+Extra-Source-Files: cbits/bitops-gcc.c cbits/bitops-gcc.h
+Source-Repository head
+    type: mercurial
+    location: http://dev.wikidev.net/hg/bits-extras/
+library
+    Exposed-Modules:  Data.Bits.Extras
+    Build-Depends:    base >= 4 && < 6
+    GHC-Options:      -Wall -O2 -funbox-strict-fields
+    GHC-Prof-Options: -auto-all
+    C-Sources:        cbits/bitops-gcc.c
+    --CC-Options:       -O3 -fomit-frame-pointer -march=native -Wall
+    -- Try link-time optimization (inlining) with gcc 4.5:
+    -- CC-Options:       -fomit-frame-pointer -march=native -Wall -flto
+    CC-Options:       -Wall
+    if os (linux)
+        CC-Options: -fomit-frame-pointer -march=native -static-libgcc -static
+    Extra-Libraries:  gcc_s
+    Include-Dirs:     cbits
+    Install-Includes: bitops-gcc.h
+    Extensions:       ForeignFunctionInterface
+    --Includes:       bitops-gcc.h
+    --LD-Options:     -flto
+    --hs-source-dirs: .
+
+flag test
+    description: Build test program.
+    default:     False
+
+Executable test
+    if flag(test)
+        buildable:  True
+        build-depends:   
+                    base >= 4 && < 6, 
+                    QuickCheck, 
+                    HUnit,
+                    test-framework-quickcheck2,
+                    test-framework-hunit,
+                    test-framework
+    else
+        buildable:  False
+    hs-source-dirs:  ., test
+    other-modules:   Data.Bits.Extras
+    main-is:         test.hs
+    --GHC-Options:      -O2 -threaded -fhpc
+    GHC-Options:      -O2 -threaded
+    GHC-Prof-Options: -auto-all
+
+    Include-Dirs:     cbits
+    C-Sources:        cbits/bitops-gcc.c
+
+
+package-hashes:
+    MD5:42dc456d45f964ac627300d33528a108
+    SHA1:3d912c6c0e69e3215c2240c23106eaa9b1421b33
+    SHA256:27a5dcf562e5f4c011421263859e09f65d4c382cd123abd73807f456f56cc96b
+    SHA512:a0a2a5fbc0e39f07c413870486793ce5081448b140ca17cd98a53c7ae11bb9f9ffd7384bbb2e5b915abacb2bcc0a064630da035f24935316cd235c166334e91f
+    Skein512_512:8384bc2a6e87fd2a3c0f2588c5cf8f2b0968c52e66e4eea09ea939661bb1212a0d51746348343c31e5b1a6450ad53294ca5dd115dcb3d12da74453a7a3fac791
+
+package-locations:
+    https://hackage.haskell.org/package/bits-extras-0.1.3/bits-extras-0.1.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/bits-extras-0.1.3.tar.gz
+

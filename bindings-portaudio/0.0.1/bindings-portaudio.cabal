@@ -1,0 +1,138 @@
+name:         bindings-portaudio
+version:      0.0.1
+category:     Sound
+
+author:       Fumiaki Kinoshita <fumiexcel@gmail.com>
+maintainer:   Fumiaki Kinoshita <fumiexcel@gmail.com>
+
+license:      BSD3
+license-file: LICENSE
+
+synopsis:     Low-level bindings to portaudio library
+description:
+cabal-version: >= 1.10
+build-type:    Simple
+
+--------------------------------------------------------------------------------
+
+flag WASAPI
+  default: False
+
+flag DirectSound
+  default: False
+
+flag WMME
+  default: False
+
+flag WDMKS
+  default: False
+
+flag MinGW-External
+  default: False
+
+library
+  default-language: Haskell2010
+
+  ghc-options: -Wall -O2
+  if impl(ghc >= 6.8)
+    ghc-options: -fwarn-tabs
+
+  exposed-modules:
+    Bindings.PortAudio
+
+  build-tools:
+    hsc2hs
+
+  build-depends:
+    base          < 5, bindings-DSL == 1.0.*
+
+  include-dirs:
+    portaudio/include
+    portaudio/src/common
+
+  c-sources:
+    portaudio/src/common/pa_allocation.c
+    portaudio/src/common/pa_front.c
+    portaudio/src/common/pa_converters.c
+    portaudio/src/common/pa_process.c
+    portaudio/src/common/pa_cpuload.c
+    portaudio/src/common/pa_ringbuffer.c
+    portaudio/src/common/pa_debugprint.c
+    portaudio/src/common/pa_stream.c
+    portaudio/src/common/pa_dither.c
+    portaudio/src/common/pa_trace.c
+  cc-options: -g -O2
+
+  if os(linux) || os(freebsd) || os(darwin)
+    pkgconfig-depends: portaudio-2.0
+
+  if os(mingw32) && !flag(MinGW-External)
+    include-dirs:
+      portaudio/src/os/win
+    c-sources:
+      extra.c
+      portaudio/src/os/win/pa_win_coinitialize.c
+      portaudio/src/os/win/pa_win_hostapis.c
+      portaudio/src/os/win/pa_win_util.c
+      portaudio/src/os/win/pa_win_waveformat.c
+      portaudio/src/os/win/pa_win_wdmks_utils.c
+      -- portaudio/src/os/win/pa_x86_plain_converters.c
+    extra-libraries: winmm ole32
+    cc-options: -mthreads
+      -DHAVE_INTTYPES_H=1
+      -DHAVE_MEMORY_H=1
+      -DHAVE_STDINT_H=1
+      -DHAVE_STDLIB_H=1
+      -DHAVE_STRING_H=1
+      -DHAVE_STRINGS_H=1
+      -DHAVE_SYS_STAT_H=1
+      -DHAVE_SYS_TYPES_H=1
+      -DHAVE_UNISTD_H=1
+      -DPA_LITTLE_ENDIAN
+      -DSIZEOF_INT=4
+      -DSIZEOF_LONG=4
+      -DSIZEOF_SHORT=2
+      -DSTDC_HEADERS=1
+
+    if flag(WASAPI)
+      include-dirs:
+        portaudio/src/hostapi/wasapi/mingw-include
+      c-sources:
+        portaudio/src/hostapi/wasapi/pa_win_wasapi.c
+      cc-options: -DPA_USE_WASAPI=1
+
+    if flag(DirectSound)
+      include-dirs:
+        portaudio/src/hostapi/dsound
+      c-sources:
+        portaudio/src/hostapi/dsound/pa_win_ds.c
+        portaudio/src/hostapi/dsound/pa_win_ds_dynlink.c
+      cc-options: -DPA_USE_DS=1
+
+    if flag(WMME)
+      c-sources:
+        portaudio/src/hostapi/wmme/pa_win_wmme.c
+      cc-options: -DPA_USE_WMME=1
+
+    if flag(WDMKS)
+      c-sources:
+        portaudio/src/hostapi/wdmks/pa_win_wdmks.c
+      cc-options: -DPA_USE_WDMKS=1
+      extra-libraries: Setupapi
+
+source-repository head
+  type:     git
+  location: https://github.com/fumieval/portaudio-builtin.git
+
+
+package-hashes:
+    MD5:5c0ad3cbebd7a1c2d16d4504003fd22f
+    SHA1:984c5a9bb364e6dd3e295af82ab6c260367243f1
+    SHA256:7116f8defa1bc7d6c55caa2a88635a0e51589cee36b05e78788f84c37802a588
+    SHA512:eee8c78abb416af231eb8ad5046ed43423868092af0adc84fabb585b52f87c3082ec12446a2b2dff35a0dad7b4dd778491a491149a4f89a9eb95851fe19db218
+    Skein512_512:fac5feb5fb4716fb456a61a712f7de870c3f43cc1d28d3d575bf829fddd7925174acd59d6feadb690db595ca13fc79beaf6e7a24e6d565b1a9302625b6af3dbc
+
+package-locations:
+    https://hackage.haskell.org/package/bindings-portaudio-0.0.1/bindings-portaudio-0.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/bindings-portaudio-0.0.1.tar.gz
+

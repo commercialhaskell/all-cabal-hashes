@@ -1,0 +1,198 @@
+name:            aeson
+version:         0.7.0.5
+x-revision: 1
+license:         BSD3
+license-file:    LICENSE
+category:        Text, Web, JSON
+copyright:       (c) 2011-2014 Bryan O'Sullivan
+                 (c) 2011 MailRank, Inc.
+author:          Bryan O'Sullivan <bos@serpentine.com>
+maintainer:      Bryan O'Sullivan <bos@serpentine.com>
+stability:       experimental
+tested-with:     GHC == 7.0, GHC == 7.2, GHC == 7.4, GHC == 7.6
+synopsis:        Fast JSON parsing and encoding
+cabal-version:   >= 1.8
+homepage:        https://github.com/bos/aeson
+bug-reports:     https://github.com/bos/aeson/issues
+build-type:      Simple
+description:
+    A JSON parsing and encoding library optimized for ease of use
+    and high performance.
+    .
+    To get started, see the documentation for the @Data.Aeson@ module
+    below.
+    .
+    Parsing performance on an early 2011 MacBook Pro (2.2GHz Core i7),
+    running 64-bit GHC 7.6.3, for mostly-English tweets from Twitter's
+    JSON search API:
+    .
+    * 0.8 KB: 34124 msg\/sec (27.8 MB\/sec)
+    .
+    * 6.4 KB: 6833 msg\/sec (43.0 MB\/sec)
+    .
+    * 11.8 KB: 3410 msg\/sec (39.2 MB\/sec)
+    .
+    * 31.2 KB: 1157 msg\/sec (35.3 MB\/sec)
+    .
+    * 61.5 KB: 542 msg\/sec (32.5 MB\/sec)
+    .
+    Handling heavily-escaped text is a little more work.  Here is
+    parsing performance with Japanese tweets, where much of the text
+    is entirely Unicode-escaped.
+    .
+    * 14.6 KB: 2101 msg\/sec (30.0 MB\/sec)
+    .
+    * 44.1 KB: 667 msg\/sec (28.7 MB\/sec)
+    .
+    * 82.9 KB: 360 msg\/sec (29.2 MB\/sec)
+    .
+    Encoding performance on the same machine and data:
+    .
+    * English, 0.8 KB: 109697 msg\/sec (89.3 MB\/sec)
+    .
+    * English, 6.4 KB: 18517 msg\/sec (116.4 MB\/sec)
+    .
+    * Engish, 61.5 KB: 1963 msg\/sec (118.0 MB\/sec)
+    .
+    * Japanese, 14.6 KB: 12140 msg\/sec (173.5 MB\/sec)
+    .
+    * Japanese, 44.1 KB: 3980 msg\/sec (171.3 MB\/sec)
+    .
+    (A note on naming: in Greek mythology, Aeson was the father of Jason.)
+
+extra-source-files:
+    README.markdown
+    benchmarks/*.cabal
+    benchmarks/*.hs
+    benchmarks/*.py
+    benchmarks/Makefile
+    benchmarks/json-data/*.json
+    changelog
+    examples/*.hs
+
+flag developer
+  description: operate in developer mode
+  default: False
+
+flag blaze-builder
+  description: Use blaze-builder instead of bytestring >= 0.10
+  default: False
+
+flag new-bytestring-builder
+  description: Use the new bytestring builder available in bytestring >= 0.10.4.0
+  default: False
+
+library
+  exposed-modules:
+    Data.Aeson
+    Data.Aeson.Encode
+    Data.Aeson.Generic
+    Data.Aeson.Parser
+    Data.Aeson.Types
+    Data.Aeson.TH
+
+  other-modules:
+    Data.Aeson.Functions
+    Data.Aeson.Parser.Internal
+    Data.Aeson.Types.Class
+    Data.Aeson.Types.Instances
+    Data.Aeson.Types.Internal
+
+  if flag(new-bytestring-builder)
+    other-modules: Data.Aeson.Encode.ByteString
+    build-depends: bytestring >= 0.10.4.0,
+                   text >= 1.1.0.0
+  else
+    build-depends: bytestring < 0.10.4.0,
+                   text >= 0.11.1.0
+
+  if impl(ghc >= 7.2.1)
+    cpp-options: -DGENERICS
+    build-depends: ghc-prim >= 0.2, dlist >= 0.2
+    other-modules:
+      Data.Aeson.Types.Generic
+
+  build-depends:
+    attoparsec >= 0.11.3.4,
+    base == 4.*,
+    containers,
+    deepseq,
+    hashable >= 1.1.2.0,
+    mtl,
+    old-locale,
+    scientific >= 0.3.1 && < 0.4,
+    syb,
+    template-haskell >= 2.4,
+    time < 1.5,
+    unordered-containers >= 0.2.3.0,
+    vector >= 0.7.1
+
+  if flag(blaze-builder)
+    build-depends: blaze-builder >= 0.2.1.4
+    cpp-options: -DUSE_BLAZE_BUILDER
+  else
+    build-depends: bytestring >= 0.10
+
+  if flag(developer)
+    ghc-options: -Werror
+    ghc-prof-options: -auto-all
+
+  ghc-options: -O2 -Wall
+
+test-suite tests
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is:        Properties.hs
+  other-modules:
+    Encoders
+    Functions
+    Instances
+    Options
+    Properties.Deprecated
+    Types
+
+  ghc-options:
+    -Wall -threaded -rtsopts
+  if impl(ghc < 7.4)
+    ghc-options: -fcontext-stack=40
+  if impl(ghc >= 7.2)
+    cpp-options: -DGHC_GENERICS
+
+  build-depends:
+    QuickCheck,
+    aeson,
+    attoparsec,
+    base,
+    containers,
+    bytestring,
+    template-haskell,
+    test-framework,
+    test-framework-quickcheck2,
+    test-framework-hunit,
+    HUnit,
+    text,
+    time,
+    unordered-containers,
+    vector,
+    ghc-prim >= 0.2
+
+source-repository head
+  type:     git
+  location: git://github.com/bos/aeson.git
+
+source-repository head
+  type:     mercurial
+  location: https://bitbucket.org/bos/aeson
+
+
+package-hashes:
+    MD5:c4e07812fc551196c747bc51e8792800
+    SHA1:8356779603cd4a2c24e5f20a691e3e1ed788ca68
+    SHA256:dd26aac6c668788914b0c78ba258f841aefed245e4fff5687b8e12e44b7eb1c8
+    SHA512:5ead75c62cd171638270fafed5095da83135a484cce7792da94d092cb65fc968c3f4f12e35e5ed36801d8b7f3254bddb53f63fef225593e231bc1ddd676bf8c3
+    Skein512_512:80a7a50641e220d61dfaf24006c00b591a66a2ac6c9afef1f39c60f74b98b0406aeba8ff4e56242fe6f0b16e5476e3036430d6e7402c7d9767ec0a2861be4d82
+
+package-locations:
+    https://hackage.haskell.org/package/aeson-0.7.0.5/aeson-0.7.0.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/aeson-0.7.0.5.tar.gz
+
