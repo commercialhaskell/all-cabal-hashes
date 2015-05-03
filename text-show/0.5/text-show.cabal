@@ -1,0 +1,238 @@
+name:                text-show
+version:             0.5
+synopsis:            Efficient conversion of values into Text
+description:         @text-show@ offers a replacement for the @Show@ typeclass intended
+                     for use with @Text@ instead of @String@s. This package was created
+                     in the spirit of
+                     @<http://hackage.haskell.org/package/bytestring-show bytestring-show>@.
+                     .
+                     At the moment, @text-show@ provides @Show@ instances for most data
+                     types in the @<http://hackage.haskell.org/package/array array>@,
+                     @<http://hackage.haskell.org/package/base base>@,
+                     @<http://hackage.haskell.org/package/bytestring bytestring>@, and
+                     @<http://hackage.haskell.org/package/text text>@ packages.
+                     Therefore, much of the source code for @text-show@ consists of
+                     borrowed code from those packages in order to ensure that the
+                     behaviors of the two @Show@ typeclasses coincide.
+                     .
+                     For most uses, simply importing "Text.Show.Text"
+                     will suffice:
+                     .
+                     @
+                        &#123;-&#35; LANGUAGE NoImplicitPrelude &#35;-&#125;
+                        module Main where
+                        .
+                        import Data.Text (Text)
+                        import Prelude hiding (Show(..), print)
+                        import Text.Show.Text
+                        .
+                        number :: Text
+                        number = show (Just \"Hello, World!\")
+                        .
+                        main :: IO ()
+                        main = print number
+                     @
+                     .
+                     If you desire it, there are also monomorphic versions of the @showb@
+                     function available in the submodules of "Text.Show.Text". A naming
+                     convention is present in which functions that show different values
+                     depending on the precedence end with @Prec@ (e.g., @showbIntPrec@),
+                     whereas functions that show the same values regardless of
+                     precedence do not end with @Prec@ (e.g., @showbBool@).
+homepage:            https://github.com/RyanGlScott/text-show
+bug-reports:         https://github.com/RyanGlScott/text-show/issues
+license:             BSD3
+license-file:        LICENSE
+author:              Ryan Scott
+maintainer:          Ryan Scott <ryan.gl.scott@ku.edu>
+stability:           Experimental
+copyright:           (C) 2014-2015 Ryan Scott
+category:            Text
+build-type:          Simple
+extra-source-files:  CHANGELOG.md, README.md, include/inline.h
+cabal-version:       >=1.8
+
+source-repository head
+  type:                git
+  location:            git://github.com/RyanGlScott/text-show.git
+
+flag integer-gmp2
+  description:         Use @integer-gmp2@.
+  default:             True
+
+flag recent-text
+  description:         Use a recent version of @text@ that fixes a bug related to
+                       converting large @Integer@s to a @Builder@.
+  default:             True
+
+flag transformers-four
+  description:         Use a recent version of @transformers@.
+  default:             True
+
+library
+  exposed-modules:     Text.Show.Text
+                       Text.Show.Text.Debug.Trace
+                       Text.Show.Text.Debug.Trace.TH
+                       Text.Show.Text.TH
+                       
+                       Text.Show.Text.Control.Applicative
+                       Text.Show.Text.Control.Concurrent
+                       Text.Show.Text.Control.Exception
+                       Text.Show.Text.Control.Monad.ST
+                       Text.Show.Text.Data.Array
+                       Text.Show.Text.Data.Bool
+                       Text.Show.Text.Data.ByteString
+                       Text.Show.Text.Data.Char
+                       Text.Show.Text.Data.Complex
+                       Text.Show.Text.Data.Data
+                       Text.Show.Text.Data.Dynamic
+                       Text.Show.Text.Data.Either
+                       Text.Show.Text.Data.Fixed
+                       Text.Show.Text.Data.Floating
+                       Text.Show.Text.Data.Functor.Identity
+                       Text.Show.Text.Data.Integral
+                       Text.Show.Text.Data.List
+                       Text.Show.Text.Data.Maybe
+                       Text.Show.Text.Data.Monoid
+                       Text.Show.Text.Data.Ord
+                       Text.Show.Text.Data.Proxy
+                       Text.Show.Text.Data.Ratio
+                       Text.Show.Text.Data.Text
+                       Text.Show.Text.Data.Tuple
+                       Text.Show.Text.Data.Typeable
+                       Text.Show.Text.Data.Version
+                       Text.Show.Text.Data.Void
+                       Text.Show.Text.Foreign.C.Types
+                       Text.Show.Text.Foreign.Ptr
+                       Text.Show.Text.Functions
+                       Text.Show.Text.Numeric.Natural
+                       Text.Show.Text.System.Exit
+                       Text.Show.Text.System.IO
+                       Text.Show.Text.System.Posix.Types
+                       Text.Show.Text.Text.Read
+  other-modules:       Text.Show.Text.Classes
+                       Text.Show.Text.Control
+                       Text.Show.Text.Data
+                       Text.Show.Text.Data.Typeable.Utils
+                       Text.Show.Text.Foreign
+                       Text.Show.Text.GHC
+                       Text.Show.Text.Instances
+                       Text.Show.Text.Numeric
+                       Text.Show.Text.System
+                       Text.Show.Text.Text
+                       Text.Show.Text.TH.Internal
+                       Text.Show.Text.Utils
+  build-depends:       array               >= 0.3     && < 0.6
+                     , base                >= 4.2     && < 5
+                     -- , containers          >= 0.1     && < 0.6
+                     , bytestring          >= 0.9     && < 0.11
+                     , ghc-prim
+                     , template-haskell    >= 2.4     && < 2.11
+  hs-source-dirs:      src
+  ghc-options:         -Wall
+  include-dirs:        include
+  includes:            inline.h
+  install-includes:    inline.h
+  
+  if flag(recent-text)
+    cpp-options:       -DRECENT_TEXT
+    build-depends:     text                >= 1.2.0.2 && < 1.3
+  else  
+    build-depends:     integer-gmp         >= 0.2
+                     , text                >= 0.2     && < 1.2.0.2
+    ghc-options:       -fobject-code
+  
+  if impl(ghc >= 7.2)
+    exposed-modules:   Text.Show.Text.GHC.Fingerprint
+                       Text.Show.Text.GHC.Generics
+    if !os(windows)
+      exposed-modules: Text.Show.Text.GHC.Event
+  
+  if impl(ghc >= 7.4)
+    exposed-modules:   Text.Show.Text.GHC.Stats
+  
+  if impl(ghc >= 7.6)
+    exposed-modules:   Text.Show.Text.GHC.TypeLits
+  
+  if impl(ghc < 7.7)
+    build-depends:     tagged              >= 0.4.4   && < 1
+  
+  if impl(ghc >= 7.8)
+    exposed-modules:   Text.Show.Text.Data.Type.Coercion
+                       Text.Show.Text.Data.Type.Equality
+    
+    if impl(ghc < 7.10)
+      exposed-modules: Text.Show.Text.Data.OldTypeable
+
+  if impl(ghc < 7.9)
+    build-depends:     nats                >= 0.1     && < 2
+                     , void                >= 0.5     && < 1
+
+    if flag(transformers-four)
+      build-depends:   transformers        >= 0.4     && < 0.5
+    else
+      build-depends:   transformers        >= 0.2.1   && < 0.4
+                     , transformers-compat >= 0.3     && < 1
+  else
+    if flag(integer-gmp2)
+      build-depends:   integer-gmp         >= 1.0     && < 1.1
+  
+  if impl(ghc >= 7.10)
+    exposed-modules:   Text.Show.Text.GHC.RTS.Flags
+                       Text.Show.Text.GHC.StaticPtr
+
+  if os(windows)
+    exposed-modules:   Text.Show.Text.GHC.Conc.Windows
+
+test-suite text-show-properties
+  type:                exitcode-stdio-1.0
+  main-is:             Properties.hs
+  other-modules:       Derived
+                       Instances.BaseAndFriends
+                       Instances.Derived
+                       Properties.BaseAndFriends
+                       Properties.Builder
+                       Properties.Derived
+                       Properties.MkShow
+                       Properties.Utils
+  build-depends:       array                      >= 0.3   && < 0.6
+                     , base                       >= 4.5   && < 5
+                     , bytestring                 >= 0.9   && < 0.11
+                     , quickcheck-instances       >= 0.1   && < 0.4
+                     , tasty                      >= 0.8   && < 0.11
+                     , tasty-hunit                >= 0.8   && < 0.10
+                     , tasty-quickcheck           >= 0.8   && < 0.9
+                     , text                       >= 0.2   && < 1.3
+                     , text-show                  == 0.5
+  hs-source-dirs:      tests
+  ghc-options:         -Wall
+  
+  -- Prior to GHC 7.6, GHC generics lived in ghc-prim
+  if impl(ghc >= 7.2) && impl(ghc < 7.6)
+    build-depends:     ghc-prim
+
+  if impl(ghc < 7.7)
+    build-depends:     tagged                     >= 0.4.4 && < 1
+
+  if impl(ghc < 7.9)
+    build-depends:     nats                       >= 0.1   && < 2
+                     , void                       >= 0.5   && < 1
+   
+    if flag(transformers-four)
+      build-depends:   transformers               >= 0.4   && < 0.5
+    else
+      build-depends:   transformers               >= 0.2.1 && < 0.4
+                     , transformers-compat        >= 0.3   && < 1
+
+
+package-hashes:
+    MD5:cab07bb4306b729528bb8f3adca2f7e4
+    SHA1:8f665f3f587990d12a1bb9f55d72fd853b33111c
+    SHA256:3d4b701ee551c7dbb93647126a82b0708c730c471919cd22be3671afce43fec8
+    SHA512:0f076e071d694c03d237eeaad5e5dbb9e47579fce8d5d543934e3a21877cda66e3d951cae8d39fc7662d0dc8a4b09ec037e88713b2f5c163afbd3af340c189a1
+    Skein512_512:250e040546a522a73a5ce54cb0f4ffbbeb14b77d3eb563e6157bfea111d17397944163d4d377bef8584a7bc7caa5e56516df09c8df751de0052bb2867cf40567
+
+package-locations:
+    https://hackage.haskell.org/package/text-show-0.5/text-show-0.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/text-show-0.5.tar.gz
+

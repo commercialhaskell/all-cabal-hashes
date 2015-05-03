@@ -1,0 +1,208 @@
+name:           thyme
+version:        0.3.5.5
+synopsis:       A faster time library
+description:
+    Thyme is a rewrite of the fine @time@ library, with a particular focus
+    on performance for applications that make heavy use of timestamps.
+    .
+    See <http://hackage.haskell.org/package/thyme/docs/Data-Thyme.html Data.Thyme> for a full description.
+homepage:       https://github.com/liyang/thyme
+license:        BSD3
+license-file:   LICENSE
+author:         Liyang HU, Ashley Yakeley
+maintainer:     thyme@liyang.hu
+copyright:      © 2013−2014 Liyang HU
+category:       Data, System
+build-type:     Simple
+cabal-version:  >= 1.10
+stability:      experimental
+extra-source-files:
+    include/thyme.h
+
+source-repository head
+    type:       git
+    location:   https://github.com/liyang/thyme
+
+flag bug-for-bug
+    description: bug-for-bug compatibility with time
+    default: True
+    manual: True
+
+flag HLint
+    description: include HLint as a Cabal test-suite
+    default: False
+    manual: True
+
+flag lens
+    description: use the full lens package
+    default: False
+    manual: True
+
+flag show-internal
+    description: instance Show of internal representation
+    default: False
+    manual: True
+
+flag Werror
+    description: -Werror
+    default: False
+    manual: True
+
+library
+    default-language: Haskell2010
+    include-dirs: include
+    hs-source-dirs: src
+    if !flag(lens)
+        hs-source-dirs: lens
+    exposed-modules:
+        Data.Thyme
+        Data.Thyme.Calendar
+        Data.Thyme.Calendar.MonthDay
+        Data.Thyme.Calendar.OrdinalDate
+        Data.Thyme.Calendar.WeekDate
+        Data.Thyme.Calendar.WeekdayOfMonth
+        Data.Thyme.Clock
+        Data.Thyme.Clock.POSIX
+        Data.Thyme.Clock.TAI
+        Data.Thyme.Format
+        Data.Thyme.Format.Human
+        Data.Thyme.Format.Aeson
+        Data.Thyme.Internal.Micro
+        Data.Thyme.LocalTime
+        Data.Thyme.Time
+        Data.Thyme.Time.Core
+    other-modules:
+        Data.Thyme.Calendar.Internal
+        Data.Thyme.Clock.Internal
+        Data.Thyme.Format.Internal
+    if !flag(lens)
+        other-modules: Control.Lens
+    build-depends:
+        QuickCheck >= 2.4,
+        attoparsec >= 0.10,
+        aeson >= 0.6,
+        base >= 4.5 && < 5,
+        bytestring >= 0.9,
+        containers,
+        deepseq >= 1.2,
+        mtl >= 1.1,
+        old-locale >= 1.0,
+        random,
+        text >= 0.11,
+        time >= 1.4,
+        vector >= 0.9,
+        vector-th-unbox >= 0.2.1.0,
+        vector-space >= 0.8
+    if os(windows)
+        build-depends: Win32
+    if os(darwin)
+        build-tools: cpphs
+        ghc-options: -pgmP cpphs -optP--cpp
+    if flag(lens)
+        build-depends: lens >= 3.9
+    else
+        build-depends: profunctors >= 3.1.2
+    ghc-options: -Wall
+    if flag(bug-for-bug)
+        cpp-options: -DBUG_FOR_BUG=1
+    if flag(show-internal)
+        cpp-options: -DSHOW_INTERNAL=1
+    if flag(Werror)
+        ghc-options: -Werror
+
+test-suite sanity
+    default-language: Haskell2010
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    if !flag(lens)
+        hs-source-dirs: lens
+    main-is: sanity.hs
+    other-modules: Common
+    if !flag(lens)
+        other-modules: Control.Lens
+    build-depends:
+        QuickCheck,
+        attoparsec,
+        base,
+        bytestring,
+        old-locale,
+        text,
+        thyme,
+        time,
+        vector-space
+    if flag(lens)
+        build-depends: lens
+    else
+        build-depends: profunctors, mtl
+    ghc-options: -Wall
+
+test-suite rewrite
+    default-language: Haskell2010
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    main-is: rewrite.hs
+    build-depends:
+        Cabal,
+        base,
+        containers,
+        directory,
+        filepath,
+        random,
+        system-posix-redirect >= 1.1,
+        text,
+        thyme
+    ghc-options: -Wall
+
+test-suite hlint
+    default-language: Haskell2010
+    type: exitcode-stdio-1.0
+    main-is: hlint.hs
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+    hs-source-dirs: tests
+    if flag(HLint)
+        build-depends: base, hlint >= 1.9
+    else
+        buildable: False
+
+benchmark bench
+    default-language: Haskell2010
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    if !flag(lens)
+        hs-source-dirs: lens
+    main-is: bench.hs
+    other-modules: Common
+    if !flag(lens)
+        other-modules: Control.Lens
+    build-depends:
+        QuickCheck,
+        base,
+        criterion,
+        mtl,
+        old-locale,
+        random,
+        thyme,
+        time,
+        vector,
+        vector-space
+    if flag(lens)
+        build-depends: lens
+    else
+        build-depends: profunctors
+    ghc-options: -Wall
+
+-- vim: et sw=4 ts=4 sts=4:
+
+
+
+package-hashes:
+    MD5:6fa862b1667af9e79950b4531e39e006
+    SHA1:61ede40650b30ce31e9ae85ca51d5d12f0ffec06
+    SHA256:84c6701fb7b40841d22582202382c362fd9e0d6e5f1c959b7e0f2f91a85c796c
+    SHA512:2f8bb307a49e441b3fe2a0337a25ef9adc94d3fe2f04369759bbdfba9ee788568016e8e9ce6dde2ef1ba51c61f98621f4dd35b833cab1757b022bf43524174b5
+    Skein512_512:a9f709f96af6f9177685b0af563e8b718627980fad7c494e15cca57b5a191280a0ba22aaa1b4e34502e24706b1d123e7099e3e269d1efdf9e8b450a874b8f063
+
+package-locations:
+    https://hackage.haskell.org/package/thyme-0.3.5.5/thyme-0.3.5.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/thyme-0.3.5.5.tar.gz
+

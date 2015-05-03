@@ -1,0 +1,120 @@
+name:          taggy-lens
+version:       0.1
+x-revision: 3
+synopsis:      Lenses for the taggy html/xml parser
+description:
+  Lenses, folds, traversals and prisms for
+  <http://hackage.haskell.org/package/taggy taggy>.
+  .
+  This greatly simplifies your life when dealing with
+  the ugly world of Real Life HTML. Here's an 
+  <https://github.com/alpmestan/taggy-lens/blob/master/example/HackageNew.hs example>. It lists the date, author and package name of
+  all the /recent package uploads/ entries from the hackage page of the same name.
+  Note that it uses <http://hackage.haskell.org/package/wreq wreq> to /fetch/ the
+  Hackage page.
+  .
+  > module Main (main) where
+  >
+  > import Control.Lens (to, only,(^?),ix, toListOf)
+  > import Data.ByteString.Lazy (ByteString)
+  > import Data.Text (Text)
+  > import Data.Text.Encoding.Error (lenientDecode)
+  > import Data.Text.Lazy.Encoding (decodeUtf8With)
+  > import Network.HTTP.Client (Response)
+  > import Network.Wreq (responseBody, get)
+  > import Text.Taggy (Node)
+  > import Text.Taggy.Lens (html, elements, children, contents,allNamed)
+  > 
+  > data Upload = 
+  >   Upload Text -- ^ date
+  >          Text -- ^ author
+  >          Text -- ^ package name
+  >   deriving (Show)
+  >
+  > table :: [Node] -> Maybe Upload
+  > table row = do
+  >   date    <- row ^? ix 0 . contents 
+  >   author  <- row ^? ix 1 . contents 
+  >   package <- row ^? ix 2 . elements . contents 
+  >   return $ Upload date author package
+  >
+  > recentPackages :: Response ByteString -> [Maybe Upload]
+  > recentPackages = toListOf 
+  >                $ responseBody . to (decodeUtf8With lenientDecode) 
+  >                . html . allNamed (only "tr") . children . to table
+  >
+  > main :: IO ()
+  > main = get "https://hackage.haskell.org/packages/recent" >>= print `fmap` recentPackages 
+homepage:      http://github.com/alpmestan/taggy-lens
+license:       BSD3
+license-file:  LICENSE
+author:        Alp Mestanogullari, Vikram Verma
+maintainer:    alpmestan@gmail.com
+copyright:     2014 Alp Mestanogullari, Vikram Verma
+category:      Text, Web
+build-type:    Simple
+cabal-version: >= 1.10
+
+library
+  exposed-modules:
+    Text.Taggy.Lens
+  build-depends:
+    base >= 4.5 && < 5,
+    lens >= 4,
+    taggy >= 0.1,
+    text,
+    unordered-containers
+  hs-source-dirs:
+    src
+  default-language:
+    Haskell2010
+  ghc-options:
+    -O2 -Wall -fno-warn-orphans
+
+test-suite spec
+  type:
+    exitcode-stdio-1.0
+  hs-source-dirs:
+    src,
+    test
+  main-is:
+    Spec.hs
+  build-depends:
+    base >= 4.5 && < 5,
+    taggy,
+    text,
+    lens >= 4,
+    unordered-containers,
+    hspec
+  default-language:
+    Haskell2010
+  ghc-options:
+    -O2 -Wall -fno-warn-orphans
+
+test-suite doctests
+  type:
+    exitcode-stdio-1.0
+  hs-source-dirs:
+    test
+  main-is:
+    DocTest.hs
+  ghc-options:
+    -threaded
+  build-depends:
+    base >= 4.5 && < 5, 
+    doctest
+  default-language:
+    Haskell2010
+
+
+package-hashes:
+    MD5:2fe58e4ac647a60a9a10524b7f725b33
+    SHA1:e06d488115e39eab01f23efc77eacec11345ba6b
+    SHA256:88ddb6860ae74a266a9b37feb0057fa75684c799259830c7943da4cfe0ff76a0
+    SHA512:5e035d8c3114e7c7616375f5300ea6e0c5b4fbbc4c0066d1b1a91e4f42ba4fcb4c2a2c96096ae33704bd932d49e4bd259a4633c6abf3d14ecccf6d6d2811fbe1
+    Skein512_512:0ea5fe71d561e1d7690cea6e60358e05f5d4816d9f3c00fa37770d04d6c0e8aa1f63ff267d1bd3e6e982888e7ece6dbe1eb12e440922dedd1561782e913156cf
+
+package-locations:
+    https://hackage.haskell.org/package/taggy-lens-0.1/taggy-lens-0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/taggy-lens-0.1.tar.gz
+

@@ -1,0 +1,151 @@
+Name:           tensor
+Version:        0.1
+Cabal-Version:  >= 1.8
+License:        GPL-3
+License-File:   LICENSE
+Author:         Federico Squartini, Nicola Squartini
+Maintainer:     Nicola Squartini <tensor5@gmail.com>
+Stability:      experimental
+Synopsis:       A completely type-safe library for linear algebra
+Category:       Data, Math
+Build-Type:     Simple
+Description:
+  .
+  This library defines data types and classes for fixed dimension
+  vectors and tensors. The main objects are:
+  .
+  [@'Data.Ordinal.Ordinal'@] A totally ordered set with fixed
+  size. The @'Data.Ordinal.Ordinal'@ type @'Data.Ordinal.One'@
+  contains 1 element, @'Data.Ordinal.Succ' 'Data.Ordinal.One'@
+  contains 2 elements, @'Data.Ordinal.Succ' 'Data.Ordinal.Succ'
+  'Data.Ordinal.One'@ contains 3 elements, and so on (see
+  "Data.Ordinal" for more details). The type @'Data.Ordinal.Two'@ is
+  an alias for @'Data.Ordinal.Succ' 'Data.Ordinal.One'@,
+  @'Data.Ordinal.Three'@ is an alias for @'Data.Ordinal.Succ'
+  'Data.Ordinal.Succ' 'Data.Ordinal.One'@, and so on.
+  .
+  [@'Data.TypeList.MultiIndex.MultiIndex'@] The index set. It can be
+  linear, rectangular, parallelepipedal, etc. The dimensions of the
+  sides are expressed using @'Data.Ordinal.Ordinal'@ types and the
+  type constructor @'Data.TypeList.MultiIndex.:|:'@,
+  e.g. @('Data.Ordinal.Two' 'Data.TypeList.MultiIndex.:|:'
+  ('Data.Ordinal.Three' 'Data.TypeList.MultiIndex.:|:'
+  'Data.TypeList.MultiIndex.Nil'))@ is a rectangular index set with 2
+  rows and 3 columns. The index set also contains elements, for
+  example @('Data.Ordinal.Two' 'Data.TypeList.MultiIndex.:|:'
+  ('Data.Ordinal.Three' 'Data.TypeList.MultiIndex.:|:'
+  'Data.TypeList.MultiIndex.Nil'))@ contains all the pairs @(i
+  'Data.TypeList.MultiIndex.:|:' (j 'Data.TypeList.MultiIndex.:|:'
+  Nil))@ where i is in @'Data.Ordinal.Two'@ and j is in
+  @'Data.Ordinal.Three'@. See "Data.TypeList.MultiIndex" for more
+  details.
+  .
+  [@'Data.Tensor.Tensor'@] It is an assignment of elements to each
+  element of its @'Data.TypeList.MultiIndex.MultiIndex'@.
+  .
+  Objects like vectors and matrices are special cases of tensors.
+  Most of the functions to manipulate tensors are grouped into type
+  classes.  This allow the possibility of having different internal
+  representations (backends) of a tensor, and act on these with the
+  same functions. At the moment we only provide one backend based on
+  <http://hackage.haskell.org/package/vector>, which is accessible by
+  importing the module "Data.Tensor.Vector". More backends will be
+  provided in future releases.
+  .
+  Here is a usage example:
+  .
+
+  >>> :m Data.Ordinal Data.TypeList.MultiIndex Data.Tensor.Vector
+  >>> fromList [2,3,5,1,3,6,0,5,4,2,1,3] :: Tensor (Four :|: (Three :|: Nil)) Int
+  [[2,3,5],[1,3,6],[0,5,4],[2,1,3]]
+  .
+  The above defines a tensor with 4 rows and 3 columns (a matrix) and
+  @'Int'@ coefficients. The entries of this matrix are taken from a
+  list using @'Data.Tensor.fromList'@ which is a method of the class
+  @'Data.Tensor.FromList'@. Notice the output: the @'Show'@ instance
+  is defined in such a way to give a readable representation as list
+  of lists. The is equivalent but slightly more readable code:
+  .
+  >>> fromList [2,3,5,1,3,6,0,5,4,2,1,3] :: Matrix Four Three Int
+  [[2,3,5],[1,3,6],[0,5,4],[2,1,3]]
+  .
+  Analogously
+  .
+  >>> fromList [7,3,-6] :: Tensor (Three :|: Nil) Int
+  [7,3,-6]
+  .
+  and
+  .
+  >>> fromList [7,3,-6] :: Vector Three Int
+  [7,3,-6]
+  .
+  are the same. In order to access an entry of a
+  @'Data.Tensor.Tensor'@ we use the @'Data.Tensor.!'@ operator, which
+  takes the same @'Data.TypeList.MultiIndex.MultiIndex'@ of the
+  @'Data.Tensor.Tensor'@ as its second argument:
+  .
+  >>> let a = fromList [2,3,5,1,3,6,0,5,4,2,1,3] :: Matrix Four Three Int
+  >>> let b = fromList [7,3,-6] :: Vector Three Int
+  >>> a ! (toMultiIndex [1,3] :: (Four :|: (Three :|: Nil)))
+  5
+  >>> b ! (toMultiIndex [2] :: (Three :|: Nil))
+  3
+  .
+  it returns the element at the coordinate (1,3) of the matrix @a@,
+  and the element at the coordinate 2 of the vector b. In fact, thanks
+  to type inference, we could simply write
+  .
+  >>> a ! toMultiIndex [1,3]
+  5
+  >>> b ! toMultiIndex [2]
+  2
+  .
+  And now a couple of examples of algebraic operations (requires
+  adding "Data.Tensor.LinearAlgebra.Vector" to the import list):
+  .
+  >>> :m Data.Ordinal Data.TypeList.MultiIndex Data.Tensor.Vector Data.Tensor.LinearAlgebra.Vector
+  >>> let a = fromList [2,3,5,1,3,6,0,5,4,2,1,3] :: Matrix Four Three Int
+  >>> let b = fromList [7,3,-6] :: Vector Three Int
+  >>> a .*. b
+  [-7,-20,-9,-1]
+  .
+  is the product of matrix @a@ and vector @b@, while
+  .
+  >>> let c = fromList [3,4,0,-1,4,5,6,2,1] :: Matrix Three Three Int
+  >>> c
+  [[3,4,0],[-1,4,5],[6,2,1]]
+  >>> charPoly c
+  [106,13,8]
+  .
+  gives the coefficients of the characteristic polynomial of the
+  matrix @c@.
+
+Library
+  Build-Depends:   base == 4.*, vector
+  Build-Tools:     ghc >= 7.2.1
+  GHC-Options:     -Wall -O2
+  Exposed-Modules: Data.Cardinal
+                   Data.Ordinal
+                   Data.Tensor.LinearAlgebra
+                   Data.Tensor.LinearAlgebra.Vector
+                   Data.TypeAlgebra
+                   Data.TypeList
+                   Data.TypeList.MultiIndex
+                   Data.Tensor
+                   Data.Tensor.Vector
+  Other-modules:   Data.Tensor.Vector.Internal
+                   Data.TypeList.MultiIndex.Internal
+
+
+
+package-hashes:
+    MD5:4d4cb39f5b77b8563f806701afcbc14a
+    SHA1:ffc72c0f50e7d8f2587dffeb430e726b16a4dbf2
+    SHA256:629b6ff8697d3680362b5e37e38ac952cd360294eb04a3cbc473f962971b38af
+    SHA512:7e4350777ecc66225ab2224bc8752c872b3d856fb66a5246bbce9424af81c104958617d26e7259514a66b549a6c3ea2f9890f885993a5f29403ee58e3d6ab34f
+    Skein512_512:6745bbe52351ee6c340a3cc46c46138bd5702be018f2ba2c9f43f2bada3cb17b15572d6ceb2ab9a6ae60bc8fc10852f77c52bfd8dd6abf82e0d50518e9910d8b
+
+package-locations:
+    https://hackage.haskell.org/package/tensor-0.1/tensor-0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/tensor-0.1.tar.gz
+

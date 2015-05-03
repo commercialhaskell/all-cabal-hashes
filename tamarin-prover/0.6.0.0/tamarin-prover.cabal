@@ -1,0 +1,290 @@
+cabal-version:      >= 1.8
+build-type:         Simple
+name:               tamarin-prover
+version:            0.6.0.0
+license:            GPL
+license-file:       LICENSE
+category:           Theorem Provers
+author:             Benedikt Schmidt <benedikt.schmidt@inf.ethz.ch>,
+                    Simon Meier <simon.meier@inf.ethz.ch>
+maintainer:         Simon Meier <simon.meier@inf.ethz.ch>
+copyright:          Benedikt Schmidt, Simon Meier, ETH Zurich, 2010-2012
+synopsis:           The Tamarin prover for security protocol analysis.
+description:
+
+    The Tamarin prover is a tool for the analysis of security protocols. It
+    implements a constraint solving algorithm that supports both falsification
+    and verification of security protocols with respect to an unbounded number
+    of sessions. The underlying security protocol model uses multiset
+    rewriting to specify protocols and adversary capabilities, a guarded
+    fragment of first-order logic to specify security properties, and
+    equational theories to model the algebraic properties of cryptographic
+    operators.
+    .
+    The paper describing the theory underlying the Tamarin prover was
+    accepted at CSF 2012. Its extended version is available from
+    <http://www.infsec.ethz.ch/research/software#TAMARIN>.
+    .
+    The Tamarin prover supports both a batch analysis mode and the
+    interactive construction of security proofs using a GUI. Example protocols
+    and the user guide are installed together with the prover. Just call the
+    @tamarin-prover@ executable without any arguments to get more information.
+    .
+    The Tamarin prover uses maude (<http://maude.cs.uiuc.edu/>) as a
+    unification backend and GraphViz (<http://www.graphviz.org/>) to visualize
+    constraint systems. Detailed instructions for installing the Tamarin
+    prover are given at <http://www.infsec.ethz.ch/research/software#TAMARIN>.
+
+homepage:           http://www.infsec.ethz.ch/research/software#TAMARIN
+
+
+--------------
+-- extra files
+--------------
+
+data-dir:           data
+data-files:
+  LICENSE
+  AUTHORS
+  CHANGES
+
+  -- cached intruder variants for DH-exponentiation
+  intruder_variants_dh.spthy
+
+  -- files for the web-frontend
+  img/*.ico
+  img/*.gif
+  img/*.png
+  js/*.js
+  css/*.css
+  css/smoothness/*.css
+  css/smoothness/images/*.png
+
+  -- vim syntax highlighting
+  etc/spthy.vim
+  etc/filetype.vim
+
+  -- documentation
+  doc/MANUAL
+
+  -- examples files
+  examples/Tutorial.spthy
+
+  -- classic security protocols
+  examples/classic/TLS_Handshake.spthy
+  examples/classic/NSLPK3.spthy
+
+  -- loops
+  examples/loops/Minimal_Crypto_API.spthy
+  examples/loops/Minimal_KeyRenegotiation.spthy
+  examples/loops/Minimal_Create_Use_Destroy.spthy
+  examples/loops/TESLA_Scheme1.spthy
+
+  -- related work
+  examples/related_work/AIF_Moedersheim_CCS10/Keyserver.spthy
+  examples/related_work/StatVerif_ARR_CSF11/StatVerif_Example1.spthy
+  examples/related_work/TPM_DKRS_CSF11/Envelope.spthy
+  examples/related_work/TPM_DKRS_CSF11/RunningExample.spthy
+
+  -- CSF'12 case studies
+  examples/csf12/Artificial.spthy
+
+  examples/csf12/DH2_original.spthy
+  examples/csf12/KAS1.spthy
+  examples/csf12/KAS2_eCK.spthy
+  examples/csf12/KAS2_original.spthy
+
+  examples/csf12/KEA_plus_KI_KCI.spthy
+  examples/csf12/KEA_plus_KI_KCI_wPFS.spthy
+  examples/csf12/KEA_plus_eCK.spthy
+
+  examples/csf12/NAXOS_eCK_PFS.spthy
+  examples/csf12/NAXOS_eCK.spthy
+
+  examples/csf12/UM_eCK.spthy
+  examples/csf12/UM_eCK_noKCI.spthy
+  examples/csf12/UM_PFS.spthy
+  examples/csf12/UM_wPFS.spthy
+  examples/csf12/UM_PFS.spthy
+
+  examples/csf12/SignedDH_PFS.spthy
+  examples/csf12/SignedDH_eCK.spthy
+
+  examples/csf12/STS_MAC.spthy
+  examples/csf12/STS_MAC_fix1.spthy
+  examples/csf12/STS_MAC_fix2.spthy
+
+  examples/csf12/JKL_TS1_2004_KI.spthy
+  examples/csf12/JKL_TS1_2008_KI.spthy
+  examples/csf12/JKL_TS2_2004_KI_wPFS.spthy
+  examples/csf12/JKL_TS2_2008_KI_wPFS.spthy
+  examples/csf12/JKL_TS3_2004_KI_wPFS.spthy_nonterm
+  examples/csf12/JKL_TS3_2008_KI_wPFS.spthy_nonterm
+
+extra-source-files:
+  .ghci
+  interactive-only-src/Paths_tamarin_prover.hs
+  interactive-only-src/Lexer.x
+
+
+--------------
+-- build flags
+--------------
+
+flag no-gui
+    default: False
+    description: Do not build the web-application GUI.
+
+flag threaded
+    default: True
+    description: Build with support for multithreaded execution
+
+flag test-coverage
+    default: True
+    description: Build with test coverage support
+
+flag build-tests
+  default:     False
+  description: Build unit test driver
+
+
+----------------------
+-- executables stanzas
+----------------------
+
+executable tamarin-prover
+    if flag(threaded)
+        ghc-options:   -threaded
+
+    ghc-options:       -Wall -funbox-strict-fields -fwarn-tabs -rtsopts
+    ghc-prof-options:  -auto-all
+    hs-source-dirs:    src
+    main-is:           Main.hs
+
+    if flag(no-gui)
+      cpp-options: -DNO_GUI
+
+    if !flag(no-gui)
+      -- To help the top-down solver we put the more difficult to solve yesod
+      -- dependencies up front.
+      build-depends:
+          bytestring        == 0.9.*
+        , blaze-html        == 0.4.*
+        , http-types        == 0.6.*
+        , blaze-builder     == 0.3.*
+        , yesod-core        == 1.0.*
+        , yesod-json        == 1.0.*
+        , yesod-static      == 1.0.*
+        -- , yesod-form        == 0.4.*   -- required once we reactivate editing
+        , text              == 0.11.*
+        , wai               == 1.2.*
+        , hamlet            == 1.0.*
+        , warp              == 1.2.*
+        , aeson             == 0.6.*
+        , old-locale        == 1.0.*
+        , monad-control     == 0.3.*
+        , lifted-base       == 0.1.*
+        , threads           >= 0.4 && < 0.6
+
+    build-depends:
+        base              == 4.*
+      , bytestring        == 0.9.*
+      , deepseq           == 1.3.*
+      , array             >= 0.3   && < 0.5
+      , containers        >= 0.4.2 && < 0.5
+      , mtl               == 2.0.*
+      , cmdargs           == 0.9.*
+      , filepath          >= 1.1   && < 1.4
+      , directory         >= 1.0   && < 1.2
+      , process           == 1.1.*
+      , parsec            == 3.1.*
+      , safe              >= 0.2  && < 0.4
+      , transformers      == 0.2.*
+      , fclabels          == 1.1.*
+      , uniplate          == 1.6.*
+      , syb               == 0.3.* && >= 0.3.3
+      , binary            == 0.5.*
+      , derive            == 2.5.*
+      , time              >= 1.2   && < 1.5
+      , parallel          == 3.2.*
+      , HUnit             == 1.2.*
+
+      , tamarin-prover-utils == 0.6.*
+      , tamarin-prover-term  == 0.6.*
+
+
+    other-modules:
+      Paths_tamarin_prover
+
+      Main
+      Main_Full
+      Main_NoGui
+      Main.Console
+      Main.Environment
+      Main.TheoryLoader
+      Main.Utils
+      Main.Mode.Batch
+      Main.Mode.Interactive
+      Main.Mode.Intruder
+      Main.Mode.Test
+
+      Theory
+      Theory.Proof
+
+      Theory.Constraint.Solver
+      Theory.Constraint.Solver.CaseDistinctions
+      Theory.Constraint.Solver.Contradictions
+      Theory.Constraint.Solver.Goals
+      Theory.Constraint.Solver.Reduction
+      Theory.Constraint.Solver.Simplify
+      Theory.Constraint.Solver.ProofMethod
+      Theory.Constraint.Solver.Types
+      Theory.Constraint.System
+      Theory.Constraint.System.Dot
+      Theory.Constraint.System.Guarded
+      Theory.Constraint.System.Constraints
+
+      Theory.Model
+      Theory.Model.Atom
+      Theory.Model.Fact
+      Theory.Model.Formula
+      Theory.Model.Rule
+      Theory.Model.Signature
+
+      Theory.Text.Lexer
+      Theory.Text.Parser
+      Theory.Text.Pretty
+
+      Theory.Tools.AbstractInterpretation
+      Theory.Tools.IntruderRules
+      Theory.Tools.LoopBreakers
+      Theory.Tools.RuleVariants
+      Theory.Tools.Wellformedness
+      Theory.Tools.EquationStore
+      Theory.Tools.UniqueFactInstances
+
+      Web.Dispatch
+      Web.Hamlet
+      Web.Handler
+      Web.Instances
+      Web.Settings
+      Web.Theory
+      Web.Types
+
+source-repository head
+  type:     git
+  location: https://github.com/tamarin-prover/tamarin-prover.git
+
+
+
+package-hashes:
+    MD5:38d8b3a24e0011b61794cbd5d2471cb1
+    SHA1:bb9f24c4e66b3f0c681baae2aeac6e9289b00ed4
+    SHA256:9ccce160d2e429f3e45b7e97da13485f0903d5532bdba2874dca998130b8ad2e
+    SHA512:dc269ba2ed48f79124f33b8717678f8bac2c7148a5c482a9f9fb00064041d9312e528c58a5101bd0e6ef5d7248113929da2cbe0750a409f2285527fe53c7e0a1
+    Skein512_512:0ee9ceaaa1690cd15c39e9055101f6cf48120b312971ccdf31698f7ba5bfe82e4f28592b6ca348d7464cebc1f0b524d55db6193eb3d69cb4e03f7aba3ca4846b
+
+package-locations:
+    https://hackage.haskell.org/package/tamarin-prover-0.6.0.0/tamarin-prover-0.6.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/tamarin-prover-0.6.0.0.tar.gz
+

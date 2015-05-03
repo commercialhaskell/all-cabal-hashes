@@ -1,0 +1,101 @@
+name:          usb
+version:       1.3.0.1
+cabal-version: >=1.6
+build-type:    Custom
+license:       BSD3
+license-file:  LICENSE
+copyright:     2009–2014 Bas van Dijk <v.dijk.bas@gmail.com>
+author:        Bas van Dijk <v.dijk.bas@gmail.com>
+maintainer:    Bas van Dijk <v.dijk.bas@gmail.com>
+homepage:      http://basvandijk.github.com/usb
+bug-reports:   https://github.com/basvandijk/usb/issues
+category:      System, Hardware
+synopsis:      Communicate with USB devices
+description:   This library enables you to communicate with USB devices from
+               userspace. It is implemented as a high-level wrapper around
+               @bindings-libusb@
+               (<http://hackage.haskell.org/package/bindings-libusb>)
+               which is a low-level binding to the C library:
+               @libusb-1.*@ (<http://libusb.org/>).
+               .
+               The USB transfer functions in this library have a simple synchronous
+               interface (they block) but are implemented using the @libusb@
+               asynchronous interface. They integrate with the GHC event manager
+               making them efficient (no busy-loops) and interruptible (throwing an
+               exception to the thread executing a transfer immediately cancels the
+               transfer).
+               .
+               If the GHC event manager is not available (because you're either not
+               using GHC or because you're on Windows) the library degrades
+               gracefully to the @libusb@ synchronous implementation.
+               .
+               This documentation assumes knowledge of how to operate USB
+               devices from a software standpoint (descriptors, configurations,
+               interfaces, endpoints, control\/bulk\/interrupt\/isochronous
+               transfers, etc). Full information can be found in the
+               USB 2.0 specification (<http://www.usb.org/developers/docs/>).
+               .
+               For an example how to use this library see the
+               @usb-example@ package (<https://github.com/basvandijk/usb-example>)
+               or the @ls-usb@ package (<http://hackage.haskell.org/package/ls-usb>).
+               .
+               Besides this API documentation the following sources might be
+               interesting:
+               .
+               * The @libusb 1.0@ documentation (<http://libusb.sourceforge.net/api-1.0/>).
+               .
+               * The USB 2.0 specification (<http://www.usb.org/developers/docs/>).
+               .
+               * The @bindings-libusb@ documentation (<http://hackage.haskell.org/package/bindings-libusb>).
+               .
+               * \"USB in a NutShell\" (<http://www.beyondlogic.org/usbnutshell/usb1.htm>).
+
+
+extra-source-files: README.markdown, Changelog, default.nix, shell.nix
+
+source-repository head
+  Type:     git
+  Location: git://github.com/basvandijk/usb.git
+
+Library
+  GHC-Options: -Wall
+
+  build-depends: base                 >= 4     && < 4.9
+               , bindings-libusb      >= 1.4.5 && < 1.5
+               , bytestring           >= 0.9   && < 0.11
+               , text                 >= 0.5   && < 1.3
+               , vector               >= 0.5   && < 0.11
+
+  exposed-modules: System.USB
+                   System.USB.Initialization
+                   System.USB.Misc
+                   System.USB.Enumeration
+                   System.USB.DeviceHandling
+                   System.USB.Descriptors
+                   System.USB.IO
+                   System.USB.IO.StandardDeviceRequests
+                   System.USB.Exceptions
+  other-modules: System.USB.Base, Utils
+
+  if !os(windows) && impl(ghc>7)
+    cpp-options: -DHAS_EVENT_MANAGER
+    exposed-modules: System.USB.IO.Transfers
+    other-modules: Poll, Event, SystemEventManager
+    build-depends: containers >= 0.1 && < 0.6
+
+  if impl(ghc >= 7.2.1)
+    cpp-options: -DGENERICS
+    build-depends: ghc-prim >= 0.2 && < 0.5
+
+
+package-hashes:
+    MD5:3136e954a99593d6ab43d13671ae149c
+    SHA1:27e02f33230ebc39e0c0ff5be371fbc465c3ed9a
+    SHA256:47e6ce56f8391544d7dfe9e4c419608c33a366b1a8955342b8fe7e215ce69369
+    SHA512:82b15926ea9b66bc48afa08b38ba773fb555b37cdd57cc5f60570667e1cae513858013fdd7978dbd3355f65128801f76bf2580bf5805909cd7e2427b40f73291
+    Skein512_512:20ad4d831c6973fde718216394a648ad5e99b58525ecd6be17797818bdf372984ed279bf3738c0136fab87701626b68e0ba8271e0ae0f9aa284277dba340089f
+
+package-locations:
+    https://hackage.haskell.org/package/usb-1.3.0.1/usb-1.3.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/usb-1.3.0.1.tar.gz
+

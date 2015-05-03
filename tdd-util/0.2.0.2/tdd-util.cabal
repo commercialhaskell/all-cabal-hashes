@@ -1,0 +1,330 @@
+name:                  tdd-util
+version:               0.2.0.2
+cabal-version:         >= 1.10
+build-type:            Simple
+license:               BSD3
+license-file:          LICENSE
+copyright:             Copyright (c) 2012 Byron James Johnson
+author:                Byron James Johnson
+maintainer:            Byron James Johnson <ByronJohnsonFP@gmail.com>
+synopsis:              Test framework wrapper
+description:
+  tdd-util is a small test framework for TDD (cf.
+  <https://en.wikipedia.org/wiki/Test-driven_development>) that integrates
+  three testing libraries, whose modules are all exported under
+  "Test.Util.Framework", while providing utilities based on each of these,
+  exported under "Test.Util", by wrapping the library @test-framework@.
+  .
+  /Getting Started/
+  .
+  To get started, an example that uses this library is this library's test
+  suite itself and can be found at
+  <https://github.com/bairyn/tdd-util/tree/master/testsrc>.  Each module under
+  @src@ corresponds with a module under @testsrc\/Test@ that contains the tests
+  for that module.  (For example, this library currently exports two modules in
+  @src\/Test\/Util.hs@ and @src\/Test\/Util\/Framework.hs@; their tests are located,
+  respectively, in @testsrc\/Test\/Test\/Util.hs@ and
+  @testsrc\/Test\/Test\/Util\/Framework.hs@; and a module in @src\/Data\/Trie.hs@
+  would correspond with a test module in @testsrc\/Test\/Trie.hs@).  This structure can be conveniently
+  cargo culted from this library, but these conventions are not enforced.
+  .
+  /Test Modules/
+  .
+  Conventially, each module in @src\/X.hs@ corresponds with a module that contains
+  tests for that module located at @testsrc\/Test\/X.hs@.  None of these Test
+  modules depend on each other by importing them.  For a concrete example of
+  such a test module, see <https://github.com/bairyn/tdd-util/blob/master/testsrc/Test/Test/Util.hs>.
+  .
+  Each test module exports a list of @test-framework@\'s 'TTest's (an alias to
+  disambiguate between @Test@ types from different libraries) named @tests@.
+  .
+  This list of tests can either be run individually by importing the test
+  module, and then running @'defaultMain' tests@; or be grouped together in the
+  test-suite's @Tests@ module (see below).
+  .
+  In the tests themselves, very briefly, @'testGroup' \"Brief description of
+  test\" […]@ can be used to construct a single test-framework test ('TTest')
+  from a group of other tests, @'testProperty' name prop_foo @ can be used to construct a
+  'TTest' from a QuickCheck property, and @'testCase' name $ do …@ can be used
+  to construct a test from 'HUnit'.  See test-framework's
+  documentation for more information about constructing QuickCheck and HUnit
+  properties.
+  .
+  Here is a segment of code from
+  <https://github.com/bairyn/tdd-util/blob/master/testsrc/Test/Test/Util.hs>:
+  .
+  @
+  module Test.Test.Util
+      ( tests
+      ) where
+  .
+  import Control.Applicative
+  …
+  import Text.Printf
+  .
+  import Test.Util
+  import Test.Util.Framework
+  …
+  tests :: [TTest]
+  tests =
+      [ testGroup \"Throwing and catching exceptions - isExceptionThrown\" $
+          [ testCase \"throwing an exception\" $ do
+             thrown <- isExceptionThrown $ do
+                 throwIO $ AssertionFailed \"assertion failed\"
+             when (either (\e -> flip const (e :: AssertionFailed) $ False) (const True) $ thrown) $ do
+                 assertString \"exception NOT thrown\"
+          , testCase \"not throwing an exception\" $ do
+             thrown <- isExceptionThrown $ do
+                 return ()
+             when (either (\e -> flip const (e :: AssertionFailed) $ True) (const False) $ thrown) $ do
+                 assertString \"exception thrown\"
+          ]
+      , testGroup \"Throwing and catching exceptions - assert*Thrown\" $
+      …
+      ]
+      …
+  @
+  .
+  /Tests.hs/
+  .
+  Each test module is conventionally grouped into a single test module, at
+  @testsrc\/Tests.hs@ (e.g. see
+  <https://github.com/bairyn/tdd-util/blob/master/testsrc/Tests.hs>), that
+  exports a list of 'TTest's named @tests@.  Interactively, this test module
+  can be loaded in ghci, and the tests can be run as before, with @defaultMain
+  tests@.
+  .
+  These tests can also be specified in the project's cabal file, by invoking
+  @defaultMain@ on @tests@ in an external @Main.hs@ file under @testsrc@ (e.g.
+  see <https://github.com/bairyn/tdd-util/blob/master/testsrc/Main.hs>).
+  Running this @Main.hs@ will result in the test suite being run, so a
+  @test-suite@ section can be added to the cabal file as it is in
+  <https://github.com/bairyn/tdd-util/blob/master/tdd-util.cabal>.
+  .
+  When a test suite is specified, cabal will recognized it and, when
+  configured to do so, will run it when installing your package, resulting in
+  output that may look like this when it succeeds.
+  .
+  @
+  Running 1 test suites...
+  Test suite tdd-util-tests: RUNNING...
+  Test suite tdd-util-tests: PASS
+  Test suite logged to: dist\/test\/tdd-util-0.1.0.1-tdd-util-tests.log
+  1 of 1 test suites (1 of 1 test cases) passed.
+  @
+  .
+  This package's @Tests.hs@:
+  .
+  @
+  module Tests
+      ( tests
+      ) where
+  .
+  import Test.Util.Framework
+  .
+  import qualified Test.Test.Util
+  import qualified Test.Test.Util.Framework
+  .
+  tests :: [TTest]
+  tests =
+      [ testGroup \"Test.Test.Util.tests\" $ Test.Test.Util.tests
+      , testGroup \"Test.Test.Util.Framework.tests\" $ Test.Test.Util.Framework.tests
+      ]
+  @
+  .
+  /Main.hs Example/
+  .
+  @Main.hs@ conventially defines a simple program that invokes @defaultMain
+  tests@ from the test group that encapsulates the entire test suite in
+  @Tests.hs@.  Here is this package's @Main.hs@ file:
+  .
+  @
+  module Main where
+  .
+  import Test.Util.Framework
+  .
+  import Tests
+  .
+  main :: IO ()
+  main = do
+      defaultMain tests
+  @
+  .
+  /Cabal Configuration/
+  .
+  Your package's cabal configuration can be updated to point to
+  @testsrc\/Main.hs\/@; here is a segment in this package's Cabal file that
+  contains part of the specification for the package's test suite:
+  .
+  @
+  test-suite tdd-util-tests
+    type: exitcode-stdio-1.0
+    default-language: Haskell2010
+    hs-source-dirs: testsrc, src
+    ghc-options: -Wall -threaded
+    main-is: Main.hs
+    default-extensions:
+      GADTs
+     ,TemplateHaskell
+     ,DeriveDataTypeable
+    build-depends:
+      …
+    other-modules:
+      Tests
+     ,Test.Test.Util
+     ,Test.Test.Util.Framework
+  @
+  .
+  Note that @tdd-util@ is the only TDD library one needs to depend on, if one
+  only uses @QuickCheck@, @HUnit@, and @test-framework@ via
+  "Test.Util.Framework"; this omission is strictly optional, of course.
+  .
+  /Test Running Example/
+  .
+  Here is the output of importing @Test.Test.Util@ inside the @testsrc@
+  directory and then running @tests@ on my system (note this is not the result
+  of running the entire test suite; to do that, either run Main.hs or run, with
+  'defaultMain', the @tests@ exported from @Tests.hs@ rather than
+  @Test.Test.Util@), without the coloured formatting:
+  .
+  @
+  % ghci Test.Test.Util
+  GHCi, version 7.6.1: http:\/\/www.haskell.org\/ghc\/  :? for help
+  Loading package ghc-prim ... linking ... done.
+  Loading package integer-gmp ... linking ... done.
+  Loading package base ... linking ... done.
+  [1 of 1] Compiling Test.Test.Util   ( Test\/Test\/Util.hs, interpreted )
+  Ok, modules loaded: Test.Test.Util.
+  .
+  \*Test.Test.Util> defaultMain tests
+  Loading package pretty-1.1.1.0 ... linking ... done.
+  …
+  Loading package tdd-util-0.1.0.1 ... linking ... done.
+  Throwing and catching exceptions - isExceptionThrown:
+    throwing an exception: [OK]
+    not throwing an exception: [OK]
+  Throwing and catching exceptions - assert*Thrown:
+    throwing an exception: [OK]
+    not throwing an exception: [OK]
+  isExceptionThrown -> assert*Thrown:
+    Applying appropriate assert*Thrown given result of isExceptionThrown: [OK, passed 100 tests]
+  Timed tests:
+    timeMicroseconds:
+      timeMicroseconds is accurate for random sleep times within 10ms: [OK, passed 100 tests]
+      timeMicroseconds is accurate for random delay times by timeout within 10ms: [OK, passed 100 tests]
+    timeoutMicroseconds behaves like timeout and throws exceptions appropriately:
+      timeoutMicroseconds overflow: [OK]
+      timeoutMicroseconds non-overflow: [OK]
+      waiting for a random amount of time from 0ms - 600ms; measured time difference is less than 10ms: [OK, passed 100 tests]
+  assertMicroseconds:
+    timeoutMicroseconds -> assertMicroseconds (assert*Thrown): [OK, passed 100 tests]
+  timeoutProcessMicroseconds behaves like timeoutMicroseconds and throws exceptions appropriately:
+    timeoutProcessMicroseconds overflow: [OK]
+    timeoutProcessMicroseconds non-overflow: [OK]
+    random sleep times and timeouts; return value is appropriate (NB: requires -threaded to work properly): [OK, passed 100 tests]
+  assertProcessMicroseconds:
+    timeoutProcessMicroseconds -> assertProcessMicroseconds (assert*Thrown): [OK, passed 100 tests]
+  .
+           Properties  Test Cases  Total       
+   Passed  7           8           15          
+   Failed  0           0           0           
+   Total   7           8           15          
+  @
+category:              Testing
+tested-with:           GHC == 7.6.1
+
+flag QuickCheck26
+  default: True
+  manual: False
+  description:
+    Build with QuickCheck >= 2.6, which introduces
+    "Test.QuickCheck.Test.interrupted".
+
+library
+  default-language: Haskell2010
+  hs-source-dirs: src
+  ghc-options: -Wall
+  default-extensions:
+    GADTs
+   ,TemplateHaskell
+   ,DeriveDataTypeable
+  other-extensions:
+    CPP
+  build-depends:
+    base         >= 4 && < 6
+   ,lens
+   ,transformers
+   ,tagged
+   ,random
+   ,process
+   ,time
+   ,parallel-io
+   ,MonadCatchIO-transformers
+   ,HUnit
+   ,test-framework
+   ,test-framework-hunit
+   ,test-framework-quickcheck2
+  if flag(QuickCheck26)
+    cpp-options: -DQUICKCHECK26
+    build-depends:
+      QuickCheck   >= 2.6 && < 3
+  else
+    build-depends:
+      QuickCheck   >= 2   && < 2.6
+  exposed-modules:
+    Test.Util
+   ,Test.Util.Framework
+
+test-suite tdd-util-tests
+  type: exitcode-stdio-1.0
+  default-language: Haskell2010
+  hs-source-dirs: testsrc, src
+  ghc-options: -Wall -threaded
+  main-is: Main.hs
+  default-extensions:
+    GADTs
+   ,TemplateHaskell
+   ,DeriveDataTypeable
+  build-depends:
+    base         >= 4 && < 6
+   ,lens
+   ,transformers
+   ,tagged
+   ,random
+   ,process
+   ,time
+   ,parallel-io
+   ,MonadCatchIO-transformers
+   ,HUnit
+   ,test-framework
+   ,test-framework-hunit
+   ,test-framework-quickcheck2
+  if flag(QuickCheck26)
+    cpp-options: -DQUICKCHECK26
+    build-depends:
+      QuickCheck   >= 2.6 && < 3
+  else
+    build-depends:
+      QuickCheck   >= 2   && < 2.6
+  other-modules:
+    Tests
+   ,Test.Test.Util
+   ,Test.Test.Util.Framework
+
+source-repository head
+  type:     git
+  location: git://github.com/bairyn/tdd-util.git
+  tag:      0.2.0.2
+
+
+package-hashes:
+    MD5:03dd9ed37e589d40c6a4afef5769c5f0
+    SHA1:aa560f9afd35ca8c7945b13920e3cb32b4c81ab0
+    SHA256:4ff0e1f34a272e58767d29dae8bce2740935d959a8066738cdcc9f229702a7ef
+    SHA512:65d607d4af3317743d79156b5025b0244e0b298ea630ef1a387e8f04d7603e06f21379b64baeb629c57980708e068e613416c2238f6f04ca18c914a0240a9806
+    Skein512_512:3d9294a3fc270befef9ca562fb24f7511a392b4050262f922c0df2e51dd65852dd096470767ab70966037312d326dcc11740d8a847409bb001921420cd25bb0b
+
+package-locations:
+    https://hackage.haskell.org/package/tdd-util-0.2.0.2/tdd-util-0.2.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/tdd-util-0.2.0.2.tar.gz
+

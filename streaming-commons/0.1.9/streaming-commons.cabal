@@ -1,0 +1,166 @@
+name:                streaming-commons
+version:             0.1.9
+synopsis:            Common lower-level functions needed by various streaming data libraries
+description:         Provides low-dependency functionality commonly needed by various streaming data libraries, such as conduit and pipes.
+homepage:            https://github.com/fpco/streaming-commons
+license:             MIT
+license-file:        LICENSE
+author:              Michael Snoyman
+maintainer:          michael@snoyman.com
+-- copyright:           
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.8
+extra-source-files:
+    test/filesystem/*.txt
+    test/filesystem/bin/*.txt
+    include/*.h
+    cbits/*.c
+    test/LICENSE.gz
+    ChangeLog.md
+    README.md
+
+flag use-bytestring-builder
+  description: Use bytestring-builder package
+
+library
+  exposed-modules:     Data.Streaming.Blaze
+                       Data.Streaming.ByteString.Builder
+                       Data.Streaming.FileRead
+                       Data.Streaming.Filesystem
+                       Data.Streaming.Network
+                       Data.Streaming.Network.Internal
+                       Data.Streaming.Process
+                       Data.Streaming.Process.Internal
+                       Data.Streaming.Text
+                       Data.Streaming.Zlib
+                       Data.Streaming.Zlib.Lowlevel
+
+  -- Due to cabal bugs, not making inclusion of this dependent on text version.
+  -- For more information, see: https://github.com/fpco/text-stream-decode/issues/1
+  other-modules:       Data.Text.Internal.Unsafe.Char
+                       Data.Text.Internal.Unsafe.Shift
+                       Data.Text.Internal.Encoding.Utf8
+                       Data.Text.Internal.Encoding.Utf16
+                       Data.Text.Internal.Encoding.Utf32
+
+  build-depends:       base >= 4.4 && < 5
+                     , array
+                     , blaze-builder >= 0.3 && < 0.4
+                     , bytestring
+                     , directory
+                     , network
+                     , random
+                     , process
+                     , stm
+                     , text
+                     , transformers
+                     , zlib
+
+  c-sources:           cbits/zlib-helper.c
+                       cbits/text-helper.c
+  include-dirs:        include
+
+  if os(windows)
+    build-depends:     Win32
+                     , filepath
+    cpp-options:       -DWINDOWS
+    other-modules:     System.Win32File
+  else
+    build-depends:     unix
+
+  if flag(use-bytestring-builder)
+    build-depends:     bytestring < 0.10.2.0
+                     , bytestring-builder
+  else
+    build-depends:     bytestring >= 0.10.2.0
+
+test-suite test
+    hs-source-dirs: test
+    main-is:        Spec.hs
+    type:           exitcode-stdio-1.0
+    ghc-options:    -Wall -threaded
+    other-modules:  Data.Streaming.ByteString.BuilderSpec
+                    Data.Streaming.FileReadSpec
+                    Data.Streaming.FilesystemSpec
+                    Data.Streaming.NetworkSpec
+                    Data.Streaming.TextSpec
+                    Data.Streaming.ZlibSpec
+    build-depends:  base
+                  , streaming-commons
+                  , hspec >= 1.8
+
+                  , QuickCheck
+                  , array
+                  , async
+                  , blaze-builder
+                  , bytestring
+                  , deepseq
+                  , network
+                  , text
+                  , zlib
+
+  if flag(use-bytestring-builder)
+    build-depends:     bytestring < 0.10.2.0
+                     , bytestring-builder
+  else
+    build-depends:     bytestring >= 0.10.2.0
+
+  if os(windows)
+    cpp-options:       -DWINDOWS
+  else
+    build-depends:     unix
+
+benchmark count-chars
+    type: exitcode-stdio-1.0
+    hs-source-dirs: bench
+    build-depends:  base
+                  , criterion
+                  , bytestring
+                  , text
+    main-is:        count-chars.hs
+    ghc-options:    -Wall -O2
+
+benchmark decode-memory-usage
+    type: exitcode-stdio-1.0
+    hs-source-dirs: bench
+    build-depends:  base
+                  , bytestring
+                  , text
+    main-is:        decode-memory-usage.hs
+    ghc-options:    -Wall -O2 -with-rtsopts=-s
+
+benchmark builder-to-bytestring-io
+    type: exitcode-stdio-1.0
+    hs-source-dirs: bench
+    main-is:        builder-to-bytestring-io.hs
+    ghc-options:    -Wall -O2
+    build-depends:  base
+                  , blaze-builder
+                  , bytestring
+                  , criterion
+                  , deepseq
+                  , streaming-commons
+
+  if flag(use-bytestring-builder)
+    build-depends:     bytestring < 0.10.2.0
+                     , bytestring-builder
+  else
+    build-depends:     bytestring >= 0.10.2.0
+
+source-repository head
+  type:     git
+  location: git://github.com/fpco/streaming-commons.git
+
+
+package-hashes:
+    MD5:0442e88a2220ce59433f65e54e87b8e1
+    SHA1:4f1fe8aaffa260957672250d7f2bd994f7aaa480
+    SHA256:b83d9f0a271ed1eb761c1cc2f3a10ba79c95604e8c6074c4e09a5ee452167c73
+    SHA512:fc384501d66c62d461045e8b2f9c5ea011b731d5e66338aebed9ceb44bd09a0feb8ba8b215394dc24017e748a76c02e75ea37cb52c1bc040726f1511e198d6fb
+    Skein512_512:2dab5b5dcb4cb4f67cc3f5c15f557a6946edc81e6c8c0a16feb2352942636a3a895bb8d85858b66790ec9234b89a2a83de672472e4179910baca546d57875662
+
+package-locations:
+    https://hackage.haskell.org/package/streaming-commons-0.1.9/streaming-commons-0.1.9.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/streaming-commons-0.1.9.tar.gz
+

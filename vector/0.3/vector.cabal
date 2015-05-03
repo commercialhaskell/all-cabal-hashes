@@ -1,0 +1,84 @@
+Name:           vector
+Version:        0.3
+License:        BSD3
+License-File:   LICENSE
+Author:         Roman Leshchinskiy
+Maintainer:     Roman Leshchinskiy <rl@cse.unsw.edu.au>
+Copyright:      (c) Roman Leshchinskiy 2008
+Homepage:       http://darcs.haskell.org/vector
+Category:       Data Structures
+Synopsis:       Efficient Arrays
+Description:
+        .
+        An efficient but highly experimental implementation of Int-indexed
+        arrays with a powerful loop fusion framework.
+        .
+
+Cabal-Version:  >= 1.2
+Build-Type:     Simple
+
+Flag EnableAssertions
+  Description: Enable assertions that check parameters to functions are reasonable.
+               These will impose a moderate performance cost on users of the library,
+               with the benefit that you get reasonable errors rather than segmentation faults!
+  Default:     False
+
+Library
+  Extensions: CPP
+  Exposed-Modules:
+        Data.Vector.Fusion.Util
+        Data.Vector.Fusion.Stream.Size
+        Data.Vector.Fusion.Stream.Monadic
+        Data.Vector.Fusion.Stream
+
+        Data.Vector.MVector
+        Data.Vector.MVector.New
+        Data.Vector.IVector
+
+        Data.Vector.Unboxed.Unbox
+        Data.Vector.Unboxed.Mutable.ST
+        Data.Vector.Unboxed.Mutable.IO
+        Data.Vector.Unboxed
+
+        Data.Vector.Mutable.ST
+        Data.Vector.Mutable.IO
+        Data.Vector
+  Include-Dirs:
+        include
+
+  Install-Includes:
+        phases.h
+
+  Build-Depends: base >= 2 && < 4, array, ghc-prim,
+                 ghc >= 6.9
+
+-- -finline-if-enough-args is ESSENTIAL. If we don't have this the partial application
+-- of e.g. Stream.Monadic.++ to the monad dictionary at the use site in Stream.++ causes
+-- it to be fruitlessly inlined. This in turn leads to a huge RHS for Stream.++, so it
+-- doesn't get inlined at the final call site and fusion fails to occur.
+  Ghc-Options: -finline-if-enough-args
+  
+-- It's probably a good idea to compile the library with -O2 as well. However, it's probably
+-- not as essential as you think because most of the optimisation occurs when the library
+-- functions from here are inlined into the user programs (which SHOULD be compiled with -O2!).
+--
+-- We have to fiddle with the assertion stuff at this point too because -O2 implies -fno-ignore-asserts,
+-- meaning that their relative ordering is CRUCIAL. Setting them together guarantees it.
+  if flag(enableassertions)
+    -- Asserts are ignored by default at -O1 or higher
+    Ghc-Options: -O2 -fno-ignore-asserts
+  else
+    Ghc-Options: -O2
+
+
+package-hashes:
+    MD5:4709fee27a716b13ae3c57fc302637e3
+    SHA1:06b485a9b94a641b215d567093350d09bfaacc76
+    SHA256:06a437bd0d5cdfe4e39cd784e6e0570da444f5a65bd7ac68b1f9bbf0a3a39454
+    SHA512:539f2e81fd342491c46cb2b7200f1565c0c329f199b4d7f645c4e18f29f8e351676b408210668ba186d69e73b345301a050435ab85fb2a7e7417335351a7a97b
+    Skein512_512:394e142d08743037eccb097d8207d2e6ea3a2f65f2f7fb580c6fa1ecab83a9fef99eac63153bb5c42942cfd05d51af8eb5336f06b904e26211fba34fae1b0658
+
+package-locations:
+    https://hackage.haskell.org/package/vector-0.3/vector-0.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/vector-0.3.tar.gz
+

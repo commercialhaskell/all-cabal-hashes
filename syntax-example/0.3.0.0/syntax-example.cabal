@@ -1,0 +1,143 @@
+name:                syntax-example
+version:             0.3.0.0
+synopsis:            Example application using syntax, a library for abstract syntax descriptions.
+description:
+  Example application using syntax, a library for abstract syntax descriptions.
+  .
+  /The code./
+  .
+  > import           Control.Applicative
+  > import           Control.Lens.Cons
+  > import           Control.Lens.SemiIso
+  > import           Control.Lens.TH
+  > import qualified Data.Attoparsec.Text as AP
+  > import           Data.Char
+  > import           Data.Scientific (Scientific)
+  > import           Data.SemiIsoFunctor
+  > import           Data.Syntax (Syntax)
+  > import qualified Data.Syntax as S
+  > import qualified Data.Syntax.Attoparsec.Text as S
+  > import           Data.Syntax.Char (SyntaxChar)
+  > import qualified Data.Syntax.Char as S
+  > import qualified Data.Syntax.Combinator as S
+  > import qualified Data.Syntax.Pretty as S
+  > import           Data.Text (Text)
+  > import qualified Data.Text.IO as T
+  > import qualified Text.PrettyPrint as P
+  > 
+  > -- A simple lambda calculus.
+  > 
+  > data Literal = LitStr Text
+  >              | LitNum Scientific
+  >     deriving (Show)
+  > 
+  > $(makePrisms ''Literal)
+  > 
+  > data AST = Var Text
+  >          | Lit Literal
+  >          | App AST AST
+  >          | Abs Text AST
+  >          | Let Text AST AST
+  >     deriving (Show)
+  > 
+  > $(makePrisms ''AST)
+  > 
+  > -- | A variable name.
+  > name :: Syntax syn Text => syn Text
+  > name = _Cons /$/ S.satisfy isAlpha /*/ S.takeWhile isAlphaNum
+  > 
+  > -- | A quoted string.
+  > quoted :: SyntaxChar syn seq => syn seq
+  > quoted = S.char '"' */ S.takeTill (=='"') /* S.char '"'
+  > 
+  > -- | Encloses a symbol in parentheses.
+  > parens :: SyntaxChar syn seq => syn a -  > syn a
+  > parens m = S.char '(' */ S.spaces_ */ m /* S.spaces_ /* S.char ')'
+  > 
+  > -- | A literal.
+  > literal :: SyntaxChar syn Text => syn Literal
+  > literal =  _LitNum /$/ S.scientific
+  >        /|/ _LitStr /$/ quoted
+  > 
+  > -- | An atom is a variable, literal or an expression in parentheses.
+  > atom :: SyntaxChar syn Text => syn AST
+  > atom =  _Lit /$/ literal
+  >     /|/ _Var /$/ name
+  >     /|/ parens expr
+  > 
+  > -- | Parses a list of atoms and folds them with the _App prism.
+  > apps :: SyntaxChar syn Text => syn AST
+  > apps = bifoldl1 _App /$/ S.sepBy1 atom S.spaces1
+  > 
+  > -- | An expression of our lambda calculus.
+  > --
+  > -- Thanks to 'tuple-morph' we don't have to worry about /* and */ here.
+  > -- Tuples are reassociated and units are removed by the 'morphed'
+  > -- isomorphism (applied in /$~ operator).
+  > expr :: SyntaxChar syn Text => syn AST
+  > expr =  _Abs /$~ S.char '\\'    /*/ S.spaces_
+  >              /*/ name           /*/ S.spaces
+  >              /*/  S.string "->" /*/ S.spaces
+  >              /*/ expr
+  > 
+  >     /|/ _Let /$~ S.string "let" /*/ S.spaces1
+  >              /*/ name           /*/ S.spaces
+  >              /*/ S.char '='     /*/ S.spaces
+  >              /*/ expr           /*/ S.spaces1
+  >              /*/ S.string "in"  /*/ S.spaces1
+  >              /*/ expr
+  > 
+  >     /|/ apps
+  > 
+  > main :: IO ()
+  > main = do
+  >     -- Load the standard input.
+  >     t <- T.getContents
+  > 
+  >     -- Try to parse it.
+  >     case AP.parseOnly (S.getParser expr <* AP.skipSpace <* AP.endOfInput) t of
+  >       Left err  -> putStrLn err
+  >       Right ast -> do
+  >         -- If parsing succeeded print the AST.
+  >         print ast
+  >         
+  >         -- Try to pretty print it.
+  >         -- (Printing cannot really fail in this example)
+  >         case S.runPrinter expr ast of
+  >           Left err  -> putStrLn err
+  >           Right doc -> putStrLn (P.render doc)
+  > 
+  >     return ()
+  .
+license:             MIT
+license-file:        LICENSE
+author:              Paweł Nowak
+maintainer:          Paweł Nowak <pawel834@gmail.com>
+copyright:           Paweł Nowak 2014
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.10
+
+source-repository head
+  type:     git
+  location: git@github.com:Pawel834/syntax-example.git
+
+executable syntax-example
+  main-is:             Main.hs
+  build-depends:       base >= 4 && < 5, lens, semi-iso >= 0.4,
+                       syntax >= 0.2, syntax-attoparsec >= 0.2, syntax-pretty >= 0.2,
+                       attoparsec, pretty, text, scientific >= 0.3
+  default-language:    Haskell2010
+
+
+package-hashes:
+    MD5:f06d9f5fe138a6b09cb7d3072afaac95
+    SHA1:3a911c04d28c984528f6b59ed47157969cc87ea3
+    SHA256:b7c21bf36de2e75e527bd5f34b75d4a7fcf6562004a2b26de475c7429b71509f
+    SHA512:a1c4f807d8c0c490566cb5b48b9fa3ed99b8ca814f07f29970ab2dfc8eb82753c0c1a919a79f0f412319cb11900aa405d1d745b0fa6257fae260ca70227bc7bc
+    Skein512_512:0b717f84420fd18b91ce2469e8749331ae41406bc25ea0aba407e99b2a32fe62c19a08a86a86dfb195a7ef1a2115522359e16376fe9b09c61a62ea0b9b8ae14a
+
+package-locations:
+    https://hackage.haskell.org/package/syntax-example-0.3.0.0/syntax-example-0.3.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/syntax-example-0.3.0.0.tar.gz
+

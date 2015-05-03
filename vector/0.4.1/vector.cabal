@@ -1,0 +1,107 @@
+Name:           vector
+Version:        0.4.1
+x-revision: 1
+License:        BSD3
+License-File:   LICENSE
+Author:         Roman Leshchinskiy <rl@cse.unsw.edu.au>
+Maintainer:     Roman Leshchinskiy <rl@cse.unsw.edu.au>
+Copyright:      (c) Roman Leshchinskiy 2008-2009
+Homepage:       http://darcs.haskell.org/vector
+Category:       Data, Data Structures
+Synopsis:       Efficient Arrays
+Description:
+        .
+        An efficient implementation of Int-indexed arrays with a powerful loop
+        fusion framework.
+        .
+        It is structured as follows:
+        .
+        [@Data.Vector@] boxed vectors of arbitrary types
+        .
+        [@Data.Vector.Primitive@] unboxed vectors of primitive types as
+                defined by the @primitive@ package
+        .
+        [@Data.Vector.Storable@] unboxed vectors of 'Storable' types
+        .
+        [@Data.Vector.Generic@] generic interface to the vector types
+        .
+
+Cabal-Version:  >= 1.2
+Build-Type:     Simple
+
+Extra-Source-Files:
+      tests/vector-tests.cabal
+      tests/LICENSE
+      tests/Setup.hs
+      tests/Main.hs
+      tests/Boilerplater.hs
+      tests/Utilities.hs
+      tests/Tests/Stream.hs
+      tests/Tests/Vector.hs
+
+Flag EnableAssertions
+  Description: Enable assertions that check parameters to functions are reasonable.
+               These will impose a moderate performance cost on users of the library,
+               with the benefit that you get reasonable errors rather than segmentation faults!
+  Default:     True
+
+Library
+  Extensions: CPP
+  Exposed-Modules:
+        Data.Vector.Fusion.Util
+        Data.Vector.Fusion.Stream.Size
+        Data.Vector.Fusion.Stream.Monadic
+        Data.Vector.Fusion.Stream
+
+        Data.Vector.Generic.Mutable
+        Data.Vector.Generic.New
+        Data.Vector.Generic
+
+        Data.Vector.Primitive.Mutable
+        Data.Vector.Primitive
+
+        Data.Vector.Storable.Internal
+        Data.Vector.Storable.Mutable
+        Data.Vector.Storable
+
+        Data.Vector.Mutable
+        Data.Vector
+  Include-Dirs:
+        include
+
+  Install-Includes:
+        phases.h
+
+  Build-Depends: base >= 2 && < 4.7, ghc >= 6.9, primitive < 0.2
+
+-- -finline-if-enough-args is ESSENTIAL. If we don't have this the partial application
+-- of e.g. Stream.Monadic.++ to the monad dictionary at the use site in Stream.++ causes
+-- it to be fruitlessly inlined. This in turn leads to a huge RHS for Stream.++, so it
+-- doesn't get inlined at the final call site and fusion fails to occur.
+  if impl(ghc<6.13)
+    Ghc-Options: -finline-if-enough-args
+  
+-- It's probably a good idea to compile the library with -O2 as well. However, it's probably
+-- not as essential as you think because most of the optimisation occurs when the library
+-- functions from here are inlined into the user programs (which SHOULD be compiled with -O2!).
+--
+-- We have to fiddle with the assertion stuff at this point too because -O2 implies -fno-ignore-asserts,
+-- meaning that their relative ordering is CRUCIAL. Setting them together guarantees it.
+  if flag(enableassertions)
+    -- Asserts are ignored by default at -O1 or higher
+    Ghc-Options: -O2 -fno-ignore-asserts
+  else
+    Ghc-Options: -O2
+
+
+package-hashes:
+    MD5:a9f33a3440087873df57e54107a13830
+    SHA1:f4626f44a7f03d1a518dbf43d7dea1e6b8dd53c3
+    SHA256:3f7c1c66e4c696dd813851d202d306e998ed6c2f6abd73b4a64b0520479d4b9d
+    SHA512:8646844b149b84665de6ec280da7873ed2b9442d5519ffd28050b01ea2f861d2ce3cf6fbbb59f5fb56632d530e1a71f9925e83e366cc76476c97c730d56a2e4c
+    Skein512_512:6b7a43d9ec5bd24134d0eb159f9399e5806e8d2b7bf5f5164e5a30615323ca3f0f9b0df29e42b5fac6f7ad7f5eec065471428cfed931305b4c85c8ed73b5f61d
+
+package-locations:
+    https://hackage.haskell.org/package/vector-0.4.1/vector-0.4.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/vector-0.4.1.tar.gz
+

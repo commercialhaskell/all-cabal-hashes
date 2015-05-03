@@ -1,0 +1,82 @@
+name:           unix-compat
+version:        0.4.1.1
+synopsis:       Portable POSIX-compatibility layer.
+description:    This package provides portable implementations of parts
+                of the unix package. This package re-exports the unix
+                package when available. When it isn't available,
+                portable implementations are used.
+
+homepage:       http://github.com/jystic/unix-compat
+license:        BSD3
+license-file:   LICENSE
+author:         Björn Bringert, Duncan Coutts, Jacob Stanley, Bryan O'Sullivan
+maintainer:     Jacob Stanley <jacob@stanley.io>
+category:       System
+build-type:     Simple
+cabal-version:  >= 1.6
+
+source-repository head
+  type:     git
+  location: git://github.com/jystic/unix-compat.git
+
+flag old-time
+  description: build against old-time package
+  default: False
+
+Library
+  hs-source-dirs: src
+  ghc-options: -Wall
+  build-depends: base == 4.*
+
+  exposed-modules:
+    System.PosixCompat
+    System.PosixCompat.Extensions
+    System.PosixCompat.Files
+    System.PosixCompat.Temp
+    System.PosixCompat.Time
+    System.PosixCompat.Types
+    System.PosixCompat.Unistd
+    System.PosixCompat.User
+
+  if os(windows)
+    c-sources:
+      cbits/HsUname.c
+      cbits/mktemp.c
+
+    if flag(old-time)
+      build-depends: old-time >= 1.0.0.0 && < 1.2.0.0
+      cpp-options: -DOLD_TIME
+
+      if impl(ghc < 7)
+        build-depends: directory == 1.0.*
+        cpp-options: -DDIRECTORY_1_0
+      else
+        build-depends: directory == 1.1.*
+    else
+      build-depends: time >= 1.0 && < 1.5
+      build-depends: directory >= 1.2 && < 1.3
+
+    other-modules:
+      System.PosixCompat.Internal.Time
+
+  else
+    build-depends: unix >= 2.4 && < 2.8
+    include-dirs: include
+    includes: HsUnixCompat.h
+    install-includes: HsUnixCompat.h
+    c-sources: cbits/HsUnixCompat.c
+    if os(solaris)
+      cc-options: -DSOLARIS
+
+
+package-hashes:
+    MD5:41dae7a35895cc7a289d14d98287ce4a
+    SHA1:3d83c88534bc87ddaf137a6836545929f949d710
+    SHA256:ee45e5bf7e961b2f7fcc3ade90ac9db3a0a66857534e53da918d17c5bef156b2
+    SHA512:aa17c3b4c02f31da0fc9d2d1e5d32f16e20f83da7d7fa8bce0ac4f93c128c8681bb14d4034706ffb07962672863db10705b64e53c279ab32667bada8a50c945b
+    Skein512_512:d2dfcb23d80027be0f95f594be150ad6e846e13cf32e15c2e2b8d5c1a7c8c3f880245fe8bbd0b4315490ab611457f4c6f530a31fa3e897dff221f21c09f5cecf
+
+package-locations:
+    https://hackage.haskell.org/package/unix-compat-0.4.1.1/unix-compat-0.4.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/unix-compat-0.4.1.1.tar.gz
+

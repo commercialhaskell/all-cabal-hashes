@@ -1,0 +1,132 @@
+build-type:	Simple
+cabal-version:	>= 1.8
+
+name:		tighttp
+version:	0.0.0.2
+stability:	Experimental
+author:		Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+maintainer:	Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+homepage:	https://github.com/YoshikuniJujo/tighttp/wiki
+
+license:	BSD3
+license-file:	LICENSE
+
+category:	Network
+Synopsis:	Tiny and Incrementally-Growing HTTP library
+description:
+    Example programs
+    .
+    examples/get.hs
+    .
+    This is simple client.
+    This send GET request and show page source.
+    Run as following.
+    .
+    > runhaskell get.hs hackage.haskell.org /packages/
+    .
+    extensions
+    .
+    * PackageImports
+    .
+    > import "monads-tf" Control.Monad.Trans
+    > import Data.Pipe
+    > import System.Environment
+    > import Network
+    > import Network.TigHTTP.Client
+    > import Network.TigHTTP.Types
+    > 
+    > import qualified Data.ByteString as BS
+    >
+    > main :: IO ()
+    > main = do
+    > 	addr : pth : _ <- getArgs
+    > 	h <- connectTo addr $ PortNumber 80
+    > 	r <- request h $ get addr 80 pth
+    > 	_ <- runPipe $ responseBody r =$= finally printP (putStrLn "")
+    > 	return ()
+    >
+    > printP :: MonadIO m => Pipe BS.ByteString () m ()
+    > printP = await >>= maybe (return ()) (\s -> liftIO (BS.putStr s) >> printP)
+    .
+    examples/server.hs
+    .
+    This is simple server.
+    This recieve client's request.
+    And send command line arguments as response.
+    Run as following.
+    .
+    > runhaskell server.hs Hello World I Am TigHTTP
+    .
+    > import Control.Monad
+    > import Control.Concurrent
+    > import Data.Pipe
+    > import System.IO
+    > import System.Environment
+    > import Network
+    > import Network.TigHTTP.Server
+    > import Network.TigHTTP.Types
+    >
+    > import qualified Data.ByteString.Char8 as BSC
+    > import qualified Data.ByteString.Lazy as LBS
+    >
+    > main :: IO ()
+    > main = do
+    > 	as <- getArgs
+    > 	soc <- listenOn $ PortNumber 80
+    > 	forever $ do
+    > 		(h, _, _) <- accept soc
+    > 		void . forkIO $ do
+    > 			req <- getRequest h
+    > 			print $ requestPath req
+    > 			putResponse h
+    >				. (response :: LBS.ByteString -> Response Pipe Handle)
+    >				. LBS.fromChunks $ map BSC.pack as
+    .
+    If you want more examples. Please see examples directory.
+
+extra-source-files:
+    examples/get.hs
+    examples/server.hs
+    examples/post.hs
+    examples/serverp.hs
+    examples/gets.hs
+    examples/servers.hs
+    examples/posts.hs
+    examples/serverps.hs
+
+source-repository	head
+    type:	git
+    location:	git://github.com/YoshikuniJujo/tighttp.git
+
+source-repository	this
+    type:	git
+    location:	git://github.com/YoshikuniJujo/tighttp.git
+    tag:	tighttp-0.0.0.2
+
+library
+    hs-source-dirs:	src
+    exposed-modules:
+        Network.TigHTTP.Client, Network.TigHTTP.Server,
+        Network.TigHTTP.Types
+    other-modules:
+        Network.TigHTTP.HttpTypes, Network.TigHTTP.Papillon,
+        Network.TigHTTP.Token
+    build-depends:
+        base == 4.*, bytestring == 0.10.*, handle-like == 0.1.*,
+        old-locale == 1.0.*, time == 1.4.*, monads-tf == 0.1.*,
+        papillon == 0.1.*, simple-pipe == 0.0.0.*
+    ghc-options:	-Wall
+    extensions:		PatternGuards
+
+
+package-hashes:
+    MD5:6c2780be2118ff6f972c8ee6f73db551
+    SHA1:790c3c1cff7c6606aaf8253562401f4a621934c0
+    SHA256:93c42f13ea7aa5ac3bbf46b55a042f483c349cc1969ba33da538378c3bc6c75a
+    SHA512:8324bd4e0454bf2ad53a9bb1abd964b4d2d29e1051cc93fa9172851295cf62a6f59271cda9e7353a06bfa3dde0a65f84b1a0e67662f43b7bd69f952782862722
+    Skein512_512:2561734a69afa8ee3d823b40f2a9dfe2b13ec39c7df6e6071dfbdc054b30c201f31345de92efcfb3e80c7786002010eb72c7d0e21038b4ba9ed4b377c5377fbe
+
+package-locations:
+    https://hackage.haskell.org/package/tighttp-0.0.0.2/tighttp-0.0.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/tighttp-0.0.0.2.tar.gz
+

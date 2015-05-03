@@ -1,0 +1,166 @@
+Name:           synthesizer-llvm
+Version:        0.2.0.1
+License:        GPL
+License-File:   LICENSE
+Author:         Henning Thielemann <haskell@henning-thielemann.de>
+Maintainer:     Henning Thielemann <haskell@henning-thielemann.de>
+Homepage:       http://www.haskell.org/haskellwiki/Synthesizer
+Package-URL:    http://code.haskell.org/synthesizer/llvm/
+Category:       Sound, Music
+Synopsis:       Efficient signal processing using runtime compilation
+Description:
+  Efficient signal processing
+  using runtime compilation and vector instructions.
+  It uses LLVM library, thus it is not bound to a specific CPU.
+  If you compile with Cabal flag @buildExamples@
+  you get the executable @synthi-llvm-server@,
+  that is a realtime software synthesizer
+  that receives MIDI events via ALSA
+  and in response plays some tones via ALSA.
+Stability:      Experimental
+Tested-With:    GHC==6.10.4
+Cabal-Version:  >=1.2
+Build-Type:     Simple
+
+Flag buildExamples
+  description: Build example executables
+  default:     False
+
+Flag buildTests
+  description: Build test suite
+  default:     False
+
+Library
+  Build-Depends:
+    llvm-extra >= 0.1 && <0.2,
+    -- llvm must be imported with restrictive version bounds,
+    -- because we import implicitly and unqualified
+    llvm-ht >=0.7.0 && <0.7.1,
+    type-level >=0.2.3 && <0.3,
+    functional-arrow >=0.0 && <0.1,
+    HList >=0.2 && <0.3,
+    synthesizer-core >=0.4 && <0.5,
+    -- for ALSA.BendModulation
+    synthesizer-alsa >=0.3 && <0.4,
+    alsa-seq >=0.5 && <0.6,
+    alsa-pcm >=0.5 && <0.6,
+    midi >= 0.1.5 && <0.2,
+    storable-record >=0.0.2 && <0.1,
+    storable-tuple >=0.0.2 && <0.1,
+    sox >=0.2 && <0.3,
+    sample-frame-np >=0.0.1 && <0.1,
+    sample-frame >=0.0.1 && <0.1,
+    storablevector >=0.2.6 && <0.3,
+    numeric-prelude >=0.2 && <0.3,
+    non-negative >=0.1 && <0.2,
+    event-list >=0.1 && <0.2,
+    -- data-accessor >=0.1 && <0.2,
+    random >= 1.0 && < 1.1,
+    containers >=0.1 && <0.4,
+    transformers >=0.2 && <0.3,
+    utility-ht >=0.0.1 && <0.1
+
+  Build-Depends:
+    -- base-4 needed for Control.Category
+    base >= 4 && <5
+
+  GHC-Options:    -Wall
+  Hs-source-dirs: src
+  Exposed-Modules:
+    Synthesizer.LLVM.Simple.Signal
+    Synthesizer.LLVM.Simple.Value
+    Synthesizer.LLVM.Simple.Vanilla
+    Synthesizer.LLVM.Parameterized.Signal
+    Synthesizer.LLVM.Parameterized.SignalPacked
+    Synthesizer.LLVM.Parameterized.Value
+    Synthesizer.LLVM.Parameter
+    Synthesizer.LLVM.Storable.Signal
+    Synthesizer.LLVM.Causal.Process
+    Synthesizer.LLVM.CausalParameterized.Process
+    Synthesizer.LLVM.CausalParameterized.ProcessPacked
+    Synthesizer.LLVM.CausalParameterized.Controlled
+    Synthesizer.LLVM.CausalParameterized.ControlledPacked
+    Synthesizer.LLVM.Filter.Allpass
+    Synthesizer.LLVM.Filter.Butterworth
+    Synthesizer.LLVM.Filter.Chebyshev
+    Synthesizer.LLVM.Filter.ComplexFirstOrder
+    Synthesizer.LLVM.Filter.ComplexFirstOrderPacked
+    Synthesizer.LLVM.Filter.FirstOrder
+    Synthesizer.LLVM.Filter.SecondOrder
+    Synthesizer.LLVM.Filter.SecondOrderPacked
+    Synthesizer.LLVM.Filter.SecondOrderCascade
+    Synthesizer.LLVM.Filter.Moog
+    Synthesizer.LLVM.Filter.Universal
+    Synthesizer.LLVM.Generator.Exponential2
+    Synthesizer.LLVM.Sample
+    Synthesizer.LLVM.Frame.Stereo
+    Synthesizer.LLVM.Wave
+    Synthesizer.LLVM.Server.Common
+    Synthesizer.LLVM.Server.Packed.Test
+    Synthesizer.LLVM.Server.Packed.Run
+    Synthesizer.LLVM.Server.Packed.Instrument
+    Synthesizer.LLVM.Server.Scalar.Test
+    Synthesizer.LLVM.Server.Scalar.Run
+    Synthesizer.LLVM.Server.Scalar.Instrument
+    -- may be moved to a separate package
+    Synthesizer.LLVM.ALSA.MIDI
+
+  Other-Modules:
+    Synthesizer.LLVM.Random
+    Synthesizer.LLVM.EventIterator
+    Synthesizer.LLVM.Storable.ChunkIterator
+    Synthesizer.LLVM.Storable.LazySizeIterator
+    Synthesizer.LLVM.Parameterized.SignalPrivate
+    Synthesizer.LLVM.CausalParameterized.ProcessPrivate
+    -- belongs to Synthesizer.LLVM.ALSA.MIDI
+    Synthesizer.LLVM.ALSA.BendModulation
+    -- may be moved to llvm-extra
+    Synthesizer.LLVM.Execution
+
+Executable synthi-llvm-example
+  If !flag(buildExamples)
+    Buildable: False
+  GHC-Options:    -Wall
+  Hs-Source-Dirs: src
+  Main-Is:     Synthesizer/LLVM/Test.hs
+
+Executable synthi-llvm-server
+  If !flag(buildExamples)
+    Buildable: False
+  GHC-Options:    -Wall -threaded
+  Hs-Source-Dirs: src
+  Main-Is:     Synthesizer/LLVM/Server.hs
+  Other-Modules:
+    Synthesizer.LLVM.Server.Packed.Instrument
+    Synthesizer.LLVM.Server.Packed.Test
+    Synthesizer.LLVM.Server.Packed.Run
+    Synthesizer.LLVM.Server.Scalar.Instrument
+    Synthesizer.LLVM.Server.Scalar.Test
+    Synthesizer.LLVM.Server.Scalar.Run
+    Synthesizer.LLVM.Server.Common
+
+Executable synthi-llvm-test
+  If flag(buildTests)
+    Build-Depends: QuickCheck >= 1 && <3
+  Else
+    Buildable: False
+  GHC-Options:    -Wall
+  Hs-Source-Dirs: src
+  Main-Is:     Test/Main.hs
+  Other-Modules:
+    Test.Synthesizer.LLVM.Filter
+    Test.Synthesizer.LLVM.Packed
+    Test.Synthesizer.LLVM.Utility
+
+
+package-hashes:
+    MD5:a8ece05a3574dcd116c11f6e0cb5d0fe
+    SHA1:d26c039049bc1955781efd0a40e29f9279090a45
+    SHA256:1d04f585b697b83e09a1bbc6b1cee8d9fd1c6a77b5e23d348f90bc152d733bce
+    SHA512:5156438ab84400dd46230bdfe15b97d0b4ef565422e33cd0326d7bb81046b2a4d0c0e7d1c9f77fd520fb8c5b485d2419dd538fe517a03f21d3746fcdd22b5ac1
+    Skein512_512:0fc4b0b7291a01aa16cd7d441fd06061723683ef3f73b7797b68e0ad32ebb2efde9beb0646fc6038f515223f562758d27d4c839f0afc7a0592ab420cd940896c
+
+package-locations:
+    https://hackage.haskell.org/package/synthesizer-llvm-0.2.0.1/synthesizer-llvm-0.2.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/synthesizer-llvm-0.2.0.1.tar.gz
+

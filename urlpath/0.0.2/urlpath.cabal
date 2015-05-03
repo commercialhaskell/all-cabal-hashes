@@ -1,0 +1,87 @@
+Name:                   urlpath
+Version:                0.0.2
+Author:                 Athan Clark <athan.clark@gmail.com>
+Maintainer:             Athan Clark <athan.clark@gmail.com>
+License:                BSD3
+License-File:           LICENSE
+Category:               Web
+Synopsis:               Painfully simple URL writing combinators
+Description:
+  Simple URL DSL for Haskell.
+  .
+  Use raw combinators (kinda useless) ...
+  .
+  >  render $ "foo.php" <?> ("key1","bar") <&> ("key2","baz")
+  >
+  >  ↪ "foo.php?key1=bar&key2=baz"
+  .
+  ... or use the MonadReader instance for a configurable root ...
+  .
+  >  let url = runReader $ expandAbsolute $ "foo.php" <?> ("key1","bar") <&> ("key2","baz")
+  >  url "example.com"
+  >
+  >  ↪ "example.com/foo.php?key1=bar&key2=baz"
+  .
+  ... in Lucid ...
+  .
+  >  (runReader $ renderTextT $
+  >    (\a -> do
+  >      foo <- lift $ expandAbsolute a
+  >      script_ [src_ foo] "" )
+  >    ("foo" <?> ("bar","baz"))
+  >  ) "example.com"
+  >
+  >  ↪ "<script src=\"example.com/foo?bar=baz\"></script>"
+  .
+  ... and in Scotty ...
+  .
+  >  main :: IO ()
+  >  main = scottyT 3000
+  >      rootConf
+  >      rootConf
+  >      run
+  >  
+  >    where
+  >      rootConf = flip runReaderT "http://example.com"
+  >  
+  >      run :: ( MonadIO m
+  >             , MonadReader T.Text m ) =>
+  >             ScottyT LT.Text m ()
+  >      run = get "/" $ do
+  >        path <- lift $ expandAbsolute $ "foo" <?> ("bar","baz")
+  >        text $ LT.fromStrict path
+  >
+  >  λ> curl localhost:3000/
+  >  ↪ "http://example.com/foo?bar=baz"
+  
+
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall
+  Exposed-Modules:      UrlPath
+                        UrlPath.Types
+  Build-Depends:        base >= 4 && < 5
+                      , mtl
+                      , text
+                      , transformers
+
+Source-Repository head
+  Type:                 git
+  Location:             https://github.com/athanclark/urlpath.git
+
+
+package-hashes:
+    MD5:778eaaf03e17cf087a03cda70ca11f1a
+    SHA1:859c07c707ef50242ff504cde7bf8b562575d17b
+    SHA256:e999635de0c442cc2ab83d54a6b9f937e395c44d174c37b96d1439448238f887
+    SHA512:058003109abbe460b6aa7c9cf86140c52ebe2ca3d2bb3564bf6a7dfb6965baa2efec7843680a108777d9dff6f61cfe02ce7bdb23470f2ba0920c2abc87069415
+    Skein512_512:07c085aa44b583e44490b3f3e8714174b81832c8c1ecf894f9787a296e9a6e7054f8bc74368c5ddcb961727011c337028b7b659c6d65dd9e8cd8cd43f26db133
+
+package-locations:
+    https://hackage.haskell.org/package/urlpath-0.0.2/urlpath-0.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/urlpath-0.0.2.tar.gz
+

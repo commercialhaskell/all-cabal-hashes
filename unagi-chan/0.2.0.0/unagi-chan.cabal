@@ -1,0 +1,196 @@
+name:                unagi-chan
+version:             0.2.0.0
+
+synopsis:            Fast and scalable concurrent queues for x86, with a Chan-like API
+
+description:
+    This library provides implementations of concurrent FIFO queues (for both
+    general boxed and primitive unboxed values) that are fast, perform well
+    under contention, and offer a Chan-like interface. The library may be of
+    limited usefulness outside of x86 architectures where the fetch-and-add
+    instruction is not available.
+    .
+    Here is an example benchmark measuring the time taken to concurrently write
+    and read 100,000 messages, with work divided amongst increasing number of
+    readers and writers, comparing against the top-performing queues in the
+    standard libraries, with an inset graph showing a zoomed-in view on the
+    implementations here.
+    .
+    <<http://i.imgur.com/J5rLUFn.png>>
+    .
+    
+license:             BSD3
+license-file:        LICENSE
+author:              Brandon Simmons
+maintainer:          brandon.m.simmons@gmail.com
+category:            Concurrency
+build-type:          Simple
+cabal-version:       >=1.10
+-- currently uploaded to imgur; move to this eventually
+--extra-doc-files:     images/*.png
+--cabal-version:       >=1.18
+extra-source-files: CHANGELOG.markdown
+
+source-repository head   
+    type:     git
+    location: https://github.com/jberryman/unagi-chan.git
+    branch:   master
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Control.Concurrent.Chan.Unagi
+                     , Control.Concurrent.Chan.Unagi.Unboxed
+                     , Control.Concurrent.Chan.Unagi.Bounded
+
+  other-modules:       Control.Concurrent.Chan.Unagi.Internal
+                     , Control.Concurrent.Chan.Unagi.Unboxed.Internal
+                     , Control.Concurrent.Chan.Unagi.Bounded.Internal
+                     , Control.Concurrent.Chan.Unagi.Constants
+                     , Utilities
+                     , Data.Atomics.Counter.Fat
+
+  ghc-options:        -Wall -funbox-strict-fields
+  build-depends:       base < 5
+                     -- be conservative about atomic-primops, for now; really
+                     -- we're fine with any version that passes our tests:
+                     , atomic-primops >= 0.6.0.5 && <= 0.6.0.6
+                     , primitive>=0.5.3
+  default-language:    Haskell2010
+  
+  -- We'll need some additional barriers for correctness:
+  if !arch(i386) && !arch(x86_64)
+    cpp-options: -DNOT_x86
+
+  
+-- TODO
+--  - Do a benchmark of multiple queues running in parallel, to see if we are
+--     affected by global allocator issues with pinned memory:
+--     http://thread.gmane.org/gmane.comp.lang.haskell.parallel/218
+--
+-- Potential implementations roadmap (or we might just stick with this design
+-- for this package):
+--
+--   - fixed size MutableArray of purely-functional dequeues ("Tako") (fetch-and-add, then CAS)
+--       - variant replacing CAS with blocking turn-taking, also play with leap-frogging cache-lines
+--       - variant in STM (how to safely do the initial incrCounter at most once though?)
+--         would also let us separate read and write buckets.
+--   - bounded Tako variant
+--   - maybe implement "Fast Concurrent Queues for x86 Processors" by Morrison & Afek (non-blocking, probably more clever)
+--   - Also looks like a similar (but lockfree, as above) counter-based queue has been developed by FB:
+--       https://github.com/facebook/folly/blob/master/folly/MPMCQueue.h
+--   - boxed Unagi variant avoiding CAS with read simply spinning a few times and then calling yield, or something else
+
+
+-- Please just build tests and run:
+--     $ time ./dist/build/test/test
+-- Doing `cabal test` takes forever for some reason.
+test-suite test
+  type: exitcode-stdio-1.0
+  ghc-options: -Wall -funbox-strict-fields
+  ghc-options: -O2  -rtsopts  -threaded -with-rtsopts=-N
+  ghc-options: -fno-ignore-asserts
+  -- I guess we need to put 'src' here to get access to Internal modules
+  hs-source-dirs: tests, src
+  main-is: Main.hs
+  other-modules:
+      Atomics
+    , Deadlocks
+    , DupChan
+    , Implementations
+    , IndexedMVar
+    , Smoke
+    , Unagi
+    , UnagiUnboxed
+  build-depends:       base
+                     , primitive>=0.5.3
+                     , atomic-primops >= 0.6.0.5 && <= 0.6.0.6
+                     , containers
+  default-language:    Haskell2010
+
+-- compare benchmarks with Chan, TQueue, and (eventually) lockfree-queue?
+flag compare-benchmarks
+  default: False
+  manual:  True
+
+benchmark single
+  type:               exitcode-stdio-1.0
+  ghc-options:        -Wall -O2 -threaded -funbox-strict-fields -fforce-recomp -rtsopts
+  hs-source-dirs:     benchmarks
+  default-language:   Haskell2010
+  default-extensions: CPP
+  build-depends: base
+               , unagi-chan
+               , criterion
+  if flag(compare-benchmarks)
+      cpp-options: -DCOMPARE_BENCHMARKS
+      build-depends: stm
+                -- , lockfree-queue
+
+  main-is:        single.hs
+  ghc-options:    -with-rtsopts=-N1
+
+-- To run comparison benchmark used in graph above, run:
+--     $ cabal configure --enable-benchmarks -fcompare-benchmarks
+--     $ cabal bench multi --benchmark-option=-omulti3.html --benchmark-option='Demo'
+benchmark multi
+  type:               exitcode-stdio-1.0
+  ghc-options:        -Wall -O2 -threaded -funbox-strict-fields -fforce-recomp -rtsopts
+  hs-source-dirs:     benchmarks
+  default-language:   Haskell2010
+  default-extensions: CPP
+  build-depends: base
+               , unagi-chan
+               , criterion
+  if flag(compare-benchmarks)
+      cpp-options: -DCOMPARE_BENCHMARKS
+      build-depends: stm
+                -- , lockfree-queue
+
+  main-is:       multi.hs
+  ghc-options:   -with-rtsopts=-N
+  build-depends: async
+
+
+flag dev
+  default: False
+  manual: True
+
+-- for profiling, checking out core, etc
+executable dev-example
+  -- for n in `find dist/build/dev-example/dev-example-tmp -name '*dump-simpl'`; do cp $n "core-example/$(basename $n).$(git rev-parse --abbrev-ref HEAD)"; done
+  if !flag(dev)
+    buildable: False
+  else
+    build-depends:       
+        base
+      , stm
+      , unagi-chan
+
+  ghc-options: -ddump-to-file -ddump-simpl -dsuppress-module-prefixes -dsuppress-uniques -ddump-core-stats -ddump-inlinings
+  ghc-options: -O2  -rtsopts  
+  
+  -- Either do threaded for eventlogging and simple timing...
+  --ghc-options: -threaded -with-rtsopts=-N2
+  --ghc-options: -eventlog
+  -- ...or do non-threaded runtime
+  --ghc-prof-options: -fprof-auto
+  --Relevant profiling RTS settings:  -xt
+  -- TODO also check out +RTS -A10m, and look at output of -sstderr
+
+  hs-source-dirs: core-example
+  main-is: Main.hs
+  default-language:    Haskell2010
+
+
+
+package-hashes:
+    MD5:7a9675e55ef9123dc7efd844b06dd951
+    SHA1:991bdb36870bababbd18f360973d52be4cfd93a3
+    SHA256:02678aa4ca128736c06659942b45a1889670e4953104c0ee2d89ec8a8a682571
+    SHA512:2719adc14160884fe486a33c4084c7948dac774ea26e746e66fe21fd37bb782e8ae23940a06812985eb6ad7906310a7a1e14d854fb166b76e5d0438c78859ad6
+    Skein512_512:b248066d3e3e05d3b1108e2c29798e52778e28c79da971131cbb4a6297a5b475fd76472975ca4b86c023e09a475907ba2d2d205672e2554e71e5584b5d79d597
+
+package-locations:
+    https://hackage.haskell.org/package/unagi-chan-0.2.0.0/unagi-chan-0.2.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/unagi-chan-0.2.0.0.tar.gz
+

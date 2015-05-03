@@ -1,0 +1,189 @@
+name:                text-show
+version:             0.4.1
+synopsis:            Efficient conversion of values into Text
+description:         @text-show@ offers a replacement for the @Show@ typeclass intended
+                     for use with @Text@ instead of @String@s. This package was created
+                     in the spirit of
+                     @<http://hackage.haskell.org/package/bytestring-show bytestring-show>@.
+                     .
+                     At the moment, @text-show@ provides @Show@ instances for most data
+                     types in the @<http://hackage.haskell.org/package/array array>@,
+                     @<http://hackage.haskell.org/package/base base>@,
+                     @<http://hackage.haskell.org/package/bytestring bytestring>@,
+                     @<http://hackage.haskell.org/package/containers containers>@,
+                     @<http://hackage.haskell.org/package/text text>@, and
+                     @<http://hackage.haskell.org/package/time time>@ packages.
+                     Therefore, much of the source code for @text-show@ consists of
+                     borrowed code from those packages in order to ensure that the
+                     behaviors of the two @Show@ typeclasses coincide.
+                     .
+                     For most uses, simply importing "Text.Show.Text"
+                     will suffice:
+                     .
+                     @
+                        &#123;-&#35; LANGUAGE NoImplicitPrelude &#35;-&#125;
+                        module Main where
+                        .
+                        import Data.Text (Text)
+                        import Prelude hiding (Show(..), print)
+                        import Text.Show.Text
+                        .
+                        number :: Text
+                        number = show (Just \"Hello, World!\")
+                        .
+                        main :: IO ()
+                        main = print number
+                     @
+                     .
+                     If you desire it, there are also monomorphic versions of the @showb@
+                     function available in the submodules of "Text.Show.Text". A naming
+                     convention is present in which functions that show different values
+                     depending on the precedence end with @Prec@ (e.g., @showbIntPrec@),
+                     whereas functions that show the same values regardless of
+                     precedence do not end with @Prec@ (e.g., @showbBool@).
+homepage:            https://github.com/RyanGlScott/text-show
+bug-reports:         https://github.com/RyanGlScott/text-show/issues
+license:             BSD3
+license-file:        LICENSE
+author:              Ryan Scott
+maintainer:          Ryan Scott <ryan.gl.scott@ku.edu>
+stability:           Experimental
+-- copyright:           
+category:            Text
+build-type:          Simple
+extra-source-files:  CHANGELOG.md, README.md
+cabal-version:       >=1.8
+
+source-repository head
+  type:                git
+  location:            git://github.com/RyanGlScott/text-show.git
+
+flag text-format
+  description:         Do not use text-format, since it may require double-conversion
+                       and thus linking of libstdc++, which may break compilation
+                       due to GHC bug #5289:
+                       .
+                       http://ghc.haskell.org/trac/ghc/ticket/5289
+  default:             False
+
+library
+  exposed-modules:     Text.Show.Text
+                       Text.Show.Text.TH
+                       
+                       Text.Show.Text.Control.Applicative
+                       Text.Show.Text.Control.Concurrent
+                       Text.Show.Text.Control.Exception
+                       Text.Show.Text.Control.Monad.ST
+                       Text.Show.Text.Data.Array
+                       Text.Show.Text.Data.Bool
+                       Text.Show.Text.Data.ByteString
+                       Text.Show.Text.Data.Char
+                       Text.Show.Text.Data.Containers
+                       Text.Show.Text.Data.Data
+                       Text.Show.Text.Data.Dynamic
+                       Text.Show.Text.Data.Either
+                       Text.Show.Text.Data.Fixed
+                       Text.Show.Text.Data.Floating
+                       Text.Show.Text.Data.Integral
+                       Text.Show.Text.Data.List
+                       Text.Show.Text.Data.Maybe
+                       Text.Show.Text.Data.Monoid
+                       Text.Show.Text.Data.Ord
+                       Text.Show.Text.Data.Text
+                       Text.Show.Text.Data.Time
+                       Text.Show.Text.Data.Tuple
+                       Text.Show.Text.Data.Typeable
+                       Text.Show.Text.Data.Version
+                       Text.Show.Text.Foreign.C.Types
+                       Text.Show.Text.Foreign.Ptr
+                       Text.Show.Text.Functions
+                       Text.Show.Text.System.Exit
+                       Text.Show.Text.System.IO
+                       Text.Show.Text.System.Posix.Types
+                       Text.Show.Text.Text.Read
+  other-modules:       Text.Show.Text.Class
+                       Text.Show.Text.Control
+                       Text.Show.Text.Data
+                       Text.Show.Text.Foreign
+                       Text.Show.Text.GHC
+                       Text.Show.Text.Instances
+                       Text.Show.Text.System
+                       Text.Show.Text.Text
+                       Text.Show.Text.TH.Internal
+                       Text.Show.Text.Utils
+  build-depends:       array            >= 0.3   && < 0.6
+                     , base             >= 4.2   && < 5
+                     , bytestring       >= 0.9   && < 0.11
+                     , containers       >= 0.1   && < 0.6
+                     , ghc-prim
+                     , template-haskell >= 2.4   && < 2.10
+                     , text             >= 0.2   && < 1.3
+                     , time             >= 0.1   && < 1.6
+  hs-source-dirs:      src
+  ghc-options:         -Wall
+  
+  if flag(text-format)
+    cpp-options:       -DTEXT_FORMAT
+    build-depends:     text-format      >= 0.2   && < 0.4
+  else  
+    build-depends: integer-gmp >= 0.2
+    ghc-options:   -fobject-code
+  
+  if impl(ghc >= 7.2)
+    exposed-modules:   Text.Show.Text.GHC.Event
+                       Text.Show.Text.GHC.Generics
+  
+  if impl(ghc >= 7.4)
+    exposed-modules:   Text.Show.Text.GHC.Stats
+  
+  -- Data.Proxy is a part of base as of GHC 7.7
+  if impl(ghc < 7.7)
+    build-depends:     tagged           >= 0.4.4 && < 1
+  
+  if impl(ghc >= 7.8)
+    exposed-modules:   Text.Show.Text.Data.Type.Coercion
+                       Text.Show.Text.Data.Type.Equality
+
+test-suite text-show-properties
+  type:                exitcode-stdio-1.0
+  main-is:             Properties.hs
+  other-modules:       Instances.BaseAndFriends
+                       Instances.Derived
+                       Properties.BaseAndFriends
+                       Properties.Builder
+                       Properties.Derived
+                       Properties.MkShow
+                       Properties.Utils
+  hs-source-dirs:      tests
+  build-depends:       array                      >= 0.3   && < 0.6
+                     , base                       >= 4.2   && < 5
+                     , bytestring                 >= 0.9   && < 0.11
+                     , containers                 >= 0.1   && < 0.6
+                     , QuickCheck                 >= 2.4   && < 2.8
+                     , quickcheck-instances       >= 0.1   && < 0.4
+                     , tasty                      >= 0.8   && < 0.11
+                     , tasty-quickcheck           >= 0.8   && < 0.9
+                     , text                       >= 0.2   && < 1.3
+                     , text-show                  >= 0.4   && < 0.5
+                     , time                       >= 0.1   && < 1.6
+  ghc-options:         -Wall
+  
+  -- Prior to GHC 7.6, GHC generics lived in ghc-prim
+  if impl(ghc >= 7.2) && impl(ghc < 7.6)
+    build-depends:     ghc-prim
+
+  -- Data.Proxy is a part of base as of GHC 7.7
+  if impl(ghc < 7.7)
+    build-depends:     tagged                     >= 0.4.4 && < 1
+
+package-hashes:
+    MD5:59e4fda9a5077f412f3fd9863cbd627f
+    SHA1:becf220b1107efc4f3f9527000a288f04d26f054
+    SHA256:e7961d456f303fe7e8189887dcf5e462ae3d2ee4748fc4bfdf18e7275a88ebda
+    SHA512:d0ed1d720a4a2d9401157dd07a09bb8b01ae07e5538a0f1c20925a3e2616f766b0e436d051e92c7a594b210d124e52596f03836be9886365fcac1effd3cc2b24
+    Skein512_512:07bfdb8801ad6ae7b3a7d0333879a9d6c037ea9f3f970a748470106583144a0d3fb24c2f11b29a923f0e314ccb09ae2a1cd813b1834419b561d20e54ee07460d
+
+package-locations:
+    https://hackage.haskell.org/package/text-show-0.4.1/text-show-0.4.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/text-show-0.4.1.tar.gz
+

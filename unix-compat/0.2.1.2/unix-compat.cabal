@@ -1,0 +1,74 @@
+name:           unix-compat
+version:        0.2.1.2
+synopsis:       Portable POSIX-compatibility layer.
+description:    This package provides portable implementations of parts
+                of the unix package. This package re-exports the unix
+                package when available. When it isn't available,
+                portable implementations are used.
+
+homepage:       http://github.com/jystic/unix-compat
+license:        BSD3
+license-file:   LICENSE
+author:         Björn Bringert, Duncan Coutts, Jacob Stanley
+maintainer:     Jacob Stanley <jacob@stanley.io>
+category:       System
+build-type:     Simple
+cabal-version:  >= 1.6
+
+source-repository head
+  type:     git
+  location: git://github.com/jystic/unix-compat.git
+
+Flag portable
+  default: False
+  description: Force compiling in portable mode, useful for testing.
+
+Library
+  hs-source-dirs: src
+
+  exposed-modules:
+    System.PosixCompat
+    System.PosixCompat.Extensions
+    System.PosixCompat.Files
+    System.PosixCompat.Time
+    System.PosixCompat.Types
+    System.PosixCompat.User
+  extensions: CPP
+  ghc-options: -Wall
+  build-depends: base == 4.*
+
+  if flag(portable) || os(windows)
+    build-depends: old-time == 1.0.*
+    extensions: GeneralizedNewtypeDeriving
+
+    if impl(ghc < 7)
+      build-depends: directory == 1.0.*
+      cpp-options: -DDIRECTORY_1_0
+    else
+      build-depends: directory == 1.1.*
+
+    if os(windows)
+      cpp-options: -DMISSING_POSIX_TYPES
+  else
+    build-depends: unix == 2.4.*
+    extensions: ForeignFunctionInterface
+    cpp-options: -DUNIX_IMPL
+    include-dirs: include
+    includes: HsUnixCompat.h
+    install-includes: HsUnixCompat.h
+    c-sources: cbits/HsUnixCompat.c
+    if os(solaris)
+      cc-options: -DSOLARIS
+
+
+package-hashes:
+    MD5:41b4b6ccb85aa7a84027c778c47ecdfc
+    SHA1:fe34f44cc0a32f982eba973f99d2170ea130dab8
+    SHA256:628167e377d518855b989259743e4a18e4cb52571040dbe17af92e4da212ac3a
+    SHA512:3ede71378cb30621a284518a72e2b19a3216cc7221e0482f968ec49dc054115b678875a2123f67e2743959694e547a43c23a4a92f074ea2f3f172b759da00391
+    Skein512_512:8c63231c9474d622b78c544534a70b4d5aa684c157363d3388d40c46d030e103b6d0ab4476dfb1280acdce9f65432660dc3affbe9f7dde3f6fcd3952563120cf
+
+package-locations:
+    https://hackage.haskell.org/package/unix-compat-0.2.1.2/unix-compat-0.2.1.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/unix-compat-0.2.1.2.tar.gz
+

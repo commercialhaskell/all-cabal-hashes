@@ -1,0 +1,117 @@
+Name:                   urlpath
+Version:                0.2
+Author:                 Athan Clark <athan.clark@gmail.com>
+Maintainer:             Athan Clark <athan.clark@gmail.com>
+License:                MIT
+License-File:           LICENSE
+Category:               Web
+Synopsis:               Painfully simple URL writing combinators
+Description:
+  Simple URL DSL for Haskell.
+  .
+  This library tries to make it easier for people to write Url strings, 
+  structurally. Packages like <https://hackage.haskell.org/package/yesod-routes Yesod Routes>
+  do a wonderful job at implementing string-free routing and 
+  references, but sometimes we have to compromise. This tries to make that 
+  compromise less painful.
+  .
+  Use bare combinators to render your strings (kinda useless):
+  .
+  >  expandRelative $ "foo.php" <?> ("key1","bar") <&> ("key2","baz")
+  >
+  >  ↪ "foo.php?key1=bar&key2=baz"
+  .
+  ... or use the MonadReader instance for a configurable host:
+  .
+  >  let path = runAbsoluteUrl $ url $ "foo.php" <?> ("key1","bar") <&> ("key2","baz")
+  >  path "example.com"
+  >
+  >  ↪ "example.com/foo.php?key1=bar&key2=baz"
+  .
+  @url@ puts the @UrlString@ in a MonadReader that we can use for applying our 
+  host. We use different monads for different deployment schemes (currently we 
+  have 3 - @RelativeUrl@, @GroundedUrl@, and @AbsoluteUrl@), which we can 
+  integrate in different libraries, like Lucid:
+  .
+  >  (runAbsoluteUrl $ renderTextT $ do
+  >      foo <- lift $ url $ "foo" <?> ("bar","baz")
+  >      script_ [src_ foo] "" )
+  >  ) "example.com"
+  >
+  >  ↪ "<script src=\"example.com/foo?bar=baz\"></script>"
+  .
+  ... and in Scotty ...
+  .
+  >  main :: IO ()
+  >  main = scottyT 3000
+  >      rootConf
+  >      rootConf
+  >      run
+  >  
+  >    where
+  >      rootConf = flip runAbsoluteT "http://example.com"
+  >  
+  >      run :: ( MonadIO m
+  >             , MonadReader T.Text m
+  >             , Url T.Text m ) =>
+  >             ScottyT LT.Text m ()
+  >      run = get "/" $ do
+  >        path <- lift $ url $ "foo" <?> ("bar","baz")
+  >        text $ LT.fromStrict path
+  >
+  >  λ> curl localhost:3000/
+  >  ↪ "http://example.com/foo?bar=baz"
+  .
+  Note that in the scotty example, we don't use one of our deployment schemes - 
+  this is because the @scottyT@ function expects it's underlying monad to be an 
+  instance of @MonadIO@, which we can only instantiate in our monad transformers.
+  .
+  Please take mind - the string type underlying the Url rendering is generalized 
+  to @Data.String.IsString@ for convenient use with @-XOverloadedStrings@. However, 
+  due to that generality, we need to specify the monomorphic type (like 
+  @Data.Text.Text@ above).
+
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall
+  Exposed-Modules:      UrlPath
+                        UrlPath.Types
+  Build-Depends:        base >= 4 && < 5
+                      , mtl
+                      , transformers
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       src
+                      , test
+  Ghc-Options:          -Wall
+  Main-Is:              Spec.hs
+  Build-Depends:        base
+                      , hspec
+                      , QuickCheck
+                      , quickcheck-instances
+                      , mtl
+                      , text
+                      , transformers
+
+Source-Repository head
+  Type:                 git
+  Location:             https://github.com/athanclark/urlpath.git
+
+
+package-hashes:
+    MD5:ed345579e9e4464ac63425c6dfa38c65
+    SHA1:d5932bf1f5318c9d5c2cd0bf4292cb04ba276fd5
+    SHA256:c1aa7c4799bccc0e0fa3a4ecf2c4cb8d5b5b9a6aff5e7ed807f98596aa397c65
+    SHA512:d4a6c24be6a396eebaff2f5a6554977953dd3aa91fad15c936a5b40267dbcfb546f6d49bf3e962818df88dc432e83a2dd2dfe4734b15f8504153a8d990cddefb
+    Skein512_512:98690ddc9bd047f6163255a5f5fdc093d0e69369f7183738312bfdd54ad11f672664383ec07a61511a2b9e0ed0cdbc50ef988556f3c52757b6eb0a3309fb6822
+
+package-locations:
+    https://hackage.haskell.org/package/urlpath-0.2/urlpath-0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/urlpath-0.2.tar.gz
+
