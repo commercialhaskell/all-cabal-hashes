@@ -1,7 +1,12 @@
-#!/bin/bash
+#!/usr/bin/exec bash
 
-set -x
-set -e
+set -xue
+
+wget https://s3.amazonaws.com/stackage-travis/all-cabal-hashes-tool/all-cabal-hashes-tool.bz2
+bunzip2 all-cabal-hashes-tool.bz2
+chmod +x all-cabal-hashes-tool
+mv all-cabal-hashes-tool /tmp
+/tmp/all-cabal-hashes-tool
 
 if [ -n "$(git status --porcelain)" ]
 then
