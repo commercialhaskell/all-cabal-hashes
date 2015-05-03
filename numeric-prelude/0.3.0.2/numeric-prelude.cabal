@@ -1,0 +1,361 @@
+Name:           numeric-prelude
+Version:        0.3.0.2
+License:        GPL
+License-File:   LICENSE
+Author:         Dylan Thurston <dpt@math.harvard.edu>, Henning Thielemann <numericprelude@henning-thielemann.de>, Mikael Johansson
+Maintainer:     Henning Thielemann <numericprelude@henning-thielemann.de>
+Homepage:       http://www.haskell.org/haskellwiki/Numeric_Prelude
+Category:       Math
+Stability:      Experimental
+Tested-With:    GHC==6.4.1, GHC==6.8.2, GHC==6.10.4, GHC==6.12.3
+Tested-With:    GHC==7.2.2, GHC==7.4.1
+Cabal-Version:  >=1.6
+Build-Type:     Simple
+Synopsis:       An experimental alternative hierarchy of numeric type classes
+Description:
+  Revisiting the Numeric Classes
+  .
+  The Prelude for Haskell 98 offers a well-considered set of numeric classes
+  which covers the standard numeric types
+  ('Integer', 'Int', 'Rational', 'Float', 'Double', 'Complex') quite well.
+  But they offer limited extensibility and have a few other flaws.
+  In this proposal we will revisit these classes, addressing the following concerns:
+  .
+  [1] The current Prelude defines no semantics for the fundamental operations.
+      For instance, presumably addition should be associative
+      (or come as close as feasible),
+      but this is not mentioned anywhere.
+  .
+  [2] There are some superfluous superclasses.
+      For instance, 'Eq' and 'Show' are superclasses of 'Num'.
+      Consider the data type
+      @   data IntegerFunction a = IF (a -> Integer) @
+      One can reasonably define all the methods of 'Algebra.Ring.C' for
+      @IntegerFunction a@ (satisfying good semantics),
+      but it is impossible to define non-bottom instances of 'Eq' and 'Show'.
+      In general, superclass relationship should indicate
+      some semantic connection between the two classes.
+  .
+  [3] In a few cases, there is a mix of semantic operations and
+      representation-specific operations.
+      'toInteger', 'toRational',
+      and the various operations in 'RealFloating' ('decodeFloat', ...)
+      are the main examples.
+  .
+  [4] In some cases, the hierarchy is not finely-grained enough:
+      Operations that are often defined independently are lumped together.
+      For instance, in a financial application one might want a type \"Dollar\",
+      or in a graphics application one might want a type \"Vector\".
+      It is reasonable to add two Vectors or Dollars,
+      but not, in general, reasonable to multiply them.
+      But the programmer is currently forced to define a method for '(*)'
+      when she defines a method for '(+)'.
+  .
+  In specifying the semantics of type classes,
+  I will state laws as follows:
+  .
+  >    (a + b) + c === a + (b + c)
+  .
+  The intended meaning is extensional equality:
+  The rest of the program should behave in the same way
+  if one side is replaced with the other.
+  Unfortunately, the laws are frequently violated by standard instances;
+  the law above, for instance, fails for 'Float':
+  .
+  >    (1e20 + (-1e20)) + 1.0  = 1.0
+  >     1e20 + ((-1e20) + 1.0) = 0.0
+  .
+  For inexact number types like floating point types,
+  thus these laws should be interpreted as guidelines rather than absolute rules.
+  In particular, the compiler is not allowed to use them for optimization.
+  Unless stated otherwise, default definitions should also be taken as laws.
+  .
+  Thanks to Brian Boutel, Joe English, William Lee Irwin II, Marcin
+  Kowalczyk, Ketil Malde, Tom Schrijvers, Ken Shan, and Henning
+  Thielemann for helpful comments.
+  .
+  .
+  Usage:
+  .
+  Write modules in the following style:
+  .
+  > [-# NoImplicitPrelude #-]
+  > module MyModule where
+  >
+  > ... various specific imports ...
+  >
+  > import NumericPrelude
+  .
+  Importing @NumericPrelude@ is almost the same as
+  .
+  > import NumericPrelude.Numeric
+  > import NumericPrelude.Base   .
+  .
+  Instead of the @NoImplicitPrelude@ pragma
+  you could also write @import Prelude ()@
+  but this will yield problems with numeric literals.
+  .
+  There are two wrapper types that allow types
+  to be used with both Haskell98 and NumericPrelude type classes
+  that are initially implemented for only one of them.
+  .
+  .
+  Scope & Limitations\/TODO:
+  .
+  * It might be desireable to split Ord up into Poset and Ord
+    (a total ordering).
+    This is not addressed here.
+  .
+  * In some cases, this hierarchy may not yet be fine-grained enough.
+    For instance, time spans (\"5 minutes\") can be added to times (\"12:34\"),
+    but two times are not addable. (\"12:34 + 8:23\")
+    As it stands,
+    users have to use a different operator for adding time spans to times
+    than for adding two time spans.
+    Similar issues arise for vector space et al.
+    This is a consciously-made tradeoff, but might be changed.
+    This becomes most serious when dealing with quantities with units
+    like @length\/distance^2@, for which @(*)@ as defined here is useless.
+    (One way to see the issue: should
+    @  f x y = iterate (x *) y  @
+    have principal type
+    @  (Ring.C a) => a -> a -> [a]  @
+    or something like
+    @  (Ring.C a, Module a b) => a -> b -> [b]  @
+    ?)
+  .
+  * I stuck with the Haskell 98 names.
+    In some cases I find them lacking.
+    Neglecting backwards compatibility, we have renamed classes as follows:
+      Num           --> Additive, Ring, Absolute
+      Integral      --> ToInteger, IntegralDomain, RealIntegral
+      Fractional    --> Field
+      Floating      --> Algebraic, Transcendental
+      Real          --> ToRational
+      RealFrac      --> RealRing, RealField
+      RealFloat     --> RealTranscendental
+  .
+  .
+  Additional standard libraries might include Enum, IEEEFloat (including
+  the bulk of the functions in Haskell 98's RealFloat class),
+  VectorSpace, Ratio, and Lattice.
+
+Extra-Source-Files:
+  Makefile
+  docs/NOTES
+  docs/README
+  src/Algebra/GenerateRules.hs
+
+Flag splitBase
+  description: Choose the new smaller, split-up base package.
+
+Flag buildTests
+  description: Build test executables
+  default:     False
+
+Source-Repository this
+  Tag:         0.3.0.2
+  Type:        darcs
+  Location:    http://code.haskell.org/numeric-prelude/
+
+Source-Repository head
+  Type:        darcs
+  Location:    http://code.haskell.org/numeric-prelude/
+
+Library
+  Build-Depends:
+    parsec >=1 && <4,
+    QuickCheck >=1 && <3,
+    storable-record >=0.0.1 && <0.1,
+    non-negative >=0.0.5 && <0.2,
+    utility-ht >=0.0.6 && <0.1,
+    deepseq >=1.1 && <1.4
+  If flag(splitBase)
+    Build-Depends:
+      base >= 2 && <5,
+      array >=0.1 && <0.5,
+      containers >=0.1 && <0.6,
+      random >=1.0 && <1.1
+  Else
+    Build-Depends: base >= 1.0 && < 2
+
+  If impl(ghc>=7.0)
+    CPP-Options: -DNoImplicitPrelude=RebindableSyntax
+    Extensions: CPP
+
+  GHC-Options:    -Wall
+  Hs-source-dirs: src
+  Exposed-modules:
+    Algebra.Absolute
+    Algebra.Additive
+    Algebra.Algebraic
+    Algebra.Differential
+    Algebra.DimensionTerm
+    Algebra.DivisibleSpace
+    Algebra.Field
+    Algebra.Indexable
+    Algebra.IntegralDomain
+    Algebra.NonNegative
+    Algebra.Lattice
+    Algebra.Laws
+    Algebra.Module
+    Algebra.ModuleBasis
+    Algebra.Monoid
+    Algebra.NormedSpace.Euclidean
+    Algebra.NormedSpace.Maximum
+    Algebra.NormedSpace.Sum
+    Algebra.OccasionallyScalar
+    Algebra.PrincipalIdealDomain
+    Algebra.RealField
+    Algebra.RealIntegral
+    Algebra.RealRing
+    Algebra.RealTranscendental
+    Algebra.RightModule
+    Algebra.Ring
+    Algebra.ToInteger
+    Algebra.ToRational
+    Algebra.Transcendental
+    Algebra.Units
+    Algebra.Vector
+    Algebra.VectorSpace
+    Algebra.ZeroTestable
+    MathObj.Algebra
+    MathObj.DiscreteMap
+    MathObj.LaurentPolynomial
+    MathObj.Matrix
+    MathObj.Monoid
+    MathObj.PartialFraction
+    MathObj.Permutation
+    MathObj.Permutation.CycleList
+    MathObj.Permutation.CycleList.Check
+    MathObj.Permutation.Table
+    MathObj.Polynomial
+    MathObj.Polynomial.Core
+    MathObj.PowerSeries
+    MathObj.PowerSeries.Core
+    MathObj.PowerSeries.DifferentialEquation
+    MathObj.PowerSeries.Example
+    MathObj.PowerSeries.Mean
+    MathObj.PowerSeries2
+    MathObj.PowerSeries2.Core
+    MathObj.PowerSum
+    MathObj.RefinementMask2
+    MathObj.RootSet
+    MathObj.Wrapper.Haskell98
+    MathObj.Wrapper.NumericPrelude
+    Number.Complex
+    Number.DimensionTerm
+    Number.DimensionTerm.SI
+    Number.FixedPoint
+    Number.FixedPoint.Check
+    Number.GaloisField2p32m5
+    Number.NonNegative
+    Number.NonNegativeChunky
+    Number.PartiallyTranscendental
+    Number.Peano
+    Number.Positional
+    Number.Positional.Check
+    Number.Quaternion
+    Number.Ratio
+    Number.ResidueClass
+    Number.ResidueClass.Check
+    Number.ResidueClass.Maybe
+    Number.ResidueClass.Func
+    Number.ResidueClass.Reader
+    Number.Root
+    Number.OccasionallyScalarExpression
+    Number.SI.Unit
+    Number.SI
+    Number.Physical.Unit
+    Number.Physical.UnitDatabase
+    Number.Physical
+    Number.Physical.Read
+    Number.Physical.Show
+    NumericPrelude.List.Checked
+    NumericPrelude.List.Generic
+    NumericPrelude.Elementwise
+    NumericPrelude.Numeric
+    NumericPrelude.Base
+    NumericPrelude
+  Other-modules:
+    NumericPrelude.List
+    Algebra.AffineSpace
+    Algebra.RealRing98
+    MathObj.Gaussian.Variance
+    MathObj.Gaussian.Bell
+    MathObj.Gaussian.Polynomial
+    Number.ComplexSquareRoot
+    -- I think I won't add them this way.
+    -- It is certainly better to split the class into comparison and selection.
+    Algebra.EqualityDecision
+    Algebra.OrderDecision
+
+Executable test
+  Hs-Source-Dirs: src, test
+  GHC-Options:    -Wall
+  Main-Is: Test.hs
+
+  If !flag(buildTests)
+    Buildable:         False
+
+  If impl(ghc>=7.0)
+    CPP-Options: -DNoImplicitPrelude=RebindableSyntax
+    Extensions: CPP
+
+Executable testsuite
+  Hs-Source-Dirs: src, test
+  GHC-Options:    -Wall
+  Other-modules:
+    Test.NumericPrelude.Utility
+    Test.Number.GaloisField2p32m5
+    Test.Number.ComplexSquareRoot
+    Test.Algebra.IntegralDomain
+    Test.Algebra.RealRing
+    Test.Algebra.Additive
+    Test.MathObj.RefinementMask2
+    Test.MathObj.PartialFraction
+    Test.MathObj.Matrix
+    Test.MathObj.Polynomial
+    Test.MathObj.PowerSeries
+    Test.MathObj.Gaussian.Variance
+    Test.MathObj.Gaussian.Bell
+    Test.MathObj.Gaussian.Polynomial
+  Main-Is: Test/Run.hs
+
+  If flag(buildTests)
+    Build-Depends: HUnit >=1 && <2
+  Else
+    Buildable: False
+
+  If impl(ghc>=7.0)
+    CPP-Options: -DNoImplicitPrelude=RebindableSyntax
+    Extensions: CPP
+
+Executable test-gaussian
+  Hs-Source-Dirs: src, test
+  Main-Is: Gaussian.hs
+  Other-Modules:
+    MathObj.Gaussian.Example
+  If flag(buildTests)
+    Build-Depends:
+      gnuplot >=0.3 && <0.5,
+      HTam >=0.0.2 && <0.1
+  Else
+    Buildable: False
+
+  If impl(ghc>=7.0)
+    CPP-Options: -DNoImplicitPrelude=RebindableSyntax
+    Extensions: CPP
+
+
+package-hashes:
+    MD5:d3b3efe5dcf14f1325a2ad43d4e9727b
+    SHA1:c74623c8c0062ba9c822acde687bc9c1a65ce0e9
+    SHA256:999b35d0b4704992830cf373ed7b65c2d667acaea81f33c912470b6b40461346
+    SHA512:6fe02d662d44685340096fd42ca19231d363188f110643e07a607d739efe86cebb3059767c55d3a2ac2160419a8dbfeeca1ce04a801c1fd480df5a1ee5a0e831
+    Skein512_512:da749ad927f2c26dd130638ae322fe147597032955da482f08590312912e2a57689d84629ed2d7b06533cbcdb733d17bf2c000e2919c59fb54661697841ae45a
+
+package-locations:
+    https://hackage.haskell.org/package/numeric-prelude-0.3.0.2/numeric-prelude-0.3.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/numeric-prelude-0.3.0.2.tar.gz
+

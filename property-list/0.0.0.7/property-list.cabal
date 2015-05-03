@@ -1,0 +1,115 @@
+name:                   property-list
+version:                0.0.0.7
+stability:              experimental
+license:                PublicDomain
+
+cabal-version:          >= 1.2
+build-type:             Simple
+
+author:                 James Cook <james.cook@usma.edu>
+maintainer:             James Cook <james.cook@usma.edu>
+homepage:               http://code.haskell.org/~mokus/property-list
+
+category:               Data, Parsing, XML
+synopsis:               XML property list parser
+description:            Parser, data type and formatter for Apple's XML property list 1.0 format.
+                        
+                        The bytestring-0.9.1.5 update on hackage seems to have 
+                        cratered the build for many packages, including the last
+                        several versions of this one, so this version will
+                        probably not build properly on the hackage site. 
+                        As far as I know, though, that is the only reason
+                        it fails. This version includes a hack to try to make
+                        it build on the site, triggered by the HaXml_1_13 build flag.
+
+flag new-data-object
+  description:          Use the new version of the data-object package (>= 0.0.2)
+                        Which has a "generic object" type in place of the simpler
+                        Object type in previous versions.
+  default:              True
+
+flag new-template-haskell
+  description:          Template Haskell 2.4 seems to have made the
+                        generated @PropertyListItem OneOfN@ instances break.
+                        So, detect it and deal with it.
+
+flag HaXml_1_13
+  default:              False
+  description:          The Hackage website builder is currently very finicky
+                        and the bytestring-0.9.1.5 update has made me very
+                        frustrated, because the last several versions of this
+                        package have failed to build because of it.  
+                        The "preferred-versions" fallback fails too, because
+                        the additional HaXml constraint combined with the
+                        one here becomes unsatisfiable.  So, I'm gonna make
+                        this thing work with HaXml 1.13 now.  
+                        
+                        And, as an additional hack to make sure it works, 
+                        this flag will also trigger dependencies on specific 
+                        versions of packages known to have been built against 
+                        bytestring-0.9.1.4 on the hackage server.
+                        
+                        Once ghc-6.12 is released, this should no longer be
+                        a problem and I can clean up the mess I've made here.
+                        
+
+Library
+  hs-source-dirs:       src
+  exposed-modules:      Data.PropertyList
+  other-modules:        Data.PropertyList.Xml
+                        Data.PropertyList.Type
+                        Data.PropertyList.Parse
+                        Data.PropertyList.PropertyListItem
+                        Data.PropertyList.Object
+  build-depends:        base >= 3 && <5,
+                        bytestring,
+                        bytestring-class,
+                        containers, 
+                        dataenc,
+                        mtl,
+                        old-locale,
+                        pretty,
+                        time,
+                        th-fold
+
+  if flag(new-template-haskell)
+    -- wild guess - template-haskell seems to follow the "even-minors" convention,
+    -- so put 2.6 as upper version bound.
+    build-depends:      template-haskell >=2.4 && <2.6
+    cpp-options:        -DNEW_TEMPLATE_HASKELL
+  else
+    build-depends:      template-haskell <2.4
+
+  
+  if flag(new-data-object)
+    build-depends:      data-object >= 0.0.2
+    cpp-options:        -DNEW_DATA_OBJECT
+  else
+    build-depends:      data-object <  0.0.2
+
+  if flag(HaXml_1_13)
+    other-modules:      Data.PropertyList.Xml.Dtd_1_13
+    cpp-options:        -DHaXml_1_13
+    build-depends:      HaXml >= 1.13 && <1.14,
+                        bytestring == 0.9.1.4,
+                        bytestring-class == 0.0.0,
+                        data-object == 0.0.2,
+                        
+                        utf8-string == 0.3.5
+                        -- (transitive dependency brought in by bytestring-class)
+                        
+  else
+    other-modules:      Data.PropertyList.Xml.Dtd
+    build-depends:      HaXml >= 1.19
+
+package-hashes:
+    MD5:f7a94762d8754ad526bbfa131a61d792
+    SHA1:96e718c8676d156a12087118f0824bf8e99b6574
+    SHA256:d22fddfe7af0371f2692f540a52c2327eb0c2f674d450ac2789f2f7066168df5
+    SHA512:a186201acfb9442efb4c4eaca0ae6ea283e553ee82bcdd927bf71b498b550422a53124c445f7fe6a15e25312c2fb2ea1bfea6c132898cac086529fb85323bcf0
+    Skein512_512:3e81f049c28fcadf7e52440ba8c726eac65eeb5a0f18e563b95191bb05d3f16a9a06ce77aad52cf14c2484660c7b9e82a2e232321ef647d3cd392944bd591be6
+
+package-locations:
+    https://hackage.haskell.org/package/property-list-0.0.0.7/property-list-0.0.0.7.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/property-list-0.0.0.7.tar.gz
+

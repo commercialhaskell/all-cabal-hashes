@@ -1,0 +1,112 @@
+name:          playlists
+version:       0.1.0.0
+synopsis:      Library and executable for working with playlist files.
+homepage:      https://github.com/pjones/playlists
+license:       BSD3
+license-file:  LICENSE
+author:        Peter Jones <pjones@devalot.com>
+maintainer:    Peter Jones <pjones@devalot.com>
+copyright:     Copyright (c) 2013 Peter Jones <pjones@devalot.com>
+category:      Text
+build-type:    Simple
+cabal-version: >=1.8
+description: 
+  Playlists is a library for working with media playlist files.  The
+  original motivation for the library was extracting URLs for
+  streaming radio stations that use PLS and M3U playlist files.
+  .
+  The package also includes an executable that can dump the URLs from
+  a playlist file and convert between playlist file formats.
+  .
+  /Example:/
+  .
+  > import qualified Data.ByteString as BS
+  > import Text.Playlist
+  > 
+  > readPlaylist :: Format -> IO Playlist
+  > readPlaylist fmt = do
+  >   content <- BS.getContents
+  >   case parsePlaylist fmt content of
+  >     Left err -> fail $ "failed to parse playlist on stdin: " ++ err
+  >     Right x  -> return x
+  .
+  /Playlist Executable Examples:/
+  .
+  > $ playlist urls --format PLS < somefile.pls
+  >
+  > $ playlist convert --from PLS --to M3U < somefile.pls
+
+--------------------------------------------------------------------------------
+-- Work around a bug in Cabal < 1.16.0.3.
+flag profiling
+  description: Build with executable profiling enabled
+  default: False
+
+--------------------------------------------------------------------------------
+source-repository head
+  type:     git
+  location: https://github.com/pjones/playlists.git
+
+--------------------------------------------------------------------------------
+library
+  exposed-modules:
+    Text.Playlist
+  other-modules:
+    Text.Playlist.Types
+    Text.Playlist.M3U.Reader
+    Text.Playlist.M3U.Writer
+    Text.Playlist.PLS.Reader
+    Text.Playlist.PLS.Writer
+    Text.Playlist.Internal.Attoparsec
+
+  hs-source-dirs: src
+  ghc-options: -Wall
+  ghc-prof-options: -fprof-auto-top
+  extensions: OverloadedStrings
+  build-depends: base       >= 4.6   && < 5
+               , attoparsec >= 0.10  && < 0.11
+               , bytestring >= 0.10  && < 0.11
+               , text       >= 0.11  && < 0.12
+               , word8      >= 0.0   && < 0.1
+
+--------------------------------------------------------------------------------
+executable playlist
+  main-is: playlist.hs
+  ghc-options: -Wall -rtsopts 
+  ghc-prof-options: -fprof-auto-top -fprof-cafs
+  extensions: OverloadedStrings
+
+  -- Work around a bug in Cabal < 1.16.0.3
+  -- if flag(profiling)
+  --   ghc-options: -prof -fprof-auto-top -fprof-cafs
+
+  build-depends: base
+               , bytestring
+               , optparse-applicative >= 0.5 && < 0.6
+               , playlists
+               , text
+
+--------------------------------------------------------------------------------
+test-suite spec
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  ghc-options: -Wall
+  extensions: OverloadedStrings
+  main-is: Main.hs
+  build-depends: base
+               , bytestring
+               , hspec >= 1.4.0 && < 1.5
+               , playlists
+
+
+package-hashes:
+    MD5:926ac50d25a1e4e8e2e3807b833da47a
+    SHA1:edfcf22bf000e84a0cf3d471c9c91f40d133a58a
+    SHA256:47751cba2b87d403cc82a34f16bf86b36cce7faca7bd76b62e752712d54ca379
+    SHA512:cdf878ce9fa4e88194ba58cbe9cbd0d8a3a9a6cf5240593918a49672b0b5bd757976cc07ba5f22af1b3de5fdae5a94e648c8160d0fc14d79af830f957aa5c41c
+    Skein512_512:dbe7cf05d03870db6dbe075aae4a1056d1cc316f2e34e1feee5840ea94f7a3ef83580680322763c59f1620fef843423b18bc74d86e65e96867b1c8b670b28a2b
+
+package-locations:
+    https://hackage.haskell.org/package/playlists-0.1.0.0/playlists-0.1.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/playlists-0.1.0.0.tar.gz
+

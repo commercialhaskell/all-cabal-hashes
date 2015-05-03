@@ -1,0 +1,102 @@
+name:
+  partial-handler
+version:
+  0.1.0
+synopsis:
+  A composable exception handler
+description:
+  If you have ever had to compose an exception handler for exceptions of multiple types, 
+  you know how frustraiting it can get. 
+  This library approaches this issue by providing a composable exception handler type,
+  which has a Monoid instance.
+  .
+  Composability means that you can define custom partial handlers and 
+  reuse them by composing other handlers from them. 
+  .
+  Here is an example of a composable partial handler,
+  which only defines what to do in case of a ThreadKilled exception
+  (the code uses the LambdaCase extension):
+  .
+  >ignoreThreadKilled :: PartialHandler ()
+  >ignoreThreadKilled = 
+  >  typed $ \case 
+  >    ThreadKilled -> Just $ return ()
+  >    _ -> Nothing
+  .
+  Here's how you can construct a handler of type @SomeException -> IO a@
+  using this library:
+  .
+  >totalizeRethrowing $
+  >  ignoreThreadKilled <>
+  >  onAlreadyExists (putStrLn "Already exists")
+  .
+  and here is how you would do it traditionally (with the MultiWayIf extension):
+  .
+  >\e -> if 
+  >  | Just ThreadKilled <- fromException e -> 
+  >      return ()
+  >  | Just e' <- fromException e, isAlreadyExistsError e' ->
+  >      putStrLn "Already exists"
+  >  | otherwise -> 
+  >      throwIO e
+  .
+  Putting all the syntactic trickery to make it shorter aside, 
+  this handler is a monolith block of code. 
+  Unlike with PartialHandler you can neither decompose it into simpler ones,
+  or compose it with other handlers to form a more complex one.
+category:
+  Exceptions, Error Handling
+homepage:
+  https://github.com/nikita-volkov/partial-handler 
+bug-reports:
+  https://github.com/nikita-volkov/partial-handler/issues 
+author:
+  Nikita Volkov <nikita.y.volkov@mail.ru>
+maintainer:
+  Nikita Volkov <nikita.y.volkov@mail.ru>
+copyright:
+  (c) 2014, Nikita Volkov
+license:
+  MIT
+license-file:
+  LICENSE
+build-type:
+  Simple
+cabal-version:
+  >=1.10
+
+
+source-repository head
+  type:
+    git
+  location:
+    git://github.com/nikita-volkov/partial-handler.git
+
+
+library
+  hs-source-dirs:
+    library
+  other-modules:
+  exposed-modules:
+    PartialHandler
+  build-depends:
+    base >= 4.5 && < 4.8
+  ghc-options:
+    -funbox-strict-fields
+  default-extensions:
+    LambdaCase
+  default-language:
+    Haskell2010
+
+
+package-hashes:
+    MD5:b38f6ddd76f174a7188068d787cba938
+    SHA1:dd0502921711a5496642c36a4bbcd10ec1ec0b7f
+    SHA256:ba919e32b21d1d3fe934b102fedd6b8060a601ef3ce580c88f3b269445d5b01d
+    SHA512:c10a0e4a651e23335ad1657769e6eccf67809549137ebf95a1cebcb1f2af2ee70333f7e84cd54d8ec1595a3ffd53e299731509d574803acb5c1c2d8fc3517ce9
+    Skein512_512:fd3e038480fb765a9b433a7cec2f6334d101a032437ac6117e85d2f119000903ef3f9dc53fefe6a388c69d56aae1381876b6e6e0794e67846e682f0ef4f39787
+
+package-locations:
+    https://hackage.haskell.org/package/partial-handler-0.1.0/partial-handler-0.1.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/partial-handler-0.1.0.tar.gz
+

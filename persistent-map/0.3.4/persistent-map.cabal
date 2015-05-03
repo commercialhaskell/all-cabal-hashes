@@ -1,0 +1,134 @@
+Name:           persistent-map
+Synopsis:       A thread-safe (STM) interface for finite map types with persistency support.
+Description:
+    /Changes in 0.3.*:/
+    .
+    * Added the 'TFiniteMap' type to make type construction more convenient.
+    .
+    * Added 'markAsDirty'. 
+    .
+    * Fixed data corruption issues with 'Backend.Binary'.
+    .
+    /Changes in 0.2.*:/
+    .
+    * Improved error handling. Backend lookup-exceptions are now rethrown in the
+      AdvSTM monad.
+    .
+    /Changes in 0.1.*:/
+    .
+    * Added the binary serialization backend.
+    .
+    This library provides a thread-safe (STM) frontend for finite map types together with a
+    backend interface for persistent storage. The /TMap/ data type
+    is thread-safe, since all access functions run inside an STM monad . Any type 
+    instantiating 'Data.Edison.Assoc.FiniteMapX' 
+    (see EdisonAPI) can be used as a map type. 
+    .
+    When a TMap is modified within an STM transaction, a corresponding
+    backend IO-request is added using the onCommit hook (cf. stm-io-hooks
+    package). To ensure consistency,
+    the (Adv)STM monad runs these requests iff the transaction commits.  
+    Additional backends (e.g. HDBC) can be added by instantiating the class 
+    'Backend'.
+    .
+    /Example:/
+    .
+    Thread 1:
+    .
+    > atomically $ do
+    >   isMemb <- member 1 tmap
+    >   when (not isMemb) $ 
+    >     insert 1 "john doe" tmap
+    .
+    Thread 2:
+    .
+    > atomically $ do
+    >   v <- lookup 1 tmap
+    >   -- ... do something with 'v'
+    >   adjust (\_ -> "jd") 1 tmap
+    .
+    The function 'member' will first check whether the key value '1' is in the map;
+    if not, it sends a lookup-request to the persistent backend 
+    and then retries the transaction. Note that \"sending a lookup-request\"
+    essentially means adding a call to the corresponding IO-function of the backend 
+    to the list of retry-IO actions. (This is done using the 'retryWith' 
+    IO hook of the stm-io-package.)
+    .
+    If the value does not yet exist, function 'insert' adds the key-value mapping to the
+    TMap and sends an insert-request to the backend using the
+    'onCommit' hook of the stm-io-package. Note that 'onCommit' guarantees that
+    the backend IO action is only executed iff the transaction commits. Any 
+    changes that were made to the TMap are invisible to other threads until 
+    the onCommit actions are run.  Therefore, the threads will always observe a
+    consistent state.
+    .
+    The module 'Data.TStorage' provides a high level interface to TMap inspired
+    by the TCache package ((C) Alberto Gomez Corona). It
+    can store any type that has a key (i.e. is an instance of type class 'HasKey').
+    See file Sample.hs for an example on how to use it.
+    .
+    /Warning:/ This package is very experimental and the interface will
+    probably change.
+
+Author:         Peter Robinson 2009
+Maintainer:     Peter Robinson <thaldyron@gmail.com>
+License:        LGPL
+License-file:   LICENSE
+Version:        0.3.4
+Category:       Middleware, Concurrency
+Stability:      experimental
+Homepage:       http://darcs.monoid.at/persistent-map
+
+build-type:     Simple                        
+cabal-version: >= 1.2.3
+library
+    ghc-options:        -Wall -fno-ignore-asserts -fno-warn-missing-fields -fwarn-incomplete-patterns
+
+    exposed-modules:    Data.TMap
+                        Data.TStorage
+                        Data.TMap.Backend
+                        Data.TMap.Backend.Binary
+                        Data.TMap.Backend.NoBackend
+                        Data.TMap.Backend.StdoutBackend
+                        Data.CacheStructure
+                        Data.CacheStructure.LRU
+                        Data.HasKey
+
+    other-modules:      Sample
+                        Data.TMap.Exception
+
+    build-depends:      base >= 4 && < 5, 
+                        EdisonAPI  >= 1.2.1 && < 1.3,
+                        LRU >= 0.1.1 && < 0.2,
+                        EdisonCore >= 1.2.1.3 && < 1.3,
+                        stm-io-hooks >= 0.4.0 && < 0.5, 
+--                        HDBC >= 2.0 && < 2.1, 
+                        mtl >= 1.1.0.2 && < 1.2,
+                        binary >= 0.5 && < 0.6,
+                        filepath >= 1.1 && < 1.2,
+                        directory >= 1.0.0.3 && < 1.1,
+                        containers >= 0.2.0.1 && < 0.3
+
+    extensions:         MultiParamTypeClasses,
+                        RankNTypes, 
+                        FunctionalDependencies, 
+                        FlexibleContexts,
+                        FlexibleInstances,
+                        UndecidableInstances,
+                        DeriveDataTypeable,
+                        ScopedTypeVariables,
+                        TypeSynonymInstances
+
+
+
+package-hashes:
+    MD5:cff03d438915659f35e17409caadacd4
+    SHA1:3af3e4be5f26c07b9c848e3aabdf161a298d2880
+    SHA256:7c016242d3d1da71b0c2f1e588bc8b8802346d8d3f21cab079ed4fda31ad8713
+    SHA512:e5a24ff7d49a70d1526fe9cc4d106d0349827c4acd18fee5c9cbc3be36b1dad660b9eb1f63efb135bd18f1b657b29938efed50adcbedfcf1fe32ae3928618bf2
+    Skein512_512:1182be79efc25d3e4b30ebd93acbf15eed9262515cbb761153697441e28280009ae726e0fd8ac40c1b350c1be1702c5b0eeeda1f772efeae1d44da159de1511d
+
+package-locations:
+    https://hackage.haskell.org/package/persistent-map-0.3.4/persistent-map-0.3.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/persistent-map-0.3.4.tar.gz
+

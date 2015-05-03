@@ -1,0 +1,261 @@
+name:                network-transport-zeromq
+version:             0.2
+synopsis:            ZeroMQ backend for network-transport
+description:
+  Implementation of the
+  <http://hackage.haskell.org/package/network-transport network-transport>
+  API over ZeroMQ. This provides access to the wealth of transports implemented in ZeroMQ, such as in-process, inter-process, TCP, TPIC and multicast. Furthermore, this makes it possible to encrypt and authenticate clients using ZeroMQ's security mechanisms, and increase throughput using ZeroMQ's intelligent message batching.
+  .
+license:             BSD3
+license-file:        LICENSE
+copyright:           (c) 2014, EURL Tweag
+author:              Tweag I/O
+maintainer:          Alexander Vershilov <alexander.vershilov@tweag.io>
+category:            Network
+build-type:          Simple
+cabal-version:       >=1.10
+
+Source-repository head
+  Type: git
+  Location: https://github.com/tweag/network-transport-zeromq
+
+flag install-benchmarks
+  description: Install benchmarks executables (default benchmarks can be triggered during build using \-\-enable-benchmarks option).
+  default:     False
+
+flag distributed-process-tests
+  description: build test suites that require distributed-process to be installed
+  default:     False
+
+flag unsafe
+  description: Use faster but unsafe primitives.
+  default:     False
+
+library
+  build-depends:      base >=4.6 && < 4.8,
+                      binary >= 0.6,
+                      network-transport >= 0.3,
+                      zeromq4-haskell >= 0.2,
+                      async >= 2.0,
+                      stm >= 2.4,
+                      stm-chans >= 0.3,
+                      containers >= 0.5,
+                      bytestring >= 0.10,
+                      transformers >= 0.3,
+                      semigroups >= 0.12,
+                      exceptions >= 0.3,
+                      void >= 0.6,
+                      random >= 1.0
+  exposed-modules:    Network.Transport.ZMQ
+                      Network.Transport.ZMQ.Internal
+                      Network.Transport.ZMQ.Internal.Types
+  hs-source-dirs:     src
+  ghc-options:        -Wall
+  if flag(unsafe)
+    cpp-options:      -DUNSAFE_SEND
+  default-extensions: DeriveGeneric
+                      DeriveDataTypeable
+                      OverloadedStrings
+                      LambdaCase
+                      ScopedTypeVariables
+                      StandaloneDeriving
+  other-extensions:   CPP
+  default-language:   Haskell2010
+
+Test-Suite test-zeromq
+  type:               exitcode-stdio-1.0
+  main-is:            TestZMQ.hs
+  build-depends:      base >= 4.4 && < 5,
+                      network-transport >= 0.2 && < 0.4,
+                      network-transport-zeromq,
+                      zeromq4-haskell >= 0.2,
+                      network-transport-tests >= 0.1.0.1 && < 0.2
+  ghc-options:        -Wall -threaded -rtsopts -with-rtsopts=-N -fno-warn-unused-do-bind
+  hs-source-dirs:     tests
+  default-language:   Haskell2010
+
+Test-Suite test-api
+  type:               exitcode-stdio-1.0
+  main-is:            TestAPI.hs
+  build-depends:      base >= 4.4 && < 5,
+                      network-transport >= 0.2 && < 0.4,
+                      network-transport-zeromq,
+                      zeromq4-haskell >= 0.2,
+                      tasty >= 0.7,
+                      tasty-hunit >= 0.7
+  ghc-options:        -Wall -threaded -rtsopts -with-rtsopts=-N -fno-warn-unused-do-bind
+  hs-source-dirs:     tests
+  default-language:   Haskell2010
+
+Test-Suite test-ch-core
+  Type:              exitcode-stdio-1.0
+  Main-Is:           test-ch.hs
+  CPP-Options:       -DTEST_SUITE_MODULE=Control.Distributed.Process.Tests.CH
+  default-extensions:        CPP
+  ghc-options:       -Wall -threaded -rtsopts -with-rtsopts=-N -fno-warn-unused-do-bind
+  HS-Source-Dirs:    tests
+  default-language:  Haskell2010
+  if flag(distributed-process-tests)
+    Build-Depends:   base >= 4.4 && < 5,
+                     network-transport-zeromq,
+                     distributed-process-tests >= 0.4,
+                     network >= 2.3 && < 2.5,
+                     network-transport >= 0.3 && < 0.4,
+                     test-framework >= 0.6 && < 0.9,
+                     containers,
+                     stm,
+                     stm-chans,
+                     bytestring
+    Buildable:       True
+  else
+    Buildable:       False
+
+Test-Suite test-ch-closure
+  Type:              exitcode-stdio-1.0
+  Main-Is:           test-ch.hs
+  CPP-Options:       -DTEST_SUITE_MODULE=Control.Distributed.Process.Tests.Closure
+  default-extensions:        CPP
+  ghc-options:       -Wall -threaded -rtsopts -with-rtsopts=-N -fno-warn-unused-do-bind -caf-all -auto-all
+  HS-Source-Dirs:    tests
+  default-language:  Haskell2010
+  if flag(distributed-process-tests)
+    Build-Depends:   base >= 4.4 && < 5,
+                     network-transport-zeromq,
+                     distributed-process-tests >= 0.4,
+                     network >= 2.3 && < 2.5,
+                     network-transport >= 0.3 && < 0.4,
+                     test-framework >= 0.6 && < 0.9,
+                     containers,
+                     stm,
+                     stm-chans,
+                     bytestring
+    Buildable:       True
+  else
+    Buildable:       False
+
+Test-Suite test-ch-stat
+  Type:              exitcode-stdio-1.0
+  Main-Is:           test-ch.hs
+  CPP-Options:       -DTEST_SUITE_MODULE=Control.Distributed.Process.Tests.Stats
+  default-extensions:        CPP
+  ghc-options:       -Wall -threaded -rtsopts -with-rtsopts=-N -fno-warn-unused-do-bind
+  HS-Source-Dirs:    tests
+  default-language:  Haskell2010
+  if flag(distributed-process-tests)
+    Build-Depends:   base >= 4.4 && < 5,
+                     network-transport-zeromq,
+                     distributed-process-tests >= 0.4,
+                     network >= 2.3 && < 2.5,
+                     network-transport >= 0.3 && < 0.4,
+                     test-framework >= 0.6 && < 0.9,
+                     containers,
+                     stm,
+                     stm-chans,
+                     bytestring
+    Buildable:       True
+  else
+    Buildable:       False
+
+benchmark bench-channels-local
+  type:              exitcode-stdio-1.0
+  main-is:           Channels.hs
+  build-depends:     base >= 4.4 && < 5,
+                     network-transport-zeromq,
+                     bytestring,
+                     binary,
+                     distributed-process,
+                     criterion
+  hs-source-dirs:    benchmarks
+  ghc-options:       -O2 -Wall -threaded
+  default-language:  Haskell2010
+
+benchmark bench-latency-local
+  type:              exitcode-stdio-1.0
+  main-is:           Latency.hs
+  build-depends:     base >= 4.4 && < 5,
+                     network-transport-zeromq,
+                     bytestring,
+                     binary,
+                     distributed-process,
+                     criterion
+  hs-source-dirs:    benchmarks
+  ghc-options:       -O2 -Wall -threaded
+  default-language:  Haskell2010
+
+benchmark bench-throughput-local
+  type:              exitcode-stdio-1.0
+  main-is:           Throughput.hs
+  build-depends:     base >= 4.4 && < 5,
+                     network-transport-zeromq,
+                     bytestring,
+                     binary,
+                     distributed-process,
+                     criterion
+  hs-source-dirs:    benchmarks
+  ghc-options:       -O2 -Wall -threaded
+  default-language:  Haskell2010
+  default-extensions: BangPatterns
+
+-- Installable benchmark executables, so as to allow passing arguments
+-- to the benchmarks on the command line and hence run more complex
+-- benchmarks over several hosts.
+
+executable bench-dp-latency
+  ghc-options:       -O2 -Wall
+  main-is: Latency.hs
+  hs-source-dirs:    benchmarks
+  if flag(install-benchmarks)
+    build-depends:   base >= 4.4 && < 5,
+                     network-transport-zeromq,
+                     bytestring,
+                     binary,
+                     distributed-process
+    buildable:       True
+  else
+    buildable:       False
+  default-language:  Haskell2010
+
+executable bench-dp-throughput
+  if flag(install-benchmarks)
+    Build-Depends:   base >= 4.4 && < 5,
+                     distributed-process,
+                     network-transport-zeromq,
+                     bytestring >= 0.9 && < 0.11,
+                     binary >= 0.5 && < 0.8
+    buildable:       True
+  else
+    buildable: False
+  main-is:           Throughput.hs
+  hs-source-dirs:    benchmarks
+  ghc-options:       -Wall
+  default-extensions:        BangPatterns
+  default-language:  Haskell2010
+
+executable bench-dp-channels
+    if flag(install-benchmarks)
+      Build-Depends:   base >= 4.4 && < 5,
+                       distributed-process,
+                       network-transport-zeromq,
+                       bytestring >= 0.9 && < 0.11,
+                       binary >= 0.5 && < 0.8
+      buildable:       True
+    else
+      buildable: False
+    main-is:           Channels.hs
+    hs-source-dirs:    benchmarks
+    ghc-options:       -Wall -O2 -Wall -threaded
+    default-extensions: BangPatterns
+    default-language:   Haskell2010
+
+
+package-hashes:
+    MD5:42720ed2126611b38ad66cdfc82c62eb
+    SHA1:8faadfce5d59e8eab2d907011bab2f2a9b8dca0e
+    SHA256:9887afb90196652639ad2991eabc9c70454f20708d0b252f7424ffe09359d687
+    SHA512:83d4bf390e717a3c488f2e47a3ab6664a38291c9e49f0bf9232e68d7789bba1bacb7b578c59cb273811ddd723ed7e37343afdf39c30ceb891ecc50f71b8e5d0c
+    Skein512_512:3ac0a73ec75a1f375a6a1e20f672e66b9f7a9bc18595810443843dac89972d812e88c0439f2b2c4c46ae06564ba0b490466d909f56963fa4f36216d2da88ff25
+
+package-locations:
+    https://hackage.haskell.org/package/network-transport-zeromq-0.2/network-transport-zeromq-0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/network-transport-zeromq-0.2.tar.gz
+

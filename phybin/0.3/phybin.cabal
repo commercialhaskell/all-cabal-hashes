@@ -1,0 +1,162 @@
+Name:           phybin
+Version:        0.3
+License: BSD3
+License-file:   LICENSE
+Stability: Beta
+Author:			Ryan Newton <rrnewton@gmail.com>
+Maintainer:		Ryan Newton <rrnewton@gmail.com>
+
+
+-- Version history:
+-- 0.1.2   -- first significant release
+-- 0.1.2.1 -- 
+-- 0.1.2.4 -- new release, several new features
+-- 0.1.2.5 -- bump for graphviz API changes
+-- 0.2 -- Add Robinson-Foulds distance, use Int labels.
+-- 0.2.2 -- misc changes and expose library
+-- 0.2.4 -- add consensus trees
+-- 0.2.6 -- colorization, hashrf, misc improvements
+-- 0.2.7 -- Add command line opt --showtrees
+-- 0.2.8 -- Add command line opt --highlight
+-- 0.2.9 -- Add command line opt --interior
+-- 0.2.10 -- Add command line opt --matching
+-- 0.2.11 -- Cleanup and windows compatibility.
+-- 0.3    -- significant improvements and new functionality.
+
+-- homepage: http://code.haskell.org/phybin
+-- homepage: http://people.csail.mit.edu/newton/phybin/
+homepage: http://www.cs.indiana.edu/~rrnewton/projects/phybin/
+
+Copyright: Copyright (c) 2010 Ryan Newton
+Synopsis: Utility for clustering phylogenetic trees in Newick format based on Robinson-Foulds distance.
+Description: 
+   This package provides a libary and executable for dealing with Newick tree files.
+   .
+   It can do simple binning of identical trees or more complex clustering based on 
+   an all-to-all Robinson-Foulds distance matrix.
+   .
+   phybin produces output files that characterize the size and contents of each bin or cluster (including
+   generating GraphViz-based visual representations of the tree topologies).
+
+Category: Bioinformatics
+Cabal-Version: >= 1.8
+
+Extra-source-files: README.md
+
+Build-type: Simple
+
+Source-repository head
+  type:     git
+  location: git://github.com/rrnewton/PhyBin.git
+
+Flag hashrf
+  description: Use the HashRF algorithm by default instead of the naive one.
+  default: True
+
+Flag bitvec
+  description: Use bitvectors rather than IntSets for bipartitions.
+  default: False
+
+Flag sequential
+  description: Don't use any parallelism at all.
+  default: False
+
+Library
+  Exposed-modules:   Bio.Phylogeny.PhyBin
+                     Bio.Phylogeny.PhyBin.Binning
+                     Bio.Phylogeny.PhyBin.CoreTypes                     
+                     Bio.Phylogeny.PhyBin.Parser
+                     Bio.Phylogeny.PhyBin.PreProcessor
+                     Bio.Phylogeny.PhyBin.RFDistance  
+                     Bio.Phylogeny.PhyBin.Util
+                     Bio.Phylogeny.PhyBin.Visualize
+  -- Data.BitList
+  Build-Depends:     base >= 3 && < 5, directory, process, containers, 
+                     async, time,
+                     filepath, 
+                     graphviz >= 2999.16, 
+                     text >= 0.11 && < 0.12,
+                     prettyclass, fgl,
+                     HUnit, bytestring, 
+                     -- For bytestring.lazy support:
+                     parsec >= 3.1.0, 
+                     vector >= 0.10,
+                     hierarchical-clustering >= 0.4, split >= 0.2
+--                     lattice-par, 
+  GHC-Options: -O2 -funbox-strict-fields -rtsopts
+
+  if flag(hashrf)
+     CPP-Options: -DUSE_HASHRF
+  if flag(bitvec)
+     CPP-Options: -DBITVEC_BIPS
+     Build-Depends:  bitvec >= 0.1
+  if flag(sequential)
+     CPP-Options: -DSEQUENTIALIZE
+
+Executable phybin
+  Main-is:           Main.hs
+  Build-Depends:     phybin
+  -- DUPLICATE:
+  Build-Depends:     base >= 3 && < 5, directory, process, containers, 
+                     async, time,
+                     filepath, 
+                     graphviz >= 2999.16, 
+                     text >= 0.11 && < 0.12,
+                     prettyclass, fgl,
+                     HUnit, bytestring, 
+                     -- For bytestring.lazy support:
+                     parsec >= 3.1.0, 
+                     vector >= 0.10,
+                     hierarchical-clustering >= 0.4, split >= 0.2
+--                     lattice-par, 
+  GHC-Options: -O2 -funbox-strict-fields -rtsopts -threaded
+
+  if flag(hashrf)
+     CPP-Options: -DUSE_HASHRF
+  if flag(bitvec)
+     CPP-Options: -DBITVEC_BIPS
+     Build-Depends:  bitvec >= 0.1
+  if flag(sequential)
+     CPP-Options: -DSEQUENTIALIZE
+
+
+-- DUPLICATED from executable:
+Test-Suite test-phybin
+  Main-is:           TestAll.hs
+  Type:              exitcode-stdio-1.0
+--  Build-Depends:     phybin
+  Build-Depends:     base >= 3 && < 5, directory, process, containers, 
+                     async, time,
+                     filepath, 
+                     graphviz >= 2999.16, 
+                     text >= 0.11 && < 0.12,
+                     prettyclass, fgl,
+                     HUnit, bytestring, 
+                     parsec >= 3.1.0, 
+                     vector >= 0.10,
+                     hierarchical-clustering >= 0.4, split >= 0.2
+  -- Additional depends for test:
+  Build-Depends:  HUnit, test-framework, test-framework-hunit, test-framework-th
+  GHC-Options: -O2 -funbox-strict-fields -rtsopts -threaded
+
+  if flag(hashrf)
+     CPP-Options: -DUSE_HASHRF
+  if flag(bitvec)
+     CPP-Options: -DBITVEC_BIPS
+     Build-Depends:  bitvec >= 0.1
+  if flag(sequential)
+     CPP-Options: -DSEQUENTIALIZE
+
+
+
+package-hashes:
+    MD5:f7c67cbecb46abdd85ae3669884e9661
+    SHA1:8f3f5be8d4694a495ea8301a61bc9f7a68ebe001
+    SHA256:e915cd0e344eeb344334a2533605e6448e854b70f444e76662fc4d2b9d67dfec
+    SHA512:84d4ff22ceb36fb25a3ea31a709189b29f059392cb55b14a3206ee1c17ff1d10b15ea8b2ef7b15909496091c7e7ef7c1229a6a9ae6d36faad4d36478df904517
+    Skein512_512:9591ad5dd044f7e5dfbdf0e4a141a0e949272ee50ffc6f0cbf8c35084af05e88e5f7e1504cd33d6e35ea44803f75741758491dd5161f806b7e6e49844cc8beec
+
+package-locations:
+    https://hackage.haskell.org/package/phybin-0.3/phybin-0.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/phybin-0.3.tar.gz
+

@@ -1,0 +1,100 @@
+name:                   random-source
+version:                0.3.0.2
+stability:              provisional
+
+cabal-version:          >= 1.6
+build-type:             Simple
+
+author:                 James Cook <james.cook@usma.edu>
+maintainer:             James Cook <james.cook@usma.edu>
+license:                PublicDomain
+homepage:               https://github.com/mokus0/random-fu
+
+category:               Math
+synopsis:               Generic basis for random number generators
+description:            Random number generation based on entropy sources
+                        able to produce a small but well-defined set of
+                        primitive variates.  Also includes facilities for
+                        \"completing\" partial implementations, making it
+                        easy to define new entropy sources in a way that
+                        is naturally forward-compatible.
+                        .
+                        Changes in 0.3.0.2: Fixes for GHC 7.2.*'s crazy
+                        Template Haskell changes.
+                        .
+                        Changes in 0.3.0.1: None except setting dependency
+                        on flexible-defaults >= 0.0.0.2.
+
+tested-with:            GHC == 6.8.3, GHC == 6.10.4, GHC == 6.12.3,
+                        GHC == 7.0.4, GHC == 7.2.1, GHC == 7.2.2
+
+source-repository head
+  type:                 git
+  location:             https://github.com/mokus0/random-fu.git
+  subdir:               random-source
+
+Flag base4
+    Description:        base-4 and above do not include syb
+
+Flag mtl2
+    Description:        mtl-2 has State, etc., as "type" rather than "newtype"
+
+Library
+  ghc-options:          -Wall
+  hs-source-dirs:       src
+  exposed-modules:      Data.Random.Source
+                        Data.Random.Source.IO
+                        Data.Random.Source.PureMT
+                        Data.Random.Source.Std
+                        Data.Random.Source.StdGen
+                        Data.Random.Internal.Words
+                        Data.Random.Internal.Source
+  other-modules:        Data.Random.Internal.Prim
+                        Data.Random.Internal.TH
+  
+  if impl(ghc >= 6.10)
+    -- mwc-random depends on vector, which doesn't build on GHC < 6.10.
+    -- I considered breaking this module out into another package, but I
+    -- think this is sufficient; anyone compiling something which wants
+    -- this module has pretty much no hope of working on earlier GHCs anyway,
+    -- because the mwc-random library won't have built successfully.
+    -- And if they want to get their hands dirty fixing that, altering
+    -- this cabal file is hardly any additional effort.
+    exposed-modules:    Data.Random.Source.MWC
+    build-depends:      mwc-random
+    
+  if flag(mtl2)
+    build-depends:      mtl == 2.*
+    cpp-options:        -DMTL2
+  else
+    build-depends:      mtl == 1.*
+  
+  if flag(base4)
+    build-depends:      base >= 4 && <5, syb
+  else
+    build-depends:      base >= 3 && <4
+  
+  build-depends:        flexible-defaults >= 0.0.0.2,
+                        mersenne-random-pure64,
+                        random,
+                        stateref >= 0.3 && < 0.4,
+                        template-haskell,
+                        th-extras
+
+  if os(Windows)
+    cpp-options:        -Dwindows
+  else
+    exposed-modules:    Data.Random.Source.DevRandom
+
+
+package-hashes:
+    MD5:fb273d0ea7e992839cc180f6fd7ac09b
+    SHA1:9e76004d916ec9d7703af38c3b19f58f0ab5dcde
+    SHA256:e2d2ec08b35f040f5929f710d6c91f829de3807c9f34c232e1e4e17ce44ae36a
+    SHA512:8ddd55f52034063745d40f0b57040edb1b78810b1196913fb47c98f575fb9a6365a8854a3cd5a1dffe884fc2026fdf6114ada3bf28655b4e8771f743b34d2b65
+    Skein512_512:77e1089c8b7c2159940241c9379a5551657173ec02ba27d0c2c397bf4957f6c359ac377506237d1cb8b537014bf48bdacd3862060465801a09a9df9328902c97
+
+package-locations:
+    https://hackage.haskell.org/package/random-source-0.3.0.2/random-source-0.3.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/random-source-0.3.0.2.tar.gz
+

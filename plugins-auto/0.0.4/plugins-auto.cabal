@@ -1,0 +1,92 @@
+Name:                plugins-auto
+Version:             0.0.4
+Synopsis:            Automatic recompilation and reloading of haskell modules.
+Description:         This library provides support for automatically recompiling and reloading
+                     modules into your programs when the source code is modified. 
+                     .
+                     Any program called ghc in your PATH will be used for recompiling.
+ .
+ > module Main where
+ > import System.IO           (hSetBuffering,stdout,BufferMode(..))
+ > import System.Plugins.Auto (withMonadIO,initPlugins) 
+ > import Answer
+ >
+ > main :: IO ()
+ > main = do ph<-initPlugins
+ >         hSetBuffering stdout NoBuffering
+ >         putStrLn "This program interacts with you in a loop."
+ >         putStrLn "Type something, and the program will respond when you hit the Enter Key."
+ >         putStrLn "Modify Answer.hs while interacting and you should see the answers"
+ >         putStrLn "change accordingly."
+ >         let interactiveLoop = prompt ph >> interactiveLoop
+ >         interactiveLoop
+ > where
+ >   prompt ph = do
+ >      putStr "> "
+ >      input <- getLine 
+ >      $(withMonadIO 'getAnswer) ph notLoaded$ \errs getAnswer ->
+ >          mapM_ putStrLn errs  >> getAnswer input
+ >       
+ >   notLoaded errs =
+ >      if null errs then putStrLn "Plugin not loaded yet."
+ >        else putStrLn "Errors found:" >> mapM_ (putStrLn . ("  "++)) errs 
+ >               >> putStrLn "Try fixing the errors and come back here."
+ .
+ > module Answer where
+ > 
+ > getAnswer :: String -> IO ()
+ > getAnswer input = putStrLn ("What you typed: "++input)
+
+
+License:             BSD3
+License-file:        COPYING
+Author:              Happstack team, HAppS LLC and MarketPsych Advisor LLC
+Maintainer:          Happstack team <happs@googlegroups.com>
+Category:            System
+Build-Type:          Simple
+Cabal-Version:       >= 1.8
+
+source-repository head
+    type:     darcs
+    location: http://patch-tag.com/r/facundo/plugins-auto
+
+source-repository this
+    type:     darcs
+    location: http://patch-tag.com/r/facundo/plugins-auto
+    tag:      0.0.4
+
+Library
+  exposed-modules:     System.Plugins.Auto
+  other-modules:     
+                       System.Plugins.Auto.Reloader
+                       System.Plugins.Auto.FileSystemWatcher
+                       System.Plugins.Auto.LiftName
+
+  build-depends:       base >= 3 && < 5,
+                       containers,
+                       filepath,
+                       hinotify >= 0.3.2,
+                       mtl,
+                       plugins >= 1.5.1.4,
+                       template-haskell
+                       
+  ghc-options:      -Wall
+
+Test-Suite test-plugins-auto
+  type:          exitcode-stdio-1.0
+  main-is:       Test/Test.hs
+  build-depends: base, directory, process
+
+
+
+package-hashes:
+    MD5:a2232137e000def1f45f22a00ddca6d3
+    SHA1:550fd62672920f82d005f5d98dffda707ddb1538
+    SHA256:c4435da42a036841b8b31b6408f881975033be9b309aca51312b9f56484b2abe
+    SHA512:8161ecc9a5eea30c03b0f5bc1f878041ca24f353952f6a4e88afba359519e2b986ca1292278afb37c703145eb95a75daf51fc9fd3fafb915afba800fd5e4241a
+    Skein512_512:ae641d29f081ab2ea1fccaa3b8481422052bad8884d296d7b9885951a4853923ae1bcecc0a132946e505c4b39995c5a4d5b75051128ac11919e1422bfbb50c7b
+
+package-locations:
+    https://hackage.haskell.org/package/plugins-auto-0.0.4/plugins-auto-0.0.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/plugins-auto-0.0.4.tar.gz
+

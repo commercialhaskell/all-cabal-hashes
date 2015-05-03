@@ -1,0 +1,106 @@
+Name:                pez
+Version:             0.0.1
+Synopsis:            A Potentially-Excellent Zipper library
+Homepage:            http://coder.bsimmons.name/blog/2011/04/pez-zipper-library-released/
+Description:
+ PEZ is a generic zipper library. It uses lenses from the 'fclabels' package to
+ reference a "location" to move to in the zipper. The zipper is restricted to
+ types in the Typeable class, allowing the user to "move up" through complex data
+ structures such as mutually-recursive types.
+ .
+ Both the Typeable class and fclabels lenses can be derived in GHC, making it
+ easy for the programmer to use a zipper with a minimum of boilerplate.
+ .
+ First import the library, which brings in the Typeable and fclabels modules.
+ You will also want to enable a few extensions:
+ .
+ > {-# LANGUAGE TemplateHaskell, DeriveDataTypeable, TypeOperators #-}
+ > module Main where
+ >
+ > import Data.Typeable.Zipper
+ .
+ Create a datatype, deriving an instance of the Typeable class, and generate a
+ lens using functions from fclabels:
+ .
+ > data Tree a = Node { _leftNode :: Tree a, 
+ >                      _val      :: a, 
+ >                      _rightNode :: Tree a }
+ >             | Nil  
+ >             deriving (Typeable,Show)
+ >
+ > $(mkLabelsNoTypes [''Tree])
+ .
+ Now we can go crazy using Tree in a Zipper:
+ .
+ > treeBCD = Node (Node Nil 'b' Nil) 'c' (Node Nil 'd' Nil)
+ > 
+ > descendLeft :: Zipper1 (Tree a) -> Zipper1 (Tree a)
+ > descendLeft z = case (viewf z) of
+ >                      Nil -> z
+ >                      _   -> descendLeft $ moveTo leftNode z
+ >
+ > insertLeftmost :: a -> Tree a -> Tree a
+ > insertLeftmost x = close . setL focus x . descendLeft . zipper
+ >
+ > treeABCD = insertLeftmost 'a' treeBCD
+ .
+ Because of the flexibility of fclabels, this zipper library can be used to
+ express moving about in reversible computations simply by defining such a lens,
+ for instance:
+ .
+ > stringRep :: (Show b, Read b) => b :-> String
+ > stringRep = lens show (const . read)
+ .
+ Please send any feature requests or bug reports along.
+
+License:             BSD3
+License-file:        LICENSE
+Author:              Brandon Simmons
+Maintainer:          brandon.m.simmons@gmail.com
+
+-- A copyright notice.
+Copyright:           Brandon Simmons, 2011
+
+-- Stability of the pakcage (experimental, provisional, stable...)
+Stability:           Experimental
+Category:            Data
+Build-type:          Simple
+
+-- Extra files to be distributed with the package, such as examples or
+-- a README.
+Extra-source-files:  EXAMPLES/Examples.hs, Tests.hs
+
+-- Constraint on the version of Cabal needed to build this package.
+Cabal-version:       >=1.2.3
+
+
+Library
+  -- Modules exported by the library.
+  Exposed-modules:     Data.Typeable.Zipper
+  
+  -- Packages needed in order to build this package.
+  Build-depends:       base >= 4 && < 5
+                     , fclabels >= 0.11.1.1 && < 0.12
+                     , thrist >= 0.2 && < 0.3
+
+  Extensions:        GeneralizedNewtypeDeriving
+                   , TypeOperators
+                   , TemplateHaskell
+                   , GADTs
+                   , DeriveDataTypeable
+  
+  -- Modules not exported by this package.
+  Other-modules:     Data.Record.Label.Prelude  
+
+
+package-hashes:
+    MD5:b0386ea2e656f68c83c5dcb92670230c
+    SHA1:7fec66c398ca49d1132cc821d704f2f9117c514a
+    SHA256:27951e873e2de7e1f840183d5e9b2fa96bfd30ad8a6ef3c46cb9dff134bed6a4
+    SHA512:0e00a9db0d509e50303b302f7643ac4d016b46023fb97454fa434f10c30867b802f0c88e104f96a59581377690950c508798d1263d66bab6016414e13cd812ee
+    Skein512_512:4c682f453163769b190158d031f6b755cb5d163d2d8311d2a47509768d06eceafbdddf8b954e01121ff7f4bac0283b666f4a7202406144bea878cef974eb9891
+
+package-locations:
+    https://hackage.haskell.org/package/pez-0.0.1/pez-0.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/pez-0.0.1.tar.gz
+

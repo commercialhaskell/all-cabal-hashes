@@ -1,0 +1,250 @@
+Name:           patch-image
+Version:        0.1
+License:        BSD3
+License-File:   LICENSE
+Author:         Henning Thielemann <haskell@henning-thielemann.de>
+Maintainer:     Henning Thielemann <haskell@henning-thielemann.de>
+Homepage:       http://code.haskell.org/~thielema/patch-image/
+Category:       Graphics
+Synopsis:       Compose a big image from overlapping parts
+Description:
+  Compose a collage from overlapping image parts.
+  In contrast to Hugin,
+  this is not intended for creating panoramas from multiple photographies,
+  but instead is specialised to creating highly accurate reconstructions
+  of flat but big image sources, like record covers, posters or newspapers.
+  It solves the problem that your scanner may be too small
+  to capture a certain image as a whole.
+  .
+  This is the workflow:
+  Scan parts of an image that considerably overlap.
+  They must all be approximately oriented correctly.
+  The program uses the overlapping areas for reconstruction
+  of the layout of the parts.
+  If all parts are in the directory @part@
+  then in the best case you can simply run:
+  .
+  > patch-image --output=collage.jpeg part/*.jpeg
+  .
+  If you get blurred areas,
+  you might enable an additional rotation correction:
+  .
+  > patch-image --finetune-rotate --output=collage.jpeg part/*.jpeg
+  .
+  It follows an overview of how the program works.
+  It implies some things you should care about when using the program.
+  .
+  The program runs three phases:
+  .
+  * Orientate each image part individually
+  .
+  * Find overlapping areas in the parts
+    and reconstruct the part positions within the big image
+  .
+  * Blend the parts in order to get the big image
+  .
+  The first phase orientates each part
+  such that horizontal structures become perfectly aligned.
+  Only the brightness channel of the image is analysed.
+  Horizontal structures can be text or the border of the image.
+  This also means that you should orientate the parts
+  horizontally, not vertically.
+  I also recommend not to mix horizontal and vertical scanned parts
+  since the horizontal and vertical resolution of your scanner
+  might differ slightly.
+  However, it should be fine to rotate the image source by 180°
+  and rotate it back digitally,
+  before feeding it to the patch-image program.
+  .
+  Options for the first phase:
+  .
+  * @--maximum-absolute-angle@:
+    Maximum angle to test for.
+  * @--number-angles@:
+    Number of angles minus one
+    to test between negative and positive maximum angle.
+  * @--hint-angle@:
+    If the search for horizontal structures
+    does not yield satisfying results for an image part,
+    you may prepend the @--hint-angle@ option with the wanted angle
+    to the image path.
+  .
+  In the second phase the program looks
+  for overlapping parts between all pairs of images.
+  For every pair it computes a convolution via a Fourier transform.
+  Only the brightness channel of the image is analysed.
+  .
+  * @--pad-size@:
+    Computing a convolution of two big images may exceed your graphics memory.
+    To this end, images are shrunk before convolution.
+    The pad size is the size in pixels after shrinking
+    that holds 2x2 shrunken image parts.
+    After determination of the distance between the shrunken parts
+    the matching is repeated on a non-reduced clip of the original image part,
+    in order to get precise coordinates.
+  .
+  * @--minimum-overlap@:
+    There must be a minimum of overlap
+    in order to accept that the images actually overlap.
+    The overlap is measured as a portion of the image part size.
+  .
+  * @--maximum-difference@:
+    The maximum allowed mean difference
+    within an overlapping area of two overlapping images.
+    If the difference is larger,
+    then the program assumes that the parts do not overlap.
+  .
+  * @--smooth@:
+    It is important to eliminate a brightness offset,
+    that is, big black and big white areas should be handled equally.
+    To this end the image is smoothed
+    and the smoothed image is subtracted from the original one.
+    This option allows to specify the degree (radius) of the smoothing.
+    I don't think you ever need to touch this parameter.
+  .
+  * @--output-overlap@:
+    Writes images for all pairs of image parts.
+    These images allow you to diagnose
+    where the matching algorithm failed.
+    It may help you to adjust the matching parameters.
+    In the future we might add an option to ignore problematic pairs.
+  .
+  Since in the first phase every image part is oriented individually
+  it may happen that the part orientations don't match.
+  This would result in blurred areas in the final collage.
+  In order to correct this,
+  you can run phase two in an extended mode,
+  that also re-evaluates the part orientations.
+  The orientation of the composed image is then determined
+  by the estimated orientation of the first image.
+  .
+  Options:
+  .
+  * @--finetune-rotate@:
+    Enables the extended overlapping mode.
+    The option @--output-overlap@ will then be ignored.
+  .
+  * @--number-stamps@:
+    The extended mode selects many small clips in the overlapping area
+    and tries to match them.
+    We call these clips /stamps/.
+    This option controls the number of stamps per overlapping area minus one.
+  .
+  * @--stamp-size@:
+    Size of a square stamp in pixels.
+  .
+  The third phase composes a big image from the parts.
+  The parts are weighted such that the part boundaries cannot be seen anymore
+  and differences in brightness are faded into another.
+  The downside is that the superposition may lead to blur.
+  .
+  Options:
+  .
+  * @--output@:
+    Path of the output JPEG image with the weighted collage.
+
+  * @--output-hard@:
+    Alternative output of a JPEG collage
+    where the image parts are simply averaged.
+    You will certainly see bumps in brightness
+    at the borders of the image parts.
+    This output may be mostly useful to promote the great weighting algorithm
+    employed by @--output@.
+  .
+  * @--output-distance-map@:
+    The weight for every pixel is chosen according to the distance
+    to an image part boundary that lies within other parts.
+    The rationale is that the weight shall become zero
+    when the pixel is close to a position
+    that will be affected by a disruption otherwise.
+    This option allows to emit the distance map for every image part.
+  .
+  * @--distance-gamma@:
+    If the distances are used for weighting as they are,
+    the program fades evenly between the overlapping image parts
+    over the entire overapping area.
+    This may mean that the overlapping area is blurred.
+    Raising the distance to a power greater than one reduces the area of blur.
+    The downside is that it also reduces the area for adaption
+    of differing brightness.
+  .
+  * @--quality@:
+    JPEG quality percentage for writing the images.
+  .
+  Restrictions:
+  .
+  * Only supports JPEG format.
+  .
+  * Images must be approximately correctly oriented.
+  .
+  * May have problems with unstructured areas in the image.
+Tested-With:    GHC==7.8.3
+Cabal-Version:  >=1.6
+Build-Type:     Simple
+
+Source-Repository this
+  Tag:         0.1
+  Type:        darcs
+  Location:    http://code.haskell.org/~thielema/patch-image/
+
+Source-Repository head
+  Type:        darcs
+  Location:    http://code.haskell.org/~thielema/patch-image/
+
+Flag buildDraft
+  description: Build draft program
+  default:     False
+
+Executable patch-image
+  Main-Is: Accelerate.hs
+  Other-Modules:
+    Option.Utility
+    Option
+  Hs-Source-Dirs: src
+
+  GHC-Options: -Wall -threaded -fwarn-tabs -fwarn-incomplete-record-updates
+  GHC-Prof-Options: -fprof-auto -rtsopts
+
+  Build-Depends:
+    accelerate-arithmetic >=0.0 && <0.1,
+    accelerate-utility >=0.0 && <0.1,
+    accelerate-cuda >=0.15 && <0.16,
+    accelerate-fft >=0.15 && <0.16,
+    accelerate-io >=0.15 && <0.16,
+    accelerate >=0.15 && <0.16,
+    JuicyPixels >=2.0 && <3.2,
+    hmatrix >=0.15 && <0.16,
+    gnuplot >=0.5 && <0.6,
+    vector >=0.10 && <0.11,
+    Cabal >=1.18 && <1.22,
+    filepath >=1.3 && <1.4,
+    utility-ht >=0.0.1 && <0.1,
+    base >=4 && <5
+
+Executable patch-image-draft
+  Main-Is: Draft.hs
+  Hs-Source-Dirs: src
+
+  GHC-Options: -Wall -fwarn-tabs -fwarn-incomplete-record-updates
+
+  If flag(buildDraft)
+    Build-Depends:
+      JuicyPixels >=2.0 && <3.2,
+      GeomAlgLib >=0.2 && <0.3,
+      utility-ht >=0.0.1 && <0.1,
+      base >=4 && <5
+  Else
+    Buildable: False
+
+
+package-hashes:
+    MD5:b294246d389de5945926f02ffea3207a
+    SHA1:a10c8e4586352b30b3a34235f4c3469ab307e01b
+    SHA256:5473de95192a84fb4a025bb99cb085024a0bc120b8a85e6776b80f47a0ca09f9
+    SHA512:aa2a5015f5af63c54ad5b60d34df69530ebcc9d06badc57a0cfa38cc523328897fd076c2948a9a8a78148bb5f24c62382c0c154015aaf19b1ae9a64cb7c3de37
+    Skein512_512:f0c7fe0a888cde7af29bea25be529a3721448a1abf45de3d7e3e1441923de331d7ba5b1b7ae66c659e2af3c72eef8506c9dcdb9b7f328304704a5265aa140305
+
+package-locations:
+    https://hackage.haskell.org/package/patch-image-0.1/patch-image-0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/patch-image-0.1.tar.gz
+

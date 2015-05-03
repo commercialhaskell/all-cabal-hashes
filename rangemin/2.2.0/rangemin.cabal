@@ -1,0 +1,85 @@
+name:                rangemin
+version:             2.2.0
+Cabal-Version:       >= 1.2
+synopsis:            Linear range-min algorithms.
+description:	     
+	Rapidly (in linear time) preprocesses a vector so that the minimum element of any given subrange can be looked up in constant time.
+	.
+	This implementation is based on an algorithm of Fischer and Heun, which can be found at <http://dx.doi.org/10.1007/11780441_5>.
+	Despite being written entirely in Haskell (and maintaining referential transparency internally), it is competitive against
+	the C++ implementation written by Fischer and Heun themselves (included in the tarball), especially when compiled with LLVM.
+	.
+	Depending on the target system, this library compiled with -fasm approximately ties with the original authors' 
+	C++ implementation compiled with -O3 -funroll-loops.  With -fllvm -optlc-O3, this library has been observed to beat 
+	the same C++ implementation by 20-30%.
+	.
+	Internally, this library rolls its own stream fusion system, avoiding the @vector@ package's issues with duplicated index
+	variables and providing a few other special features.  This package's API does, however, fuse (to the extent possible) with
+	input vectors using the @vector@ package fusion system.  In particular, it automagically recognizes input vectors whose 
+	element types have a natural order-preserving injection into @Int@, converts them, and uses the specialized range-min
+	implementation for @Int@ vectors.  See "Data.RangeMin" for more details.
+tested-with:	     GHC
+category:            Algorithms
+license:             BSD3
+license-file:	     LICENSE
+author:              Louis Wasserman
+maintainer:          wasserman.louis@gmail.com
+
+extra-source-files:
+  IntQC.hs
+  newRMQ.tgz
+  BasicBench.hs
+
+build-type:	     Simple
+
+Flag LLVM
+  Description:	Compiles with delicious, delicious LLVM goodness.
+  Default:	False
+Flag Wall
+  Description:	Enables warnings, with the exception of name shadowing.
+  Default:	True
+
+Library
+  build-Depends:       base >= 4 && < 5, vector >= 0.6, containers >= 0.3.0.0, primitive >= 0.3
+  
+  Exposed-modules:
+        Data.RangeMin
+        Data.RangeMin.LCA
+        Data.RangeMin.LCA.Binary
+        Data.RangeMin.Cartesian
+  Other-modules:
+        Data.RangeMin.Common
+        Data.RangeMin.Common.Math
+        Data.RangeMin.Common.Types
+        Data.RangeMin.Common.Combinators
+        Data.RangeMin.Common.Vector
+        Data.RangeMin.Fusion
+        Data.RangeMin.Fusion.Stream
+        Data.RangeMin.Fusion.Stream.Monadic
+        Data.RangeMin.Cartesian.Spec
+        Data.RangeMin.Int.Quadratic
+        Data.RangeMin.Int.Linearithmic
+        Data.RangeMin.Int.Linearithmic.Combinators
+        Data.RangeMin.Int.NearLinear
+        Data.RangeMin.Int.Catalan
+        Data.RangeMin.Int.Catalan.Combinators
+        Data.RangeMin.Int.Catalan.Table
+        Data.RangeMin.Int.Linear
+        Data.RangeMin.LCA.IndexM
+  if flag(llvm)
+    ghc-options:     -fllvm -optlc-O3
+  if flag(Wall)
+    ghc-options:     -Wall -fno-warn-name-shadowing
+  ghc-options:       -O2 -fspec-constr-count=10 -fno-ignore-asserts
+
+package-hashes:
+    MD5:3f25633b4768a8653ec10acbad660acb
+    SHA1:39df33137d0215806e8a48a3d1784cecc14d692f
+    SHA256:3fd21456ebb7a0743908c7fd9f390108e8625e28c6b9f4b9db04f53078b69a6a
+    SHA512:0eb106a8baa1acb9a7c0022b3b77b0e9d7c3ad53dd6dc9bc055ddcbddb818cc3e957d325207c7bc9f7dd92951d08ee08c219203beedc0bbf38990137d8ae7c38
+    Skein512_512:1b302d3ee0b3e46a1f24baa020b0745694c2dd6cd66c2c2053b5e2ea7f9a4dc590acdad1318ff828bc106a8f192bb5e15b6c3b34a6e01a0a3ff1e43f2ed25519
+
+package-locations:
+    https://hackage.haskell.org/package/rangemin-2.2.0/rangemin-2.2.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/rangemin-2.2.0.tar.gz
+

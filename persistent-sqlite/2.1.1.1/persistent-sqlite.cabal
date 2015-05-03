@@ -1,0 +1,87 @@
+name:            persistent-sqlite
+version:         2.1.1.1
+license:         MIT
+license-file:    LICENSE
+author:          Michael Snoyman <michael@snoyman.com>
+maintainer:      Michael Snoyman <michael@snoyman.com>
+synopsis:        Backend for the persistent library using sqlite3.
+description:     This package includes a thin sqlite3 wrapper based on the direct-sqlite package, as well as the entire C library, so there are no system dependencies.
+category:        Database, Yesod
+stability:       Stable
+cabal-version:   >= 1.8
+build-type:      Simple
+homepage:        http://www.yesodweb.com/book/persistent
+bug-reports:     https://github.com/yesodweb/persistent/issues
+extra-source-files: ChangeLog.md
+
+flag systemlib
+  description: Use the system-wide sqlite library
+  default: False
+flag build-sanity-exe
+  description: Build a sanity check test executable
+  default: False
+
+library
+    build-depends:   base                    >= 4         && < 5
+                   , bytestring              >= 0.9.1
+                   , transformers            >= 0.2.1
+                   , persistent              >= 2.1       && < 3
+                   , monad-control           >= 0.2
+                   , containers              >= 0.2
+                   , text                    >= 0.7
+                   , aeson                   >= 0.5
+                   , conduit                 >= 0.5.3
+                   , monad-logger            >= 0.2.4
+                   , resourcet               >= 1.1
+                   , time
+                   , old-locale
+    exposed-modules: Database.Sqlite
+                     Database.Persist.Sqlite
+    ghc-options:     -Wall
+    if flag(systemlib)
+        extra-libraries: sqlite3
+    else
+        c-sources:   cbits/sqlite3.c
+        cc-options:  -fPIC
+
+    if !os(windows)
+        extra-libraries: pthread
+
+source-repository head
+  type:     git
+  location: git://github.com/yesodweb/persistent.git
+
+
+test-suite test
+  type:           exitcode-stdio-1.0
+  main-is:        Spec.hs
+  hs-source-dirs: test
+  build-depends:  base
+                , hspec
+                , persistent
+                , persistent-sqlite
+                , persistent-template
+                , time
+                , transformers
+
+executable sanity
+    if flag(build-sanity-exe)
+        buildable: True
+    else
+        buildable: False
+    main-is: sanity.hs
+    hs-source-dirs: test
+    build-depends: base, persistent-sqlite
+
+
+package-hashes:
+    MD5:8a0fae3161de8c5d9326205b2a5bba5e
+    SHA1:2e99b1b522f7deb09d9aa779705db6a93a6ba48a
+    SHA256:2a95017f380490732773752b4e59c359373f4ee3422a202b4b2e623499daf40a
+    SHA512:bc894801446780864b1feec239fdeede567b9cf0b50f2289b6e12b9b3d5668bdc57f0a8f17ed180602a8dca9921af030320e23418ed9d0bf941e77e792c2f882
+    Skein512_512:bc2a6c1175628624c6a5a1a395526ba6e90ee10a6b84d045950f681fe2a3f886e645238c305b2dd702ee8b8323ee65b96db5a7b7e21526360916ea978923af33
+
+package-locations:
+    https://hackage.haskell.org/package/persistent-sqlite-2.1.1.1/persistent-sqlite-2.1.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/persistent-sqlite-2.1.1.1.tar.gz
+

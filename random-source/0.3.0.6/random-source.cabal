@@ -1,0 +1,106 @@
+name:                   random-source
+version:                0.3.0.6
+stability:              provisional
+
+cabal-version:          >= 1.6
+build-type:             Simple
+
+author:                 James Cook <mokus@deepbondi.net>
+maintainer:             James Cook <mokus@deepbondi.net>
+license:                PublicDomain
+homepage:               https://github.com/mokus0/random-fu
+
+category:               Math
+synopsis:               Generic basis for random number generators
+description:            Random number generation based on entropy sources
+                        able to produce a small but well-defined set of
+                        primitive variates.  Also includes facilities for
+                        \"completing\" partial implementations, making it
+                        easy to define new entropy sources in a way that
+                        is naturally forward-compatible.
+                        .
+                        Changes in 0.3.0.6: Fixed overzealous fix in 0.3.0.5.  The people responsible for sacking the people who have been sacked, etc., have been sacked.
+                        .
+                        Changes in 0.3.0.5: Renamed some internal modules and accidentally some external ones too.  Whoops.  Please don't use this version, it will only end in tears.
+                        .
+                        Changes in 0.3.0.4: Fixed a typo that broke building
+                        with MTL-1
+                        .
+                        Changes in 0.3.0.3: Fixes for GHC's deprecation
+                        of Foreign.unsafePerformIO
+                        .
+                        Changes in 0.3.0.2: Fixes for GHC 7.2.*'s crazy
+                        Template Haskell changes.
+
+tested-with:            GHC == 7.4.2, GHC == 7.6.1
+
+source-repository head
+  type:                 git
+  location:             https://github.com/mokus0/random-fu.git
+  subdir:               random-source
+
+Flag base4
+    Description:        base-4 and above do not include syb
+
+Flag mtl2
+    Description:        mtl-2 has State, etc., as "type" rather than "newtype"
+
+Library
+  ghc-options:          -Wall
+  hs-source-dirs:       src
+  exposed-modules:      Data.Random.Source
+                        Data.Random.Source.IO
+                        Data.Random.Source.PureMT
+                        Data.Random.Source.Std
+                        Data.Random.Source.StdGen
+                        Data.Random.Internal.Words
+                        Data.Random.Internal.Source
+  other-modules:        Data.Random.Source.Internal.Prim
+                        Data.Random.Source.Internal.TH
+  
+  if impl(ghc >= 6.10)
+    -- mwc-random depends on vector, which doesn't build on GHC < 6.10.
+    -- I considered breaking this module out into another package, but I
+    -- think this is sufficient; anyone compiling something which wants
+    -- this module has pretty much no hope of working on earlier GHCs anyway,
+    -- because the mwc-random library won't have built successfully.
+    -- And if they want to get their hands dirty fixing that, altering
+    -- this cabal file is hardly any additional effort.
+    exposed-modules:    Data.Random.Source.MWC
+    build-depends:      mwc-random
+    
+  if flag(mtl2)
+    build-depends:      mtl == 2.*
+    cpp-options:        -DMTL2
+  else
+    build-depends:      mtl == 1.*
+  
+  if flag(base4)
+    build-depends:      base >= 4 && <5, syb
+  else
+    build-depends:      base >= 3 && <4
+  
+  build-depends:        flexible-defaults >= 0.0.0.2,
+                        mersenne-random-pure64,
+                        random,
+                        stateref >= 0.3 && < 0.4,
+                        template-haskell,
+                        th-extras
+
+  if os(Windows)
+    cpp-options:        -Dwindows
+  else
+    exposed-modules:    Data.Random.Source.DevRandom
+
+
+package-hashes:
+    MD5:d13162b4672358e354c2ce5e38e75e9b
+    SHA1:774fffd70d4bfc20b3ad8ea9f4aaca13b375fe79
+    SHA256:f3dfec3aef0614ff856abbba018f3bc3446295157895ea09a015737d67205b73
+    SHA512:fb6e35adb86952c6362585f30694e7111293f551c4749c922d8e9adcee18c37a5de58ab7beb38dda3fcb323a64990a117343306b320c8dd6180ce1a4a1dcfbe8
+    Skein512_512:67babd27d9b0f5b4ba1e04e86320701f10eceace575b9958ca8adc96e0a607d16893818ac16e52637175193a11391bb386618b30e5532652c6c2f472988a8e5f
+
+package-locations:
+    https://hackage.haskell.org/package/random-source-0.3.0.6/random-source-0.3.0.6.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/random-source-0.3.0.6.tar.gz
+

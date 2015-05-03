@@ -1,0 +1,109 @@
+Name:                pez
+Version:             0.0.3
+Synopsis:            A Potentially-Excellent Zipper library
+Homepage:            http://coder.bsimmons.name/blog/2011/04/pez-zipper-library-released/
+
+Description:         PEZ is a generic zipper library. It uses lenses from the 'fclabels' package to
+                     reference a "location" to move to in the zipper. The zipper is restricted to
+                     types in the Typeable class, allowing the user to "move up" through complex data
+                     structures such as mutually-recursive types.
+                     .
+                     Both the Typeable class and fclabels lenses can be derived in GHC, making it
+                     easy for the programmer to use a zipper with a minimum of boilerplate.
+                     .
+                     First import the library, which brings in the Typeable and fclabels modules.
+                     You will also want to enable a few extensions:
+                     .
+                     > -- Put these in a LANGUAGE pragma:
+                     > -- TemplateHaskell, DeriveDataTypeable, TypeOperators 
+                     > module Main where
+                     >
+                     > import Data.Typeable.Zipper
+                     .
+                     Create a datatype, deriving an instance of the Typeable class, and generate a
+                     lens using functions from fclabels:
+                     .
+                     > data Tree a = Node { 
+                     >     _leftNode :: Tree a
+                     >   , _val      :: a 
+                     >   , _rightNode :: Tree a }
+                     >   | Nil  
+                     >   deriving (Typeable,Show)
+                     >
+                     > $(mkLabelsNoTypes [''Tree])
+                     .
+                     Now we can go crazy using Tree in a Zipper:
+                     .
+                     > treeBCD = Node (Node Nil 'b' Nil) 'c' (Node Nil 'd' Nil)
+                     > 
+                     > descendLeft :: Zipper1 (Tree a) -> Zipper1 (Tree a)
+                     > descendLeft z = case (viewf z) of
+                     >                      Nil -> z
+                     >                      _   -> descendLeft $ moveTo leftNode z
+                     >
+                     > insertLeftmost :: a -> Tree a -> Tree a
+                     > insertLeftmost x = close . setL focus x . descendLeft . zipper
+                     >
+                     > treeABCD = insertLeftmost 'a' treeBCD
+                     .
+                     Because of the flexibility of fclabels, this zipper library can be used to
+                     express moving about in reversible computations simply by defining such a lens,
+                     for instance:
+                     .
+                     > stringRep :: (Show b, Read b) => b :-> String
+                     > stringRep = lens show (const . read)
+                     .
+                     Please send any feature requests or bug reports along.
+ 
+
+License:             BSD3
+License-file:        LICENSE
+Author:              Brandon Simmons
+Maintainer:          brandon.m.simmons@gmail.com
+
+-- A copyright notice.
+Copyright:           Brandon Simmons, 2011
+
+-- Stability of the pakcage (experimental, provisional, stable...)
+Stability:           Experimental
+Category:            Data
+Build-type:          Simple
+
+-- Extra files to be distributed with the package, such as examples or
+-- a README.
+Extra-source-files:  EXAMPLES/Examples.hs, Tests.hs
+
+-- Constraint on the version of Cabal needed to build this package.
+Cabal-version:       >=1.2.3
+
+
+Library
+  -- Modules exported by the library.
+  Exposed-modules:     Data.Typeable.Zipper
+  
+  -- Packages needed in order to build this package.
+  Build-depends:       base >= 4 && < 5
+                     , fclabels >= 0.11.1.1 && < 0.12
+                     , thrist >= 0.2 && < 0.3
+
+  Extensions:        GeneralizedNewtypeDeriving
+                   , TypeOperators
+                   , TemplateHaskell
+                   , GADTs
+                   , DeriveDataTypeable
+  
+  -- Modules not exported by this package.
+  Other-modules:     Data.Record.Label.Prelude  
+
+
+package-hashes:
+    MD5:5115e94a1c0ff32c4f93a989c2536caf
+    SHA1:bcb48ecf615fa518500ddb88bea67d225d2edd74
+    SHA256:f033a52109a7d0f435a6932b9e4d31e7d0f9ee1d4b923ca7adada8aab6192d5d
+    SHA512:52aa7f16f0b6702fcdd5cd6281b56cc214347bb1f68244dd09fde4fb64ec190a199f5b936c6d5c2669b76f0691a46a8c6c675eafc3ee24d62b73be2551ab2806
+    Skein512_512:7f7c6f6a95818def91089b5a2810193a1aa42b05e92b8376cbd9d75b042625ecceefe0216cdda8d948a057ed1750393509fad6979b0e98c21a2a6a754c04498a
+
+package-locations:
+    https://hackage.haskell.org/package/pez-0.0.3/pez-0.0.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/pez-0.0.3.tar.gz
+

@@ -1,0 +1,241 @@
+name:              notmuch-web
+version:           0.2.0
+cabal-version:     >= 1.8
+build-type:        Simple
+synopsis:          A web interface to the notmuch email indexer
+category:          Web
+author:            John Lenz <lenz@math.uic.edu>
+maintainer:        John Lenz <lenz@math.uic.edu>
+license:           GPL
+license-file:      LICENSE
+homepage:          https://bitbucket.org/wuzzeb/notmuch-web
+stability:         Experimental
+description:       An email client for the notmuch email indexer (<http://notmuchmail.org>),
+                   built using Yesod.  This project implements a web server and uses bootstrap
+                   and jquery for the UI.  The client is fully functional, with searching, viewing,
+                   and composing email messages.  See
+                   <https://bitbucket.org/wuzzeb/notmuch-web/src/tip/ChangeLog> for recent changes.
+
+data-files: README.md
+            config/favicon.ico
+            config/robots.txt
+            config/settings.yml
+
+extra-source-files: config/keter.yaml
+                    config/routes
+                    messages/en.msg
+                    templates/*.hamlet
+                    templates/*.cassius
+                    templates/*.julius
+                    templates/*.lucius
+                    devel.hs
+                    package.sh
+
+                    static/css/*.min.css
+                    static/css/*.css
+                    static/css/*.png
+                    static/css/*.gif
+                    static/img/*.png
+                    js/*.js
+                    js/pjax-LICENSE
+
+                    -- Workaround for http://hackage.haskell.org/trac/hackage/ticket/792
+                    tests/Address.hs
+                    tests/HomeTest.hs
+
+source-repository head
+    type: mercurial
+    location: https://bitbucket.org/wuzzeb/notmuch-web
+
+Flag dev
+    Description:   Turn on development settings, like auto-reload templates.
+    Default:       False
+
+Flag library-only
+    Description:   Build for use with "yesod devel"
+    Default:       False
+
+Flag no-icu
+    Description:   Do not link against libicu
+    Default:       False
+
+library
+    hs-source-dirs:  src
+    exposed-modules: Application
+                     Foundation
+                     Import
+                     Settings
+                     StaticFileGenerators
+                     StaticFiles
+                     NotmuchCmd
+                     FilterHtml
+                     Handler.Abook
+                     Handler.Compose
+                     Handler.ComposeFields
+                     Handler.Home
+                     Handler.Pager
+                     Handler.Raw
+                     Handler.Tags
+                     Handler.View
+
+    if flag(dev) || flag(library-only)
+        cpp-options:   -DDEVELOPMENT
+        ghc-options:   -Wall -O0
+    else
+        ghc-options:   -Wall -O2
+
+    if flag(no-icu)
+        cpp-options:   -DNO_ICU
+    else
+        cpp-options:   -DUSE_ICU
+
+    extensions: TemplateHaskell
+                QuasiQuotes
+                OverloadedStrings
+                NoImplicitPrelude
+                CPP
+                MultiParamTypeClasses
+                TypeFamilies
+                GADTs
+                GeneralizedNewtypeDeriving
+                FlexibleContexts
+                EmptyDataDecls
+                NoMonomorphismRestriction
+
+    if flag(no-icu)
+        build-depends: base                          >= 4          && < 5
+
+                     , aeson
+                     , attoparsec
+                     , attoparsec-conduit
+                     , blaze-builder
+                     , blaze-html
+                     , blaze-markup
+                     , bytestring
+                     , case-insensitive
+                     , conduit
+                     , containers
+                     , directory
+                     , data-default
+                     , email-validate
+                     , filepath
+                     , hamlet
+                     -- https://github.com/bos/aeson/issues/125 and https://github.com/tibbe/hashable/issues/66
+                     , hashable                      <= 1.2.0.5 || > 1.2.0.7
+                     , hjsmin
+                     , http-conduit
+                     , http-types
+                     , lifted-base
+                     , markdown                      >= 0.1.5
+                     , mime-mail
+                     , network
+                     , old-locale
+                     , process
+                     , process-conduit               >= 0.5
+                     , pwstore-fast
+                     , random
+                     , tagsoup
+                     , template-haskell
+                     , text
+                     , time
+                     , transformers
+                     , unordered-containers
+                     , vector
+                     , wai
+                     , wai-extra
+                     , warp
+                     , xss-sanitize                  >= 0.3.4
+                     , yaml
+                     , yesod                         >= 1.2    && < 1.3
+                     , yesod-auth
+                     , yesod-static                  >= 1.2.1  && < 1.3
+    else
+        build-depends: base                          >= 4          && < 5
+
+                     , aeson
+                     , attoparsec
+                     , attoparsec-conduit
+                     , blaze-builder
+                     , blaze-html
+                     , blaze-markup
+                     , bytestring
+                     , case-insensitive
+                     , conduit
+                     , containers
+                     , data-default
+                     , directory
+                     , email-validate
+                     , filepath
+                     , hamlet
+                     -- https://github.com/bos/aeson/issues/125 and https://github.com/tibbe/hashable/issues/66
+                     , hashable                      <= 1.2.0.5 || > 1.2.0.7
+                     , hjsmin
+                     , http-conduit
+                     , http-types
+                     , lifted-base
+                     , markdown                      >= 0.1.5
+                     , mime-mail
+                     , network
+                     , old-locale
+                     , process
+                     , process-conduit               >= 0.5
+                     , pwstore-fast
+                     , random
+                     , tagsoup
+                     , template-haskell
+                     , text
+                     , text-icu
+                     , time
+                     , transformers
+                     , unordered-containers
+                     , vector
+                     , wai
+                     , wai-extra
+                     , warp
+                     , xss-sanitize                  >= 0.3.4
+                     , yaml
+                     , yesod                         >= 1.2    && < 1.3
+                     , yesod-auth
+                     , yesod-static                  >= 1.2.1  && < 1.3
+
+executable         notmuch-web
+    if flag(library-only)
+        Buildable: False
+
+    main-is:           main.hs
+    build-depends:     base
+                     , notmuch-web
+                     , pwstore-fast
+                     , text
+                     , yesod
+
+    ghc-options:       -threaded -O2
+
+test-suite test
+    type:              exitcode-stdio-1.0
+    main-is:           main.hs
+    hs-source-dirs:    tests
+    ghc-options:       -Wall
+
+    build-depends: base
+                 , notmuch-web
+                 , hspec
+                 , HUnit
+                 , mime-mail
+                 , text
+                 , yesod
+                 , yesod-test
+                 , yesod-core
+
+
+package-hashes:
+    MD5:3ab14561fcde7dcc25b14dbbf37ab2d3
+    SHA1:120fbaa9013721957bea4c99667b1594e0d6ea15
+    SHA256:1a668866b0bb8fff3889be03dabefc25ca59ca7d19a0345fe6c95df8a11b53ca
+    SHA512:9fc6876b99800230706afddc94cbbed64f386306c900e5eb2315349ea2771aae534410f92873e821a3de5ad29bb4030765d15e55ca49f78e53436379ee68424c
+    Skein512_512:7ac05abb32dd7688837c6a2307420e0ce7eff9c2afd1340e6eee3afe7acf348cbb36392a7cb8797d2fc9da6009c6acb25cb41996be5eb521f14ef8cbda66043c
+
+package-locations:
+    https://hackage.haskell.org/package/notmuch-web-0.2.0/notmuch-web-0.2.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/notmuch-web-0.2.0.tar.gz
+

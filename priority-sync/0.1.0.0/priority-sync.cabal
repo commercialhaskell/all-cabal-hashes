@@ -1,0 +1,93 @@
+name:                priority-sync
+version:             0.1.0.0
+license:             BSD3
+license-file:        LICENSE
+author:              Christopher Lane Hinson
+maintainer:          Christopher Lane Hinson <lane@downstairspeople.org>
+stability:           Unstable
+
+category:            Concurrency
+synopsis:            Task prioritization.
+description:         Implements cooperative task prioritization with room synchronization.
+                     .
+                     In the simplest usage, for an unprioritized FILO queue, only three operations are needed: 'simpleTaskPool', 'claim', and 'startQueue'.
+                     .
+                     @
+                     (pool :: TaskPool () ()) <- simpleTaskPool
+                     forkIO $ claim Acquire pool $ putStrLn "Hello world!"
+                     forkIO $ claim Acquire pool $ putStrLn "Goodbye world!"
+                     startQueue pool
+                     @
+                     .
+                     For a simple prioritized queue, the 'schedule' operation introduces the priority.  Prioritization is always least-first.
+                     .
+                     @
+                     prio_pool <- simpleTaskPool
+                     forkIO $ claim Acquire (schedule prio_pool 1) $ putStrLn "Hello world!"
+                     forkIO $ claim Acquire (schedule prio_pool 2) $ putStrLn "Goodbye world!"
+                     startQueue prio_pool
+                     @
+                     .
+                     Note that if you run these programs with @+RTS -N2@ or greater, the 'claim' operations may be processed in any order, since 'simpleTaskQueue' detects
+                     the number of capabilities and schedules tasks on each.
+                     .
+                     'TaskPool's are not thread pools.  The concept is similar to IO Completion Ports.  There are no worker threads.  If a number of threads are waiting,
+                     the thread that is most likely to be processed next is woken and temporarily serves as a working thread.  'TaskPool's are backed by carefully
+                     written STM (software transactional memory) transactions.
+                     .
+                     A salient feature is that, because any thread can participate, a 'TaskPool' supports both bound threads and threads created with 'forkOnIO'.
+                     .
+                     For applications that have complex resource constraints, it is possible to create a 'Room' to model each constraint.  'Room's are fully reentrant,
+                     and an arbitrary number of threads can 'claim' a 'Room' according to arbitrary rules, or 'RoomConstraint's.  In the simple usage above,
+                     a single room represents the number of capabilities available to the GHC runtime.
+                     .
+                     Whenever a thread attempts to acquire a 'Room', a 'Claim' is generated that represents that attempt.  The 'Claim' can be approved immediately,
+                     or it can be approved at the whim of another thread that has access to that 'Claim'.  This means that 'Room's can be constructed in such
+                     a way that 'Claim's are approved only when a third party thread sees that the resource constraint modeled by that 'Room' has been satisfied.
+                     .
+                     The rules for generating and approving 'Claim's are described by a 'RoomContext'.  By default, 'Claim's are approved immediately if their
+                     associated 'RoomConstraint's have been satisfied, but when a 'TaskPool' is introduced approval is deferred for prioritization.
+                     .
+                     'Room' constraints are completely advisory: any task may claim any 'Room' without restriction at any time by using the 'UnconstrainedRoomContext'.
+                     .
+                     'Queue's are used to prioritize tasks.  Even if you have no need for prioritization, a 'Queue' ensures that only one thread is woken up
+                     when a 'Room' becomes available.  A 'Queue' systematically examines to a configurable depth all waiting threads with their priorities
+                     and constraints and wakes the most eagerly prioritized thread whose constraints can be satisfied.
+                     .
+                     A 'TaskPool' combines 'Room's and 'Queue's in an efficient, easy-to-use interface.
+                     .
+                     The git repository is available at <http://www.downstairspeople.org/git/priority-sync.git>.
+
+cabal-version:       >= 1.2
+build-type:          Simple
+tested-with:         GHC==6.10.1
+
+Library
+  exposed-modules:     Control.Concurrent.Priority.Room,
+                       Control.Concurrent.Priority.Queue, 
+                       Control.Concurrent.Priority.RoomConstraint,
+                       Control.Concurrent.Priority.Schedule, 
+                       Control.Concurrent.Priority.TaskPool
+  other-modules:       Control.Concurrent.Priority.RoomCore
+  ghc-options:         -Wall -fno-warn-type-defaults
+  ghc-prof-options:    -prof -auto-all
+  build-depends:       base>3, containers >= 0.1.0.1, heap, parallel >= 1.0.0.0, stm >= 2.1.1.2, random
+
+Executable _Control_Concurrent_Priority_Tests
+  Main-Is:             Tests.hs
+  ghc-options:         -Wall -threaded -fno-warn-type-defaults
+  ghc-prof-options:    -prof -auto-all
+  build-depends:       base>3
+
+
+package-hashes:
+    MD5:af07a1a07397168f51f3cafc9dbfecf4
+    SHA1:b62a7cc0241fcaacec7c68653cf18e9158b57d33
+    SHA256:5b01d63351ab174f769783e76acb25ea26ea5fc59c52f204ad281fdca2d74b67
+    SHA512:dcb7135cd7e5d69084a3d7c89e3f02c52c824ad11f29359133539a61724d7bf14f7e1faa69af398348e150c29712be61ba289bd54c8adf82cb039c2a0f967e95
+    Skein512_512:cf62787d01750e12ff5bf9a0f16bbac3e9584c11755150b5b701cef3e21227c2109cf9672af4537c8c1178249a798635b733445daab0e251bdefd51d27c75b9e
+
+package-locations:
+    https://hackage.haskell.org/package/priority-sync-0.1.0.0/priority-sync-0.1.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/priority-sync-0.1.0.0.tar.gz
+

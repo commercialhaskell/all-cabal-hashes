@@ -1,0 +1,257 @@
+Name:           numeric-prelude
+Version:        0.0.4
+License:        GPL
+License-File:   LICENSE
+Author:         Dylan Thurston <dpt@math.harvard.edu>, Henning Thielemann <numericprelude@henning-thielemann.de>, Mikael Johansson
+Maintainer:     Henning Thielemann <numericprelude@henning-thielemann.de>
+Homepage:       http://www.haskell.org/haskellwiki/Mathematical_prelude_discussion
+Package-URL:    http://darcs.haskell.org/numericprelude/
+Category:       Math
+Stability:      Experimental
+Synopsis:       An experimental alternative hierarchy of numeric type classes
+Description:
+  Revisiting the Numeric Classes
+  .
+  The Prelude for Haskell 98 offers a well-considered set of numeric
+  classes which cover the standard numeric types
+  ('Integer', 'Int', 'Rational', 'Float', 'Double', 'Complex') quite well.
+  But they offer limited extensibility and have a few other flaws.
+  In this proposal we will revisit these classes, addressing the following concerns:
+  .
+  [1] The current Prelude defines no semantics for the fundamental operations.
+      For instance, presumably addition should be associative
+      (or come as close as feasible),
+      but this is not mentioned anywhere.
+  .
+  [2] There are some superfluous superclasses.
+      For instance, 'Eq' and 'Show' are superclasses of 'Num'.
+      Consider the data type
+      @   data IntegerFunction a = IF (a -> Integer) @
+      One can reasonably define all the methods of 'Algebra.Ring.C' for
+      @IntegerFunction a@ (satisfying good semantics),
+      but it is impossible to define non-bottom instances of 'Eq' and 'Show'.
+      In general, superclass relationship should indicate
+      some semantic connection between the two classes.
+  .
+  [3] In a few cases, there is a mix of semantic operations and
+      representation-specific operations.
+      'toInteger', 'toRational',
+      and the various operations in 'RealFloating' ('decodeFloat', ...)
+      are the main examples.
+  .
+  [4] In some cases, the hierarchy is not finely-grained enough:
+      Operations that are often defined independently are lumped together.
+      For instance, in a financial application one might want a type \"Dollar\",
+      or in a graphics application one might want a type \"Vector\".
+      It is reasonable to add two Vectors or Dollars,
+      but not, in general, reasonable to multiply them.
+      But the programmer is currently forced to define a method for '(*)'
+      when she defines a method for '(+)'.
+  .
+  In specifying the semantics of type classes,
+  I will state laws as follows:
+  .
+  >    (a + b) + c === a + (b + c)
+  .
+  The intended meaning is extensional equality:
+  The rest of the program should behave in the same way
+  if one side is replaced with the other.
+  Unfortunately, the laws are frequently violated by standard instances;
+  the law above, for instance, fails for 'Float':
+  .
+  >    (1e20 + (-1e20)) + 1.0  = 1.0
+  >     1e20 + ((-1e20) + 1.0) = 0.0
+  .
+  For inexact number types like floating point types,
+  thus these laws should be interpreted as guidelines rather than absolute rules.
+  In particular, the compiler is not allowed to use them.
+  Unless stated otherwise, default definitions should also be taken as laws.
+  .
+  Thanks to Brian Boutel, Joe English, William Lee Irwin II, Marcin
+  Kowalczyk, Ketil Malde, Tom Schrijvers, Ken Shan, and Henning
+  Thielemann for helpful comments.
+  .
+  Scope & Limitations\/TODO:
+  * It might be desireable to split Ord up into Poset and Ord
+    (a total ordering).
+    This is not addressed here.
+  .
+  * In some cases, this hierarchy may not be fine-grained enough.
+    For instance, time spans (\"5 minutes\") can be added to times (\"12:34\"),
+    but two times are not addable. (\"12:34 + 8:23\")
+    As it stands,
+    users have to use a different operator for adding time spans to times
+    than for adding two time spans.
+    Similar issues arise for vector space et al.
+    This is a consciously-made tradeoff, but might be changed.
+    This becomes most serious when dealing with quantities with units
+    like @length\/distance^2@, for which @(*)@ as defined here is useless.
+    (One way to see the issue: should
+    @  f x y = iterate (x *) y  @
+    have principal type
+    @  (Ring.C a) => a -> a -> [a]  @
+    or something like
+    @  (Ring.C a, Module a b) => a -> b -> [b]  @
+    ?)
+  .
+  * I stuck with the Haskell 98 names.
+    In some cases I find them lacking.
+    Neglecting backwards compatibility, we have renamed classes as follows:
+      Num           --> Ring
+      Fractional    --> Field
+      Floating      --> Algebraic, Transcendental
+      RealFloat     --> RealTranscental
+  .
+  * It's slightly unfortunate that 'abs' can no longer be used for complex numbers,
+    since it is standard mathematically.
+    'magnitude' or more generally 'Algebra.NormedSpace.Euclidean.norm' can be used.
+    But it had the wrong type before,
+    and I couldn't see how to fit it in without complicating the hierarchy.
+  .
+  .
+  Additional standard libraries might include Enum, IEEEFloat (including
+  the bulk of the functions in Haskell 98's RealFloat class),
+  VectorSpace, Ratio.T, and Lattice.
+Tested-With:    GHC==6.4.1, GHC==6.8.2
+Cabal-Version:  >=1.2
+Build-Type:     Simple
+
+Extra-Source-Files:
+  Makefile
+  docs/NOTES
+  docs/README
+  src/Algebra/GenerateRules.hs
+
+Flag splitBase
+  description: Choose the new smaller, split-up base package.
+
+Flag buildTests
+  description: Build test executables
+  default:     False
+
+Library
+  Build-Depends: parsec >= 1, HUnit >=1 && <2, QuickCheck >=1 && <2
+  Build-Depends: non-negative>=0.0.2 && <0.1
+  If flag(splitBase)
+    Build-Depends: base >= 2, array, containers, random
+  Else
+    Build-Depends: base >= 1.0 && < 2
+
+  GHC-Options:    -Wall
+  Hs-source-dirs: src
+  Exposed-modules:
+    Algebra.Additive
+    Algebra.Algebraic
+    Algebra.Differential
+    Algebra.DimensionTerm
+    Algebra.DivisibleSpace
+    Algebra.Field
+    Algebra.Indexable
+    Algebra.IntegralDomain
+    Algebra.NonNegative
+    Algebra.Lattice
+    Algebra.Laws
+    Algebra.Module
+    Algebra.ModuleBasis
+    Algebra.Monoid
+    Algebra.NormedSpace.Euclidean
+    Algebra.NormedSpace.Maximum
+    Algebra.NormedSpace.Sum
+    Algebra.OccasionallyScalar
+    Algebra.PrincipalIdealDomain
+    Algebra.Real
+    Algebra.RealField
+    Algebra.RealIntegral
+    Algebra.RealTranscendental
+    Algebra.RightModule
+    Algebra.Ring
+    Algebra.ToInteger
+    Algebra.ToRational
+    Algebra.Transcendental
+    Algebra.Units
+    Algebra.Vector
+    Algebra.VectorSpace
+    Algebra.ZeroTestable
+    MathObj.Algebra
+    MathObj.DiscreteMap
+    MathObj.LaurentPolynomial
+    MathObj.Matrix
+    MathObj.PartialFraction
+    MathObj.Permutation
+    MathObj.Permutation.CycleList
+    MathObj.Permutation.CycleList.Check
+    MathObj.Permutation.Table
+    MathObj.Polynomial
+    MathObj.PowerSeries
+    MathObj.PowerSeries.DifferentialEquation
+    MathObj.PowerSeries.Example
+    MathObj.PowerSeries.Mean
+    MathObj.PowerSeries2
+    MathObj.PowerSum
+    MathObj.RootSet
+    MyPrelude
+    Number.Complex
+    Number.DimensionTerm
+    Number.DimensionTerm.SI
+    Number.FixedPoint
+    Number.FixedPoint.Check
+    Number.NonNegative
+    Number.NonNegativeChunky
+    Number.PartiallyTranscendental
+    Number.Peano
+    Number.Positional
+    Number.Positional.Check
+    Number.Quaternion
+    Number.Ratio
+    Number.ResidueClass
+    Number.ResidueClass.Check
+    Number.ResidueClass.Maybe
+    Number.ResidueClass.Func
+    Number.ResidueClass.Reader
+    Number.OccasionallyScalarExpression
+    Number.SI.Unit
+    Number.SI
+    Number.Physical.Unit
+    Number.Physical.UnitDatabase
+    Number.Physical
+    Number.Physical.Read
+    Number.Physical.Show
+    NumericPrelude
+    NumericPrelude.Condition
+    NumericPrelude.List
+    NumericPrelude.Monad
+    NumericPrelude.Text
+    NumericPrelude.Tuple
+    PreludeBase
+
+Executable test
+  Hs-Source-Dirs: src, test
+  Main-Is: Test.hs
+  If !flag(buildTests)
+    Buildable:         False
+
+Executable testsuite
+  Hs-Source-Dirs: src, test
+  GHC-Options:    -Wall
+  Other-modules:
+    Test.NumericPrelude.Utility
+    Test.NumericPrelude.List
+    Test.MathObj.PartialFraction
+    Test.MathObj.Polynomial
+    Test.MathObj.PowerSeries
+  Main-Is: Test/Run.hs
+  If !flag(buildTests)
+    Buildable:         False
+
+
+package-hashes:
+    MD5:d07bcdb6bd0785fd06279f05355e1f5c
+    SHA1:b429e5ca8925ed8bae17007be4a75488300870a9
+    SHA256:3053866bda146691bb8f91c145e149cf37d51bbd842904ea15f8b8b5c033bf11
+    SHA512:69811901a847d0fdf8dec673c0ce6d1d7dba6318e4fd1d4e6d32e22bedd0c54f36b10b54a0e57c138b81f98fb9b1d8229b526d3a81a990eee452776d6b85bf38
+    Skein512_512:5bb2a0a4aa59ec9d0f00df46e47e9fe1dc22742f8c8be0acfd397daeb1c545ac845c159b3b58509750e556c264a9678f4ddc90d8e965ddf924a66a9ae9e80bba
+
+package-locations:
+    https://hackage.haskell.org/package/numeric-prelude-0.0.4/numeric-prelude-0.0.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/numeric-prelude-0.0.4.tar.gz
+

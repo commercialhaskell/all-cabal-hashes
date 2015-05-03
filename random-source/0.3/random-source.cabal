@@ -1,0 +1,93 @@
+name:                   random-source
+version:                0.3
+stability:              provisional
+
+cabal-version:          >= 1.6
+build-type:             Simple
+
+author:                 James Cook <james.cook@usma.edu>
+maintainer:             James Cook <james.cook@usma.edu>
+license:                PublicDomain
+homepage:               https://github.com/mokus0/random-fu
+
+category:               Math
+synopsis:               Generic basis for random number generators
+description:            Random number generation based on entropy sources
+                        able to produce a small but well-defined set of
+                        primitive variates.  Also includes facilities for
+                        \"completing\" partial implementations, making it
+                        easy to define new entropy sources in a way that
+                        is naturally forward-compatible.
+
+tested-with:            GHC == 6.8.3, GHC == 6.10.4, GHC == 6.12.1, 
+                        GHC == 6.12.3, GHC == 7.0.1, GHC == 7.0.2
+
+source-repository head
+  type:                 git
+  location:             https://github.com/mokus0/random-fu.git
+  subdir:               random-source
+
+Flag splitBase
+    Description:        base-4 and above do not include syb
+
+Flag mtl2
+    Description:        mtl-2 has State, etc., as "type" rather than "newtype"
+
+Library
+  ghc-options:          -Wall
+  hs-source-dirs:       src
+  exposed-modules:      Data.Random.Source
+                        Data.Random.Source.IO
+                        Data.Random.Source.PureMT
+                        Data.Random.Source.Std
+                        Data.Random.Source.StdGen
+                        Data.Random.Internal.Words
+                        Data.Random.Internal.Source
+  other-modules:        Data.Random.Internal.Prim
+                        Data.Random.Internal.TH
+  
+  if impl(ghc >= 6.10)
+    -- mwc-random depends on vector, which doesn't build on GHC < 6.10.
+    -- I considered breaking this module out into another package, but I
+    -- think this is sufficient; anyone compiling something which wants
+    -- this module has pretty much no hope of working on earlier GHCs anyway,
+    -- because the mwc-random library won't have built successfully.
+    -- And if they want to get their hands dirty fixing that, altering
+    -- this cabal file is hardly any additional effort.
+    exposed-modules:    Data.Random.Source.MWC
+    build-depends:      mwc-random
+    
+  if flag(mtl2)
+    build-depends:      mtl == 2.*
+    cpp-options:        -DMTL2
+  else
+    build-depends:      mtl == 1.*
+  
+  if flag(splitBase)
+    build-depends:      base >= 4 && <5, syb
+  else
+    build-depends:      base >= 3 && <4
+  
+  build-depends:        flexible-defaults,
+                        mersenne-random-pure64,
+                        random,
+                        stateref >= 0.3 && < 0.4,
+                        template-haskell
+
+  if os(Windows)
+    cpp-options:        -Dwindows
+  else
+    exposed-modules:    Data.Random.Source.DevRandom
+
+
+package-hashes:
+    MD5:5bf311b5f39417016a4dba6985cde5bc
+    SHA1:6460e4dae200041ae58de9a71801662553cd4743
+    SHA256:36bcef79e13e87a7c2e2030451c62ab324f1c1a822cffac3ce49ca87703dd222
+    SHA512:6072017feb6719ac293052e52bda9536a24f94a6a451412e7b9b3ac90130cedc874782584ae09bc3f20e1e95bf5a9d7f36573d62aeb240ed98f593960828ab49
+    Skein512_512:1cddda056871916e7024e4421394170cf9e08b4081745b34aaf40f48f19ece68170a95d9e6d6e0ac002313922e529dd34b137eb123c837524a2067c41694291a
+
+package-locations:
+    https://hackage.haskell.org/package/random-source-0.3/random-source-0.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/random-source-0.3.tar.gz
+

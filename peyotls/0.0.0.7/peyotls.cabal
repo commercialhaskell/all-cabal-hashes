@@ -1,0 +1,324 @@
+build-type:	Simple
+cabal-version:	>= 1.8
+
+name:		peyotls
+version:	0.0.0.7
+stability:	Experimental
+author:		Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+maintainer:	Yoshikuni Jujo <PAF01143@nifty.ne.jp>
+homepage:	https://github.com/YoshikuniJujo/peyotls/wiki
+
+license:	BSD3
+license-file:	LICENSE
+
+category:	Network
+synopsis:	Pretty Easy YOshikuni-made TLS library
+description:
+    Currently implemente the TLS1.2 protocol only,
+    and support the following cipher suites.
+    .
+    * TLS_RSA_WITH_AES_128_CBC_SHA
+    .
+    * TLS_RSA_WITH_AES_128_CBC_SHA256
+    .
+    * TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+    .
+    * TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+    .
+    * TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+    .
+    * TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+    .
+    * TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+    .
+    * TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+    .
+    And support client certificate with the following algorithms.
+    .
+    * RSA (SHA1 or SHA256 depending on the agreed cipher suite)
+    .
+    * ECDSA (SHA1 or SHA256 depending on the agreed cipher suite)
+    .
+    Currently not implemente the following features.
+    .
+    * session resumption (RFC 5077)
+    .
+    * renegotiation (RFC 5746)
+    .
+    Server sample
+    .
+    * file: examples/simpleServer.hs
+    .
+    localhost.key: key file
+    .
+    > -----BEGIN RSA PRIVATE KEY-----
+    > ...
+    > -----END RSA PRIVATE KEY-----
+    .
+    localhost.crt: certificate file
+    .
+    > -----BEGIN CERTIFICATE-----
+    > ...
+    > -----END CERTIFICATE-----
+    .
+    examples/simpleServer.hs
+    .
+    extensions
+    .
+    * OverloadedStrings
+    .
+    * PackageImports
+    .
+    > import Control.Applicative
+    > import Control.Monad
+    > import "monads-tf" Control.Monad.State
+    > import Control.Concurrent
+    > import Data.HandleLike
+    > import Network
+    > import Network.PeyoTLS.Server
+    > import Network.PeyoTLS.ReadFile
+    > import "crypto-random" Crypto.Random
+    > 
+    > import qualified Data.ByteString as BS
+    > import qualified Data.ByteString.Char8 as BSC
+    > 
+    > main :: IO ()
+    > main = do
+    >	k <- readKey "localhost.key"
+    >	c <- readCertificateChain "localhost.crt"
+    >	g0 <- cprgCreate <$> createEntropyPool :: IO SystemRNG
+    >	soc <- listenOn $ PortNumber 443
+    >	void . (`runStateT` g0) . forever $ do
+    >		(h, _, _) <- liftIO $ accept soc
+    >		g <- StateT $ return . cprgFork
+    >		liftIO . forkIO . (`run` g) $ do
+    >			p <- open h ["TLS_RSA_WITH_AES_128_CBC_SHA"] [(k, c)]
+    >				Nothing
+    >			doUntil BS.null (hlGetLine p) >>= liftIO . mapM_ BSC.putStrLn
+    >			hlPut p $ BS.concat [
+    >				"HTTP/1.1 200 OK\r\n",
+    >				"Transfer-Encoding: chunked\r\n",
+    >				"Content-Type: text/plain\r\n\r\n",
+    >				"5\r\nHello0\r\n\r\n" ]
+    >			hlClose p
+    > 
+    > doUntil :: Monad m => (a -> Bool) -> m a -> m [a]
+    > doUntil p rd = rd >>= \x ->
+    >	(if p x then return . (: []) else (`liftM` doUntil p rd) . (:)) x
+    .
+    Client sample (only show HTTP header)
+    .
+    * file: examples/simpleClient.hs
+    .
+    cacert.pem: self-signed root certificate to validate server
+    .
+    > -----BEGIN CERTIFICATE-----
+    > ...
+    > -----END CERTIFICATE-----
+    .
+    examples/simpleClient.hs
+    .
+    extensions
+    .
+    * OverloadedStrings
+    .
+    * PackageImports
+    .
+    > import Control.Applicative
+    > import Control.Monad
+    > import "monads-tf" Control.Monad.Trans
+    > import Data.HandleLike
+    > import Network
+    > import Network.PeyoTLS.ReadFile
+    > import Network.PeyoTLS.Client
+    > import "crypto-random" Crypto.Random
+    > 
+    > import qualified Data.ByteString.Char8 as BSC
+    > 
+    > main :: IO ()
+    > main = do
+    > 	ca <- readCertificateStore ["cacert.pem"]
+    > 	h <- connectTo "localhost" $ PortNumber 443
+    > 	g <- cprgCreate <$> createEntropyPool :: IO SystemRNG
+    > 	(`run` g) $ do
+    > 		p <- open h ["TLS_RSA_WITH_AES_128_CBC_SHA"] [] ca
+    > 		unless ("localhost" `elem` names p) $
+    > 			error "certificate name mismatch"
+    > 		hlPut p "GET / HTTP/1.1 \r\n"
+    > 		hlPut p "Host: localhost\r\n\r\n"
+    > 		doUntil BSC.null (hlGetLine p) >>= liftIO . mapM_ BSC.putStrLn
+    > 		hlClose p
+    > 
+    > doUntil :: Monad m => (a -> Bool) -> m a -> m [a]
+    > doUntil p rd = rd >>= \x ->
+    > 	(if p x then return . (: []) else (`liftM` doUntil p rd) . (:)) x
+    .
+    Client certificate server
+    .
+    * file: examples/clcertServer.hs
+    .
+    > % diff examples/simpleServer.hs examples/clcertServer.hs
+    > 19a20
+    > >	ca <- readCertificateStore ["cacert.pem"]
+    > 27c28
+    > <				Nothing
+    > ---
+    > >				$ Just ca
+    .
+    Client certificate client (RSA certificate)
+    .
+    * file: examples/clcertClient.hs
+    .
+    > % diff examples/simpleClient.hs examples/clcertClient.hs
+    > 15a16,17
+    > >	rk <- readKey "client_rsa.key"
+    > >	rc <- readCertificateChain "client_rsa.crt"
+    > 20c22
+    > <		p <- open h ["TLS_RSA_WITH_AES_128_CBC_SHA"] [] ca
+    > ---
+    > >		p <- open h ["TLS_RSA_WITH_AES_128_CBC_SHA"] [(rk, rc)] ca
+    .
+    Client certificate client (ECDSA or RSA certificate)
+    .
+    * file: examples/clcertEcdsaClient.hs
+    .
+    > % diff examples/clcertClient.hs examples/clcertEcdsaClient.hs
+    > 17a18,19
+    > >	ek <- readKey "client_ecdsa.key"
+    > >	ec <- readCertificateChain "client_ecdsa.crt"
+    > 22c24
+    > <		p <- open h ["TLS_RSA_WITH_AES_128_CBC_SHA"] [(rk, rc)] ca
+    > ---
+    > >		p <- open h ["TLS_RSA_WITH_AES_128_CBC_SHA"] [(ek, ec), (rk, rc)] ca
+    .
+    ECC server (use ECC or RSA depending on client)
+    .
+    * file: examples/eccServer.hs
+    .
+    > % diff examples/simpleServer.hs examples/eccServer.hs
+    > 15a16,26
+    > > cipherSuites :: [CipherSuite]
+    > > cipherSuites = [
+    > >       "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+    > >       "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+    > >       "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+    > >       "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+    > >       "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
+    > >       "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+    > >       "TLS_RSA_WITH_AES_128_CBC_SHA256",
+    > >       "TLS_RSA_WITH_AES_128_CBC_SHA" ]
+    > >
+    > 18,19c29,32
+    > <       k <- readKey "localhost.key"
+    > <       c <- readCertificateChain "localhost.crt"
+    > ---
+    > >       rk <- readKey "localhost.key"
+    > >       rc <- readCertificateChain "localhost.crt"
+    > >       ek <- readKey "localhost_ecdsa.key"
+    > >       ec <- readCertificateChain "localhost_ecdsa.crt"
+    > 26c39
+    > <                       p <- open h ["TLS_RSA_WITH_AES_128_CBC_SHA"] [(k, c)]
+    > ---
+    > >                       p <- open h cipherSuites [(rk, rc), (ek, ec)]
+    .
+    ECC client (use ECC or RSA depending on server)
+    .
+    * file: examples/eccClient.hs
+    .
+    > % diff examples/simpleClient.hs examples/eccClient.hs
+    > 13a14,24
+    > > cipherSuites :: [CipherSuite]
+    > > cipherSuites = [
+    > >       "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+    > >       "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+    > >       "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+    > >       "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+    > >       "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
+    > >       "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+    > >       "TLS_RSA_WITH_AES_128_CBC_SHA256",
+    > >       "TLS_RSA_WITH_AES_128_CBC_SHA" ]
+    > >
+    > 20c31
+    > <               p <- open h ["TLS_RSA_WITH_AES_128_CBC_SHA"] [] ca
+    > ---
+    > >               p <- open h cipherSuites [] ca
+    .
+
+extra-source-files:
+    examples/simpleServer.hs
+    examples/simpleClient.hs
+    examples/clcertServer.hs
+    examples/clcertClient.hs
+    examples/clcertEcdsaClient.hs
+    examples/eccServer.hs
+    examples/eccClient.hs
+
+data-dir: data
+data-files:
+    certs/cacert.pem,
+    certs/localhost.sample_key,
+    certs/localhost.sample_crt,
+    certs/localhost_ecdsa.sample_key,
+    certs/localhost_ecdsa.sample_crt,
+    certs/yoshikuni.sample_key,
+    certs/yoshikuni.sample_crt,
+    certs/client_ecdsa.sample_key,
+    certs/client_ecdsa.sample_crt
+
+source-repository	head
+    type:	git
+    location:	git://github.com/YoshikuniJujo/peyotls.git
+
+source-repository	this
+    type:	git
+    location:	git://github.com/YoshikuniJujo/peyotls.git
+    tag:	peyotls-0.0.0.7
+
+library
+    hs-source-dirs:	src
+    exposed-modules:
+        Network.PeyoTLS.Client, Network.PeyoTLS.Server, Network.PeyoTLS.ReadFile
+    other-modules:
+        Network.PeyoTLS.HandshakeBase,
+        Network.PeyoTLS.HandshakeType,
+            Network.PeyoTLS.Hello, Network.PeyoTLS.Extension,
+                Network.PeyoTLS.CipherSuite, Network.PeyoTLS.HashSignAlgorithm,
+            Network.PeyoTLS.Certificate,
+        Network.PeyoTLS.HandshakeMonad,
+            Network.PeyoTLS.TlsHandle,
+                Network.PeyoTLS.TlsMonad, Network.PeyoTLS.State,
+                Network.PeyoTLS.CryptoTools,
+        Network.PeyoTLS.Ecdsa, Network.PeyoTLS.CertSecretKey
+    build-depends:
+        base == 4.*, word24 == 1.0.*, bytestring == 0.10.*, monads-tf == 0.1.*,
+        asn1-encoding == 0.8.*, asn1-types == 0.2.*,
+        pem == 0.2.*, x509 == 1.4.*, x509-store == 1.4.*, x509-validation == 1.5.*,
+        crypto-numbers == 0.2.*, crypto-random == 0.0.*,
+        cryptohash == 0.11.*,
+        crypto-pubkey == 0.2.*, crypto-pubkey-types == 0.4.*,
+        cipher-aes == 0.2.*,
+        bytable == 0.1.*, handle-like == 0.0.0.*
+    ghc-options:	-Wall
+    extensions:		PatternGuards, DoAndIfThenElse
+
+test-suite stm-test
+    type: exitcode-stdio-1.0
+    main-is: testClient.hs
+    hs-source-dirs: test
+    build-depends: peyotls, handle-like == 0.0.0.*,
+        base == 4.*, bytestring == 0.10.*, network == 2.4.*, stm == 2.4.*,
+        x509 == 1.4.*, x509-store == 1.4.*, crypto-random == 0.0.*
+    ghc-options: -Wall
+
+
+package-hashes:
+    MD5:9edafbff79bdd2bcd2a335673411b293
+    SHA1:725128d21d586f1c4b750fbf708bac32d932e1b3
+    SHA256:13234434c09c775a938341753591e3b7f4bf5ed9c565268260e7013ccbcc0bba
+    SHA512:ecd65f157318b0f73137118db495ec9743fbbeae37b669dbd07acfb05be97a37bb1eb1f9b3d5fd203b9de1ddf290b1f529298beed12c1c816614bd79fe2b9904
+    Skein512_512:3fd555c4d57c73194ac24d6acda33927edd5652e793852e535ebe052084b4b29fab03c987b8c211a0f8c6ae715ff0e71b3ea46140c88ddc14ccb0e20e527b593
+
+package-locations:
+    https://hackage.haskell.org/package/peyotls-0.0.0.7/peyotls-0.0.0.7.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/peyotls-0.0.0.7.tar.gz
+

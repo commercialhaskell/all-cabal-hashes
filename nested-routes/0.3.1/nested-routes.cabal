@@ -1,0 +1,166 @@
+Name:                   nested-routes
+Version:                0.3.1
+Author:                 Athan Clark <athan.clark@gmail.com>
+Maintainer:             Athan Clark <athan.clark@gmail.com>
+License:                BSD3
+License-File:           LICENSE
+Synopsis:               Declarative, compositional Wai responses
+Category:               Web
+Description:
+  A method to writing Wai responses
+  .
+  This library attempts to make it easier to write nice Wai response handlers
+  by giving us a Sinatra/
+  <https://hackage.haskell.org/package/scotty Scotty>-like syntax for declaring HTTP-verb oriented
+  routes, in addition to file-extension handling and rose-tree like composition.
+  Not only do we have literal route specification, like
+  <https://hackage.haskell.org/package/scotty Scotty> &
+  <https://hackage.haskell.org/package/spock Spock>, but we
+  can also embed
+  <https://hackage.haskell.org/package/attoparsec Attoparsec>
+  parsers /directly/ in our routes, with our handlers
+  reflecting their results. As an example:
+  .
+  > router :: Application
+  > router = route handlers
+  >   where
+  >     handlers = do
+  >       handleLit o
+  >         (Left $ get $ text "home")
+  >         Nothing
+  >       handleLit (l "foo" </> l "bar" </> o)
+  >         (Left $ get $ text "foobar") $ Just $
+  >         handleParse (p ("baz",double) </> o)
+  >           (\d -> Right $ get $ textOnly $ LT.pack (show d) `LT.append` " bazs")
+  >           Nothing
+  >       handleParse (p ("num",double) </> o)
+  >         (\d -> Right $ get $ textOnly $ LT.pack $ show d) $ Just $
+  >         handleLit (l "bar" </> o)
+  >            (\d -> Left $ get $ text $ (LT.pack $ show d) `LT.append` " bars")
+  >            Nothing
+  .
+  The route specification syntax is a little strange right now - @l@ specifies
+  a "literal chunk" of a handlable url (ie - @l \"foo\" \<\/\> l \"bar\" \<\/\> o@ would
+  represent the url @\/foo\/bar@), while @p@ represents a "parsable" url chunk,
+  which expects a pair - the left element being merely a reference name for the
+  parser during internal plumbing, and the right being the actual @Parser@. @o@ represents
+  the end of a url string, and can be used alone in a handler to capture requests
+  to the root path.
+  .
+  Each route being handled needs some kind of content - that's where the @Either@
+  stuff comes in to play. For every parsed url chunk, the route expects a function
+  of arity matching 1-for-1 with the parsed contents. For example, @\d -> ...@ in the
+  demonstration above is such a function, where @d :: Double@.
+  .
+  We use the @Either@ for a subtle reason - literal url strings may have a file
+  extension, while url strings ending with a parser would not. @get@, @post@, etc.
+  are all monadic expressions, accumulating a @Map@ for HTTP verbs, likewise with
+  @text@, @lucid@, @json@, @bytestring@ etc., where they may also match a particular
+  file extension. @textOnly@ and the other @-Only@ variants are not monadic, and
+  simply give us a convenient unwrapper. Basically, url paths ending with a literal
+  chunk are @Left@ and contain a @VerbListenerT z (FileExtListenerT Response m ()) m ()@,
+  while paths ending with a parser are @Right@ and contain @VerbListenerT z Response m ()@.
+  .
+  When we test our application:
+  .
+  >  λ> curl localhost:3000/
+  >  ↪ "home"
+  .
+  requests may end with index
+  .
+  >  λ> curl localhost:3000/index
+  >  ↪ "home"
+  .
+  and specify the file extension
+  .
+  >  λ> curl localhost:3000/index.txt
+  >  ↪ "home"
+  .
+  each responding with the "closest" available file type
+  .
+  >  λ> curl localhost:3000/index.html
+  >  ↪ "home"
+  .
+  >  λ> curl localhost:3000/foo/bar
+  >  ↪ "foobar"
+  .
+  >  λ> curl localhost:3000/foo/bar.txt
+  >  ↪ "foobar"
+  .
+  >  λ> curl localhost:3000/foo/bar/5678.5678
+  >  ↪ "5678.5678 bazs"
+  .
+  >  λ> curl localhost:3000/1234.1234
+  >  ↪ "1234.1234"
+  .
+  >  λ> curl localhost:3000/2e5
+  >  ↪ "200000.0"
+  .
+  >  λ> curl localhost:3000/1234.1234/bar
+  >  ↪ "1234.1234 bars"
+
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall
+  Exposed-Modules:      Web.Routes.Nested
+                        Web.Routes.Nested.Types
+                        Web.Routes.Nested.Types.UrlChunks
+                        Web.Routes.Nested.VerbListener
+                        Web.Routes.Nested.FileExtListener
+                        Web.Routes.Nested.FileExtListener.Types
+                        Web.Routes.Nested.FileExtListener.Text
+                        Web.Routes.Nested.FileExtListener.Json
+                        Web.Routes.Nested.FileExtListener.Builder
+                        Web.Routes.Nested.FileExtListener.Blaze
+                        Web.Routes.Nested.FileExtListener.ByteString
+                        Web.Routes.Nested.FileExtListener.Lucid
+  Build-Depends:        base >= 4.6 && < 5
+                      , wai
+                      , wai-extra
+                      , http-types
+                      , mtl
+                      , transformers
+                      , semigroups
+                      , constraints
+                      , containers
+                      , text
+                      , aeson
+                      , blaze-html
+                      , lucid
+                      , bytestring
+                      , attoparsec
+                      , pred-trie >= 0.1
+                      , poly-arity >= 0.0.3
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       src
+                      , test
+  Ghc-Options:          -Wall
+  Main-Is:              Spec.hs
+  Build-Depends:        base
+                      , hspec
+                      , QuickCheck
+                      , quickcheck-instances
+
+Source-Repository head
+  Type:                 git
+  Location:             git://github.com/athanclark/nested-routes.git
+
+
+package-hashes:
+    MD5:89bacaf12a5dc242c57707d21fc9be02
+    SHA1:1b688bfd48150f05ff39ea4dbafcbd03f8e4b244
+    SHA256:05c6ed2265cc81d72cd9d36ebde129ecea66e26ae338fe1bb9f67e6fae02f0ad
+    SHA512:fa6f8690b66b6c39c116086f10b132dbd2396fc8e961dd3a859a7217bfd4b797927a094e850dc0bfe99a5bfccca669d172c4076afb4a482ea199cdb48c3534f7
+    Skein512_512:f1c1bbe72fd3ad1ca26ab221ab430eb0245983ad1b127a4ec0667a2b5a222be118aa0febb114b07867925efb934114fd94ade8c0cd9fa3f7be202c74c0ee382a
+
+package-locations:
+    https://hackage.haskell.org/package/nested-routes-0.3.1/nested-routes-0.3.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/nested-routes-0.3.1.tar.gz
+
