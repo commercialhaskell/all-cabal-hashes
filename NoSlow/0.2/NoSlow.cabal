@@ -1,0 +1,178 @@
+Name:           NoSlow
+Version:        0.2
+License:        BSD3
+License-File:   LICENSE
+Author:         Roman Leshchinskiy <rl@cse.unsw.edu.au>
+Maintainer:     Roman Leshchinskiy <rl@cse.unsw.edu.au>
+Copyright:      Roman Leshchinskiy 2009-10
+Homepage:       http://code.haskell.org/NoSlow
+Category:       Development, Profiling
+Synopsis:       Microbenchmarks for various array libraries
+Description:
+        .
+        NoSlow is a benchmark suite for several Haskell array libraries:
+        standard lists, primitive sequential arrays from the DPH project,
+        uvector, vector (primitive, storable and boxed arrays) and
+        storablevector. At the moment, it implements a bunch of fairly random
+        loop micro-kernels and a couple of small array algorithms. It will
+        include many more benchmarks in the future.
+        .
+        In its present state, NoSlow /cannot/ be used to reliably compare the
+        performance of the benchmarked libraries. It can be quite helpful for
+        identifying cases where a closer inspection of the generated code
+        might be warranted, however.
+        .
+        The package builds two binaries: @noslow@ and @noslow-table@.
+        .
+        [@noslow -o log@] runs the benchmarks and writes the results to 'log'
+        .
+        [@noslow-table log -o table.html --html@] outputs the results from
+        @log@ as a HTML table.
+        .
+        [@noslow-table log -o table.html --raw --csv@] outputs the results
+        from @log@ as a CSV file suitable for importing into spreadsheets.
+        .
+        [@noslow-table --diff log1 log2@ -o table.html@] produces a table
+        comparing the results from 'log1' and 'log2' (2 means the first run was
+        2x slower than the second; 0.5 means 2x faster).
+        .
+        [@noslow-table --help@] lists additional options.
+        .
+        NoSlow is described in more detail here:
+        <http://unlines.wordpress.com/2009/11/27/noslow/>.
+        .
+        Changes since version 0.1
+        .
+        * Renamed and reorganised loop kernels
+        .
+        * Several small array algorithms organised in the new
+          benchmark category @mini@
+        .
+        * More reliable benchmark execution
+        .
+        * Support for producing CSV files
+        .
+
+Build-Type:     Simple
+Cabal-Version:  >= 1.2
+
+Flag dph-prim-seq
+Flag vector
+Flag uvector
+Flag storablevector
+
+Executable noslow
+  Main-Is: NoSlow/Main.hs
+
+  Build-Depends:
+    base >= 3 && < 5,
+    array,
+    template-haskell,
+    criterion >= 0.4 && < 0.5
+
+  Extensions:
+    MultiParamTypeClasses,
+    FlexibleInstances
+
+  if flag(dph-prim-seq)
+    build-depends: dph-prim-seq, dph-base
+    cpp-options: -DUSE_DPH_PRIM_SEQ
+
+  if flag(vector)
+    build-depends: vector >= 0.5
+    cpp-options: -DUSE_VECTOR
+
+  if flag(uvector)
+    build-depends: uvector >= 0.1
+    cpp-options: -DUSE_UVECTOR
+
+  if flag(storablevector)
+    build-depends: storablevector >= 0.2
+    cpp-options: -DUSE_STORABLEVECTOR
+
+  Ghc-Options:
+    -O2
+
+  Other-Modules:
+        NoSlow.Backend.DPH.Prim.Seq
+        NoSlow.Backend.Interface
+        NoSlow.Backend.List
+        NoSlow.Backend.StorableVector
+        NoSlow.Backend.TH
+        NoSlow.Backend.Uvector
+        NoSlow.Backend.Vector.Primitive
+        NoSlow.Backend.Vector.Storable
+        NoSlow.Backend.Vector.Unboxed
+        NoSlow.Backend.Vector
+        NoSlow.Main.TH
+        NoSlow.Main.Tree
+        NoSlow.Main.Util
+        NoSlow.Micro.Kernels
+        NoSlow.Micro.DPH.Prim.Seq.Double
+        NoSlow.Micro.DPH.Prim.Seq
+        NoSlow.Micro.List.Double
+        NoSlow.Micro.List
+        NoSlow.Micro.StorableVector.Double
+        NoSlow.Micro.StorableVector
+        NoSlow.Micro.Uvector.Double
+        NoSlow.Micro.Uvector
+        NoSlow.Micro.Vector.Boxed.Double
+        NoSlow.Micro.Vector.Boxed
+        NoSlow.Micro.Vector.Primitive.Double
+        NoSlow.Micro.Vector.Primitive
+        NoSlow.Micro.Vector.Storable.Double
+        NoSlow.Micro.Vector.Storable
+        NoSlow.Micro.Vector.Unboxed
+        NoSlow.Micro.Vector.Unboxed.Double
+        NoSlow.Micro.Vector.Unsafe.Unboxed
+        NoSlow.Micro.Vector.Unsafe.Unboxed.Double
+        NoSlow.Micro.Vector.Unsafe.Primitive
+        NoSlow.Micro.Vector.Unsafe.Primitive.Double
+        NoSlow.Micro.Vector.Unsafe.Storable
+        NoSlow.Micro.Vector.Unsafe.Storable.Double
+        NoSlow.Micro.Vector.Unsafe.Boxed
+        NoSlow.Micro.Vector.Unsafe.Boxed.Double
+        NoSlow.Mini.Kernels
+        NoSlow.Mini.DPH.Prim.Seq
+        NoSlow.Mini.List
+        NoSlow.Mini.StorableVector
+        NoSlow.Mini.Uvector
+        NoSlow.Mini.Vector.Boxed
+        NoSlow.Mini.Vector.Primitive
+        NoSlow.Mini.Vector.Storable
+        NoSlow.Mini.Vector.Unboxed
+        NoSlow.Mini.Vector.Unsafe.Unboxed
+        NoSlow.Mini.Vector.Unsafe.Primitive
+        NoSlow.Mini.Vector.Unsafe.Storable
+        NoSlow.Mini.Vector.Unsafe.Boxed
+        NoSlow.Util.Base
+        NoSlow.Util.Computation
+        NoSlow.Util.Tag
+        NoSlow.Util.Opts
+        
+
+Executable noslow-table
+  Main-Is: NoSlow/Analyse/Main.hs
+
+  Build-Depends:
+    base >= 3 && < 5,
+    containers,
+    criterion >=0.2,
+    statistics >= 0.3.5 && < 4
+
+  Other-Modules:
+        NoSlow.Analyse.Table
+
+
+
+package-hashes:
+    MD5:68a858eaad92ce224de299fa700b6eef
+    SHA1:21f2f941f7e78afabea9f96b3c48037937db8a95
+    SHA256:9d80f0545ce4220e504bc9f6ba8a20737da7299f14620957f7a741db3bda21df
+    SHA512:7a1b196f39696f60277ab744d82be90133e99b95dac9328899a78389cc57f8e71161da6ebc85e4c33a522ed95830c586336f070a9204b62d954308b427f0f1d6
+    Skein512_512:e168fe2627582f5cb1b33668e17a08a8afa83511d860864d066c915a9e741b8691a9a7e751df8401790559267a5897c6ed415e637c5c8f82e9a6e2fe0a7dcd63
+
+package-locations:
+    https://hackage.haskell.org/package/NoSlow-0.2/NoSlow-0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/NoSlow-0.2.tar.gz
+

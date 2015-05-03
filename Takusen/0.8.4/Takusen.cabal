@@ -1,0 +1,189 @@
+-- setup configure -fodbc -foracle -fpostgres -fsqlite
+-- setup build
+-- setup install
+--
+-- setup configure -fbuildtests
+-- setup build
+-- setup install
+Name:           Takusen
+Version:        0.8.4
+License:        BSD3
+License-file:   LICENSE
+Author:         Alistair Bayley, Oleg Kiselyov
+Copyright:      2003-2008, Alistair Bayley, Oleg Kiselyov
+Maintainer:     alistair@abayley.org, oleg@pobox.com
+Stability:      experimental
+Homepage:       http://darcs.haskell.org/takusen
+Package-url:    http://darcs.haskell.org/takusen
+Category:       Database
+Build-type:     Custom
+Cabal-Version:  >= 1.6
+Synopsis:       Database library with left-fold interface, for PostgreSQL, Oracle, SQLite, ODBC.
+Description:   
+    Takusen is a DBMS access library. Like HSQL and HDBC, we support
+    arbitrary SQL statements (currently strings, extensible to anything
+    that can be converted to a string).
+    .
+    Takusen's unique selling point is safety and efficiency.
+    We statically ensure all acquired database resources - such
+    as cursors, connections, and statement handles - are released, exactly
+    once, at predictable times. Takusen can avoid loading the whole result
+    set in memory, and so can handle queries returning millions of rows in
+    constant space. Takusen also supports automatic marshalling and
+    unmarshalling of results and query parameters. These benefits come
+    from the design of query result processing around a left-fold
+    enumerator.
+    .
+    Currently we fully support ODBC, Oracle, Sqlite, and PostgreSQL.
+
+
+Extra-tmp-files: 
+      Database/Oracle/OCIFunctions_stub.c
+      Database/Oracle/OCIFunctions_stub.h
+      Database/PostgreSQL/PGFunctions_stub.c
+      Database/PostgreSQL/PGFunctions_stub.h
+
+Flag odbc
+  Description: ODBC backend
+  Default:     False
+Flag oracle
+  Description: Oracle OCI backend
+  Default:     False
+Flag postgres
+  Description: PostgreSQL backend
+  Default:     False
+Flag sqlite
+  Description: SQLite3 backend
+  Default:     False
+Flag buildtests
+  Description: Build test executables
+  Default:     False
+
+
+Executable takusen_tests
+  If !flag(buildtests)
+    Buildable: False
+  else
+    -- If we want to build test exe, then it needs Takusen installed.
+    Build-Depends:  Takusen
+  Main-Is: Main.lhs
+  Build-Depends:  base, mtl, time, QuickCheck
+  -- ghc-6.6 has System.Time in base.
+  -- Later versions has it in a separate package.
+  if impl(ghc >= 6.8)
+    Build-Depends:  old-time
+  Extensions: CPP DeriveDataTypeable ScopedTypeVariables
+  if impl(ghc>=6.9)
+    cpp-options: -DUSE_NEW_EXCEPTIONS
+    build-depends: base>=4&&<5
+  else
+    build-depends: base<4
+
+Executable miniunit_tests
+  If !flag(buildtests)
+    Buildable: False
+  Main-Is: Test/Main.hs
+  Build-Depends:  base, mtl
+  Extensions: CPP DeriveDataTypeable ScopedTypeVariables
+  if impl(ghc>=6.9)
+    cpp-options: -DUSE_NEW_EXCEPTIONS
+    build-depends: base>=4&&<5
+  else
+    build-depends: base<4
+
+
+Library
+
+  If flag(buildtests)
+    Buildable: False
+
+  Exposed-modules:
+        Database.Enumerator
+      , Database.Util
+      --, Database.Stub.Enumerator
+      , Control.Exception.MonadIO
+      , Control.Exception.Extensible
+      , Foreign.C.UTF8
+
+  If flag(odbc)
+    Exposed-modules:
+        Database.ODBC.Enumerator
+      , Database.ODBC.OdbcFunctions
+    If os(windows)
+      extra-libraries: odbc32
+      ld-options: --enable-stdcall-fixup
+    Else
+      If os(darwin)
+        extra-libraries: iodbc
+      Else
+        extra-libraries: odbc
+
+  If flag(oracle)
+    Exposed-modules:
+        Database.Oracle.Enumerator
+      , Database.Oracle.OCIConstants
+      , Database.Oracle.OCIFunctions
+    Build-Tools: sqlplus
+    If os(windows)
+      Extra-Libraries: oci
+    Else
+      Extra-Libraries: clntsh
+
+  If flag(postgres)
+    Exposed-modules:
+        Database.PostgreSQL.Enumerator
+      , Database.PostgreSQL.PGFunctions
+    Build-Tools: pg_config
+    Extra-Libraries: pq
+
+  If flag(sqlite)
+    Exposed-modules:
+        Database.Sqlite.Enumerator
+      , Database.Sqlite.SqliteFunctions
+    If os(windows)
+      Build-Tools: sqlite3
+    else
+      PkgConfig-Depends: sqlite3
+      Build-Tools: sqlite3
+    Extra-Libraries: sqlite3
+
+  Build-Depends:  base, mtl, time
+  -- ghc-6.6 has System.Time in base.
+  -- Later versions has it in a separate package.
+  if impl(ghc >= 6.8)
+    Build-Depends:  old-time
+  -- Many modules use CPP to switch between new and old exceptions.
+  -- DeriveDataTypeable is because we can't switch it on/off with #define;
+  -- for ghc-6.6 it is rendered as -fglasgow-exts anyway.
+  Extensions: CPP DeriveDataTypeable
+  -- We need the USE_NEW_EXCEPTIONS flag as this is used in
+  -- Control.Exception.Extensible is choose between defining our own
+  -- extensible exceptions, or re-exporting what's in base-4.
+  if impl(ghc>=6.9)
+    cpp-options: -DUSE_NEW_EXCEPTIONS
+    build-depends: base>=4&&<5
+  else
+    build-depends: base<4
+  if impl(ghc >= 6.10)
+    -- doesn't work with Data.Time on older ghcs, due to some missing header file
+    Ghc-Options: -O2
+  Other-modules: 
+      Database.InternalEnumerator
+      -- We don't expose the Test modules; the only reason to do so would be so Haddock
+      -- can use them (to stop the warnings "could not find link destination for:"),
+      -- and for that they'd have to be in Exposed-modules.
+      -- Modules in Other-modules are passed to Haddock with --hide=<module-name>.
+  Ghc-Prof-Options: -prof -auto-all
+
+
+package-hashes:
+    MD5:a28e72f95ce15bd7c3c24fd974aac1a2
+    SHA1:e162f122b1a0f3d2d2293b9666cd6b3a40f3e016
+    SHA256:7c4c24404fa9dfb2f462ed478b0c157a6c544a44f6bd47265cb932d8d4a119ee
+    SHA512:e87ad95610d627aea9c985391389e37a995d2473b9e87598a70c4bece669cf6a9468517fdd60fc936fb15c5a312c168714ddc7fb1be084105c3fe455edc6f0d0
+    Skein512_512:2c3d8857df3aab408b157c45d86b57b8c82691c1f0c107ccd65ac7a089c778815039df600a4061efc89a7653a6c3ae744a0f350a62298a958a341ee60e8fdc66
+
+package-locations:
+    https://hackage.haskell.org/package/Takusen-0.8.4/Takusen-0.8.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/Takusen-0.8.4.tar.gz
+

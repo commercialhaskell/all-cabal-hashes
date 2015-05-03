@@ -1,0 +1,120 @@
+name:       SHA
+category:   Cryptography, Codec
+version:    1.6.4.1
+license:    BSD3
+license-file: LICENSE
+author:     Adam Wick <awick@galois.com>, Brian Lewis <brian@lorf.org>
+maintainer: Adam Wick <awick@galois.com>,
+            Raphael Javaux <raphaeljavaux@gmail.com>
+stability:  stable
+build-type: Simple
+cabal-version: >= 1.8
+tested-with: GHC == 7.6.1
+synopsis: Implementations of the SHA suite of message digest functions
+description: This library implements the SHA suite of message digest functions,
+             according to NIST FIPS 180-2 (with the SHA-224 addendum), as well
+             as the SHA-based HMAC routines. The functions have been tested 
+             against most of the NIST and RFC test vectors for the various
+             functions. While some attention has been paid to performance, 
+             these do not presently reach the speed of well-tuned libraries, 
+             like OpenSSL.
+
+Flag test
+  Description: Build the SHA test suite.
+  Default: False
+
+Flag exe
+  Description: Build a sha1 and a sha384 executable similar to 'md5sum'.
+  Default: False
+
+Flag DecoderInterface
+  Description: Force SHA to build with support for binary's Decoder.
+
+Library
+  hs-source-dirs: src
+  build-depends: array > 0 && < 10000,
+                 base >= 4 && < 6,
+                 bytestring > 0.8 && < 10000
+  if flag(DecoderInterface)
+    build-depends: binary >= 0.7 && < 10000
+    cpp-options: -DINCLUDE_DECODER_INTERFACE
+  else
+    build-depends: binary >= 0 && < 0.7
+  exposed-modules: Data.Digest.Pure.SHA
+  GHC-Options: -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
+  extensions: CPP, BangPatterns
+  if impl(ghc >= 6.12) && impl(ghc < 7.7)
+    Ghc-Options: -fregs-graph
+
+Executable test_sha
+  hs-source-dirs: src
+  if flag(test)
+    build-depends: array > 0 && < 10000,
+                   base > 4.3 && < 7,
+                   bytestring > 0.8 && < 10000,
+                   QuickCheck >= 2.5 && < 3,
+                   test-framework >= 0.8.0.3 && < 10000,
+                   test-framework-quickcheck2 >= 0.3.0.2 && < 10000
+    if flag(DecoderInterface)
+      build-depends: binary >= 0.7 && < 10000
+      cpp-options: -DINCLUDE_DECODER_INTERFACE
+    else
+      build-depends: binary >= 0 && < 0.7
+  else
+    buildable: False
+  Main-Is: Test.hs
+  Other-Modules: Data.Digest.Pure.SHA
+  extensions: CPP, BangPatterns, MultiParamTypeClasses, DeriveDataTypeable
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
+  cpp-options: -DSHA_TEST
+  if impl(ghc >= 6.12)
+    Ghc-Options: -fregs-graph
+
+Executable sha1
+  if !flag(exe)
+    buildable: False
+  hs-source-dirs: src-bin
+  if flag(exe)
+    build-depends: base >= 4 && < 6,
+                   bytestring > 0.8 && < 10000,
+                   directory > 0.0 && < 10000,
+                   SHA > 1.6 && < 10000
+  Main-Is: Main.hs
+  extensions: CPP
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
+  cpp-options: -DALGORITHM=sha1
+
+Executable sha384
+  if !flag(exe)
+    buildable: False
+  hs-source-dirs: src-bin
+  if flag(exe)
+    build-depends: base >= 4 && < 6,
+                   bytestring > 0.8 && < 10000,
+                   directory > 0.0 && < 10000,
+                   SHA > 1.6 && < 10000
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+               -funbox-strict-fields -fwarn-tabs
+  Main-Is: Main.hs
+  extensions: CPP
+  cpp-options: -DALGORITHM=sha384
+
+source-repository head
+  type:     git
+  location: git://github.com/GaloisInc/SHA.git
+
+
+package-hashes:
+    MD5:b6c73a912f3fab1432f397bc4f120814
+    SHA1:56f4bfb72ad6986a6ec4250341fccb32fbbdcac0
+    SHA256:743bc6d7dd3e74a44bfca8920f0f0ba5855722a62f6cc44f0a38d10c11bddc0d
+    SHA512:cc4e5aec818a6f16f7e69e8a17b37d65e04bbc3688cd1e9fd174ac2b23acc24e43f2053f6b4b08b91414d94dbba0bc6af47b2eb2514bea2e847c93e23240e3ff
+    Skein512_512:e82177e69917c19a1f528b3d077ae4572f47106fea8acdd53a975d6eb6885ff149e1b38a1d1fe546860a8fe273cc51365f6b0f5cbc81ddba1d00e5153af23730
+
+package-locations:
+    https://hackage.haskell.org/package/SHA-1.6.4.1/SHA-1.6.4.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/SHA-1.6.4.1.tar.gz
+

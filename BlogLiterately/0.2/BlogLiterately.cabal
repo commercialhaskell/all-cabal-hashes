@@ -1,0 +1,171 @@
+Name:           BlogLiterately
+Version:        0.2
+Synopsis:	A tool for posting Haskelly articles to blogs
+
+Description:     BlogLiterately is a tool for uploading web log posts to web log servers
+                 that support the MetaWeblog API (such as WordPress-based blogs and many
+                 others).  Blog posts to be published via BlogLiterately are written in
+                 markdown [1] format, with extensions supported by pandoc [2].  Posts may be
+                 actual 'bird-style' literate Haskell files, with commentary in markdown.
+                 Code segments (including actual source lines from literate haskell files,
+                 as well as markdown code blocks) may be syntax-highlighted in the resulting
+                 HTML that is posted to the blog.  There are two types (two different
+                 libraries used) of formatting available for formatting code segments.
+                 .
+                   * Hscolour (for formatting Haskell code segments)
+                 .
+                   * highlighting-kate (for formatting Haskell and non-haskell segments)
+                 .
+                 The Markdown webpage has information about markdown formatting options,
+                 and the Pandoc website has information about the extensions supported.
+                 BlogLiterately extends the notation a bit further, for specifying code
+                 segments.  In basic markdown, A code segment is set off from normal
+                 text via indentation, e.g.:
+                 .
+                 >   -- This is a code segment but the tool doesn't know what kind!
+                 >   foo :: String -> String
+                 .
+                 Pandoc offers another way to specify a code segment (replace the
+                 square braces with curly braces, haddock/hackage mangles them):
+                 .
+                 > ~~~~ [ .haskell ] 
+                 > -- This is a code segment, and the tool knows it's Haskell!
+                 > foo :: String -> String 
+                 > ~~~~
+                 .
+                 BlogLiterately lets you specify a Haskell segment this way (this is
+                 just a normal markdown indented code block with an extra tag at
+                 the top.  In either the above way of specifying the type of code
+                 in the block, you may specify other kinds of code besides haskell,
+                 e.g. cpp, bash, java, ml, eiffel, etc.):
+                 .
+                 >     [haskell]
+                 >     -- This is a code segment, and the tool knows it's Haskell!
+                 >     foo :: String -> String
+                 .
+                 Once you have written your markdown file, you can run the tool, specifying how
+                 you want it highlighted.  You can specify different highlighting modes for
+                 the haskell segments and the other code segments.  If using hscolour, you
+                 can specify that the highlighting be done 'inline' via CSS 'style'
+                 attributes.  You can use the default styling (which is similar to source
+                 code in documentation on hackage) or you can specify a configuration file
+                 which looks something like this:
+                 .
+                 >     [("hs-keyword","color: blue; font-weight: bold;")
+                 >     , ("hs-keyglyph","color: red;")
+                 >     , ("hs-layout","color: red;")
+                 >     , ("hs-comment","color: green;")
+                 >     , ("hs-conid", "")
+                 >     , ("hs-varid", "")
+                 >     , ("hs-conop", "")
+                 >     , ("hs-varop", "")
+                 >     , ("hs-str", "color: teal;")
+                 >     , ("hs-chr", "color: teal;")
+                 >     , ("hs-number", "")
+                 >     , ("hs-cpp", "")
+                 >     , ("hs-selection", "")
+                 >     , ("hs-variantselection", "")
+                 >     , ("hs-definition", "")]
+                 .
+                 It has to be (readable as) a Haskell value of type [(String,String)],
+                 and it will only have an effect if you use the above class names (e.g.
+                 'hs-keyword' to specify a style for Haskell keywords).
+                 .
+                 With highlighting-kate (always) and with hscolour
+                 (optionally), the style for syntax segments is specified using 'class'
+                 attributes, so the stylesheet must be provided separately.  Sample 
+                 stylesheets are provided in the package archive file.
+                 .
+                 To use the highlighting-kate, you must (re)install Pandoc with highlighting
+                 enabled, like so:
+                 .
+                 > cabal install -fhighlighting pandoc
+                 .
+                 or
+                 .
+                 > cabal install --reinstall -fhighlighting pandoc
+                 .
+                 (If you have already installed BlogLiterately, you must reinstall that
+                 as well).
+                 .
+                 The options for BlogLiterately are, I hope, self-explanatory (given the 
+                 above background!).  Note that if Pandoc isn't installed with highlighting
+                 enabled, there will be fewer options (no -kate options):
+                 .
+                 > BlogLierately v0.2, (C) Robert Greayer 2009
+                 > This program comes with ABSOLUTELY NO WARRANTY
+                 > 
+                 > 
+                 > BlogLiterately [FLAG] URL USER PASSWORD TITLE FILE
+                 > 
+                 >   -? --help[=FORMAT]    Show usage information (optional format)
+                 >   -V --version          Show version information
+                 >   -v --verbose          Higher verbosity
+                 >   -q --quiet            Lower verbosity
+                 >   -t --test             do a test-run: html goes to stdout, is not posted
+                 >   -s --style=FILE       Style Specification (for --hscolour-icss)
+                 >      --hscolour-icss    hilight haskell: hscolour, inline style (default)
+                 >      --hscolour-css     hilight haskell: hscolour, separate stylesheet
+                 >      --hs-nohilight     no haskell hilighting
+                 >      --hs-kate          hilight haskell with highlighting-kate
+                 >      --other-code-kate  hilight other code with highlighting-kate
+                 >      --publish          Publish post (otherwise it's uploaded as a draft)
+                 >      --category=VALUE   post category (can specify more than one)
+                 >   -b --blogid=VALUE     Blog specific identifier (default=default)
+                 >      --postid=VALUE     Post to replace (if any)
+                 .
+                 .
+                 To post to a WordPress blog, the command is:
+                 .
+                 >     BlogLiterately http://blogurl.example.com/xmlrpc.php \
+                 >         myname mypasswd "Sample" Sample.lhs
+                 .
+                 (which creates a new post).  If, for example, the post id of that post
+                 (which BlogLiterately prints when it uploads a new post) was '37', then
+                 to update the post, the command would be:
+                 .
+                 >     BlogLiterately --postid=37 http://blogurl.example.com/xmlrpc.php \
+                 >         myname mypasswd "Sample" Sample.lhs
+                 .
+                 and the post will be updated with the new text.
+                 .
+                 References:
+                 .
+                   1. <http://daringfireball.net/projects/markdown/>
+                 .
+                   2. <http://johnmacfarlane.net/pandoc/>
+
+Cabal-Version:  >= 1.5
+Homepage:       none
+License:        GPL
+License-file:   LICENSE
+Category:	Web
+Copyright:	Copyright (c) Robert Greayer 2008.
+Author:         Robert Greayer <robgreayer@yahoo.com>
+Maintainer:	Robert Greayer <robgreayer@yahoo.com>
+Stability:	experimental
+Build-Type:     Simple
+Tested-With:	GHC ==6.10.4
+Extra-Source-Files: hscolour.css
+                    kate.css
+Executable BlogLiterately
+  Build-Depends:  base >= 4.0 && < 4.2, haskell98, parsec >= 2.1.0.0 && < 3,
+                  HaXml >= 1.13 && < 1.19, utf8-string >= 0.3 && < 0.4,
+                  hscolour >= 1.15 && < 1.16, xhtml >= 3000.2 && < 3000.3, cmdargs >= 0.1 && < 0.2,
+                  haxr >= 3000.2.1 && < 3000.3, pandoc >= 1.2 && < 1.3
+  Main-Is:        BlogLiterately.lhs
+  Hs-Source-Dirs: src
+  Ghc-Options: -fwarn-unused-imports
+
+
+package-hashes:
+    MD5:bbe954a4064efa239f51683bd50c8d73
+    SHA1:56d61c7800d981935553d85f96fb24d1d30aa975
+    SHA256:21c730d4fa837f60862e6fcc31e687f657c19f2193373072f0a28709d98dc429
+    SHA512:c704f379ae35fd8c7c48d81bca2c3ebfa1cf386c4d4b904eb5e8050dcc345231b2aa981abb091dcbd0418991ff8071cf8dbd1aa3ab65ea8e5462647d32c657b8
+    Skein512_512:3a1f69d585ded47a7cb69323de40f123353a8ba6f24dd6736261a91bf74b98f5fe0d57144bcd7cb7e7ed5db61a05243393ad2b0706c4657d5fb0c32277972951
+
+package-locations:
+    https://hackage.haskell.org/package/BlogLiterately-0.2/BlogLiterately-0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/BlogLiterately-0.2.tar.gz
+

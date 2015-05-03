@@ -1,0 +1,124 @@
+Name:           Takusen
+Version:        0.8.3
+License:        BSD3
+License-file:   LICENSE
+Author:         Alistair Bayley, Oleg Kiselyov
+Copyright:      2003-2008, Alistair Bayley, Oleg Kiselyov
+Maintainer:     alistair@abayley.org, oleg@pobox.com
+Stability:      experimental
+Homepage:       http://darcs.haskell.org/takusen
+Package-url:    http://darcs.haskell.org/takusen
+Category:       Database
+Build-type:     Custom
+Cabal-Version:  >= 1.4
+Synopsis:       Database library with left-fold interface, for PostgreSQL, Oracle, SQLite, ODBC.
+Description:   
+    Takusen is a DBMS access library. Like HSQL and HDBC, we support
+    arbitrary SQL statements (currently strings, extensible to anything
+    that can be converted to a string).
+    .
+    Takusen's unique selling point is safety and efficiency.
+    We statically ensure all acquired database resources - such
+    as cursors, connections, and statement handles - are released, exactly
+    once, at predictable times. Takusen can avoid loading the whole result
+    set in memory, and so can handle queries returning millions of rows in
+    constant space. Takusen also supports automatic marshalling and
+    unmarshalling of results and query parameters. These benefits come
+    from the design of query result processing around a left-fold
+    enumerator.
+    .
+    Currently we fully support ODBC, Oracle, Sqlite, and PostgreSQL.
+
+
+Extra-tmp-files: 
+      Database/Oracle/OCIFunctions_stub.c
+      Database/Oracle/OCIFunctions_stub.h
+      Database/PostgreSQL/PGFunctions_stub.c
+      Database/PostgreSQL/PGFunctions_stub.h
+
+Flag odbc
+  Description: ODBC backend
+  Default:     False
+Flag oracle
+  Description: Oracle OCI backend
+  Default:     False
+Flag postgres
+  Description: PostgreSQL backend
+  Default:     False
+Flag sqlite
+  Description: SQLite3 backend
+  Default:     False
+
+Library
+
+  Exposed-modules:
+        Database.Enumerator
+      , Database.Util
+      , Database.Stub.Enumerator
+      , Control.Exception.MonadIO
+      , Foreign.C.UTF8
+
+  If flag(odbc)
+    Exposed-modules:
+        Database.ODBC.Enumerator
+      , Database.ODBC.OdbcFunctions
+    Build-Tools: odbcconf
+    If os(windows)
+      extra-libraries: odbc32
+      ld-options: --enable-stdcall-fixup
+    Else
+      extra-libraries: odbc
+
+  If flag(oracle)
+    Exposed-modules:
+        Database.Oracle.Enumerator
+      , Database.Oracle.OCIConstants
+      , Database.Oracle.OCIFunctions
+    Build-Tools: sqlplus
+    If os(windows)
+      Extra-Libraries: oci
+    Else
+      Extra-Libraries: clntsh
+
+  If flag(postgres)
+    Exposed-modules:
+        Database.PostgreSQL.Enumerator
+      , Database.PostgreSQL.PGFunctions
+    Build-Tools: pg_config
+    Extra-Libraries: pq
+
+  If flag(sqlite)
+    Exposed-modules:
+        Database.Sqlite.Enumerator
+      , Database.Sqlite.SqliteFunctions
+    If os(windows)
+      Build-Tools: sqlite3
+    else
+      PkgConfig-Depends: sqlite3
+      Build-Tools: sqlite3
+    Extra-Libraries: sqlite3
+
+  Build-Depends:  base, mtl, time, old-time
+  -- Database.Enumerator uses CPP to make a deriving clause palatable for Haddock.
+  Extensions: CPP
+  Other-modules: 
+      Database.InternalEnumerator
+      -- We don't expose the Test modules; the only reason to do so would be so Haddock
+      -- can use them (to stop the warnings "could not find link destination for:"),
+      -- and for that they'd have to be in Exposed-modules.
+      -- Modules in Other-modules are passed to Haddock with --hide=<module-name>.
+  Ghc-Prof-Options: -prof -auto-all
+  --Ghc-Options: -O2  -- doesn't work with Data.Time, due to some missing header file
+
+
+package-hashes:
+    MD5:d154bfff92d8da01d74b616e81b34e1d
+    SHA1:f0b829cceeacc136915f48b337ab94c9d6c69bf3
+    SHA256:606c1db3b165b4abcb49ad693b5c70cd7291b084a90bd1336f3e6f7315f1c1de
+    SHA512:2069a0377f85e893f4a9ab3ab3768684dab84628fa395e65e55b3f4e98433ca989de9ff719b94929a0939fa1180d7f1d186785b4a33ca73a30c7cc94a8251bb4
+    Skein512_512:8d5743e240d89993e9b9086211965f66bf9afe6f8a31c637287d738776f16dbe9f3fc80de0e32af2200dde4fa5ba8fbc468176657f6ba8b3d581757989ebfa34
+
+package-locations:
+    https://hackage.haskell.org/package/Takusen-0.8.3/Takusen-0.8.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/Takusen-0.8.3.tar.gz
+

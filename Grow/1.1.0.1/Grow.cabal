@@ -1,0 +1,78 @@
+-- content information
+name:          Grow
+category:      Build
+synopsis:      A declarative make-like interpreter.
+description:   Grow is a well-defined replacement for Makefiles and the like to build complex
+               hierarchies of files with minimal effort. 
+               .
+               Like many Makefile-like tools, Grow depends on the notion of
+               timestamps to determine whether a file should be recompiled or
+               not. Grow is much simpler than those, though, and I might argue way
+               easier to use as well.
+               .
+               On startup, Grow will look for a file named "Seed" in the current
+               directory, and evaluate the grow expressions contained within.
+               .
+               For example, here is a simple Seed file to compile a single C file
+               into an executable.
+               .
+                   tee $$arg:in {
+                     all = ($main:seq "All done !"):in $execs
+                     execs = hook ld [main] [main.o] :in $objects
+                     objects = hook cc [main.o] [main.c]
+                   }
+               .
+               Notice the `hook` function ? It is the Grow primitive that calls an
+               external program to perform actual tasks. 
+               .
+               In Grow, hooks are expected to only accept files as their arguments,
+               so we have to write the wrapper scripts `cc` and `ld` that accept
+               arguments in the form "<destination>... <source>...". They are pretty
+               trivial to write since they only involve renaming variables and
+               swapping arguments.
+               .
+               Here are sample `cc` and `ld` scripts to show you there is nothing
+               magical about them :
+               .
+                   #!/bin/bash
+                   obj="$1" ; shift ; src="$1"
+                   gcc -c "$src" -o "$obj"
+               .
+                   #!/bin/bash
+                   bin="$1" ; shift ; obj="$1"
+                   gcc "$obj" -o "$bin"
+               .
+               In grow, instead of writing recipes in the configuration, we just declare
+               hooks and then write the appropriate wrapper scripts to call compilers with
+               the correct flags and arguments.
+
+-- meta-information
+author:        Marc Coiffier
+maintainer:    marc.coiffier@gmail.com
+version:       1.1.0.1
+license:       OtherLicense
+license-file:  LICENSE
+
+-- build information
+build-type:    Simple
+cabal-version: >=1.10
+
+library
+  exposed-modules: Grow Language.Grow Language.Syntax.Grow
+  build-depends: base (== 4.6.*), definitive-base (== 1.2.*), containers (== 0.5.*), deepseq (== 1.3.*), array (== 0.5.*), bytestring (== 0.10.*), vector (== 0.10.*), primitive (== 0.5.*), definitive-parser (== 1.2.*), definitive-filesystem (== 1.2.*), definitive-reactive (== 1.0.*), clock (== 0.4.*), directory (== 1.2.*), filepath (== 1.3.*), time (== 1.4.*), old-locale (== 1.0.*), unix (== 2.7.*), process (== 1.2.*)
+  default-extensions: RebindableSyntax NoMonomorphismRestriction GeneralizedNewtypeDeriving FlexibleInstances LambdaCase FlexibleContexts MultiParamTypeClasses ImplicitParams
+  ghc-options: 
+  default-language: Haskell2010
+
+
+package-hashes:
+    MD5:a91f1ca82bda3660668b34a5fd9ed18e
+    SHA1:59d3039c8527d15304645d3477e7325b64c9438e
+    SHA256:6da8267f2b45f84852d5d413c92e1b43cd2583ef76c4c0f628492fc86a4b1e77
+    SHA512:82c84d950a5814108a0310e616ba54b9505cf60a636dc645c44bb2d835e6a3fb3d1d8e24b78b7ecf5c9a4b06bb93590eac712fdafb425f05f615915308f79a6c
+    Skein512_512:dcf7f4fb71c00bb2ddba67c7140af00785b336ba0979da0273c0faffeb87be53727fad3969978a4194c80e54860bd37af0d904f3f707cc4ed3b36a8bee997262
+
+package-locations:
+    https://hackage.haskell.org/package/Grow-1.1.0.1/Grow-1.1.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/Grow-1.1.0.1.tar.gz
+

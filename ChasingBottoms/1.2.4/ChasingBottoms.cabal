@@ -1,0 +1,152 @@
+name:               ChasingBottoms
+version:            1.2.4
+license:            OtherLicense
+license-file:       LICENCE
+copyright:          Copyright (c) Nils Anders Danielsson 2004-2008.
+author:             Nils Anders Danielsson
+maintainer:         http://www.cs.nott.ac.uk/~nad/contact.html
+stability:          experimental
+homepage:           http://www.cs.nott.ac.uk/~nad/software/#Chasing Bottoms
+package-url:        http://www.cs.nott.ac.uk/~nad/software/ChasingBottoms/ChasingBottoms.tgz
+synopsis:           For testing partial and infinite values.
+description:
+  Do you ever feel the need to test code involving bottoms (e.g. calls to
+  the @error@ function), or code involving infinite values? Then this
+  library could be useful for you.
+  .
+  It is usually easy to get a grip on bottoms by showing a value and
+  waiting to see how much gets printed before the first exception is
+  encountered. However, that quickly gets tiresome and is hard to automate
+  using e.g. QuickCheck
+  (<http://www.cs.chalmers.se/~rjmh/QuickCheck/>). With this library you
+  can do the tests as simply as the following examples show.
+  .
+  Testing explicitly for bottoms:
+  .
+    [@> isBottom (head [\])@] @True@
+  .
+    [@> isBottom bottom@] @True@
+  .
+    [@> isBottom (\\_ -> bottom)@] @False@
+  .
+    [@> isBottom (bottom, bottom)@] @False@
+  .
+  Comparing finite, partial values:
+  .
+    [@> ((bottom, 3) :: (Bool, Int)) ==! (bottom, 2+5-4)@] @True@
+  .
+    [@> ((bottom, bottom) :: (Bool, Int)) <! (bottom, 8)@] @True@
+  .
+  Showing partial and infinite values (@\\\/!@ is join and @\/\\!@ is meet):
+  .
+    [@> approxShow 4 $ (True, bottom) \\\/! (bottom, \'b\')@] @\"Just (True, \'b\')\"@
+  .
+    [@> approxShow 4 $ (True, bottom) \/\\! (bottom, \'b\')@] @\"(_|_, _|_)\"@
+  .
+    [@> approxShow 4 $ ([1..\] :: [Int\])@] @\"[1, 2, 3, _\"@
+  .
+    [@> approxShow 4 $ (cycle [bottom\] :: [Bool\])@] @\"[_|_, _|_, _|_, _\"@
+  .
+  Approximately comparing infinite, partial values:
+  .
+    [@> approx 100 [2,4..\] ==! approx 100 (filter even [1..\] :: [Int\])@] @True@
+  .
+    [@> approx 100 [2,4..\] \/=! approx 100 (filter even [bottom..\] :: [Int\])@] @True@
+  .
+  The code above relies on the fact that @bottom@, just as @error
+  \"...\"@, @undefined@ and pattern match failures, yield
+  exceptions. Sometimes we are dealing with properly non-terminating
+  computations, such as the following example, and then it can be nice to
+  be able to apply a time-out:
+  .
+    [@> timeOut' 1 (reverse [1..5\]) >>= print@] @Value [5,4,3,2,1]@
+  .
+    [@> timeOut' 1 (reverse [1..\]) >>= print@] @NonTermination@
+  .
+  The time-out functionality can be used to treat \"slow\" computations as
+  bottoms:
+  .
+    [@> let tweak = Tweak &#x7b; approxDepth = Just 5, timeOutLimit = Just 2 &#x7d;@]
+  .
+    [@> semanticEq tweak (reverse [1..\], [1..\]) (bottom :: [Int\], [1..\] :: [Int\])@] @True@
+  .
+    [@> let tweak = noTweak &#x7b; timeOutLimit = Just 2 &#x7d;@]
+  .
+    [@> semanticJoin tweak (reverse [1..\], True) ([\] :: [Int\], bottom)@] @Just ([],True)@
+  .
+  This can of course be dangerous:
+  .
+    [@> let tweak = noTweak &#x7b; timeOutLimit = Just 0 &#x7d;@]
+  .
+    [@> semanticEq tweak (reverse [1..100000000\]) (bottom :: [Integer\])@] @True@
+  .
+  Timeouts can also be applied to @IO@ computations:
+  .
+    [@> let primes = unfoldr (\\(x:xs) -> Just (x, filter ((\/= 0) . (\`mod\` x)) xs)) [2..\]@]
+  .
+    [@> timeOutMicro 100 (print $ filter ((== 1) . (\`mod\` 83)) primes) >>= print@] @[167,499NonTermination@
+  .
+    [@> timeOutMicro 100 (print $ take 4 $ filter ((== 1) . (\`mod\` 83)) primes) >>= print@] @[167,499,997NonTermination@
+  .
+    [@> timeOutMicro 100 (print $ take 4 $ filter ((== 1) . (\`mod\` 83)) primes) >>= print@] @[167,499,997,1163]@
+  .
+    [@ @] @Value ()@
+  .
+  All the type annotations above are required.
+  .
+  For the underlying theory and a larger example involving use of
+  QuickCheck, see the article \"Chasing Bottoms, A Case Study in Program
+  Verification in the Presence of Partial and Infinite Values\"
+  (<http://www.cs.nott.ac.uk/~nad/publications/danielsson-jansson-mpc2004.html>).
+  .
+  The code has been tested under GHC 6.8. Most parts can probably be
+  ported to other Haskell compilers, but that would require some work.
+  The @TimeOut@ functions require preemptive scheduling, and most of the
+  rest requires @Data.Generics@; @isBottom@ only requires exceptions,
+  though.
+category:           Testing
+tested-with:        GHC == 6.8.2
+cabal-version:      >= 1.2 && < 2
+build-type:         Simple
+
+flag small_base
+    description: Choose the new smaller, split-up base package.
+
+library
+    exposed-modules:
+        Test.ChasingBottoms,
+        Test.ChasingBottoms.Approx,
+        Test.ChasingBottoms.ApproxShow,
+        Test.ChasingBottoms.ContinuousFunctions,
+        Test.ChasingBottoms.IsBottom,
+        Test.ChasingBottoms.Nat,
+        Test.ChasingBottoms.SemanticOrd,
+        Test.ChasingBottoms.TimeOut
+
+    other-modules: Test.ChasingBottoms.IsType
+
+    build-depends: QuickCheck >= 1.1 && < 2,
+                   mtl >= 1.1 && < 2
+    if flag(small_base)
+        build-depends: base >= 3 && < 4,
+                       containers >= 0.1 && < 1,
+                       random >= 1 && < 2
+    else
+        build-depends: base >= 2 && < 3
+
+-- It would be nice if the tests that can be accessed through
+-- Test.ChasingBottoms.Tests.main could be run automatically using
+-- Cabal (in a simple way). See make test.
+
+
+package-hashes:
+    MD5:260282ee8dba851396d0e0c1c95af061
+    SHA1:f45c042ef0605b810839a695d242c5c4890ef960
+    SHA256:ebe1ea4d5e9a871e8ac7358e53e40988a357e92c9c37f4557be94d03aa43bf44
+    SHA512:4ae97c9d00ad308972d38e8ba6b2a221beb609f1a18456aedd673b4f2672836ee48b577262374249324d753921f79d5eac9014e16820eb4445a5d71fb6768bf7
+    Skein512_512:87ceb3b23157649be5091604465bef05f7d72e069283b569a51388678a4622a92591aebd03b985bbba28eec02036eabe734555a2bf7dcafbf2b7486acacde4ae
+
+package-locations:
+    https://hackage.haskell.org/package/ChasingBottoms-1.2.4/ChasingBottoms-1.2.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/ChasingBottoms-1.2.4.tar.gz
+

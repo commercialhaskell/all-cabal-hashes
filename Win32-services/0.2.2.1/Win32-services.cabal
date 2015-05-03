@@ -1,0 +1,169 @@
+name:           Win32-services
+category:       System
+version:        0.2.2.1
+cabal-version:  >= 1.14
+build-type:     Simple
+author:         Michael Steele
+maintainer:     Michael Steele <mikesteele81@gmail.com>
+copyright:      Copyright (C) 2011-2013 Michael Steele
+homepage:       http://github.com/mikesteele81/win32-services
+bug-reports:    http://github.com/mikesteele81/win32-services/issues
+license:        BSD3
+license-file:   LICENSE
+tested-with:    GHC == 7.6.3
+stability:      provisional
+synopsis:       Windows service applications
+description:
+  This package provides a partial binding to the Win32 System Services
+  API. It makes it easy to write Windows service applications using
+  Haskell.
+  .
+  The binding is partial. Here are a few ways in which it differs from the
+  official API:
+  .
+  * Only services running within their own process are supported. These are
+  processes of the 'WIN32_OWN_PROCESS' type.
+  .
+  * In cases where multiple versions of the same function exist (for
+  compatibility), this binding only offers one of them.
+  .
+  * None of the extended control codes are supported. Handlers you write will
+  automatically report this to the operating system when such controls are
+  received.
+  .
+  * Only facilities for writing services are supported; not controlling them.
+  .
+  Effort has been made to simplify using the API without hiding what is
+  happening behind the scenes. Users are encouraged to read Microsoft's
+  documentation under 'Dev Center - Desktop > Docs > Desktop app development
+  documentation > System Services > Services'. The official example has been
+  ported to Haskell. This can be found in the 'examples' directory of the
+  source tree.
+  .
+  /Simple Example and Usage/
+  .
+  @
+  module Main where
+  .
+  import Control.Concurrent.MVar
+  import System.Win32.SystemServices.Services
+  .
+  main = do
+  &#x20;   mStop <- newEmptyMVar
+  &#x20;   startServiceCtrlDispatcher \"Test\" 3000 (handler mStop) $ \\_ _ h -> do
+  &#x20;       setServiceStatus h running
+  &#x20;       takeMVar mStop
+  &#x20;       setServiceStatus h stopped
+  .
+  handler mStop hStatus STOP = do
+  &#x20;   setServiceStatus hStatus stopPending
+  &#x20;   putMVar mStop ()
+  &#x20;   return True
+  handler _ _ INTERROGATE = return True
+  handler _ _ _           = return False
+  .
+  running = SERVICE_STATUS WIN32_OWN_PROCESS RUNNING [ACCEPT_STOP] nO_ERROR 0 0 0
+  stopped = SERVICE_STATUS WIN32_OWN_PROCESS STOPPED [] nO_ERROR 0 0 0
+  stopPending = SERVICE_STATUS WIN32_OWN_PROCESS START_PENDING [ACCEPT_STOP] nO_ERROR 0 0 0
+  @
+  .
+  @
+  C:\programming\test\>ghc --make -threaded Main.hs
+  [1 of 1] Compiling Main             ( Main.hs, Main.o )
+  Linking Main.exe ...
+  \<linker warnings omitted\>
+  C:\\programming\\test\>copy Main.exe c:\\svc\\Test.exe
+      1 file(s) copied.
+  @
+  .
+  Execute the following from an elevated command prompt to register the
+  service:
+  .
+  @
+  C:\\svc\>sc create Test binPath= c:\\svc\\Test.exe
+  [SC] CreateService SUCCESS
+  @
+  .
+  The service can now be started and stopped from the services console.
+  .
+  Installation Notes:
+  .
+  Depending on which version of Windows and the Windows SDK you are using the
+  .cabal file will need to be modified before installing. A simple `cabal
+  install Win32-services` may not work. For example, If you are building on
+  Windows 8 64-bit with the Windows 8 SDK the 'extra-lib-dirs' field will need
+  to be changed to read as follows:
+  .
+  @
+  Extra-Lib-Dirs: \"C:\\\\Program Files (x86)\\\\Windows Kits\\\\8.0\\\\Lib\\\\win8\\\\um\\\\x86\"
+  @
+  .
+  Release Notes:
+  .
+  Changes in 0.2.2
+  .
+  * Update library dependencies to support GHC 7.6.
+  .
+  Changes in 0.2.1
+  .
+  * bug fix: Services were failing to enter a STOPPED state. It is now the
+    user's responsibility to enter a stopped state in the service main function.
+    The 'startServiceCtrlDispatcher' function will continue to automatically put
+    the service into a START_PENDING state.
+  .
+  Changes in 0.2
+  .
+  * Writing services of the WIN32_OWN_PROCESS type is now easier. Handler
+  registration is performed automatically. By the time the service main
+  function is entered, the service will already be in the 'START_PENDING'
+  state. It is the user's responsibility to enter the 'RUNNING' state as soon
+  as possible.
+  .
+  * Once the service main function exits two things will occur. The service
+  will enter the 'STOPPED' state, and the handler function will be freed.
+  .
+  * The 'registerServiceCtrlHandlerEx' function is no longer
+  exported. Handlers are registered automatically by the
+  'startServiceCtrlDispatcher' function.
+  .
+  * The 'queryServiceStatus' function has been added.
+  .
+  Changes in 0.1
+  .
+  * First release
+extra-source-files: examples/*.hs
+
+source-repository head
+  type: git
+  location: git://github.com/mikesteele81/win32-services.git
+
+library
+  build-depends: base             >= 4.5 && < 4.7
+               , errors
+               , Win32
+  default-language: Haskell2010
+  ghc-options:     -Wall
+  hs-source-dirs: src
+  Exposed-Modules: System.Win32.SystemServices.Services
+  Extra-Libraries: Advapi32
+  other-modules: System.Win32.SystemServices.Services.SERVICE_STATUS
+               , System.Win32.SystemServices.Services.Raw
+               , System.Win32.SystemServices.Services.SERVICE_TABLE_ENTRY
+               , System.Win32.SystemServices.Services.Types
+               , System.Win32.SystemServices.Services.SERVICE_ACCEPT
+               , System.Win32.SystemServices.Services.SERVICE_CONTROL
+               , System.Win32.SystemServices.Services.SERVICE_STATE
+               , System.Win32.SystemServices.Services.SERVICE_TYPE
+
+
+package-hashes:
+    MD5:368bee23542d90810d19bc690bf4106b
+    SHA1:e2eb634e203e364012cc81aec67cc3c62cac4a0e
+    SHA256:6c56fc9bdeff4ed3daf2a389cbcf2526cf59780f10cf0d19c266c6c7bf83cc02
+    SHA512:0fb114cfec628e9446193df427fc87188d30cf6b9877603d8cc7fafd42c7b3960f20915315a5f4a1256f40fb841deae46d6dbde9bf189c1d6171b23a0e158439
+    Skein512_512:d1f960eb8f6e7251346986cdf6bde183e16f06c9ec824d1a0ea53771bab4968f2496ed340101d98944644d9bfb0f25e3e2ec44f155284f039d6d57b5a4c557be
+
+package-locations:
+    https://hackage.haskell.org/package/Win32-services-0.2.2.1/Win32-services-0.2.2.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/Win32-services-0.2.2.1.tar.gz
+

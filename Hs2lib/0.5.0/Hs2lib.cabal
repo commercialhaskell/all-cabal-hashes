@@ -1,0 +1,203 @@
+Name:           Hs2lib
+Version:        0.5.0
+Cabal-Version:  >= 1.10
+Build-Type:     Custom
+License:        BSD3
+License-File:   LICENSE.txt
+Author:         Tamar Christina <tamar@zhox.com>
+Maintainer:     Tamar Christina <tamar@zhox.com>
+Homepage:       http://blog.zhox.com/category/hs2lib/
+Category:       Development
+Stability:      experimental
+Synopsis:       A Library and Preprocessor that makes it easier to create shared libs from Haskell programs.
+Description:    The supplied PreProcessor can be run over any existing source and would generate FFI code for every function marked to be exported by the special notation documented inside the package. It then proceeds to compile this generated code into a lib.
+                .
+                The Library contains some helper code that's commonly needed to convert between types, and contains the code for the typeclasses the PreProcessor uses in the generated code to keep things clean.
+                .
+                It will always generated the required C types for use when calling the dll, but it will also generate the C# unsafe code if requested.
+                .
+				Read http://blog.zhox.com/hs2lib.pdf (not published yet)
+				.
+                Current Restrictions: 
+                .
+                    - You cannot export functions which have the same name (even if they're in different modules because 1 big hsc file is generated at the moment, no conflict resolutions)
+                .
+                    - You cannot export datatypes with the same name, same restriction as above.
+                .
+                    - Does not support automatic instance generation for infix constructors yet
+                .
+Data-Files: Templates/main.template-unix.c, 
+            Templates/main.template-win.c,
+            Templates/nomain.template-unix.c, 
+            Templates/nomain.template-win.c,
+            Includes/Tuples.h,
+            Includes/Instances.h,
+            Includes/FFI.dll
+            Includes/FFI/Properties/AssemblyInfo.cs
+            Includes/FFI/FFI.sln
+            Includes/FFI/FFI.csproj
+            Includes/FFI/LockedValue.cs
+            Includes/FFI/SafeString.cs
+            Includes/FFI/FFI.suo
+            Includes/FFI/WinLib.cs
+            Includes/WinDllSupport.dll
+            Includes/WinDllSupport.lib
+            Includes/WinDllSupport.exp
+            Includes/WinDllSupport.h
+            
+             
+Tested-With:   GHC  >= 6.12
+Build-Depends: base >= 4,
+               syb  >= 0.1.0.2
+Extra-Source-Files: WinDll/*.hs,
+                    WinDll/CodeGen/*.hs,
+                    WinDll/CodeGen/CSharp/*.hs,
+                    WinDll/COFF/*.hs,
+                    -- WinDll/Lib/*.hsc,
+                    WinDll/Lib/*.cpphs,
+                    WinDll/Lib/*.xpphs,
+                    WinDll/Lib/*.hs,
+                    WinDll/Shared/*.hs,
+                    WinDll/Debug/*.hs,
+                    WinDll/Debug/*.xhs,
+                    WinDll/Debug/*.hs-boot,
+                    WinDll/Structs/*.hs,
+                    WinDll/Structs/Folds/*.hs,
+                    WinDll/Structs/MShow/*.hs,
+                    WinDll/Utils/*.hs,
+                    Tests/*.hs,
+                    Tests/Src/*.hs,
+                    Tests/Src/*.txt,
+                    *.hs,
+                    Includes/*.h, 
+                    Includes/*.dll, 
+                    Includes/*.exp, 
+                    Includes/*.lib, 
+                    LIMITS.TXT
+
+Library
+    Exposed:    True
+    Exposed-Modules:    WinDll.Lib.Converter,
+                        WinDll.Lib.NativeMapping,
+                        WinDll.Lib.InstancesTypes,
+                        WinDll.Debug.Alloc,
+                        WinDll.Debug.Records,
+                        WinDll.Debug.Stack,
+                        WinDll.Debug.Exports,
+                        WinDll.Lib.NativeMapping_Debug,
+                        WinDll.Lib.Native,
+                        WinDll.Lib.Tuples,
+                        WinDll.Lib.Tuples_Debug,
+                        WinDll.Structs.Types
+
+    Build-Depends:   haskell-src-exts >= 1.9.0,
+                     ghc              >= 6.12 && < 7.0 || >= 7.0.2,
+                     base             >= 4    && < 5,
+                     filepath         >= 1    && < 1.3,
+                     old-locale       >= 1.0.0.2,
+                     time             >= 1.2.0.3,
+                     directory        >= 1.0.0.3,
+                     syb              >= 0.1.0.2,
+                     random           >= 1.0.0.1
+                        
+    Other-Modules:    Paths_Hs2lib
+    Default-Language: Haskell98
+    
+    if !os(windows)
+        GHC-Options: -fPIC                        
+
+    Build-Tools: hsc2hs, cpphs
+    Include-Dirs: Includes
+                   
+    
+Executable Hs2lib
+    Main-is:         Hs2lib.hs
+                        
+    Build-Depends:   QuickCheck       >= 2.1.0.1,
+                     directory        >= 1.0.0.3,
+                     ghc-paths        >= 0.1.0.5,
+                     filepath         >= 1.1.0.2,
+                     random           >= 1.0.0.1,
+                     process          >= 1.0.1.1,
+                     ghc              >= 6.12 && < 7.0 || >= 7.0.2,
+                     mtl              >= 1.1.0.2,
+                     containers       >= 0.2.0.0,
+                     array            >= 0.2.0.0,
+                     haskell-src-exts >= 1.9.0,
+                     haddock          >= 2.7.2,
+                     base             >= 4   && < 5,
+                     syb              >= 0.1.0.2,
+                     time             >= 1.2.0.3,
+                     old-locale       >= 1.0.0.2,
+                     cereal           >= 0.3.0.0
+                   
+    ghc-options:    -threaded -fspec-constr-count=16
+    cpp-options:    -UDEBUG
+
+    Other-Modules:    Paths_Hs2lib,
+                      WinDll.Lib.NativeMapping,
+                      WinDll.Lib.NativeMapping_Debug
+                      
+    Default-Language: Haskell98  
+    
+Executable Hs2lib-debug
+    Main-is:         Hs2lib-debug.hs
+                        
+    Build-Depends:   QuickCheck       >= 2.1.0.1,
+                     directory        >= 1.0.0.3,
+                     ghc-paths        >= 0.1.0.5,
+                     filepath         >= 1.1.0.2,
+                     random           >= 1.0.0.1,
+                     process          >= 1.0.1.1,
+                     ghc              >= 6.12 && < 7.0 || >= 7.0.2,
+                     mtl              >= 1.1.0.2,
+                     containers       >= 0.2.0.0,
+                     array            >= 0.2.0.0,
+                     haskell-src-exts >= 1.9.0,
+                     haddock          >= 2.7.2,
+                     base             >= 4   && < 5,
+                     syb              >= 0.1.0.2,
+                     time             >= 1.2.0.3,
+                     old-locale       >= 1.0.0.2,
+                     cereal           >= 0.3.0.0
+                   
+    ghc-options:    -threaded -fspec-constr-count=16 -rtsopts
+    cpp-options:    -DDEBUG
+
+    Other-Modules:    Paths_Hs2lib,
+                      WinDll.Lib.NativeMapping,
+                      WinDll.Lib.NativeMapping_Debug,
+                      WinDll.Debug.Records,
+                      WinDll.Debug.Stack
+                      
+    Default-Language: Haskell98
+    
+Test-Suite test-regression
+    type:             exitcode-stdio-1.0
+    main-is:          Tests\Test-Regression.hs
+    Default-Language: Haskell98
+    build-depends: base             >= 4   && < 5,
+                   filepath         >= 1.1.0.2,
+                   process          >= 1.0.1.1,
+                   haskell98        >= 1.1.0.1
+                   
+Test-Suite test-regression-debug
+    type:             exitcode-stdio-1.0
+    main-is:          Tests\Test-Regression-Debug.hs
+    Default-Language: Haskell98
+    build-depends: base             >= 4   && < 5,
+                   filepath         >= 1.1.0.2,
+                   process          >= 1.0.1.1,
+                   haskell98        >= 1.1.0.1
+
+package-hashes:
+    MD5:b017cd6e48d918ff2db75e851ee72400
+    SHA1:cc08d8ec63946a6161d4a4b43509da27d8032e19
+    SHA256:9fbec43b8d965f6774da8d4779005b0211b7f418cacf9fd035abd1202746a2dd
+    SHA512:c6b48077b29a4ab8d3c06d16937ac0c638f3d7903d32182788036492d92ad391efebd350910ca4cd337339d90c0fb3497aede9ce549f8abd0afc47b4f6a70a0f
+    Skein512_512:4d9b2fd354007d2bcf6f065533ce6c8e5fd5412775dc6b1b3ee3dd6945a9b84087de0368e1cf70b0cba5722a5c1abc159eb7c257f88f1a743c368a68ed05a6a5
+
+package-locations:
+    https://hackage.haskell.org/package/Hs2lib-0.5.0/Hs2lib-0.5.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/Hs2lib-0.5.0.tar.gz
+

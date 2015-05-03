@@ -1,0 +1,181 @@
+Name: QuickCheck
+Version: 2.8
+Cabal-Version: >= 1.8
+Build-type: Simple
+License: BSD3
+License-file: LICENSE
+Extra-source-files: README changelog
+Copyright: 2000-2015 Koen Claessen, 2006-2008 Björn Bringert, 2009-2015 Nick Smallbone
+Author: Koen Claessen <koen@chalmers.se>
+Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
+Bug-reports: mailto:quickcheck@projects.haskell.org
+Tested-with: GHC >=6.10, Hugs, UHC
+Homepage: https://github.com/nick8325/quickcheck
+Category:       Testing
+Synopsis:       Automatic testing of Haskell programs
+Description:
+  QuickCheck is a library for random testing of program properties.
+  .
+  The programmer provides a specification of the program, in
+  the form of properties which functions should satisfy, and
+  QuickCheck then tests that the properties hold in a large number
+  of randomly generated cases.
+  .
+  Specifications are expressed in
+  Haskell, using combinators defined in the QuickCheck library.
+  QuickCheck provides combinators to define properties, observe
+  the distribution of test data, and define test
+  data generators.
+  .
+  You can find a (slightly out-of-date but useful) manual at
+  <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html>.
+
+source-repository head
+  type:     git
+  location: https://github.com/nick8325/quickcheck
+
+source-repository this
+  type:     git
+  location: https://github.com/nick8325/quickcheck
+  tag:      2.8
+
+flag base3
+  Description: Choose the new smaller, split-up base package.
+
+flag base4
+  Description: Choose the even newer base package with extensible exceptions.
+
+flag base4point8
+  Description: Choose the even more newer base package with natural numbers.
+
+flag templateHaskell
+  Description: Build Test.QuickCheck.All, which uses Template Haskell.
+
+library
+  -- Choose which library versions to use.
+  if flag(base4point8)
+    Build-depends: base >= 4.8 && < 5
+  else
+    if flag(base4)
+      Build-depends: base >= 4 && < 4.8
+    else
+      if flag(base3)
+        Build-depends: base >= 3 && < 4
+      else
+        Build-depends: base < 3
+  if flag(base4point8) || flag(base4) || flag(base3)
+    Build-depends: random
+  Build-depends: containers
+
+  -- Modules that are always built.
+  Exposed-Modules:
+    Test.QuickCheck,
+    Test.QuickCheck.Arbitrary,
+    Test.QuickCheck.Gen,
+    Test.QuickCheck.Gen.Unsafe,
+    Test.QuickCheck.Monadic,
+    Test.QuickCheck.Modifiers,
+    Test.QuickCheck.Property,
+    Test.QuickCheck.Test,
+    Test.QuickCheck.Text,
+    Test.QuickCheck.Poly,
+    Test.QuickCheck.State,
+    Test.QuickCheck.Random,
+    Test.QuickCheck.Exception
+
+  -- GHC-specific modules.
+  if impl(ghc)
+    Exposed-Modules: Test.QuickCheck.Function
+  if impl(ghc >= 7)
+    Build-depends: transformers >= 0.2
+  else
+    cpp-options: -DNO_TRANSFORMERS
+  if impl(ghc >= 6.12) && flag(templateHaskell)
+    Build-depends: template-haskell >= 2.4
+    Exposed-Modules: Test.QuickCheck.All
+  else
+    cpp-options: -DNO_TEMPLATE_HASKELL
+
+  -- Compiler-specific tweaks, lots of 'em!
+
+  -- On old versions of GHC use the ghc package to catch ctrl-C.
+  if impl(ghc >= 6.7) && impl(ghc < 6.13)
+      Build-depends: ghc
+
+  -- We want to use extensible-exceptions even if linking against base-3.
+  if impl(ghc >= 6.9) && impl (ghc < 7.0)
+    Build-depends: extensible-exceptions
+
+  -- GHC < 7.0 can't cope with multiple LANGUAGE pragmas in the same file.
+  if impl(ghc < 7)
+    Extensions: GeneralizedNewtypeDeriving, MultiParamTypeClasses, Rank2Types, TypeOperators
+
+  -- The new generics appeared in GHC 7.2...
+  if impl(ghc < 7.2)
+    cpp-options: -DNO_GENERICS
+  -- ...but in 7.2-7.4 it lives in the ghc-prim package.
+  if impl(ghc >= 7.2) && impl(ghc < 7.6)
+    Build-depends: ghc-prim
+
+  -- Safe Haskell appeared in GHC 7.2, but GHC.Generics isn't safe until 7.4.
+  if impl (ghc < 7.4)
+    cpp-options: -DNO_SAFE_HASKELL
+
+  -- Use tf-random on newer GHCs.
+  if impl(ghc >= 7) && (flag(base4point8) || flag(base4))
+    Build-depends: tf-random >= 0.4
+  else
+    cpp-options: -DNO_TF_RANDOM
+
+  -- Natural numbers.
+  if !flag(base4point8)
+    cpp-options: -DNO_NATURALS
+
+  -- Switch off most optional features on non-GHC systems.
+  if !impl(ghc)
+    -- If your Haskell compiler can cope without some of these, please
+    -- send a message to the QuickCheck mailing list!
+    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS -DNO_TEMPLATE_HASKELL -DNO_SAFE_HASKELL
+    if !impl(hugs) && !impl(uhc)
+      cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
+
+  -- LANGUAGE pragmas don't have any effect in Hugs.
+  if impl(hugs)
+    Extensions: CPP
+
+  if impl(uhc)
+    -- Cabal under UHC needs pointing out all the dependencies of the
+    -- random package.
+    Build-depends: old-time, old-locale
+    -- Plus some bits of the standard library are missing.
+    cpp-options: -DNO_FIXED -DNO_EXCEPTIONS
+
+Test-Suite test-quickcheck
+    type: exitcode-stdio-1.0
+    hs-source-dirs:
+        examples
+    main-is: Heap.hs
+    build-depends:
+      base,
+      containers,
+      QuickCheck == 2.8,
+      template-haskell >= 2.4,
+      test-framework >= 0.4 && < 0.9
+    if flag(templateHaskell)
+        Buildable: True
+    else
+        Buildable: False
+
+
+
+package-hashes:
+    MD5:c813d933986bfcb219df09b80d72f0be
+    SHA1:bf161dddd50833dbb2d762758839bfeb0f31f296
+    SHA256:3d93cc8355a26017c37d725768354b70472a4f5d199b60e29d962d217035ba13
+    SHA512:03112eb1ddc370264cb08eea33fa7263e9bfeb0e4471b37dfcc4bd54f9ec820965c69d9388505bc63483098274ee60379a3fad909a04ab0c5988518c1c093858
+    Skein512_512:abd93010f84b6025ce0f38fa78bf5dc6bdc745207cc760757a7e73cae7a4119b594e49b44d92b8ef142d93fd2199f1de57b331a065d746f9064e382533fc1646
+
+package-locations:
+    https://hackage.haskell.org/package/QuickCheck-2.8/QuickCheck-2.8.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/QuickCheck-2.8.tar.gz
+

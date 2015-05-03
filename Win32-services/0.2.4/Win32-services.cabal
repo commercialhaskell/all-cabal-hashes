@@ -1,0 +1,138 @@
+name:           Win32-services
+category:       System
+version:        0.2.4
+cabal-version:  >= 1.14
+build-type:     Simple
+author:         Michael Steele
+maintainer:     Michael Steele <mikesteele81@gmail.com>
+copyright:      Copyright (C) 2011-2014 Michael Steele
+homepage:       http://github.com/mikesteele81/win32-services
+bug-reports:    http://github.com/mikesteele81/win32-services/issues
+license:        BSD3
+license-file:   LICENSE
+tested-with:    GHC == 7.8.2
+stability:      provisional
+synopsis:       Windows service applications
+description:
+  This package provides a partial binding to the Win32 System Services
+  API. It makes it easy to write Windows service applications using
+  Haskell.
+  .
+  The binding is partial. Here are a few ways in which it differs from the
+  official API:
+  .
+  * Only services running within their own process are supported. These are
+  processes of the 'WIN32_OWN_PROCESS' type.
+  .
+  * In cases where multiple versions of the same function exist (for
+  compatibility), this binding only offers one of them.
+  .
+  * None of the extended control codes are supported. Handlers you write will
+  automatically report this to the operating system when such controls are
+  received.
+  .
+  * Only facilities for writing services are supported; not controlling them.
+  .
+  Effort has been made to simplify using the API without hiding what is
+  happening behind the scenes. Users are encouraged to read Microsoft's
+  documentation under 'Dev Center - Desktop > Docs > Desktop app development
+  documentation > System Services > Services'. The official example has been
+  ported to Haskell. This can be found in the 'examples' directory of the
+  source tree.
+  .
+  /Simple Example and Usage/
+  .
+  @
+  module Main where
+  .
+  import Control.Concurrent.MVar
+  import System.Win32.SystemServices.Services
+  .
+  main = do
+  &#x20;   mStop <- newEmptyMVar
+  &#x20;   startServiceCtrlDispatcher \"Test\" 3000 (handler mStop) $ \\_ _ h -> do
+  &#x20;       setServiceStatus h running
+  &#x20;       takeMVar mStop
+  &#x20;       setServiceStatus h stopped
+  .
+  handler mStop hStatus STOP = do
+  &#x20;   setServiceStatus hStatus stopPending
+  &#x20;   putMVar mStop ()
+  &#x20;   return True
+  handler _ _ INTERROGATE = return True
+  handler _ _ _           = return False
+  .
+  running = SERVICE_STATUS WIN32_OWN_PROCESS RUNNING [ACCEPT_STOP] nO_ERROR 0 0 0
+  stopped = SERVICE_STATUS WIN32_OWN_PROCESS STOPPED [] nO_ERROR 0 0 0
+  stopPending = SERVICE_STATUS WIN32_OWN_PROCESS START_PENDING [ACCEPT_STOP] nO_ERROR 0 0 0
+  @
+  .
+  @
+  C:\programming\test\>ghc --make -threaded Main.hs
+  [1 of 1] Compiling Main             ( Main.hs, Main.o )
+  Linking Main.exe ...
+  \<linker warnings omitted\>
+  C:\\programming\\test\>copy Main.exe c:\\svc\\Test.exe
+      1 file(s) copied.
+  @
+  .
+  Execute the following from an elevated command prompt to register the
+  service:
+  .
+  @
+  C:\\svc\>sc create Test binPath= c:\\svc\\Test.exe
+  [SC] CreateService SUCCESS
+  @
+  .
+  The service can now be started and stopped from the services console.
+  .
+  Installation Notes:
+  .
+  Depending on which version of Windows and the Windows SDK you are using the
+  .cabal file will need to be modified before installing. A simple `cabal
+  install Win32-services` may not work. For example, If you are building on
+  Windows 8 64-bit with the Windows 8 SDK the 'extra-lib-dirs' field will need
+  to be changed to read as follows:
+  .
+  @
+  Extra-Lib-Dirs: \"C:\\\\Program Files (x86)\\\\Windows Kits\\\\8.0\\\\Lib\\\\win8\\\\um\\\\x86\"
+  @
+extra-source-files:
+    changelog
+    examples/*.hs
+
+source-repository head
+  type: git
+  location: git://github.com/mikesteele81/win32-services.git
+
+library
+  build-depends: base   >= 4.5 && < 4.8
+               , errors >= 1.4 && < 1.5
+               , Win32  >= 2.2 && < 2.4
+  default-language: Haskell2010
+  ghc-options:     -Wall
+  hs-source-dirs: src
+  Exposed-Modules: System.Win32.SystemServices.Services
+  Extra-Libraries: Advapi32
+  Extra-Lib-Dirs: c:\Windows\System32
+  other-modules: System.Win32.SystemServices.Services.SERVICE_STATUS
+               , System.Win32.SystemServices.Services.Raw
+               , System.Win32.SystemServices.Services.SERVICE_TABLE_ENTRY
+               , System.Win32.SystemServices.Services.Types
+               , System.Win32.SystemServices.Services.SERVICE_ACCEPT
+               , System.Win32.SystemServices.Services.SERVICE_CONTROL
+               , System.Win32.SystemServices.Services.SERVICE_STATE
+               , System.Win32.SystemServices.Services.SERVICE_TYPE
+
+
+package-hashes:
+    MD5:ec4d601b6124dad2bd23b02d738767eb
+    SHA1:74e0f119204547e5c52d606cdf2f360c0be99dcf
+    SHA256:a1915171e779e4c3cc2a62d182fc37d69737da9c7c7c82aad9eb35c6668cca00
+    SHA512:506e808a608e79b0d20b0899404ebd91b1a33490b4458448637bd6e2df0f5f8cb080e1ab3c0ebc3cc33cfd47c274c04b21194dfd4e1c7286c625de4670d9909e
+    Skein512_512:9cda3aa4b59f9dc06e4d83a952c73708112fb5c616f9c2a7ce89dd95ff49c4929c1f229462adbbfc4f6f6c9fa5aeabdf37686f13f8bbb70221e7f3c3845fac81
+
+package-locations:
+    https://hackage.haskell.org/package/Win32-services-0.2.4/Win32-services-0.2.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/Win32-services-0.2.4.tar.gz
+

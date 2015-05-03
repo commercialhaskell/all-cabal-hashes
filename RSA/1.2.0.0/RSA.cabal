@@ -1,0 +1,88 @@
+name:       RSA
+category:   Cryptography, Codec
+version:    1.2.0.0
+license:    BSD3
+license-file: LICENSE
+author:     Adam Wick <awick@galois.com>
+maintainer: Adam Wick <awick@galois.com>
+stability:  stable
+build-type: Simple
+cabal-version: >= 1.6
+tested-with: GHC ==6.8.0
+synopsis: Implementation of RSA, using the padding schemes of PKCS#1 v2.1.
+description: This library implements the RSA encryption and signature 
+             algorithms for arbitrarily-sized ByteStrings. While the 
+             implementations work, they are not necessarily the fastest ones
+             on the planet. Particularly key generation. The algorithms
+             included are based of RFC 3447, or the Public-Key Cryptography
+             Standard for RSA, version 2.1 (a.k.a, PKCS#1 v2.1).   
+
+Flag test
+  Default:     False
+  Description: Building the test program
+
+Flag IncludeMD5
+  Description: Include support for using MD5 in the various crypto routines.
+
+Flag UseBinary
+  Description: Use the binary package for serializing keys.
+
+Flag OldBase
+  Description: Whether or not to use base 3 (default: no)
+  Default: False
+
+Library
+ build-depends: bytestring, crypto-api >= 0.10, monadcryptorandom
+ GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+ if flag(OldBase)
+   build-depends: base >= 3 && < 4, SHA < 1.4.1
+ else
+   build-depends: base >= 4 && < 5, SHA
+ if flag(UseBinary)
+   build-depends: binary
+   CPP-Options: -DUSE_BINARY
+ if flag(IncludeMD5) && flag(UseBinary)
+   if flag(OldBase)
+      build-depends: pureMD5 < 1.1
+   else
+      build-depends: pureMD5
+   CPP-Options: -DINCLUDE_MD5
+ exposed-modules: Codec.Crypto.RSA
+ extensions: CPP, BangPatterns, ScopedTypeVariables
+
+Executable test_rsa
+  if flag(test)
+    if flag(OldBase)
+      build-depends: base >= 3 && < 4, SHA < 1.4.1
+    else
+      build-depends: base >= 4 && < 5, SHA
+    build-depends: bytestring, test-framework >= 0.3 && < 0.7,
+                   QuickCheck >= 2 && < 3,
+                   test-framework-quickcheck2 >= 0.2 && < 0.7,
+                   DRBG >= 0.2.3 && < 0.4,
+                   tagged >= 0.2.3 && < 0.4
+  else
+    Buildable: False
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans 
+  CPP-Options: -DRSA_TEST
+  Main-Is: Test.hs
+  Other-Modules: Codec.Crypto.RSA
+  extensions: CPP, BangPatterns, ScopedTypeVariables
+
+source-repository head
+  type: git
+  location: git://github.com/GaloisInc/RSA.git
+
+
+
+package-hashes:
+    MD5:838769b2f09f8d0c961fa99bf34048ae
+    SHA1:a8c573dad3153b1e6638b23a562779042cf9cf7f
+    SHA256:baea28375908c2b3a190814df3dccc9bb6dd2bf095e1a91a63834c823d509c74
+    SHA512:1c4702618b83b0debcd3e7d35477307334b3cc13e4ae51b0967f70e4138c8311712588722cafbb41eb38dbdbf49d79aafdc9861290e05da72c876413b63c8776
+    Skein512_512:9ad009b4209e8b0049d76b1b75bb8810fea665e36a024f58cd18ad96d323e791afef9b271beedac7848a0ecb5761ffdca16d4c71b1bdac1477a9db0bc45e5b55
+
+package-locations:
+    https://hackage.haskell.org/package/RSA-1.2.0.0/RSA-1.2.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/RSA-1.2.0.0.tar.gz
+

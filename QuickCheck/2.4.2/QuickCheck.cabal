@@ -1,0 +1,113 @@
+Name: QuickCheck
+Version: 2.4.2
+x-revision: 1
+Cabal-Version: >= 1.6
+Build-type: Simple
+License: BSD3
+License-file: LICENSE
+Extra-source-files: README
+Copyright: 2000-2011 Koen Claessen, 2006-2008 BjÃ¶rn Bringert, 2009-2011 Nick Smallbone
+Author: Koen Claessen <koen@chalmers.se>
+Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
+Bug-reports: mailto:quickcheck@projects.haskell.org
+Tested-with: GHC >=6.8, Hugs
+Homepage: http://code.haskell.org/QuickCheck
+Category:	    Testing
+Synopsis:	    Automatic testing of Haskell programs
+Description:
+        QuickCheck is a library for random testing of program properties.
+        .
+	The programmer provides a specification of the program, in
+	the form of properties which functions should satisfy, and
+	QuickCheck then tests that the properties hold in a large number
+	of randomly generated cases.  
+        .
+        Specifications are expressed in
+	Haskell, using combinators defined in the QuickCheck library.
+	QuickCheck provides combinators to define properties, observe
+	the distribution of test data, and define test
+	data generators.
+
+source-repository head
+  type:     darcs
+  location: http://code.haskell.org/QuickCheck/devel
+
+source-repository this
+  type:     darcs
+  location: http://code.haskell.org/QuickCheck/stable
+  tag:      2.4.2
+
+flag base3
+  Description: Choose the new smaller, split-up base package.
+
+flag base4
+  Description: Choose the even newer base package with extensible exceptions.
+
+flag templateHaskell
+  Description: Build Test.QuickCheck.All, which uses Template Haskell.
+
+library
+  -- Choose which library versions to use.
+  if flag(base4)
+    Build-depends: base >= 4 && < 4.8, random
+  else
+    if flag(base3)
+      Build-depends: base >= 3 && < 4, random
+    else
+      Build-depends: base < 3
+
+  -- On old versions of GHC use the ghc package to catch ctrl-C.  
+  if impl(ghc >= 6.7) && impl(ghc < 6.13)
+      Build-depends: ghc
+
+  -- We want to use extensible-exceptions even if linking against base-3.
+  if impl(ghc >= 6.9)
+    Build-depends: extensible-exceptions
+
+  -- Modules that are always built.
+  Exposed-Modules:
+    Test.QuickCheck,
+    Test.QuickCheck.Arbitrary,
+    Test.QuickCheck.Gen,
+    Test.QuickCheck.Monadic,
+    Test.QuickCheck.Modifiers,
+    Test.QuickCheck.Property,
+    Test.QuickCheck.Test,
+    Test.QuickCheck.Text,
+    Test.QuickCheck.Poly,
+    Test.QuickCheck.State
+
+  -- Choose which optional features to build based on which compiler
+  -- we're using. It would be nice to use flags for this but Cabal's
+  -- dependency resolution isn't good enough.
+  if impl(ghc)
+    Exposed-Modules: Test.QuickCheck.Function
+    if flag(templateHaskell) && impl(ghc >= 6.12)
+      Build-depends: template-haskell >= 2.4
+      Exposed-Modules: Test.QuickCheck.All
+    -- GHC < 7.0 doesn't cope with multiple LANGUAGE pragmas in the same
+    -- file, I think...
+    if impl(ghc < 7)
+      Extensions: GeneralizedNewtypeDeriving, MultiParamTypeClasses, Rank2Types, TypeOperators
+  else
+    -- If your Haskell compiler can cope without some of these, please
+    -- send a message to the QuickCheck mailing list!
+    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING
+    if !impl(hugs)
+      cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
+  Other-Modules:
+    Test.QuickCheck.Exception
+  GHC-options:
+
+
+package-hashes:
+    MD5:9e22f9741cbc7d9cd8d52d3928e57b67
+    SHA1:e49f2f664b301af78d7a0745ff596c44c1f3e090
+    SHA256:6f05c399ae7b70c09ab21337caf1211f43fd76d6ad9b3814a4009ddbf438179f
+    SHA512:498613f15aedb7cabf91e4badfc398d0df85d0837dafccbc262da740f52de1572b5bddff14e4e7f8f004d89fc898fed653e6bcb92ad8feeb7ab13e596ef341c0
+    Skein512_512:491daccbca57edf5409ec6d65ae33474839464563e3535a3886d0d1e5cbb5639ca8a9ad976a8d2126fae21299c9d6feb245ff9d157156030960896a5839037e1
+
+package-locations:
+    https://hackage.haskell.org/package/QuickCheck-2.4.2/QuickCheck-2.4.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/QuickCheck-2.4.2.tar.gz
+

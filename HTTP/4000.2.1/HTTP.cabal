@@ -1,0 +1,124 @@
+Name: HTTP
+Version: 4000.2.1
+x-revision: 1
+Cabal-Version: >= 1.8
+Build-type: Simple
+License: BSD3
+License-file: LICENSE
+Author: Warrick Gray <warrick.gray@hotmail.com>
+Maintainer: Ganesh Sittampalam <http@projects.haskell.org>
+Homepage: https://github.com/haskell/HTTP
+Category: Network
+Synopsis: A library for client-side HTTP
+Description: 
+
+ The HTTP package supports client-side web programming in Haskell. It lets you set up 
+ HTTP connections, transmitting requests and processing the responses coming back, all
+ from within the comforts of Haskell. It's dependent on the network package to operate,
+ but other than that, the implementation is all written in Haskell.
+ .
+ A basic API for issuing single HTTP requests + receiving responses is provided. On top
+ of that, a session-level abstraction is also on offer  (the @BrowserAction@ monad);
+ it taking care of handling the management of persistent connections, proxies,
+ state (cookies) and authentication credentials required to handle multi-step
+ interactions with a web server.
+ .
+ The representation of the bytes flowing across is extensible via the use of a type class,
+ letting you pick the representation of requests and responses that best fits your use.
+ Some pre-packaged, common instances are provided for you (@ByteString@, @String@.)
+ .
+ Here's an example use:
+ .
+ >
+ >    do
+ >      rsp <- Network.HTTP.simpleHTTP (getRequest "http://www.haskell.org/")
+ >              -- fetch document and return it (as a 'String'.)
+ >      fmap (take 100) (getResponseBody rsp)
+ >
+ >    do
+ >      (_, rsp)
+ >         <- Network.Browser.browse $ do
+ >               setAllowRedirects True -- handle HTTP redirects
+ >               request $ getRequest "http://www.haskell.org/"
+ >      return (take 100 (rspBody rsp))
+
+Extra-Source-Files: CHANGES
+
+Source-Repository head
+  type: git
+  location: https://github.com/haskell/HTTP.git
+
+Flag old-base
+  description: Old, monolithic base
+  default: False
+
+Flag mtl1
+  description: Use the old mtl version 1.
+  default: False
+
+Library
+  Exposed-modules: 
+                 Network.BufferType,
+                 Network.Stream,
+                 Network.StreamDebugger,
+                 Network.StreamSocket,
+                 Network.TCP,                
+                 Network.HTTP,
+                 Network.HTTP.Headers,
+                 Network.HTTP.Base,
+                 Network.HTTP.Stream,
+                 Network.HTTP.Auth,
+                 Network.HTTP.Cookie,
+                 Network.HTTP.Proxy,
+                 Network.HTTP.HandleStream,
+                 Network.Browser
+  Other-modules:
+                 Network.HTTP.Base64,
+                 Network.HTTP.MD5Aux,
+                 Network.HTTP.Utils
+                 Paths_HTTP
+  GHC-options: -fwarn-missing-signatures -Wall
+  Build-depends: base >= 2 && < 4.5, network < 2.4, parsec
+  Extensions: FlexibleInstances
+  if flag(old-base)
+    Build-depends: base < 3
+  else
+    Build-depends: base >= 3, array, old-time, bytestring
+  if flag(mtl1)
+    Build-depends: mtl >= 1.1 && < 1.2
+    CPP-Options: -DMTL1
+  else
+    Build-depends: mtl >= 2.0 && < 2.1
+
+  if os(windows)
+    Build-depends: Win32
+
+Test-Suite test
+  type: exitcode-stdio-1.0
+
+  build-tools: ghc >= 6.10 && < 7.4
+
+  hs-source-dirs: test
+  main-is: httpTests.hs
+
+  build-depends:     HTTP,
+                     HUnit,
+                     httpd-shed,
+                     base >= 2 && < 4.5,
+                     network,
+                     split >= 0.1 && < 0.2,
+                     test-framework,
+                     test-framework-hunit
+
+
+package-hashes:
+    MD5:1c7be1750aec2d21b2952990da5303fe
+    SHA1:f3d2156604e88592d3604b52b4d7109e42c1b79e
+    SHA256:0a40aa630ac47db8a54a3286c07bc0381b862de9a4d8af2f12a2787a66360704
+    SHA512:a4ad98d736469d22947258395b73a6661a4489560002baadc1db6b6c6f1de2beb56af5da22c8b3e9db0e68bbc36deb30f2b27bb3231cba79ccd1ef269baf3eb5
+    Skein512_512:f4c77efc359629c9cd1257388692bb2c8d75f36a89728f9b4992fbd7b2ad27a6c2a88bb061e986b1d1e7e18ae03334c375e625996eff1f5421763a58634f09df
+
+package-locations:
+    https://hackage.haskell.org/package/HTTP-4000.2.1/HTTP-4000.2.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/HTTP-4000.2.1.tar.gz
+

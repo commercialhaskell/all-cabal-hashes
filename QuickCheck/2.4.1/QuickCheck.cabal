@@ -1,0 +1,113 @@
+Name: QuickCheck
+Version: 2.4.1
+x-revision: 1
+Cabal-Version: >= 1.6
+Build-type: Simple
+License: BSD3
+License-file: LICENSE
+Extra-source-files: README
+Copyright: 2000-2011 Koen Claessen, 2006-2008 Bj¶rn Bringert, 2009-2001 Nick Smallbone
+Author: Koen Claessen <koen@chalmers.se>
+Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
+Bug-reports: mailto:quickcheck@projects.haskell.org
+Tested-with: GHC >=6.8, Hugs
+Homepage: http://code.haskell.org/QuickCheck
+Category:	    Testing
+Synopsis:	    Automatic testing of Haskell programs
+Description:
+        QuickCheck is a library for random testing of program properties.
+        .
+	The programmer provides a specification of the program, in
+	the form of properties which functions should satisfy, and
+	QuickCheck then tests that the properties hold in a large number
+	of randomly generated cases.  
+        .
+        Specifications are expressed in
+	Haskell, using combinators defined in the QuickCheck library.
+	QuickCheck provides combinators to define properties, observe
+	the distribution of test data, and define test
+	data generators.
+
+source-repository head
+  type:     darcs
+  location: http://code.haskell.org/QuickCheck/
+
+source-repository this
+  type:     darcs
+  location: http://code.haskell.org/QuickCheck
+  tag:      2.4.1
+
+flag base3
+  Description: Choose the new smaller, split-up base package.
+
+flag base4
+  Description: Choose the even newer base package with extensible exceptions.
+
+flag templateHaskell
+  Description: Build Test.QuickCheck.All, which uses Template Haskell.
+
+library
+  -- Choose which library versions to use.
+  if flag(base4)
+    Build-depends: base >= 4 && < 4.5, random
+  else
+    if flag(base3)
+      Build-depends: base >= 3 && < 4, random
+    else
+      Build-depends: base < 3
+
+  -- On old versions of GHC use the ghc package to catch ctrl-C.  
+  if impl(ghc >= 6.7) && impl(ghc < 6.13)
+      Build-depends: ghc
+
+  -- We want to use extensible-exceptions even if linking against base-3.
+  if impl(ghc >= 6.9)
+    Build-depends: extensible-exceptions
+
+  -- Modules that are always built.
+  Exposed-Modules:
+    Test.QuickCheck,
+    Test.QuickCheck.Arbitrary,
+    Test.QuickCheck.Gen,
+    Test.QuickCheck.Monadic,
+    Test.QuickCheck.Modifiers,
+    Test.QuickCheck.Property,
+    Test.QuickCheck.Test,
+    Test.QuickCheck.Text,
+    Test.QuickCheck.Poly,
+    Test.QuickCheck.State
+
+  -- Choose which optional features to build based on which compiler
+  -- we're using. It would be nice to use flags for this but Cabal's
+  -- dependency resolution isn't good enough.
+  if impl(ghc)
+    Exposed-Modules: Test.QuickCheck.Function
+    if flag(templateHaskell) && impl(ghc >= 6.12)
+      Build-depends: template-haskell >= 2.4
+      Exposed-Modules: Test.QuickCheck.All
+    -- GHC < 7.0 doesn't cope with multiple LANGUAGE pragmas in the same
+    -- file, I think...
+    if impl(ghc < 7)
+      Extensions: GeneralizedNewtypeDeriving, MultiParamTypeClasses, Rank2Types, TypeOperators
+  else
+    -- If your Haskell compiler can cope without some of these, please
+    -- send a message to the QuickCheck mailing list!
+    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING
+    if !impl(hugs)
+      cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
+  Other-Modules:
+    Test.QuickCheck.Exception
+  GHC-options:
+
+
+package-hashes:
+    MD5:b39b9dd61e634ea3d832e39a3c0737fa
+    SHA1:ed7bef56110bc648b93b144725ef4dd87015767a
+    SHA256:b57c02adde74acbfeb915c5d600af3e4ca6df2cc40f9a67e5efa3bd99e733d18
+    SHA512:f2c83c46968278be3c05018adcd344795e4645deffa68f2d6293173985d82780d15923faa5307566c83705ae150ea30341ea7b61d512179c408687a3426fa79a
+    Skein512_512:2aa8f5228c70321d8a83c265082f58ae52a404f09680db3e706269b39e975302e9af531ed2414b5d0d797a28688b9577ae5869e73af55f39eb70ae9e8cf6d694
+
+package-locations:
+    https://hackage.haskell.org/package/QuickCheck-2.4.1/QuickCheck-2.4.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/QuickCheck-2.4.1.tar.gz
+

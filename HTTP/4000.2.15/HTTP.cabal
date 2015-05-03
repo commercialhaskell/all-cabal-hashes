@@ -1,0 +1,158 @@
+Name: HTTP
+Version: 4000.2.15
+Cabal-Version: >= 1.8
+Build-type: Simple
+License: BSD3
+License-file: LICENSE
+Author: Warrick Gray <warrick.gray@hotmail.com>
+Maintainer: Ganesh Sittampalam <http@projects.haskell.org>
+Homepage: https://github.com/haskell/HTTP
+Category: Network
+Synopsis: A library for client-side HTTP
+Description: 
+
+ The HTTP package supports client-side web programming in Haskell. It lets you set up 
+ HTTP connections, transmitting requests and processing the responses coming back, all
+ from within the comforts of Haskell. It's dependent on the network package to operate,
+ but other than that, the implementation is all written in Haskell.
+ .
+ A basic API for issuing single HTTP requests + receiving responses is provided. On top
+ of that, a session-level abstraction is also on offer  (the @BrowserAction@ monad);
+ it taking care of handling the management of persistent connections, proxies,
+ state (cookies) and authentication credentials required to handle multi-step
+ interactions with a web server.
+ .
+ The representation of the bytes flowing across is extensible via the use of a type class,
+ letting you pick the representation of requests and responses that best fits your use.
+ Some pre-packaged, common instances are provided for you (@ByteString@, @String@).
+ .
+ Here's an example use:
+ .
+ >
+ >    do
+ >      rsp <- Network.HTTP.simpleHTTP (getRequest "http://www.haskell.org/")
+ >              -- fetch document and return it (as a 'String'.)
+ >      fmap (take 100) (getResponseBody rsp)
+ >
+ >    do
+ >      (_, rsp)
+ >         <- Network.Browser.browse $ do
+ >               setAllowRedirects True -- handle HTTP redirects
+ >               request $ getRequest "http://www.haskell.org/"
+ >      return (take 100 (rspBody rsp))
+
+Extra-Source-Files: CHANGES
+
+Source-Repository head
+  type: git
+  location: https://github.com/haskell/HTTP.git
+
+Flag mtl1
+  description: Use the old mtl version 1.
+  default: False
+
+Flag warn-as-error
+  default:     False
+  description: Build with warnings-as-errors
+  manual:      True
+
+Flag network23
+  description: Use version 2.3.x or below of the network package
+  default: False
+
+Flag conduit10
+  description: Use version 1.0.x or below of the conduit package (for the test suite)
+  default: False
+
+Library
+  Exposed-modules: 
+                 Network.BufferType,
+                 Network.Stream,
+                 Network.StreamDebugger,
+                 Network.StreamSocket,
+                 Network.TCP,                
+                 Network.HTTP,
+                 Network.HTTP.Headers,
+                 Network.HTTP.Base,
+                 Network.HTTP.Stream,
+                 Network.HTTP.Auth,
+                 Network.HTTP.Cookie,
+                 Network.HTTP.Proxy,
+                 Network.HTTP.HandleStream,
+                 Network.Browser
+  Other-modules:
+                 Network.HTTP.Base64,
+                 Network.HTTP.MD5Aux,
+                 Network.HTTP.Utils
+                 Paths_HTTP
+  GHC-options: -fwarn-missing-signatures -Wall
+
+  Build-depends: base >= 3.0 && < 4.8, network >= 2.2.0.1 && < 2.6, parsec >= 2.0 && < 3.2
+  Build-depends: array >= 0.2.0.0 && < 0.6, old-time >= 1.0.0.0 && < 1.2, bytestring >= 0.9.1.3 && < 0.11
+
+  Extensions: FlexibleInstances
+
+  if flag(mtl1)
+    Build-depends: mtl >= 1.1.0.0 && < 1.2
+    CPP-Options: -DMTL1
+  else
+    Build-depends: mtl >= 2.0 && < 2.3
+
+  build-tools: ghc >= 6.10 && < 7.10
+
+  if flag(warn-as-error)
+    ghc-options:      -Werror
+
+  if os(windows)
+    Build-depends: Win32 >= 2.2.0.0 && < 2.4
+
+Test-Suite test
+  type: exitcode-stdio-1.0
+
+  build-tools: ghc >= 6.10 && < 7.10
+
+  hs-source-dirs: test
+  main-is: httpTests.hs
+
+  other-modules: Httpd
+
+  -- note: version constraints are inherited from HTTP library stanza
+  build-depends:     HTTP,
+                     HUnit,
+                     httpd-shed,
+                     mtl >= 2.0 && < 2.3,
+                     bytestring >= 0.9 && < 0.11,
+                     case-insensitive >= 0.4 && < 1.3,
+                     deepseq >= 1.3 && < 1.4,
+                     http-types >= 0.6 && < 0.9,
+                     wai >= 1.2 && < 2.2,
+                     warp >= 1.2 && < 2.2,
+                     pureMD5 >= 2.1 && < 2.2,
+                     base >= 2 && < 4.8,
+                     network,
+                     split >= 0.1 && < 0.3,
+                     test-framework,
+                     test-framework-hunit
+
+  if flag(conduit10)
+    build-depends:
+                       conduit >= 0.4 && < 1.1
+  else
+    build-depends:
+                       conduit >= 1.1 && < 1.2,
+                       conduit-extra >= 1.1 && < 1.2
+
+
+
+
+package-hashes:
+    MD5:f2887cf35e88366f31ef8567c5032de2
+    SHA1:f8441140cb5d57965a7a7cf49bda231d36933e48
+    SHA256:92634263b5ce7c442269a951e1f64f3b4e0ef2d7a38d9b967aa17f5b304c87af
+    SHA512:f388c92b49d47b932bb6140e874184452d9087bb8ba2a2d73c6b6b7fbec951bf30a4d50708dddee8034a77e1b068bdb658b985e857d4f06f9ad89904199e6c6a
+    Skein512_512:6a12b2617d618a42c7e5eed60458f5ff17afc55448563354aaf7ff8ce0f7102b17ec15a65102c9498658babb26afc4a37698d76858cdfbc84ff70a9ebd22ff88
+
+package-locations:
+    https://hackage.haskell.org/package/HTTP-4000.2.15/HTTP-4000.2.15.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/HTTP-4000.2.15.tar.gz
+

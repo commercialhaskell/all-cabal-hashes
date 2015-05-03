@@ -1,0 +1,180 @@
+Name:                   Operads
+Version:                0.5
+Stability:              alpha
+License:                BSD3
+License-file:           LICENSE
+Category:               Math
+Copyright:              © 2009 Mikael Vejdemo Johansson
+Author:                 Mikael Vejdemo Johansson
+Maintainer:             mik@stanford.edu
+Bug-reports:            mailto:mik@stanford.edu
+Homepage:               http://math.stanford.edu/~mik/operads
+Package-URL:            http://hackage.haskell.org/packages/archive/Operads/0.4/Operads-0.4.tar.gz
+Build-Type:             Simple
+Cabal-Version:          >=1.2
+Extra-source-files:     README CHANGELOG examples/preLieBad.hs examples/example.hs examples/altDual.hs
+Synopsis:               Groebner basis computation for Operads.
+Description:            
+  This is an implementation of the operadic Buchberger algorithm from Vladimir Dotsenko & 
+  Anton Khoroshkin: Groebner bases for operads (arXiv:0812.4069).
+  .
+  In writing this package, invaluable help has been given by Vladimir Dotsenko and Eric Hoffbeck.
+  .
+  The user is recommended to run this from within the GHC interpreter
+  for exploration, and to write small Haskell scripts for batch
+  processing. We hope herewithin to give enough of an overview of the
+  available functionality to help the user figure out how to use the
+  software package.
+  .
+  A declaration of a new variable is done in a Haskell script by a
+  statement on the form
+  .
+  @
+  var = value
+  @
+  .
+  and in the interpreter by a statement on the form
+  .
+  @
+  let var = value
+  @
+  .
+  Using these, the following instructions should help get you started. I will be writing 
+  the instructions aiming for use in the interpreter, for quick starts.
+  .
+  It is possible to force types by following a declaration by :: and the type signature 
+  you'll which. This enables you, for instance, to pick a ground ring without having to set
+  coefficients explicitly - see the examples below.
+  .
+  Note that the Buchberger algorithm in its current shape expects at least a division ring
+  as scalar ring.
+  .
+  The expected workflow for a normal user is as follows.
+  .
+   1. write the generators of the operadic ideal using 'corolla' and 'leaf' to construct 
+      buildingblocks and 'nsCompose', 'shuffleCompose' and 'symmetricCompose' to assemble 
+      them into trees. The trees, subsequently, may be assembled into tree polynomials by
+  .
+      * picking an ordering. We have currently 'PathLex' and 'ForestLex' implemented, and 
+        recommend using 'PathLex'. 
+  .
+      * assembling trees and coefficients into an element of the free operad, using '+' for
+        addition of operadic elements and '.*.' for scalar multiplication.
+  .
+  Useful functions for doing this includes, furthermore:
+  .
+    [@'oet'@] takes a tree and an ordering and gives an operad element. You will have to
+              specify the relevant type for this to work -- but we provide the extra type
+              'FreeOperad' that only asks for a /LabelType/ to cover most common uses:
+  .
+    @
+    oet tree :: OperadElement /LabelType/ /ScalarType/ /TreeOrdering 
+    @
+  .
+    [@'oek'@] takes a tree, an ordering and a coefficient and gives an operad element
+  .
+    @
+    oek tree PathLex (3::Rational)
+    @
+  .
+  Example: 
+  .
+  @
+  let t1 = nsCompose 1 (corolla 'a' [2,1]) (corolla 'b' [1,2])
+  .
+  let b = corolla 'l' [1,2]
+  .
+  let lb1 = shuffleCompose 1 [1,2,3] b b
+  .
+  let lb2 = shuffleCompose 1 [1,3,2] b b
+  .
+  let lb3 = shuffleCompose 2 [1,2,3] b b
+  .
+  let lo1 = oet lb1 :: FreeOperad Char
+  .
+  let lo2 = oet lb2 :: FreeOperad Char
+  .
+  let lo3 = oet lb3 :: FreeOperad Char
+  @
+  .
+  Note that while the Haskell compiler in general is very skilled at guessing types of objects, 
+  the system guessing will give up if the type is not well defined. There are several different
+  monomial orders allowed, and they are encoded in the type system -- hence the need to annotate
+  the instantiation of elements in the free operad with appropriate types.
+  .
+  2. assemble all generators into a list. Lists are formed by enclosing the elements, 
+     separated by commas, in square brackets. Lists must have identical type on all its 
+     elements - hence, for instance, you cannot have operadic elements with different monomial
+     orderings in the same list. 
+  .
+  Example:
+  .
+  @
+  let lgb = [lo1 - lo2 - lo3, 2.*.lo1 + 3.*. lo3]
+  @
+  .
+  3. run the algorithm on your basis and wait for it to finish. The entry point to the Buchberger
+     algorithm is, not surprisingly, 'operadicBuchberger'.
+  .
+  Example: 
+  .
+  @
+  let grobner = operadicBuchberger lgb
+  @
+  .
+  The output of 'operadicBuchberger', if it finishes, is a finite Gröbner basis for the ideal spanned 
+  by the original generators. If this is quadratic then the operad presented by this ideal is Koszul -
+  this may be tested with something like:
+  .
+  @
+  all (==2) $ concatMap operationDegrees grobner
+  @
+  .
+  If you wish to inspect elements yourself, the recommended way to do it is by using the 'pP' function, 
+  which outputs most of the interesting elements in a human-readable format. For objects that don't work 
+  with pP, just writing the variable name on its own will print it in some format.
+  .
+  The difference here is related to the ability to save computational states to disk. There are two 
+  different functions that will represent a tree or an element of an operad as a String: 'show' and 'pp'.
+  Using the former guarantees (with the same version of the source code) that the data can be read back 
+  into the system and reused later one; whereas using 'pp' will build a human readable string.
+
+
+Flag MapOperad
+     Description:       Use the Data.Map based storage for formal linear combinations.
+     Default:           False
+
+Flag PolyBag
+     Description:       Use the head bag based storage for formal linear combinations.
+     Default:           False
+
+Executable OperadTest
+           Main-is:             OperadTest.hs
+           Extensions:          CPP
+           Build-Depends:       QuickCheck
+
+
+Library 
+        Build-Depends:          base, array, mtl, containers
+        Exposed-Modules:        Math.Operad
+        Other-Modules:          Math.Operad.OperadGB, Math.Operad.OrderedTree, Math.Operad.PPrint, Math.Operad.PolyBag, Math.Operad.MapOperad
+        ghc-options:            -Wall
+        ghc-prof-options:       -auto-all
+        Extensions:             CPP     
+        if flag(mapoperad)
+           CPP-Options:         -DUSE_MAPOPERAD
+        if flag(polybag)
+           CPP-Options:         -DUSE_POLYBAG
+
+
+package-hashes:
+    MD5:326f9203fbb3c50e7343c6c43a645e29
+    SHA1:0a765ed0fd6561101c06c7308c11e32bdf4c3616
+    SHA256:17aeca63325e10fbc20a88baffa09070c137e15b9c921fdd3e294ac52180bb92
+    SHA512:299c08bd4a9ae718bb7be8a0c431b30d949fa6a25213a5c147e2a85e791c0a20c97662c63fae689bdbda10b01942b85f1b956b242d7cb7995d5f0a0e14484d57
+    Skein512_512:15ec5fe7b856875543371a2374d29203bfbcf6911cbc0892ffe45f474ab95b44ddd618036320eb7739270e184922bc3a6305f89e08ab8dbfafadc3ab85856a34
+
+package-locations:
+    https://hackage.haskell.org/package/Operads-0.5/Operads-0.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/Operads-0.5.tar.gz
+

@@ -1,0 +1,222 @@
+-- setup configure -fodbc -foracle -fpostgres -fsqlite
+-- setup build
+-- setup install
+--
+-- setup configure -fbuildtests
+-- setup build
+-- setup install
+Name:           Takusen
+Version:        0.8.6
+License:        BSD3
+License-file:   LICENSE
+Author:         Alistair Bayley, Oleg Kiselyov
+Copyright:      2003-2009, Alistair Bayley, Oleg Kiselyov
+Maintainer:     alistair@abayley.org, oleg@pobox.com
+Stability:      experimental
+Homepage:       http://code.haskell.org/takusen
+Package-url:    http://code.haskell.org/takusen
+Category:       Database
+Build-type:     Custom
+Cabal-Version:  >= 1.6
+Synopsis:       Database library with left-fold interface, for PostgreSQL, Oracle, SQLite, ODBC.
+Description:   
+    Takusen is a DBMS access library. Like HSQL and HDBC, we support
+    arbitrary SQL statements (currently strings, extensible to anything
+    that can be converted to a string).
+    .
+    Takusen's unique selling point is safety and efficiency.
+    We statically ensure all acquired database resources - such
+    as cursors, connections, and statement handles - are released, exactly
+    once, at predictable times. Takusen can avoid loading the whole result
+    set in memory, and so can handle queries returning millions of rows in
+    constant space. Takusen also supports automatic marshalling and
+    unmarshalling of results and query parameters. These benefits come
+    from the design of query result processing around a left-fold
+    enumerator.
+    .
+    Currently we fully support ODBC, Oracle, Sqlite, and PostgreSQL.
+
+
+Extra-tmp-files: 
+      Database/Oracle/OCIFunctions_stub.c
+      Database/Oracle/OCIFunctions_stub.h
+      Database/PostgreSQL/PGFunctions_stub.c
+      Database/PostgreSQL/PGFunctions_stub.h
+Extra-source-files: README.txt
+
+
+Flag odbc
+  Description: ODBC backend
+  Default:     False
+Flag oracle
+  Description: Oracle OCI backend
+  Default:     False
+Flag postgres
+  Description: PostgreSQL backend
+  Default:     False
+Flag sqlite
+  Description: SQLite3 backend
+  Default:     False
+Flag buildtests
+  Description: Build test executables
+  Default:     False
+
+
+Executable takusen_tests
+  If !flag(buildtests)
+    Buildable: False
+  else
+    -- If we want to build test exe, then it needs Takusen installed.
+    Build-Depends:  Takusen
+  Main-Is: Main.lhs
+  Other-modules: 
+        Database.Enumerator
+      , Database.InternalEnumerator
+      , Database.Util
+      , Database.Test.Enumerator
+      , Database.Test.Util
+      , Database.Test.Performance
+      , Database.ODBC.Enumerator
+      , Database.ODBC.OdbcFunctions
+      , Database.ODBC.Test.Enumerator
+      , Database.ODBC.Test.OdbcFunctions
+      , Database.Oracle.Enumerator
+      , Database.Oracle.OCIConstants
+      , Database.Oracle.OCIFunctions
+      , Database.Oracle.Test.Enumerator
+      , Database.Oracle.Test.OCIFunctions
+      , Database.PostgreSQL.Enumerator
+      , Database.PostgreSQL.PGFunctions
+      , Database.PostgreSQL.Test.Enumerator
+      , Database.PostgreSQL.Test.PGFunctions
+      , Database.Sqlite.Enumerator
+      , Database.Sqlite.SqliteFunctions
+      , Database.Sqlite.Test.Enumerator
+      , Database.Sqlite.Test.SqliteFunctions
+      , Control.Exception.MonadIO
+      , Control.Exception.Extensible
+      , Foreign.C.UTF8
+      , Foreign.C.Test.UTF8
+      , Test.MiniUnit
+  Build-Depends:  base, mtl, time, QuickCheck==1.*, random
+  -- ghc-6.6 has System.Time in base.
+  -- Later versions has it in a separate package.
+  if impl(ghc >= 6.8)
+    Build-Depends:  old-time
+  Extensions: CPP DeriveDataTypeable ScopedTypeVariables
+  if impl(ghc>=6.9)
+    cpp-options: -DUSE_NEW_EXCEPTIONS
+    build-depends: base>=4&&<5
+  else
+    build-depends: base<4
+
+Executable miniunit_tests
+  If !flag(buildtests)
+    Buildable: False
+  Main-Is: Test/Main.hs
+  Other-modules: 
+      Control.Exception.MonadIO
+    , Control.Exception.Extensible
+    , Test.MiniUnit
+    , Test.MiniUnitTest
+  Build-Depends:  base, mtl
+  Extensions: CPP DeriveDataTypeable ScopedTypeVariables
+  if impl(ghc>=6.9)
+    cpp-options: -DUSE_NEW_EXCEPTIONS
+    build-depends: base>=4&&<5
+  else
+    build-depends: base<4
+
+
+Library
+
+  If flag(buildtests)
+    Buildable: False
+
+  Exposed-modules:
+        Database.Enumerator
+      , Database.Util
+      --, Database.Stub.Enumerator
+      , Control.Exception.MonadIO
+      , Foreign.C.UTF8
+
+  If flag(odbc)
+    Exposed-modules:
+        Database.ODBC.Enumerator
+      , Database.ODBC.OdbcFunctions
+    If os(windows)
+      extra-libraries: odbc32
+      ld-options: --enable-stdcall-fixup
+    Else
+      If os(darwin)
+        extra-libraries: iodbc
+      Else
+        extra-libraries: odbc
+
+  If flag(oracle)
+    Exposed-modules:
+        Database.Oracle.Enumerator
+      , Database.Oracle.OCIConstants
+      , Database.Oracle.OCIFunctions
+    Build-Tools: sqlplus
+    If os(windows)
+      Extra-Libraries: oci
+    Else
+      Extra-Libraries: clntsh
+
+  If flag(postgres)
+    Exposed-modules:
+        Database.PostgreSQL.Enumerator
+      , Database.PostgreSQL.PGFunctions
+    Build-Tools: pg_config
+    Extra-Libraries: pq
+
+  If flag(sqlite)
+    Exposed-modules:
+        Database.Sqlite.Enumerator
+      , Database.Sqlite.SqliteFunctions
+    If os(windows)
+      Build-Tools: sqlite3
+    else
+      PkgConfig-Depends: sqlite3
+      Build-Tools: sqlite3
+    Extra-Libraries: sqlite3
+
+  Build-Depends:  base, mtl, time
+  -- ghc-6.6 has System.Time in base.
+  -- Later versions has it in a separate package.
+  if impl(ghc >= 6.8)
+    Build-Depends:  old-time
+  -- Many modules use CPP to switch between new and old exceptions.
+  -- DeriveDataTypeable is because we can't switch it on/off with #define;
+  -- for ghc-6.6 it is rendered as -fglasgow-exts anyway.
+  Extensions: CPP DeriveDataTypeable
+  -- We need the USE_NEW_EXCEPTIONS flag as this is used in
+  -- Control.Exception.Extensible is choose between defining our own
+  -- extensible exceptions, or re-exporting what's in base-4.
+  if impl(ghc>=6.9)
+    cpp-options: -DUSE_NEW_EXCEPTIONS
+    build-depends: base>=4&&<5
+  else
+    build-depends: base<4
+  if impl(ghc >= 6.10)
+    -- doesn't work with Data.Time on older ghcs, due to some missing header file
+    Ghc-Options: -O2
+  Other-modules: 
+        Database.InternalEnumerator
+      , Control.Exception.Extensible
+      -- Modules in Other-modules are passed to Haddock with --hide=<module-name>.
+  Ghc-Prof-Options: -prof -auto-all
+
+
+package-hashes:
+    MD5:a10ce7df063f0dd1a8bc2e1db63ad389
+    SHA1:6ca8d87d1b4cd963b699bd7fca2e6419c8a3226c
+    SHA256:056b256d1eb1edcad52bd426afb6d262f3c9de11a60e94c520168d941e0e39d8
+    SHA512:de3e00f17431e31e15a6ae46ebcf226d6013d9d126b381ca0712c47936481555c33afcb636df0776e8e1216984279b3426b981520a4bd8781a2b1d6e1cbd4b17
+    Skein512_512:7942d042b464e6d3a0954eff6f45a3453bf789547dbc73b258f9e5f083c68f8237e8b913fc0d10d25bf4503c80c002eb14e3badeacbf29e5f01bf5d0a90b802e
+
+package-locations:
+    https://hackage.haskell.org/package/Takusen-0.8.6/Takusen-0.8.6.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/Takusen-0.8.6.tar.gz
+

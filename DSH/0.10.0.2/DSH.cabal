@@ -1,0 +1,257 @@
+Name:                DSH
+Version:             0.10.0.2
+Synopsis:            Database Supported Haskell
+Description:
+  This is a Haskell library for database-supported program execution. Using
+  this library a relational database management system (RDBMS) can be used as
+  a coprocessor for the Haskell programming language, especially for those
+  program fragments that carry out data-intensive and data-parallel
+  computations.
+  .
+  Database executable program fragments can be written using the monad
+  comprehension notation [2] and list processing combinators from the Haskell
+  list prelude. Note that rather than embedding a relational language into
+  Haskell, we turn idiomatic Haskell programs into SQL queries.
+  .
+  DSH faithfully represents list order and nesting, and compiles the list
+  processing combinators into relational queries. The implementation avoids
+  unnecessary data transfer and context switching between the database
+  coprocessor and the Haskell runtime by ensuring that the number of generated
+  relational queries is only determined by the program fragment's type and not
+  by the database size.
+  .
+  DSH can be used to allow existing Haskell programs to operate on large scale
+  data (e.g., larger than the available heap) or query existing database
+  resident data with Haskell.
+  .
+  Note that this package is flagged experimental and therefore is not suited
+  for production use (we mean it!). This is a proof of concept implementation 
+  only. To learn more about DSH, our paper entitled as "Haskell Boards the Ferry: 
+  Database-Supported Program Execution for Haskell" [1] is a recommended reading.
+  The package includes a couple of examples that demonstrate how to use DSH.
+  .
+  In contrast to the DSH version described in [1], the current release does
+  not rely anymore on the loop-lifting compilation technique together with 
+  the Pathfinder optimizer. Instead, it brings a completely rewritten query 
+  compiler based on Guy Blelloch's flattening transformation. This approach
+  leads to a more robust compilation and produces more efficient query code.
+  .
+  Please read the release notes in 'README.md'.
+  .
+  1. <http://db.inf.uni-tuebingen.de/staticfiles/publications/ferryhaskell.pdf>
+  .
+  2. <http://db.inf.uni-tuebingen.de/staticfiles/publications/haskell2011.pdf>
+
+License:             BSD3
+License-file:        LICENSE
+Author:              George Giorgidze, Alexander Ulrich, Nils Schweinsberg and Jeroen Weijers
+Maintainer:          alex@etc-network.de
+Stability:           Experimental
+Category:            Database
+Build-type:          Simple
+
+Extra-source-files:  examples/Example01.hs
+                     examples/Example02.hs
+                     examples/Example03.hs
+                     examples/dshify-tpch.sql
+                     tests/Main.hs
+		     tests/ComprehensionTests.hs
+		     tests/DSHComprehensions.hs
+		     tests/CombinatorTests.hs
+                     README.md
+
+Cabal-version:       >= 1.8
+
+Flag debugcomp
+  Description: Print debugging information for comprehension rewrites
+  Default:     False
+
+Flag debuggraph
+  Description: Print debugging information for graph rewrites (VL, TA)
+  Default:     False
+
+Library
+  Extensions:        CPP
+  Build-depends:     base               >= 4.7 && < 5,
+                     template-haskell   >= 2.9,
+                     containers         >= 0.5,
+                     mtl                >= 2.1,
+                     bytestring         >= 0.10,
+                     text               >= 1.1,
+                     HDBC               >= 2.3,
+                     HDBC-postgresql    >= 2.3,
+                     pretty             >= 1.1,
+                     aeson              >= 0.8,
+                     kure               >= 2.16,
+                     either             >= 4.0,
+                     semigroups         >= 0.16,
+                     ansi-wl-pprint     >= 0.6,
+                     set-monad          >= 0.1,
+                     dlist              >= 0.7,
+
+                     algebra-dag        >= 0.1,
+                     algebra-sql        >= 0.1
+                     
+  Hs-source-dirs:    src
+
+  if flag(debugcomp)
+    CPP-Options:     -DDEBUGCOMP
+  
+  if flag(debuggraph)
+    CPP-Options:     -DDEBUGGRAPH
+
+  GHC-Options:       -Wall -fno-warn-orphans
+
+  Exposed-modules:   Database.DSH
+                     Database.DSH.Compiler
+
+  Other-modules:     Database.DSH.Frontend.Internals
+                     Database.DSH.Frontend.Schema
+                     Database.DSH.Frontend.Externals
+                     Database.DSH.Frontend.TH
+                     Database.DSH.Frontend.TupleTypes
+                     Database.DSH.Frontend.Funs
+                     Database.DSH.Translate.Frontend2CL
+                     Database.DSH.Execute.TH
+                     Database.DSH.Execute.Sql
+                     Database.DSH.Execute.Backend
+                     Database.DSH.Common.Nat
+                     Database.DSH.Common.Pretty
+                     Database.DSH.Common.Type
+                     Database.DSH.Common.Lang
+                     Database.DSH.Common.QueryPlan
+                     Database.DSH.Common.RewriteM
+                     Database.DSH.Common.Kure
+                     Database.DSH.Export
+                     Database.DSH.CL.Lang
+                     Database.DSH.CL.Kure
+                     Database.DSH.CL.Primitives
+                     Database.DSH.CL.Opt
+                     Database.DSH.CL.Opt.Auxiliary
+                     Database.DSH.CL.Opt.PostProcess
+                     Database.DSH.CL.Opt.LoopInvariant
+                     Database.DSH.CL.Opt.PredPushdown
+                     Database.DSH.CL.Opt.Normalize
+                     Database.DSH.CL.Opt.CompNormalization
+                     Database.DSH.CL.Opt.PartialEval
+                     Database.DSH.CL.Opt.FlatJoin
+                     Database.DSH.CL.Opt.ThetaJoin
+                     Database.DSH.CL.Opt.SemiJoin
+                     Database.DSH.CL.Opt.AntiJoin
+                     Database.DSH.CL.Opt.NestJoin
+                     Database.DSH.CL.Opt.Resugar
+                     Database.DSH.FKL.Lang
+                     Database.DSH.FKL.Primitives
+                     Database.DSH.FKL.Rewrite
+                     Database.DSH.FKL.Kure
+                     Database.DSH.NKL.Lang
+                     Database.DSH.NKL.Kure
+                     Database.DSH.NKL.Rewrite
+                     Database.DSH.NKL.Primitives
+                     Database.DSH.Translate.Algebra2Query
+                     Database.DSH.Translate.CL2NKL
+                     Database.DSH.Translate.FKL2VL
+                     Database.DSH.Translate.NKL2FKL
+                     Database.DSH.Translate.VL2Algebra
+
+                     Database.DSH.VL.Lang
+                     Database.DSH.VL.Render.Dot
+                     Database.DSH.VL.Render.JSON
+                     Database.DSH.VL.Vector
+                     Database.DSH.VL.VectorAlgebra
+                     Database.DSH.VL.VectorAlgebra.TA
+                     Database.DSH.VL.Vectorize
+                     Database.DSH.VL.Primitives
+
+                     Database.DSH.Impossible
+
+                     Database.DSH.Optimizer.Common.Auxiliary
+                     Database.DSH.Optimizer.Common.Rewrite
+
+                     Database.DSH.Optimizer.VL.Properties.BottomUp
+                     Database.DSH.Optimizer.VL.Properties.Card
+                     Database.DSH.Optimizer.VL.Properties.Common
+                     Database.DSH.Optimizer.VL.Properties.Const
+                     Database.DSH.Optimizer.VL.Properties.Empty
+                     Database.DSH.Optimizer.VL.Properties.NonEmpty
+                     Database.DSH.Optimizer.VL.Properties.ReqColumns
+                     Database.DSH.Optimizer.VL.Properties.TopDown
+                     Database.DSH.Optimizer.VL.Properties.Types
+                     Database.DSH.Optimizer.VL.Properties.VectorType
+
+                     Database.DSH.Optimizer.TA.Properties.BottomUp
+                     Database.DSH.Optimizer.TA.Properties.TopDown
+                     Database.DSH.Optimizer.TA.Properties.Types
+                     Database.DSH.Optimizer.TA.Properties.Cols
+                     Database.DSH.Optimizer.TA.Properties.ICols
+                     Database.DSH.Optimizer.TA.Properties.Use
+                     Database.DSH.Optimizer.TA.Properties.Auxiliary
+                     Database.DSH.Optimizer.TA.Properties.Empty
+                     Database.DSH.Optimizer.TA.Properties.Card1
+                     Database.DSH.Optimizer.TA.Properties.Keys
+                     Database.DSH.Optimizer.TA.Properties.Order
+                     Database.DSH.Optimizer.TA.Properties.Const
+                     Database.DSH.Optimizer.TA.Rewrite.Basic
+                     Database.DSH.Optimizer.TA.Rewrite.Common
+                     Database.DSH.Optimizer.TA.OptimizeTA
+		     
+                     Database.DSH.Optimizer.Common.Rewrite
+                     Database.DSH.Optimizer.VL.OptimizeVL
+                     Database.DSH.Optimizer.VL.Rewrite.Common
+                     Database.DSH.Optimizer.VL.Rewrite.Expressions
+                     Database.DSH.Optimizer.VL.Rewrite.PruneEmpty
+                     Database.DSH.Optimizer.VL.Rewrite.Redundant
+                     Database.DSH.Optimizer.VL.Rewrite.Aggregation
+                     Database.DSH.Optimizer.VL.Rewrite.Window
+                     Database.DSH.Optimizer.VL.Rewrite.Unused
+
+executable vldot
+    Main-is: Database/DSH/Tools/VLDotGen.hs
+    GHC-Options:      -Wall -fno-warn-orphans
+    hs-source-dirs:   src
+    build-depends:    base                >= 4.7 && < 5, 
+                      mtl                 >= 2.1, 
+                      pretty              >= 1.1, 
+                      aeson               >= 0.8, 
+                      containers          >= 0.5,
+                      template-haskell    >= 2.9, 
+                      bytestring          >= 0.10,
+                      ansi-wl-pprint      >= 0.6,
+                      semigroups          >= 0.16,
+
+                      algebra-dag          >= 0.1,
+                      algebra-sql          >= 0.1
+    GHC-Options: -Wall -fno-warn-orphans
+
+Test-Suite Flattening_TA
+    type:       exitcode-stdio-1.0
+    Hs-Source-Dirs : tests
+    Main-is:       Main.hs
+    Build-depends: base                       >= 4.7 && < 5,
+                   QuickCheck                 >= 2.4,
+                   containers                 >= 0.5,
+                   text                       >= 1.1,
+                   HDBC-postgresql            >= 2.3,
+                   HDBC                       >= 2.3,
+                   test-framework-quickcheck2 >= 0.2,
+                   test-framework-hunit       >= 0.3,
+                   test-framework             >= 0.6,
+                   HUnit                      >= 1.2,
+
+                   DSH                        >= 0.10
+    cpp-options:   -DTESTSQL
+    GHC-Options: -Wall -fno-warn-orphans
+    Extensions: CPP
+
+
+package-hashes:
+    MD5:f7f0c5f348f2fd21df0bcec8907a0f07
+    SHA1:aa9487a61b01bd6439fde9f0888f44ba375349d9
+    SHA256:47b9d1c80bc23ee37fe1860412fdfe273130bd26fa85a90c30564459ac7b4809
+    SHA512:155d8b61dc47bc330e303792fed971e386bd06cbec4ae2a5854b3bdf2c510f52a85c8335508c4fb8275ed6a415cbcac0fc46c5c6d7206d6e29910faec20ec2d6
+    Skein512_512:b68725ecf95fd428e872fca6c56bc767e8ec88abd40ac3d7dfdb42bc8a33a6cfdb193b3a6f86d870bec8b43f21985fbeec0effae5d1dd91d9f462bd4d06b38f6
+
+package-locations:
+    https://hackage.haskell.org/package/DSH-0.10.0.2/DSH-0.10.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/DSH-0.10.0.2.tar.gz
+

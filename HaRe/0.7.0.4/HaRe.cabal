@@ -1,0 +1,192 @@
+Name:                           HaRe
+Version:                        0.7.0.4
+Author:                         Chris Brown, Huiqing Li, Simon Thompson, Alan Zimmerman
+Maintainer:                     Alan Zimmerman
+Stability:                      Alpha
+Bug-Reports:                    http://github.com/alanz/HaRe/issues
+License:                        BSD3
+License-File:                   LICENSE
+Homepage:                       http://www.cs.kent.ac.uk/projects/refactor-fp
+Description:
+   A Haskell 2010 refactoring tool. HaRe supports the full
+   Haskell 2010 standard, through making use of the GHC API.
+   .
+   It is tested against GHC 7.4.x and 7.6.x
+   .
+   It currently only has emacs integration built in, community input
+   welcome for others.
+   .
+   Warning: This is alpha code. Always commit code to your version
+   control system before refactoring. The developers make no
+   warranties, use at your own risk. May frighten children and dogs.
+   .
+   Current known defects:
+   .
+     * After renaming, the layout of surrounding 'do','let','where' or
+      'of' clauses is not adjusted. This can cause problems if the new
+      name is a different length from the old one.
+   .
+     * liftToTopLevel of a recursive function may introduce parameter
+       errors. e.g. lifting 'g' in the 'zmapQ' function from 'syz-0.2.0.0'
+       'Data.Generics.Zipper' results in the following
+   .
+   >  zmapQ f z = reverse $ downQ [] g z where
+   >       g z' = query f z' : leftQ [] g z'
+   .
+      becomes
+   .
+   >  zmapQ f z = reverse $ downQ [] (g f g)z
+   >
+   >  g f z'g= query f z' : leftQ [] (g f g)g f g)z'
+
+Synopsis:                       the Haskell Refactorer.
+Category:                       Development, Refactoring
+Cabal-Version:                  >= 1.8
+Build-Type:                     Simple
+data-files:                     elisp/*.el
+data-Dir:                       .
+
+Library
+        Build-Depends:          base >= 4.0  && < 4.7
+                                , containers
+                                , directory
+                                , filepath
+                                , ghc
+                                , ghc-paths
+                                , ghc-prim
+                                , ghc-syb-utils
+                                , ghc-mod >= 2.1.2
+                                , mtl
+                                , old-time
+                                , pretty
+                                , rosezipper
+                                , syb
+                                , hslogger
+                                , transformers
+                                , time
+                                , Strafunski-StrategyLib
+                                , syz
+
+        -- GHC-Options:             -Wall
+
+        Hs-Source-Dirs:         src
+        Other-Modules:          Paths_HaRe
+        Exposed-modules:
+             Language.Haskell.Refact.Case
+           , Language.Haskell.Refact.DupDef
+           , Language.Haskell.Refact.MoveDef
+           , Language.Haskell.Refact.Renaming
+           , Language.Haskell.Refact.SwapArgs
+           , Language.Haskell.Refact.Utils
+           , Language.Haskell.Refact.Utils.GhcModuleGraph
+           , Language.Haskell.Refact.Utils.GhcUtils
+           , Language.Haskell.Refact.Utils.GhcVersionSpecific
+           , Language.Haskell.Refact.Utils.LocUtils
+           , Language.Haskell.Refact.Utils.Monad
+           , Language.Haskell.Refact.Utils.MonadFunctions
+           , Language.Haskell.Refact.Utils.RenamedSourceUtils
+           , Language.Haskell.Refact.Utils.TokenUtils
+           , Language.Haskell.Refact.Utils.TokenUtilsTypes
+           , Language.Haskell.Refact.Utils.TypeSyn
+           , Language.Haskell.Refact.Utils.TypeUtils
+        Extensions:      CPP
+
+
+
+Executable ghc-hare
+        -- Main-Is:                Main.hs
+        Main-Is:                MainHaRe.hs
+        -- Other-Modules:          Paths_HaRe
+        -- GHC-Options:            -Wall
+        -- GHC-Options:            -prof -fprof-auto -rtsopts -caf-all
+        Hs-Source-Dirs:
+          ./src
+        Build-Depends:          base >= 4.0  && < 4.7
+                                , array
+                                -- TODO: remove cmdtheline
+                                , cmdtheline >= 0.2.1
+                                , containers
+                                , directory
+                                , filepath
+                                , ghc
+                                , ghc-paths
+                                , ghc-prim
+                                , ghc-syb-utils
+                                , ghc-mod >= 2.1.2
+                                , mtl
+                                , old-time
+                                , parsec
+                                , pretty
+                                , rosezipper
+                                , syb
+                                , time
+                                , transformers
+                                , hslogger
+                                , Strafunski-StrategyLib
+                                , syz
+                                , HaRe >= 0.7.0.0
+        Extensions:      CPP
+
+
+test-suite spec
+  type:
+      exitcode-stdio-1.0
+  ghc-options:
+      -- reinstate these later  -Wall
+      -- -Wall
+      -- reinstate these later  -Werror
+      -- -fhpc
+      -- -fhpc -hpcdir dist/hpc/app-1.0
+  cpp-options:
+      -DTEST
+  main-is:
+      Spec.hs
+  Hs-Source-Dirs:
+    -- src
+    test
+  build-depends:
+      base        >= 4.0  && < 4.7
+    , Diff == 0.1.3
+    , HUnit       == 1.2.*
+    , QuickCheck  >= 2.5
+    , containers
+    , deepseq
+    , directory
+    , filepath
+    , ghc         >= 7.0.1 && < 7.8
+    , ghc-paths   == 0.1.*
+    , ghc-prim
+    , ghc-syb-utils
+    , ghc-mod >= 2.1.2
+    , hspec       == 1.4.*
+    , mtl
+    , old-time
+    , process
+    , silently
+    , stringbuilder
+    , rosezipper
+    , syb
+    , transformers
+    , time
+    , hslogger
+    , Strafunski-StrategyLib
+    , syz
+    , HaRe >= 0.7.0.0
+  Extensions:      CPP
+
+source-repository head
+  type:     git
+  location: https://github.com/alanz/HaRe.git
+
+
+package-hashes:
+    MD5:bba81aaa9e1e8035e9d40641926c242a
+    SHA1:58c6ae229b237fa4b94c8fab0adfc6f233973262
+    SHA256:d376c35aae01ffbca8df50c0d2471474f514c2fc803e12caeca79117235e6440
+    SHA512:177ae6c02e0510d505acb0c5df4ccf69278253397caea05c9e990c4441fa5ca6cbb744f2542494710a5ab92dd5480ce32dbc8e204e5bbf3c8e32a845d44f7b09
+    Skein512_512:abe79ff45c5032b6eb3faf189bafd52d482c3c8afe931439786212e000eaf5bf84a341d6eb5ee5d400a15c4822725ede17df1248d4a8af277a24b2db54d961cd
+
+package-locations:
+    https://hackage.haskell.org/package/HaRe-0.7.0.4/HaRe-0.7.0.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/HaRe-0.7.0.4.tar.gz
+

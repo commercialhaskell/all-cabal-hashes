@@ -1,0 +1,88 @@
+name:       RSA
+category:   Cryptography, Codec
+version:    1.0.5
+license:    BSD3
+license-file: LICENSE
+author:     Adam Wick <awick@galois.com>
+maintainer: Adam Wick <awick@galois.com>
+stability:  stable
+build-type: Simple
+cabal-version: >= 1.2
+tested-with: GHC ==6.8.0
+synopsis: Implementation of RSA, using the padding schemes of PKCS#1 v2.1.
+description: This library implements the RSA encryption and signature 
+             algorithms for arbitrarily-sized ByteStrings. While the 
+             implementations work, they are not necessarily the fastest ones
+             on the planet. Particularly key generation. The algorithms
+             included are based of RFC 3447, or the Public-Key Cryptography
+             Standard for RSA, version 2.1 (a.k.a, PKCS#1 v2.1).   
+
+Flag SkipTests
+  Default:     True
+  Description: Skip building the test program
+
+Flag IncludeMD5
+  Description: Include support for using MD5 in the various crypto routines.
+
+Flag UseBinary
+  Description: Use the binary package for serializing keys.
+
+Flag QuickCheck1
+  Description: Whether this is QuickCheck 1 or not
+  Default:     False
+
+Flag OldBase
+  Description: Whether or not to use base 3 (default: no)
+  Default: False
+
+Library
+ build-depends: bytestring, random
+ GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans
+ if flag(OldBase)
+   build-depends: base >= 3 && < 4, SHA < 1.4.1
+ else
+   build-depends: base >= 4 && < 5, SHA
+ if flag(UseBinary)
+   build-depends: binary
+   CPP-Options: -DUSE_BINARY
+ if flag(IncludeMD5) && flag(UseBinary)
+   if flag(OldBase)
+      build-depends: pureMD5 < 1.1
+   else
+      build-depends: pureMD5
+   CPP-Options: -DINCLUDE_MD5
+ exposed-modules: Codec.Crypto.RSA
+ extensions: CPP, BangPatterns, ScopedTypeVariables
+
+Executable test_rsa
+  if flag(SkipTests)
+    Buildable: False
+  else
+    if flag(OldBase)
+      build-depends: base >= 3 && < 4, SHA < 1.4.1
+    else
+      build-depends: base >= 4 && < 5, SHA
+    build-depends: bytestring, test-framework >= 0.3 && < 0.4
+  if flag(QuickCheck1)
+    build-depends: QuickCheck < 2, test-framework-quickcheck >= 0.2.6 && < 0.3
+    CPP-Options:   -DQUICKCHECK1
+  else
+    build-depends: QuickCheck >= 2 && < 3, test-framework-quickcheck2 >= 0.2.7 && < 0.3
+  GHC-Options: -O2 -Wall -fno-ignore-asserts -fno-warn-orphans 
+  CPP-Options: -DRSA_TEST
+  Main-Is: Test.hs
+  Other-Modules: Codec.Crypto.RSA
+  extensions: CPP, BangPatterns, ScopedTypeVariables
+
+
+package-hashes:
+    MD5:c50cc04c2ce69e48a379dd8cc027112c
+    SHA1:9c5a263cb479227e26e7bafe3cbb9995f6cbec44
+    SHA256:971491bc239ab9142fc170cadcc4ec21570170d6408d96fb5b5db95cef4cfc3e
+    SHA512:7109bf74c2b659ae062f6bd844aa5ed9ddf051501c3b58121de89d8ddecdde7298dc1db74b3b57067f7a9243c49eceada2a1bc9c9c18258430cdf7aba5b01afe
+    Skein512_512:139e67e4a98703b0b826e8f32d9ca1447012e7f587805a9c8cccd8138387d1cb19f50b9b226669c1bea5b0e74f0c7ae8a68e7ef1b770a6136162730b6b285743
+
+package-locations:
+    https://hackage.haskell.org/package/RSA-1.0.5/RSA-1.0.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/RSA-1.0.5.tar.gz
+

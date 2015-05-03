@@ -1,0 +1,114 @@
+Name: QuickCheck
+Version: 2.6
+x-revision: 1
+Cabal-Version: >= 1.6
+Build-type: Simple
+License: BSD3
+License-file: LICENSE
+Extra-source-files: README
+Copyright: 2000-2012 Koen Claessen, 2006-2008 BjÃ¶rn Bringert, 2009-2012 Nick Smallbone
+Author: Koen Claessen <koen@chalmers.se>
+Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
+Bug-reports: mailto:quickcheck@projects.haskell.org
+Tested-with: GHC >=6.8, Hugs
+Homepage: http://code.haskell.org/QuickCheck
+Category:       Testing
+Synopsis:       Automatic testing of Haskell programs
+Description:
+  QuickCheck is a library for random testing of program properties.
+  .
+  The programmer provides a specification of the program, in
+  the form of properties which functions should satisfy, and
+  QuickCheck then tests that the properties hold in a large number
+  of randomly generated cases.
+  .
+  Specifications are expressed in
+  Haskell, using combinators defined in the QuickCheck library.
+  QuickCheck provides combinators to define properties, observe
+  the distribution of test data, and define test
+  data generators.
+
+source-repository head
+  type:     git
+  location: https://github.com/nick8325/quickcheck
+
+source-repository this
+  type:     git
+  location: https://github.com/nick8325/quickcheck
+  tag:      2.5.1.1
+
+flag base3
+  Description: Choose the new smaller, split-up base package.
+
+flag base4
+  Description: Choose the even newer base package with extensible exceptions.
+
+flag templateHaskell
+  Description: Build Test.QuickCheck.All, which uses Template Haskell.
+
+library
+  -- Choose which library versions to use.
+  if flag(base4)
+    Build-depends: base >= 4 && < 4.8, random
+  else
+    if flag(base3)
+      Build-depends: base >= 3 && < 4, random
+    else
+      Build-depends: base < 3
+
+  -- On old versions of GHC use the ghc package to catch ctrl-C.
+  if impl(ghc >= 6.7) && impl(ghc < 6.13)
+      Build-depends: ghc
+
+  -- We want to use extensible-exceptions even if linking against base-3.
+  if impl(ghc >= 6.9) && impl (ghc < 7.0)
+    Build-depends: extensible-exceptions
+
+  -- Modules that are always built.
+  Exposed-Modules:
+    Test.QuickCheck,
+    Test.QuickCheck.Arbitrary,
+    Test.QuickCheck.Gen,
+    Test.QuickCheck.Monadic,
+    Test.QuickCheck.Modifiers,
+    Test.QuickCheck.Property,
+    Test.QuickCheck.Test,
+    Test.QuickCheck.Text,
+    Test.QuickCheck.Poly,
+    Test.QuickCheck.State
+
+  Extensions: CPP
+
+  -- Choose which optional features to build based on which compiler
+  -- we're using. It would be nice to use flags for this but Cabal's
+  -- dependency resolution isn't good enough.
+  if impl(ghc)
+    Exposed-Modules: Test.QuickCheck.Function
+    if flag(templateHaskell) && impl(ghc >= 6.12)
+      Build-depends: template-haskell >= 2.4
+      Exposed-Modules: Test.QuickCheck.All
+    -- GHC < 7.0 doesn't cope with multiple LANGUAGE pragmas in the same
+    -- file, I think...
+    if impl(ghc < 7)
+      Extensions: GeneralizedNewtypeDeriving, MultiParamTypeClasses, Rank2Types, TypeOperators
+  else
+    -- If your Haskell compiler can cope without some of these, please
+    -- send a message to the QuickCheck mailing list!
+    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING
+    if !impl(hugs)
+      cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
+  Other-Modules:
+    Test.QuickCheck.Exception
+
+
+package-hashes:
+    MD5:881d546b39c60789e375b2ab3dbce677
+    SHA1:a7a0a1f11e6be16c4559c03eedf3d3b35411b3a5
+    SHA256:8001c00a1892714d914e5007ba72cdd428c1ea4c6b8418c6cb5e7809753d970d
+    SHA512:17cfa7b9ee2fa3e31b48ed3609d5e3bb2316b99251e45e56d377a198d8cb429696e25ecb35ef1bf5cac7e313381274c646393697604f1feefe225fc692e01166
+    Skein512_512:b43ddc7815fd6344b3289a43eb3ccd9b6abe99853e7bcb76866d71b87bf9989a31b627a616a22780983e59cc126173a31167b69511e214dc2448921fbd967c8e
+
+package-locations:
+    https://hackage.haskell.org/package/QuickCheck-2.6/QuickCheck-2.6.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/QuickCheck-2.6.tar.gz
+
