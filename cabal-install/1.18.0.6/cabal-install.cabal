@@ -1,0 +1,221 @@
+Name:               cabal-install
+Version:            1.18.0.6
+Synopsis:           The command-line interface for Cabal and Hackage.
+Description:
+    The \'cabal\' command-line program simplifies the process of managing
+    Haskell software by automating the fetching, configuration, compilation
+    and installation of Haskell libraries and programs.
+homepage:           http://www.haskell.org/cabal/
+bug-reports:        https://github.com/haskell/cabal/issues
+License:            BSD3
+License-File:       LICENSE
+Author:             Lemmih <lemmih@gmail.com>
+                    Paolo Martini <paolo@nemail.it>
+                    Bjorn Bringert <bjorn@bringert.net>
+                    Isaac Potoczny-Jones <ijones@syntaxpolice.org>
+                    Duncan Coutts <duncan@community.haskell.org>
+Maintainer:         cabal-devel@haskell.org
+Copyright:          2005 Lemmih <lemmih@gmail.com>
+                    2006 Paolo Martini <paolo@nemail.it>
+                    2007 Bjorn Bringert <bjorn@bringert.net>
+                    2007 Isaac Potoczny-Jones <ijones@syntaxpolice.org>
+                    2007-2012 Duncan Coutts <duncan@community.haskell.org>
+Category:           Distribution
+Build-type:         Simple
+Extra-Source-Files: README bash-completion/cabal bootstrap.sh
+Cabal-Version:      >= 1.8
+
+source-repository head
+  type:     git
+  location: https://github.com/haskell/cabal/
+  subdir:   cabal-install
+
+Flag old-directory
+  description:  Use directory < 1.2 and old-time
+  default:      False
+
+flag network-uri
+  description: Get Network.URI from the network-uri package
+  default: True
+
+executable cabal
+    main-is:        Main.hs
+    ghc-options:    -Wall -fwarn-tabs
+    other-modules:
+        Distribution.Client.BuildReports.Anonymous
+        Distribution.Client.BuildReports.Storage
+        Distribution.Client.BuildReports.Types
+        Distribution.Client.BuildReports.Upload
+        Distribution.Client.Check
+        Distribution.Client.Config
+        Distribution.Client.Configure
+        Distribution.Client.Dependency
+        Distribution.Client.Dependency.TopDown
+        Distribution.Client.Dependency.TopDown.Constraints
+        Distribution.Client.Dependency.TopDown.Types
+        Distribution.Client.Dependency.Types
+        Distribution.Client.Dependency.Modular
+        Distribution.Client.Dependency.Modular.Assignment
+        Distribution.Client.Dependency.Modular.Builder
+        Distribution.Client.Dependency.Modular.Configured
+        Distribution.Client.Dependency.Modular.ConfiguredConversion
+        Distribution.Client.Dependency.Modular.Dependency
+        Distribution.Client.Dependency.Modular.Explore
+        Distribution.Client.Dependency.Modular.Flag
+        Distribution.Client.Dependency.Modular.Index
+        Distribution.Client.Dependency.Modular.IndexConversion
+        Distribution.Client.Dependency.Modular.Log
+        Distribution.Client.Dependency.Modular.Message
+        Distribution.Client.Dependency.Modular.Package
+        Distribution.Client.Dependency.Modular.Preference
+        Distribution.Client.Dependency.Modular.PSQ
+        Distribution.Client.Dependency.Modular.Solver
+        Distribution.Client.Dependency.Modular.Tree
+        Distribution.Client.Dependency.Modular.Validate
+        Distribution.Client.Dependency.Modular.Version
+        Distribution.Client.Fetch
+        Distribution.Client.FetchUtils
+        Distribution.Client.Get
+        Distribution.Client.GZipUtils
+        Distribution.Client.Haddock
+        Distribution.Client.HttpUtils
+        Distribution.Client.IndexUtils
+        Distribution.Client.Init
+        Distribution.Client.Init.Heuristics
+        Distribution.Client.Init.Licenses
+        Distribution.Client.Init.Types
+        Distribution.Client.Install
+        Distribution.Client.InstallPlan
+        Distribution.Client.InstallSymlink
+        Distribution.Client.JobControl
+        Distribution.Client.List
+        Distribution.Client.PackageIndex
+        Distribution.Client.PackageUtils
+        Distribution.Client.ParseUtils
+        Distribution.Client.Run
+        Distribution.Client.Sandbox
+        Distribution.Client.Sandbox.Index
+        Distribution.Client.Sandbox.PackageEnvironment
+        Distribution.Client.Sandbox.Timestamp
+        Distribution.Client.Sandbox.Types
+        Distribution.Client.Setup
+        Distribution.Client.SetupWrapper
+        Distribution.Client.SrcDist
+        Distribution.Client.Tar
+        Distribution.Client.Targets
+        Distribution.Client.Types
+        Distribution.Client.Update
+        Distribution.Client.Upload
+        Distribution.Client.Utils
+        Distribution.Client.World
+        Distribution.Client.Win32SelfUpgrade
+        Distribution.Client.Compat.Environment
+        Distribution.Client.Compat.FilePerms
+        Distribution.Client.Compat.Semaphore
+        Distribution.Client.Compat.Time
+        Paths_cabal_install
+
+    -- NOTE: when updating build-depends, don't forget to update version regexps
+    -- in bootstrap.sh.
+    build-depends:
+        array      >= 0.1      && < 0.6,
+        base       >= 4        && < 5,
+        bytestring >= 0.9      && < 1,
+        Cabal      >= 1.18.0   && < 1.19,
+        containers >= 0.1      && < 0.6,
+        filepath   >= 1.0      && < 1.4,
+        HTTP       >= 4000.0.8 && < 4001,
+        mtl        >= 2.0      && < 3,
+        network    >= 1        && < 3,
+        pretty     >= 1        && < 1.2,
+        random     >= 1        && < 1.1,
+        stm        >= 2.0      && < 3,
+        time       >= 1.1      && < 1.5,
+        zlib       >= 0.5.3    && < 0.6
+
+    if flag(old-directory)
+      build-depends: directory >= 1 && < 1.2, old-time >= 1 && < 1.2,
+                     process   >= 1.0.1.1  && < 1.1.0.2
+    else
+      build-depends: directory >= 1.2 && < 1.3,
+                     process   >= 1.1.0.2  && < 1.3
+
+    if flag(network-uri)
+      build-depends: network-uri >= 2.6, network >= 2.6
+    else
+      build-depends: network-uri < 2.6, network < 2.6
+
+    if os(windows)
+      build-depends: Win32 >= 2 && < 3
+      cpp-options: -DWIN32
+    else
+      build-depends: unix >= 2.0 && < 2.8
+
+    if arch(arm) && impl(ghc < 7.6)
+       -- older ghc on arm does not supprt -threaded
+       cc-options:  -DCABAL_NO_THREADED
+    else
+       ghc-options: -threaded
+
+    c-sources: cbits/getnumcores.c
+
+
+Test-Suite unit-tests
+  type: exitcode-stdio-1.0
+  main-is: UnitTests.hs
+  hs-source-dirs: tests, .
+  ghc-options: -Wall -fwarn-tabs
+  other-modules:
+    UnitTests.Distribution.Client.Targets
+    UnitTests.Distribution.Client.Dependency.Modular.PSQ
+    UnitTests.Distribution.Client.Sandbox
+  build-depends:
+        base,
+        array,
+        bytestring,
+        Cabal,
+        containers,
+        mtl,
+        network,
+        pretty,
+        process,
+        directory,
+        filepath,
+        stm,
+        time,
+        network,
+        HTTP,
+        zlib,
+
+        test-framework,
+        test-framework-hunit,
+        test-framework-quickcheck2 >= 0.3,
+        HUnit,
+        QuickCheck >= 2.5
+
+  if flag(old-directory)
+    build-depends: old-time
+
+  if os(windows)
+    build-depends: Win32
+    cpp-options: -DWIN32
+  else
+    build-depends: unix
+
+  if arch(arm)
+    cc-options:  -DCABAL_NO_THREADED
+  else
+    ghc-options: -threaded
+
+
+package-hashes:
+    MD5:f58671efe535f70ec79c7767194de2db
+    SHA1:e639b97fb10fa5092abbf9b96970a6c08c095b78
+    SHA256:7bdb50a34264916ba252b8f93d6679878f8b98960f555be7ffe5f5aca5cded75
+    SHA512:420b8d01520d57d8912c17ed4095196d256a7979b1bfcf57e2624ea5692843ff2c744feb1800e87adb7d049f544f7293f25d3c17a159e0e8b82da525b7437277
+    Skein512_512:6515c98c636fe05a14d61c8282afa7c5b18679b08373a53549c7ac64a8edf5700164cce39c0681cfda20ad22c063f7d329223593a4cd60c67a52318296e7d587
+
+package-locations:
+    https://hackage.haskell.org/package/cabal-install-1.18.0.6/cabal-install-1.18.0.6.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/cabal-install-1.18.0.6.tar.gz
+

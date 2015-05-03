@@ -1,0 +1,148 @@
+Name:                cabal-dev
+Version:             0.7
+Synopsis:            Manage sandboxed Haskell build environments
+
+Description:         cabal-dev is a tool for managing development builds of
+                     Haskell projects. It supports maintaining sandboxed
+                     cabal-install repositories, and sandboxed ghc package
+                     databases.
+                     .
+                     By default, it uses a cabal-dev directory under
+                     the current working directory as the sandbox.
+                     .
+                     For most packages, just use @cabal-dev@ instead of
+                     @cabal@, and you will get a sandboxed build that
+                     will not install anything (even automatically installed
+                     dependencies) into the user or global ghc package
+                     databases.
+                     .
+                     If your build depends on patched or unreleased libraries,
+                     you can add them to your sandboxed build environment so
+                     they can be installed by @cabal-dev@ or @cabal@. Just run:
+                     .
+                     > cabal-dev add-source /path/to/source/code
+                     .
+                     @cabal-dev add-source@ also supports importing tarballs
+                     into a local cabal repository.
+                     .
+                     This tool has been tested with GHC 6.8-6.12.
+
+License:             BSD3
+License-file:        LICENSE
+Author:              Josh Hoyt, Jonathan Daughtery, Rogan Creswick
+Maintainer:          j3h@galois.com, jtd@galois.com, creswick@galois.com
+Copyright:           2010 Galois, Inc.
+Category:            Development
+Build-type:          Custom
+Cabal-version:       >=1.2
+Data-Files:
+  admin/cabal-config.in,
+  admin/00-index.tar
+
+Flag no-cabal-dev
+  Description: Do not build cabal-dev (just build ghc-pkg-6_8-compat).
+               This is useful for bootstrapping on GHC 6.8.
+  Default: False
+
+  -- Don't try to flip this flag when looking for a
+  -- satisfiable configuration for this package
+  Manual: True
+
+Flag build-tests
+  Description: Build and install the test executable
+  Default: False
+  Manual: True
+
+Executable ghc-pkg-6_8-compat
+  Main-is: GhcPkgCompat.hs
+  Build-Depends:
+    base < 5,
+    Cabal >=1.2 && < 1.11
+
+  GHC-Options: -Wall
+  HS-Source-Dirs: src
+
+Executable cabal-dev-test
+  Main-is: RunTests.hs
+  GHC-Options: -Wall
+  HS-Source-Dirs: src, test
+  if flag(no-cabal-dev) || !flag(build-tests)
+    Buildable: False
+  else
+    if impl(ghc >= 6.10)
+      Build-depends:
+        base >= 4 && < 5
+    else
+      Build-depends:
+        base >= 3 && < 4
+
+    Build-depends:
+      MonadRandom >= 0.1 && < 0.2,
+      random >= 1 && < 1.1,
+      test-framework >= 0.3 && < 0.4,
+      test-framework-hunit >= 0.2,
+      HUnit >= 1.2 && <2,
+-- These dependencies are needed for the cabal-install
+-- code that is pulled in automatically by the userhooks
+      containers >= 0.1 && < 0.4,
+      network  >= 1        && < 3,
+      array      >= 0.1 && < 0.4,
+      pretty     >= 1   && < 1.1
+
+  if os(windows)
+     build-depends: Win32 >= 2.1  && < 2.3
+
+
+Executable cabal-dev
+  HS-Source-Dirs: src
+  Main-is: Main.hs
+  GHC-Options: -Wall
+
+  if flag(no-cabal-dev)
+    Buildable: False
+  else
+    if impl(ghc >= 6.10)
+      Build-depends:
+        base >= 4 && < 5
+    else
+      Build-depends:
+        base >= 3 && < 4
+
+    Build-depends:
+      bytestring >= 0.9 && < 0.10,
+      directory >= 1.0 && < 1.2,
+      filepath >= 1.1 && < 1.3,
+      Cabal >= 1.8.0.6 && < 1.11,
+      HTTP >= 4000.0.9 && < 4000.2,
+      mtl >= 1.1 && < 2.1,
+      network >= 2.2 && < 2.4,
+      pretty >= 1.0 && < 1.1,
+      process >= 1.0 && < 1.1,
+      tar >= 0.3 && < 0.4,
+      zlib >= 0.5 && < 0.6
+
+  if os(windows)
+     build-depends: Win32 >= 2.1  && < 2.3
+
+  Other-modules:
+    Distribution.Dev.AddSource,
+    Distribution.Dev.Sandbox,
+    Distribution.Dev.Command,
+    Distribution.Dev.Flags,
+    Distribution.Dev.InvokeCabal,
+    Distribution.Dev.InstallDependencies,
+    Distribution.Dev.RewriteCabalConfig,
+    Distribution.Dev.InitPkgDb
+
+
+package-hashes:
+    MD5:3120413495fd29be7a4b6c7bf9c55b88
+    SHA1:71e87ac380202d2792eca7683ac158663bee3929
+    SHA256:5522d7cac591ff738e8bf7a1f26bf9700576abd4592bc1b368c7a732a6f25924
+    SHA512:15625173e180d6d5fc359664aa163e4b7037108847cb1334b126fbebe9c0fed459280b86de4e43e4de84e9b5a419bced6aacce616ab02d170174a65be993f90b
+    Skein512_512:2494b05b6aa1f1674e5587485157a1e59ccead18e11399a2a5fc83287914351709fd6f3990c15512184d6938adfcd3a10cd4561b3e5857859eb0c880adc08f84
+
+package-locations:
+    https://hackage.haskell.org/package/cabal-dev-0.7/cabal-dev-0.7.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/cabal-dev-0.7.tar.gz
+

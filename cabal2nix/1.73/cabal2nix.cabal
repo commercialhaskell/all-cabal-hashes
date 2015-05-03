@@ -1,0 +1,121 @@
+Name:                   cabal2nix
+Version:                1.73
+x-revision: 4
+Copyright:              Peter Simons, Andres Loeh
+License:                BSD3
+License-File:           LICENSE
+Author:                 Peter Simons, Andres Loeh
+Maintainer:             Peter Simons <simons@cryp.to>
+Homepage:               http://github.com/NixOS/cabal2nix
+Category:               Distribution
+Synopsis:               Convert Cabal files into Nix build instructions
+Cabal-Version:          >= 1.8
+Build-Type:             Custom
+Tested-With:            GHC >= 7.0.4 && <= 7.8.3
+Data-files:             README.md
+Description:
+  The @cabal2nix@ utility converts Cabal files into Nix build instructions. The
+  commandline syntax is:
+  .
+  > Usage: cabal2nix [options] url-to-cabal-file-or-repo
+  >   -h             --help                   show this help text
+  >   -v             --version                print version
+  >                  --hackage-db=FILEPATH    path to the local hackage db in tar format
+  >                  --sha256=HASH            sha256 hash of source tarball
+  >   -m MAINTAINER  --maintainer=MAINTAINER  maintainer of this package (may be specified multiple times)
+  >   -p PLATFORM    --platform=PLATFORM      supported build platforms (may be specified multiple times)
+  >                  --jailbreak              don't honor version restrictions on build inputs
+  >                  --no-haddock             don't run Haddock when building this package
+  >                  --no-check               don't run regression test suites of this package
+  >                  --no-hyperlink-source    don't add pretty-printed source code to the documentation
+  >
+  > Recognized URI schemes:
+  >
+  >   cabal://pkgname-pkgversion       download the specified package from Hackage
+  >   cabal://pkgname                  download latest version of the specified package from Hackage
+  >   http://host/path                 fetch the Cabal file via HTTP
+  >   file:///local/path               load the Cabal file from the local disk
+  >   /local/path.cabal                abbreviated version of file URI
+  >   <git/svn/bzr/hg URL>             download the source from the specified repository
+  .
+  The only required argument is the path to the cabal file. For example:
+  .
+  > cabal2nix http://hackage.haskell.org/packages/archive/cabal2nix/1.73/cabal2nix.cabal
+  > cabal2nix cabal://cabal2nix-1.73
+  .
+  If the @--sha256@ option has not been specified, cabal2nix calls
+  @nix-prefetch-url@ to determine the hash automatically. This causes
+  network traffic, obviously.
+  .
+  If the argument refers to a source repository instead of a cabal file,
+  cabal2nix will use that source repository to fetch from instead of hackage.
+  Currently, cabal2nix supports directories, archives (fetched via http or https) and
+  git, mercurial, svn or bazaar repositories.
+
+Source-Repository head
+  Type:                 git
+  Location:             git://github.com/NixOS/cabal2nix.git
+
+Executable cabal2nix
+  main-is:              cabal2nix.hs
+  hs-source-dirs:       src
+  Build-Depends:        base >= 3 && < 5, regex-posix, pretty, Cabal >= 1.18 && < 1.22,
+                        filepath, directory, process, hackage-db >= 1.11, transformers, deepseq
+  Extensions:           PatternGuards, RecordWildCards, CPP
+  Ghc-Options:          -Wall
+  other-modules:        Cabal2Nix.CorePackages
+                        Cabal2Nix.Flags
+                        Cabal2Nix.Generate
+                        Cabal2Nix.Package
+                        Cabal2Nix.License
+                        Cabal2Nix.Name
+                        Cabal2Nix.Normalize
+                        Cabal2Nix.PostProcess
+                        Cabal2Nix.Version
+                        Distribution.NixOS.Fetch
+                        Distribution.NixOS.Derivation.Cabal
+                        Distribution.NixOS.Derivation.License
+                        Distribution.NixOS.Derivation.Meta
+                        Distribution.NixOS.PrettyPrinting
+                        Distribution.NixOS.Regex
+
+Executable hackage4nix
+  main-is:              hackage4nix.hs
+  hs-source-dirs:       src
+  Build-Depends:        base >= 3 && < 5, regex-posix, pretty, Cabal >= 1.18 && < 1.22,
+                        mtl, containers, directory, filepath, hackage-db >= 1.11,
+                        transformers, process, deepseq
+  Extensions:           PatternGuards, RecordWildCards, CPP
+  Ghc-Options:          -Wall
+  other-modules:        Cabal2Nix.CorePackages
+                        Cabal2Nix.Flags
+                        Cabal2Nix.Generate
+                        Cabal2Nix.License
+                        Cabal2Nix.Name
+                        Cabal2Nix.Normalize
+                        Cabal2Nix.PostProcess
+                        Distribution.NixOS.Fetch
+                        Distribution.NixOS.Derivation.Cabal
+                        Distribution.NixOS.Derivation.License
+                        Distribution.NixOS.Derivation.Meta
+                        Distribution.NixOS.PrettyPrinting
+                        Distribution.NixOS.Regex
+
+Test-Suite doctest-cabal2nix
+  type:                 exitcode-stdio-1.0
+  main-is:              doc-test.hs
+  hs-source-dirs:       test
+  build-depends:        base, doctest
+
+
+package-hashes:
+    MD5:3f7dade1afb217fca76c4f93820ef1db
+    SHA1:f12b63bb5956acd6c71c3a3d0942fb736111b17c
+    SHA256:3bf693e683847ca4fc5326b842b015989cc2f90c0be85870aa1ca932516653db
+    SHA512:3260af12bcc62ac4f42e983abdb9485dae3d73608f822d491269b2d182bf8ff829684600e243e171224739e1f3f39eabf927a68cd42a5be1722fa0cb6c392b7c
+    Skein512_512:840037a904adc43fa1ad7fdab50be993ffd5645893c507cf3d89aa7124b76d8ec4066e740ea639e60e973ec086827f540772f30170c19ecf180307edfeb02614
+
+package-locations:
+    https://hackage.haskell.org/package/cabal2nix-1.73/cabal2nix-1.73.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/cabal2nix-1.73.tar.gz
+

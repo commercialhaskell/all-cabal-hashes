@@ -1,0 +1,92 @@
+Name:                conduit
+Version:             0.2.0
+Synopsis:            Streaming data processing library.
+Description:
+	Conduits are an approach to the streaming data problem. It is meant as an alternative to enumerators\/iterators, hoping to address the same issues with different trade-offs based on real-world experience with enumerators. For more information, see <http://www.yesodweb.com/book/conduit>.
+	.
+	Release history:
+	.
+    [0.2] Instead of storing state in mutable variables, we now use CPS. A @Source@ returns the next @Source@, and likewise for @Sink@s and @Conduit@s. Not only does this take better advantage of GHC\'s optimizations (about a 20% speedup), but it allows some operations to have a reduction in algorithmic complexity from exponential to linear. This also allowed us to remove the @Prepared@ set of types. Also, the @State@ functions (e.g., @sinkState@) use better constructors for return types, avoiding the need for a dummy state on completion.
+    .
+	[0.1] @BufferedSource@ is now an abstract type, and has a much more efficient internal representation. The result was a 41% speedup on microbenchmarks (note: do not expect speedups anywhere near that in real usage). In general, we are moving towards @BufferedSource@ being a specific tool used internally as needed, but using @Source@ for all external APIs.
+	.
+	[0.0] Initial release.
+License:             BSD3
+License-file:        LICENSE
+Author:              Michael Snoyman
+Maintainer:          michael@snoyman.com
+Category:            Data, Conduit
+Build-type:          Simple
+Cabal-version:       >=1.8
+Homepage:            http://github.com/snoyberg/conduit
+extra-source-files:  test/main.hs, test/random
+
+flag debug
+    default: True
+    description: Turn on some runtime check to ensure invariants are respected.
+
+flag nohandles
+
+Library
+  if os(windows)
+      cpp-options: -DCABAL_OS_WINDOWS
+      other-modules: System.Win32File
+  else
+      other-modules: System.PosixFile
+  if flag(nohandles)
+      cpp-options: -DNO_HANDLES
+  Exposed-modules:     Data.Conduit
+                       Data.Conduit.Binary
+                       Data.Conduit.Text
+                       Data.Conduit.List
+                       Data.Conduit.Lazy
+                       Control.Monad.Trans.Resource
+  Other-modules:       Data.Conduit.Types.Source
+                       Data.Conduit.Types.Sink
+                       Data.Conduit.Types.Conduit
+                       Data.Conduit.Util.Source
+                       Data.Conduit.Util.Sink
+                       Data.Conduit.Util.Conduit
+  Build-depends:       base                     >= 4.3          && < 5
+                     , lifted-base              >= 0.1          && < 0.2
+                     , transformers-base        >= 0.4.1        && < 0.5
+                     , monad-control            >= 0.3.1        && < 0.4
+                     , containers
+                     , transformers             >= 0.2.2        && < 0.3
+                     , bytestring               >= 0.9
+                     , text                     >= 0.11
+  ghc-options:     -Wall
+  if flag(debug)
+    cpp-options: -DDEBUG
+
+test-suite test
+    hs-source-dirs: test
+    main-is: main.hs
+    type: exitcode-stdio-1.0
+    cpp-options:   -DTEST
+    build-depends:   conduit
+                   , base
+                   , hspec >= 0.9.1
+                   , HUnit
+                   , QuickCheck
+                   , bytestring
+                   , transformers
+                   , text
+    ghc-options:     -Wall
+
+source-repository head
+  type:     git
+  location: git://github.com/snoyberg/conduit.git
+
+
+package-hashes:
+    MD5:9b68f0ad7d52a333f98a855178c21a44
+    SHA1:ed52600384ea5bae586f5826f84ef00c9425b83d
+    SHA256:bbe08f6ecc3f6901dd7e8626f6b233f3fc190858754a3643e1aeb39e4ded4b52
+    SHA512:663b5157598369b170b2d903bad25353bbe5431f72a5eace55fb5a9b581f6137fd8b816cfe81b538e8bc2e9b8d937058669a0feb08b4e3a2147b7b1135627624
+    Skein512_512:d6e6a29f8bb6b7b744abf8fa84cbff363299b987ef1aff1fe1255d25baa0dda5847b935c466a2602d932ee8f16b57933b5e091d78c343caec7f37463fa2f24f6
+
+package-locations:
+    https://hackage.haskell.org/package/conduit-0.2.0/conduit-0.2.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/conduit-0.2.0.tar.gz
+

@@ -1,0 +1,96 @@
+Name:                conduit
+Version:             0.4.1.1
+Synopsis:            Streaming data processing library.
+Description:
+	Conduits are an approach to the streaming data problem. It is meant as an alternative to enumerators\/iterators, hoping to address the same issues with different trade-offs based on real-world experience with enumerators. For more information, see <http://www.yesodweb.com/book/conduit>.
+	.
+	Release history:
+    .
+    [0.4] Inspired by the design of the pipes package: we now have a single unified type underlying @Source@, @Sink@, and @Conduit@. This type is named @Pipe@. There are type synonyms provided for the other three types. Additionally, @BufferedSource@ is no longer provided. Instead, the connect-and-resume operator, @$$+@, can be used for the same purpose.
+    .
+    [0.3] ResourceT has been greatly simplified, specialized for IO, and moved into a separate package. Instead of hard-coding ResourceT into the conduit datatypes, they can now live around any monad. The Conduit datatype has been enhanced to better allow generation of streaming output. The SourceResult, SinkResult, and ConduitResult datatypes have been removed entirely.
+	.
+    [0.2] Instead of storing state in mutable variables, we now use CPS. A @Source@ returns the next @Source@, and likewise for @Sink@s and @Conduit@s. Not only does this take better advantage of GHC\'s optimizations (about a 20% speedup), but it allows some operations to have a reduction in algorithmic complexity from exponential to linear. This also allowed us to remove the @Prepared@ set of types. Also, the @State@ functions (e.g., @sinkState@) use better constructors for return types, avoiding the need for a dummy state on completion.
+    .
+	[0.1] @BufferedSource@ is now an abstract type, and has a much more efficient internal representation. The result was a 41% speedup on microbenchmarks (note: do not expect speedups anywhere near that in real usage). In general, we are moving towards @BufferedSource@ being a specific tool used internally as needed, but using @Source@ for all external APIs.
+	.
+	[0.0] Initial release.
+License:             BSD3
+License-file:        LICENSE
+Author:              Michael Snoyman
+Maintainer:          michael@snoyman.com
+Category:            Data, Conduit
+Build-type:          Simple
+Cabal-version:       >=1.8
+Homepage:            http://github.com/snoyberg/conduit
+extra-source-files:  test/main.hs, test/random
+
+flag debug
+    default: True
+    description: Turn on some runtime check to ensure invariants are respected.
+
+flag nohandles
+
+Library
+  if os(windows)
+      cpp-options: -DCABAL_OS_WINDOWS
+      other-modules: System.Win32File
+  else
+      other-modules: System.PosixFile
+  if flag(nohandles)
+      cpp-options: -DNO_HANDLES
+  Exposed-modules:     Data.Conduit
+                       Data.Conduit.Binary
+                       Data.Conduit.Text
+                       Data.Conduit.List
+                       Data.Conduit.Lazy
+                       Data.Conduit.Internal
+  Other-modules:       Data.Conduit.Util.Source
+                       Data.Conduit.Util.Sink
+                       Data.Conduit.Util.Conduit
+  Build-depends:       base                     >= 4.3          && < 5
+                     , resourcet                >= 0.3          && < 0.4
+                     , lifted-base              >= 0.1          && < 0.2
+                     , transformers-base        >= 0.4.1        && < 0.5
+                     , monad-control            >= 0.3.1        && < 0.4
+                     , containers
+                     , transformers             >= 0.2.2        && < 0.4
+                     , bytestring               >= 0.9
+                     , text                     >= 0.11
+                     , void                     >= 0.5.5        && < 0.6
+  ghc-options:     -Wall
+  if flag(debug)
+    cpp-options: -DDEBUG
+
+test-suite test
+    hs-source-dirs: test
+    main-is: main.hs
+    type: exitcode-stdio-1.0
+    cpp-options:   -DTEST
+    build-depends:   conduit
+                   , base
+                   , hspec >= 0.9.1
+                   , HUnit
+                   , QuickCheck
+                   , bytestring
+                   , transformers
+                   , text
+                   , resourcet
+    ghc-options:     -Wall
+
+source-repository head
+  type:     git
+  location: git://github.com/snoyberg/conduit.git
+
+
+package-hashes:
+    MD5:6a6ea53dc85113e2369fe4cfe6270cac
+    SHA1:30d7158d89bc5d53a25f4b3247c1049fe6358ab4
+    SHA256:aa7ba9460293daaa9d65b62137aa6e994b31dbb8d4021cf95433e4d12463abf8
+    SHA512:f1a77b78e4cf8ad961327300a7fb3fa495dbdcb355c40c9355c526cf0666514776746d04b0f26e0a13a3de069ccc79b164f6f7735680a25cacf18c25b9a3a8ae
+    Skein512_512:7c89cf8d25e0b72ec7f4ee776f16e9a1abc50579cbe827518dfa510b05d26cfcd82a49f390f77bd87173669723d3eaeaac6fd587f1dd55bd81ea885f26c68901
+
+package-locations:
+    https://hackage.haskell.org/package/conduit-0.4.1.1/conduit-0.4.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/conduit-0.4.1.1.tar.gz
+

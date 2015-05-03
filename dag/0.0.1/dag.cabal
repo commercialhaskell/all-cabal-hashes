@@ -1,0 +1,96 @@
+Name:                   dag
+Version:                0.0.1
+Author:                 Athan Clark <athan.clark@gmail.com>
+Maintainer:             Athan Clark <athan.clark@gmail.com>
+License:                BSD3
+License-File:           LICENSE
+Synopsis:               Basic type-safe directed acyclic graphs.
+Description:
+  This is a type-safe approach for a directed acyclic graph.
+  .
+  Edge construction is inductive, creating a "schema":
+  .
+  >  import Data.Graph.DAG.Edge
+  >
+  >  -- | Edges are statically defined:
+  >  edges = ECons (Edge :: EdgeValue "foo" "bar") $
+  >    ECons (Edge :: EdgeValue "bar" "baz") $
+  >    ECons (Edge :: EdgeValue "foo" "baz")
+  >    unique -- ENil, but for uniquely edged graphs
+  .
+  Which we use to populate nodes with values:
+  .
+  >  data Cool = AllRight
+  >            | Radical
+  >            | SuperDuper
+  >
+  >  graph = GCons "foo" AllRight $
+  >    GCons "bar" Radical $
+  >    GCons "baz" SuperDuper $
+  >    GNil edges
+  .
+  It's an instance of `Functor`, but we haven't done much here - it will require
+  a lot of reflection that I don't have time to implement right now - there isn't
+  even binding of value-based `GCons` keys and `ECons` edge node labels.
+  .
+  Some type tomfoolery:
+  .
+  >  *Data.Graph.DAG> :t edges
+  >  edges
+  >    :: EdgeSchema
+  >         '['EdgeType "foo" "bar", 'EdgeType "bar" "baz",
+  >           'EdgeType "foo" "baz"] -- Type list of edges
+  >         '['("foo", '["bar", "baz"]), '("bar", '["baz"])] -- potential loops
+  >         'True -- uniqueness
+  .
+  >  *Data.Graph.DAG> :t getSpanningTrees $ edges
+  >  getSpanningTrees $ edges
+  >    :: Data.Proxy.Proxy
+  >         '['Node "foo" '['Node "bar" '['Node "baz" '[]],
+  >                         'Node "baz" '[]],
+  >           'Node "bar" '['Node "baz" '[]],
+  >           'Node "baz" '[]]
+  .
+  This library is still very naive, but it will give us compile-time enforcement
+  of acyclicity (and uniqueness) in these graphs - ideal for dependency graphs.
+
+Cabal-Version:          >= 1.20
+Build-Type:             Simple
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall
+  Exposed-Modules:      Data.Graph.DAG
+                        Data.Graph.DAG.Edge
+  Build-Depends:        base >= 4 && < 5
+                      , constraints
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       src
+                      , test
+  Ghc-Options:          -Wall
+  Main-Is:              Spec.hs
+  Build-Depends:        base
+                      , hspec
+                      , QuickCheck
+                      , quickcheck-instances
+
+Source-Repository head
+  Type:                 git
+  Location:             https://github.com/athanclark/dag
+
+
+package-hashes:
+    MD5:7cc830d8c1bf47eb154c3f0c592e6c52
+    SHA1:9bb2e03a4a6d53b98e4dd64c60987672fe2b5949
+    SHA256:d968ed701a389c3260cdd8faf2b455c4ce594281a6006580c3ab1bb3011b19fa
+    SHA512:8f7baec9bbd3dfb5341c766333a7ac71355eb56b350e01c0b8131c545e3a2fd30f26215cc81d878bf00983cc5c50b36924e326d5d617f926c3328c394fc19ee3
+    Skein512_512:cbe11c97bd26124c2382fb230687d8842134494220f393f5525ef7d089816b6a9759fab01babbb5605e672bfddaaeb5f570fe8c9e33473b260e7bca3efb0bed1
+
+package-locations:
+    https://hackage.haskell.org/package/dag-0.0.1/dag-0.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/dag-0.0.1.tar.gz
+

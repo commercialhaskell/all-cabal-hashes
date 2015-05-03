@@ -1,0 +1,108 @@
+Name:                conduit
+Version:             1.1.0
+Synopsis:            Streaming data processing library.
+Description:
+    @conduit@ is a solution to the streaming data problem, allowing for production, transformation, and consumption of streams of data in constant memory. It is an alternative to lazy I\/O which guarantees deterministic resource handling, and fits in the same general solution space as @enumerator@\/@iteratee@ and @pipes@. For a tutorial, please visit <https://haskell.fpcomplete.com/user/snoyberg/library-documentation/conduit-overview>.
+	.
+	Release history:
+    .
+    [1.1] Refactoring into conduit and conduit-extra packages. Core functionality is now in conduit, whereas most common helper modules (including Text, Binary, Zlib, etc) are in conduit-extra. To upgrade to this version, there should only be import list and conduit file changes necessary.
+    .
+    [1.0] Simplified the user-facing interface back to the Source, Sink, and Conduit types, with Producer and Consumer for generic code. Error messages have been simplified, and optional leftovers and upstream terminators have been removed from the external API. Some long-deprecated functions were finally removed.
+    .
+    [0.5] The internals of the package are now separated to the .Internal module, leaving only the higher-level interface in the advertised API. Internally, switched to a @Leftover@ constructor and slightly tweaked the finalization semantics.
+    .
+    [0.4] Inspired by the design of the pipes package: we now have a single unified type underlying @Source@, @Sink@, and @Conduit@. This type is named @Pipe@. There are type synonyms provided for the other three types. Additionally, @BufferedSource@ is no longer provided. Instead, the connect-and-resume operator, @$$+@, can be used for the same purpose.
+    .
+    [0.3] ResourceT has been greatly simplified, specialized for IO, and moved into a separate package. Instead of hard-coding ResourceT into the conduit datatypes, they can now live around any monad. The Conduit datatype has been enhanced to better allow generation of streaming output. The SourceResult, SinkResult, and ConduitResult datatypes have been removed entirely.
+	.
+    [0.2] Instead of storing state in mutable variables, we now use CPS. A @Source@ returns the next @Source@, and likewise for @Sink@s and @Conduit@s. Not only does this take better advantage of GHC\'s optimizations (about a 20% speedup), but it allows some operations to have a reduction in algorithmic complexity from exponential to linear. This also allowed us to remove the @Prepared@ set of types. Also, the @State@ functions (e.g., @sinkState@) use better constructors for return types, avoiding the need for a dummy state on completion.
+    .
+	[0.1] @BufferedSource@ is now an abstract type, and has a much more efficient internal representation. The result was a 41% speedup on microbenchmarks (note: do not expect speedups anywhere near that in real usage). In general, we are moving towards @BufferedSource@ being a specific tool used internally as needed, but using @Source@ for all external APIs.
+	.
+	[0.0] Initial release.
+License:             MIT
+License-file:        LICENSE
+Author:              Michael Snoyman
+Maintainer:          michael@snoyman.com
+Category:            Data, Conduit
+Build-type:          Simple
+Cabal-version:       >=1.8
+Homepage:            http://github.com/snoyberg/conduit
+extra-source-files:  test/main.hs
+
+Library
+  Exposed-modules:     Data.Conduit
+                       Data.Conduit.List
+                       Data.Conduit.Internal
+                       Data.Conduit.Lift
+  Build-depends:       base                     >= 4.3          && < 5
+                     , resourcet                >= 1.1          && < 1.2
+                     , exceptions
+                     , lifted-base              >= 0.1
+                     , transformers-base        >= 0.4.1        && < 0.5
+                     , monad-control            >= 0.3.1        && < 0.4
+                     , containers
+                     , transformers             >= 0.2.2        && < 0.4
+                     , mtl
+                     , bytestring               >= 0.9
+                     , void                     >= 0.5.5
+                     , mmorph
+                     , directory
+                     , text                     >= 0.11
+                     , text-stream-decode       >= 0.1.0.4      && < 0.2
+  ghc-options:     -Wall
+
+test-suite test
+    hs-source-dirs: test
+    main-is: main.hs
+    other-modules: Data.Conduit.Extra.ZipConduitSpec
+    type: exitcode-stdio-1.0
+    cpp-options:   -DTEST
+    build-depends:   conduit
+                   , base
+                   , hspec >= 1.3
+                   , QuickCheck
+                   , bytestring
+                   , transformers
+                   , mtl
+                   , text
+                   , resourcet
+                   , void
+                   , containers
+    ghc-options:     -Wall
+
+--test-suite doctests
+--    hs-source-dirs: test
+--    main-is: doctests.hs
+--    type: exitcode-stdio-1.0
+--    ghc-options: -threaded
+--    build-depends: base, directory, doctest >= 0.8
+
+benchmark utf8-memory-usage
+    type: exitcode-stdio-1.0
+    hs-source-dirs: benchmarks
+    build-depends:  base
+                  , text-stream-decode
+                  , bytestring
+                  , text
+                  , conduit
+    main-is:        utf8-memory-usage.hs
+    ghc-options:    -Wall -O2 -with-rtsopts=-s
+
+source-repository head
+  type:     git
+  location: git://github.com/snoyberg/conduit.git
+
+
+package-hashes:
+    MD5:d9cc8e29925700ff84a661c1c030ae82
+    SHA1:e82ff9757e4a0c4b12bed20754408e0d4e675c26
+    SHA256:d8f2d7b4cb4e834d5fff8ab52c2848107fa297228041aab53966e844b775c89f
+    SHA512:ce4875be4d1d455d49ec2b2d0f269365b8a2a973dc2f553abea53a9e78982de9d3eff80413a24519a9a0563b6f7b5813d34ffbea3ee846752d53ea9b0fb8bde9
+    Skein512_512:f07c08379ef0a850f5133350bb6635df8f9039faa1e07c53ad8bbc9601685c5c06bdb7dfe3f3987a99d5402ab5f81c9e5bffda49f5d85a6461aa95cac3f82bab
+
+package-locations:
+    https://hackage.haskell.org/package/conduit-1.1.0/conduit-1.1.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/conduit-1.1.0.tar.gz
+

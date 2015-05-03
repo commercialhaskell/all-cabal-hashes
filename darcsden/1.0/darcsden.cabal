@@ -1,0 +1,139 @@
+name:            darcsden
+version:         1.0
+x-revision: 1
+synopsis:        Darcs repository UI and hosting/collaboration app.
+description:
+    A web application and SSH server for browsing and hosting darcs
+    repositories and collaborating with others.
+    .
+    See the README in the source repository for installation help.
+cabal-version:   >=1.6
+build-type:      Simple
+license:         GPL
+license-file:    LICENSE
+author:          Alex Suraci <suraci.alex@gmail.com>
+maintainer:      Alex Suraci <suraci.alex@gmail.com>, Simon Michael <simon@joyful.com>
+homepage:        http://hackage.haskell.org/package/darcsden
+category:        Development, Distribution, Web
+
+source-repository   head
+    type:           darcs
+    location:       http://hub.darcs.net/simon/darcsden
+    -- location:       http://darcsden.com/alex/darcsden
+
+flag darcs28
+    Description:   Build with released darcs 2.8.2+, not the latest darcs-screened.
+    Default:       True
+
+-- Several flags just to help with building on windows in the short term.
+-- Disable these to skip the highlighting-kate, pcre-light, and ssh
+-- dependencies:
+
+flag highlighting
+    Description:   Enable source code highlighting
+    Default:       True
+
+flag closing
+    Description:   Enable closing of bugs in the post-hook
+    Default:       True
+
+flag ssh
+    Description:   Enable ssh server for remote pushes
+    Default:       True
+
+executable darcsden
+  hs-source-dirs:  src
+  main-is:         WebServer.hs
+  -- not -threaded until libdarcs is working directory thread safe
+  ghc-options:     -Wall -fno-warn-unused-do-bind
+  if flag(darcs28)
+    cpp-options: -DDARCS28
+    build-depends: darcs >= 2.8.2 && < 2.9
+  else
+    build-depends: darcs > 2.9 && < 2.10
+  if flag(highlighting)
+    cpp-options: -DHIGHLIGHTING
+    build-depends:
+    { highlighter
+    , highlighting-kate
+    }
+  if flag(ssh)
+    cpp-options: -DSSH_FLAG
+    build-depends:
+      ssh >= 0.3
+  build-depends:
+      base >= 4 && < 5
+    , base64-string
+    , blaze-builder >= 0.3.1.0 && < 0.4
+    , blaze-html >= 0.4.0.0 && < 0.5
+    , bytestring
+    , CouchDB
+    , containers
+    , directory
+    , filepath
+    , harp
+    , hashed-storage
+    , hsp >= 0.7 && < 0.8
+    , json
+    , mtl >= 2 && < 2.2
+    , old-locale
+    , old-time
+    , pandoc
+    , pureMD5
+    , process
+    , random
+    , redis
+    , safe
+    , SHA
+    , snap-core >= 0.8 && < 0.10
+    , snap-server >= 0.8 && < 0.10
+    , system-uuid
+    , split
+    , text
+    , time
+    , utf8-string
+    , xhtml
+    , xml
+
+executable darcsden-ssh
+  hs-source-dirs:  src
+  main-is:         SSHServer.hs
+  ghc-options:     -Wall -threaded -fno-warn-unused-do-bind
+  if flag(darcs28)
+    cpp-options: -DDARCS28
+    build-depends: darcs > 2.8.1 && < 2.9
+  else
+    build-depends: darcs > 2.9 && < 2.10
+  if flag(ssh)
+    cpp-options: -DSSH_FLAG
+    build-depends:
+      ssh >= 0.3
+
+executable darcsden-post-hook
+  hs-source-dirs:  src
+  main-is:         PostHook.hs
+  ghc-options:     -Wall -threaded -fno-warn-unused-do-bind
+
+  if flag(darcs28)
+    cpp-options: -DDARCS28
+    build-depends: darcs > 2.8.1 && < 2.9
+  else
+    build-depends: darcs > 2.9 && < 2.10
+  if flag(ssh)
+    cpp-options: -DSSH_FLAG
+  if flag(closing)
+    cpp-options: -DCLOSING
+    build-depends: pcre-light
+
+
+package-hashes:
+    MD5:becf0898945bb0a33a1a4e34703fef42
+    SHA1:679a8d42ccc8496922b3bdafbee25da4a189f804
+    SHA256:8676014ba8aaa6e5aa6e1c53cada574f0bbac08af03c8cf3bb5962e7fcf96d4b
+    SHA512:c271559d1956d1f197d0d2fa82b96600e690167e6090a48ff2ac9cdde585df71960a50194525de4ecc45f46214247dc58adca65aeeffe587c0c0cfa6819e187b
+    Skein512_512:279185c6b989316060819fc61ff04ff83abcd3f7c6cb71f0778a2b4352d0ade67b72fd025f66e81a35f557cd08d5a9492f646f68ebd6bb3fb3f0cc0855c2d45b
+
+package-locations:
+    https://hackage.haskell.org/package/darcsden-1.0/darcsden-1.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/darcsden-1.0.tar.gz
+

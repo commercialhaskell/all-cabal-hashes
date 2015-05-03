@@ -1,0 +1,128 @@
+Name:                   dag
+Version:                0.1.0.1
+Author:                 Athan Clark <athan.clark@gmail.com>
+Maintainer:             Athan Clark <athan.clark@gmail.com>
+License:                BSD3
+License-File:           LICENSE
+Synopsis:               Compile-time, type-safe directed acyclic graphs.
+Description:
+  This is a type-safe approach for a directed acyclic graph.
+  .
+  Edge construction is incremental, creating a "schema":
+  .
+  >  import Data.Graph.DAG.Edge
+  >
+  >  -- | Edges are statically defined:
+  >  edges =
+  >    ECons (Edge :: EdgeValue "foo" "bar") $
+  >    ECons (Edge :: EdgeValue "bar" "baz") $
+  >    ECons (Edge :: EdgeValue "foo" "baz")
+  >    unique -- ENil, but casted for uniquely edged graphs
+  .
+  The nodes are separate from edges; graph may be not connected:
+  .
+  >  data Cool = AllRight
+  >            | Radical
+  >            | SuperDuper
+  >
+  >  nodes =
+  >    nadd "foo" AllRight $
+  >    nadd "bar" Radical $
+  >    nadd "baz" SuperDuper $
+  >    nempty
+  .
+  Some type tomfoolery:
+  .
+  >  *Data.Graph.DAG> :t edges
+  >
+  >  edges
+  >    :: EdgeSchema
+  >         '['EdgeType "foo" "bar", 'EdgeType "bar" "baz",
+  >           'EdgeType "foo" "baz"] -- Type list of edges
+  >         '['("foo", '["bar", "baz"]), '("bar", '["baz"])] -- potential loops
+  >         'True -- uniqueness
+  >
+  >  *Data.Graph.DAG> :t getSpanningTrees $ edges
+  >
+  >  getSpanningTrees $ edges
+  >    :: Data.Proxy.Proxy
+  >         '['Node "foo" '['Node "bar" '['Node "baz" '[]]
+  >                        ,'Node "baz" '[]]
+  >          ,'Node "bar" '['Node "baz" '[]]
+  >          ,'Node "baz" '[]]
+  >
+  >  *Data.Graph.DAG> reflect $ getSpanningTrees $ edges
+  >
+  >    [Node "foo" [Node "bar" [Node "baz" []]
+  >                ,Node "baz" []]
+  >    ,Node "bar" [Node "baz" []]
+  >    ,Node "baz" []]
+  .
+  We can also look at the edges, first-class:
+  .
+  >  *Data.Graph.DAG> fcEdges edges
+  >
+  >    [("foo","bar"),("foo","baz"),("bar","baz")]
+  .
+  Note that a @NodeSchema@'s keys don't have to be in-sync with it's paired
+  @EdgeSchema@. After we have both, we can construct a @DAG@:
+  .
+  >  graph = DAG edges nodes
+  .
+  Now we can do fun things, like get the spanning tree of a node:
+  .
+  >  *Data.Graph.DAG> gtree "foo" graph
+  >
+  >    Just (AllRight :@-> [Radical :@-> [SuperDuper :@-> []]
+  >                        ,SuperDuper :@-> []])
+  .
+  This library is still very naive, but it will give us compile-time enforcement
+  of acyclicity (and uniqueness) in these graphs - ideal for dependency graphs.
+  .
+  The main deficiency of this graph is that our @EdgeSchema@ can't be
+  /deconstructed/ soundly - there is just too much information loss between the
+  value and type levels. This means we can't delete edges or look inside, but we
+  can still add edges or work with the resulting structure.
+
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall
+  Exposed-Modules:      Data.Graph.DAG
+                        Data.Graph.DAG.Edge
+                        Data.Graph.DAG.Edge.Utils
+  Build-Depends:        base >= 4.7 && < 5
+                      , constraints
+                      , singletons
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       src
+                      , test
+  Ghc-Options:          -Wall
+  Main-Is:              Spec.hs
+  Build-Depends:        base
+                      , hspec
+                      , QuickCheck
+                      , quickcheck-instances
+
+Source-Repository head
+  Type:                 git
+  Location:             https://github.com/athanclark/dag
+
+
+package-hashes:
+    MD5:e7a85b9444fd174875f50feac8239998
+    SHA1:96563c6b4ba7f39e78a6b43f92a905369b7b8528
+    SHA256:674152031e79bbfbeb880f7241198320c083b42707aff6fbb147f41f56b180b5
+    SHA512:b06d0d9ab843560727f7ce8ddf5ae66a0dfd04fc9db51b9471e7709b8466f97c04fd51385a145730368c77d73b0d09e059deca40e0cacf2f791d535d8d042fb6
+    Skein512_512:9c04778865869cc28a45583c82abaea01ef530ec59ffc549fc1ced4245c1ee4c81e642eb73ec4b4f2c8bda4c0482d027b0b93a12bfe97d34da994c724fbfc847
+
+package-locations:
+    https://hackage.haskell.org/package/dag-0.1.0.1/dag-0.1.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/dag-0.1.0.1.tar.gz
+

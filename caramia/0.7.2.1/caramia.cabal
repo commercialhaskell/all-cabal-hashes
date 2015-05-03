@@ -1,0 +1,285 @@
+name:                caramia
+version:             0.7.2.1
+synopsis:            High-level OpenGL bindings
+homepage:            https://github.com/Noeda/caramia/
+license:             MIT
+license-file:        LICENSE
+author:              Mikko Juola
+copyright:           Copyright (c) 2014-2015 Mikko Juola
+maintainer:          mikjuo@gmail.com
+category:            Graphics
+build-type:          Simple
+stability:           experimental
+bug-reports:         https://github.com/Noeda/caramia/issues/
+cabal-version:       >=1.10
+extra-source-files:  README.md
+
+description:
+    This is a highish-level OpenGL bindings library for real-time graphics for
+    Haskell, with minimum OpenGL version being 2.1.
+    .
+    Requirements:
+    .
+    * GHC 7.8+
+    .
+    * OpenGL 2.1 (with some extensions)
+    .
+    If the target system has OpenGL 3.3, then all features in this library should
+    be available unless stated otherwise. OpenGL contexts with 3.x or later
+    versions can be a core profile; this library does not care.
+    .
+    You need to use `-threaded` flag in executables that use this library.
+    .
+    Here are the most important features of this library:
+    .
+    * Safe and automatic finalization of OpenGL resources, with optional prompt
+      finalization.
+    .
+    * No implicit state (that is, no glBind* mess or equivalent). There is a
+        monad for mass-rendering that has implicit state but the state is localized
+        to running of that monad. (see Caramia.Render).
+    .
+    Here are some curious features that you might find useful.
+    .
+    * This library plays nice with other OpenGL libraries. It does not mess up
+        the implicit OpenGL state (except for aforementioned rendering monad).
+    .
+    * This library does not create an OpenGL context. You can use whatever
+        library you want to create an OpenGL context as long as it can get an
+        OpenGL 2.1 (or any later version) context. You may be interested at looking
+        at the tests in this package to see how to use this with the `sdl2`
+        package.
+    .
+    * Operations are generalized over `MonadIO`. Works on top of pure `IO` and
+        also in your custom monad stacks, as long as they implement `MonadIO`.
+    .
+    (At least) the following OpenGL concepts are present in this library:
+    .
+    * Buffer objects (you can do low-level mapping and use raw pointers)
+    .
+    * Geometry, vertex and fragment shaders
+    .
+    * Indexed and non-indexed rendering
+    .
+    * Framebuffers
+    .
+    * Textures (with many topologies, 1D, 2D, 3D, texture arrays, cube textures;
+        we also have buffer textures and multisampling textures)
+    .
+    * Vertex array objects
+    .
+    * Blending, stencil, depth and cull tests
+    .
+    * Instanced rendering
+    .
+    * Synchronization objects
+    .
+    * Query objects
+    .
+    This library tries to avoid including obsolete or redundant features of OpenGL.
+    .
+    Note that the library is in flux and API-breaking changes tend to happen
+    often.
+
+flag build-toys
+    default:         False
+    description:     Build some toy programs to test and play with.
+
+flag fix-opengl21
+    default:         False
+    description:     Makes the library think only OpenGL 2.1 is available. This
+                     can be useful for debugging.
+
+source-repository head
+    type:            git
+    location:        https://github.com/Noeda/caramia.git
+
+library
+  exposed-modules:     Graphics.Caramia
+                       Graphics.Caramia.Blend
+                       Graphics.Caramia.Blend.Internal
+                       Graphics.Caramia.Buffer
+                       Graphics.Caramia.Buffer.Internal
+                       Graphics.Caramia.Color
+                       Graphics.Caramia.Context
+                       Graphics.Caramia.Framebuffer
+                       Graphics.Caramia.Framebuffer.Internal
+                       Graphics.Caramia.ImageFormats
+                       Graphics.Caramia.ImageFormats.Internal
+                       Graphics.Caramia.Internal.ContextLocalData
+                       Graphics.Caramia.Internal.Exception
+                       Graphics.Caramia.Internal.OpenGLCApi
+                       Graphics.Caramia.Internal.OpenGLDebug
+                       Graphics.Caramia.Internal.OpenGLVersion
+                       Graphics.Caramia.Internal.TexStorage
+                       Graphics.Caramia.Memory
+                       Graphics.Caramia.OpenGLResource
+                       Graphics.Caramia.Prelude
+                       Graphics.Caramia.Query
+                       Graphics.Caramia.Render
+                       Graphics.Caramia.Render.Internal
+                       Graphics.Caramia.Resource
+                       Graphics.Caramia.Shader
+                       Graphics.Caramia.Shader.Internal
+                       Graphics.Caramia.Sync
+                       Graphics.Caramia.Texture
+                       Graphics.Caramia.Texture.Internal
+                       Graphics.Caramia.VAO
+                       Graphics.Caramia.VAO.Internal
+
+  ghc-options:         -Wall -fno-warn-name-shadowing
+
+  build-depends:       base         >=4.7 && <5.0.0.0
+                      ,bytestring   >=0.10 && <1.0
+                      ,containers   >=0.5 && <1.0
+                      ,exceptions   >=0.6 && <1.0
+                      ,lens         >=4.6  && <5.0
+                      ,linear       >=1.15 && <2.0
+                      ,mtl          >=2.1 && <3.0
+                      ,semigroups   >=0.15 && <1.0
+                      ,text         >=0.9 && <2.0
+                      ,transformers >=0.3 && <1.0
+                      ,vector       >=0.10 && <1.0
+                      ,gl           >=0.7.3 && <1.0
+
+  if flag(fix-opengl21)
+    cpp-options:       -DFIXED_OPENGL_MAJOR_VERSION=2
+                       -DFIXED_OPENGL_MINOR_VERSION=1
+
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+  if os(darwin)
+    frameworks:        OpenGL
+
+test-suite buffer
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      tests/buffer
+  build-depends:       base, caramia
+                      ,containers >=0.5.5 && <1.0
+                      ,HUnit >=1.2.5.2 && <2.0
+                      ,linear >=1.15 && <2.0
+                      ,sdl2 >= 2.0 && <3.0
+                      ,test-framework >=0.8.1 && <1.0
+                      ,test-framework-hunit >=0.3.0.1 && <1.0
+  default-language:    Haskell2010
+
+test-suite shader
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      tests/shader
+  build-depends:       base, caramia
+                      ,HUnit >=1.2.5.2 && <2.0
+                      ,linear >=1.15 && <2.0
+                      ,sdl2 >= 2.0 && <3.0
+                      ,test-framework >=0.8.1 && <1.0
+                      ,test-framework-hunit >=0.3.0.1 && <1.0
+  default-language:    Haskell2010
+
+test-suite texture
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      tests/texture
+  build-depends:       base, caramia
+                      ,containers >=0.5.5 && <1.0
+                      ,HUnit >=1.2.5.2 && <2.0
+                      ,linear >=1.15 && <2.0
+                      ,sdl2 >= 2.0 && <3.0
+                      ,test-framework >=0.8.1 && <1.0
+                      ,test-framework-hunit >=0.3.0.1 && <1.0
+                      ,transformers >=0.3 && <1.0
+  default-language:    Haskell2010
+
+test-suite color
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      tests/color
+  build-depends:       base, caramia
+                      ,linear >=1.15 && <2.0
+                      ,test-framework >=0.8.1 && <1.0
+                      ,test-framework-quickcheck2 >=0.3.0.3 && <1.0
+  default-language:    Haskell2010
+
+-- This is just a dumping ground test that does stupid things. It's used to
+-- check if things work at all.
+executable smoke-test
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      demos/smoke-test
+  if flag(build-toys)
+    build-depends:       base, caramia
+                        ,linear >=1.15 && <2.0
+                        ,sdl2 ==1.2.*
+                        ,text >=0.9 && <2.0
+  else
+    buildable:          False
+  default-language:    Haskell2010
+
+-- This one tests Caramia.Memory if it returns anything useful.
+executable memory-info
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      demos/memory-info
+  if flag(build-toys)
+    build-depends:       base, caramia
+                        ,sdl2 ==1.2.*
+  else
+    buildable:           False
+  default-language:    Haskell2010
+
+-- Gets OpenGL version with two different ways to check if there is one that's consistent.
+executable gl-info
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      demos/gl-info
+  if flag(build-toys)
+    build-depends:       base
+                        ,sdl2 ==1.2.*
+                        ,OpenGLRaw >=1.5
+  else
+    buildable:           False
+  default-language:    Haskell2010
+
+executable query-objects
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      demos/query-objects
+  if flag(build-toys)
+    build-depends:       base, caramia
+                        ,sdl2 ==1.2.*
+                        ,text >=0.9 && <2.0
+                        ,transformers >=0.3 && <1.0
+                        ,vector >=0.10 && <1.0
+  else
+    buildable:           False
+  default-language:    Haskell2010
+
+executable textures
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      demos/textures
+  if flag(build-toys)
+    build-depends:       base, caramia
+                        ,sdl2 ==1.2.*
+  else
+    buildable:           False
+  default-language:    Haskell2010
+
+
+
+package-hashes:
+    MD5:3854abda297b6aff5787630ff56c38fd
+    SHA1:2002e5cb70652c7973f85daf37cb56ed2bbd8a40
+    SHA256:9042a02579d942e9c99340c2cfadee5d9f3e2b487639c309dbe360b1188a8606
+    SHA512:4027896005fa82f738cdaf3777f056d5352c04bc700f583ffa53395a0d3602d288c731ea8ff8d0186f859ab36431ce69f951054890edb3d74b57983ab36ad38d
+    Skein512_512:f98a00a69eb1d03231ec039394813405e26ca00b334db5394a869633186826416521ffc5cc3b44ffca625bd6b609af11cf85251afab18750516c5ecb7d497438
+
+package-locations:
+    https://hackage.haskell.org/package/caramia-0.7.2.1/caramia-0.7.2.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/caramia-0.7.2.1.tar.gz
+

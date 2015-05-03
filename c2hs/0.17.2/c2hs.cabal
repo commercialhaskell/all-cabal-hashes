@@ -1,0 +1,159 @@
+Name:           c2hs
+Version:        0.17.2
+License:        GPL-2
+License-File:   COPYING
+Copyright:      Copyright (c) 1999-2007 Manuel M T Chakravarty
+                              2005-2013 Duncan Coutts
+                              2008      Benedikt Huber
+Author:         Manuel M T Chakravarty
+Maintainer:     chak@cse.unsw.edu.au, duncan@community.haskell.org, ian@skybluetrades.net
+Stability:      Stable
+Homepage:       https://github.com/haskell/c2hs
+Bug-Reports:    https://github.com/haskell/c2hs/issues
+Synopsis:       C->Haskell FFI tool that gives some cross-language type safety
+Description:    C->Haskell assists in the development of Haskell bindings to C
+                libraries. It extracts interface information from C header
+                files and generates Haskell code with foreign imports and
+                marshaling. Unlike writing foreign imports by hand (or using
+                hsc2hs), this ensures that C functions are imported with the
+                correct Haskell types.
+Category:       Development
+Tested-With:    GHC==6.12.3, GHC==7.0.4, GHC==7.6.1, GHC==7.6.3
+Cabal-Version:  >= 1.8
+Build-Type:     Simple
+
+--TODO: Cabal should allow 'Data-Files' in the executable stanza
+Data-Files:     C2HS.hs
+Extra-Source-Files:
+  src/C2HS/config.h
+  AUTHORS INSTALL README ChangeLog ChangeLog.old
+  doc/c2hs.xml doc/c2hs.css doc/man1/c2hs.1 doc/Makefile
+  tests/system/calls/*.chs tests/system/calls/*.h
+  tests/system/cpp/*.chs
+  tests/system/enums/*.chs tests/system/enums/*.h tests/system/enums/*.c
+  tests/system/marsh/*.chs tests/system/marsh/*.h
+  tests/system/pointer/*.chs tests/system/pointer/*.h tests/system/pointer/*.c
+  tests/system/simple/*.chs tests/system/simple/*.h tests/system/simple/*.c
+  tests/system/sizeof/*.chs tests/system/sizeof/*.h tests/system/sizeof/*.c
+  tests/system/structs/*.chs tests/system/structs/*.h tests/system/structs/*.c
+  tests/system/Makefile
+  tests/bugs/call_capital/*.chs
+  tests/bugs/call_capital/*.h
+  tests/bugs/call_capital/*.c
+  tests/bugs/issue-7/*.chs tests/bugs/issue-7/*.h
+  tests/bugs/issue-10/*.chs tests/bugs/issue-10/*.h tests/bugs/issue-10/*.c
+  tests/bugs/issue-16/*.chs tests/bugs/issue-16/*.h tests/bugs/issue-16/*.c
+  tests/bugs/issue-19/*.chs tests/bugs/issue-19/*.h tests/bugs/issue-19/*.c
+  tests/bugs/issue-22/*.chs tests/bugs/issue-22/*.h tests/bugs/issue-22/*.c
+  tests/bugs/issue-23/*.chs tests/bugs/issue-23/*.h tests/bugs/issue-23/*.c
+  tests/bugs/issue-29/*.chs tests/bugs/issue-29/*.h
+  tests/bugs/issue-30/*.chs tests/bugs/issue-30/*.h tests/bugs/issue-30/*.c
+  tests/bugs/issue-31/*.chs tests/bugs/issue-31/*.h tests/bugs/issue-31/*.c
+  tests/bugs/issue-32/*.chs tests/bugs/issue-32/*.h tests/bugs/issue-32/*.c
+  tests/bugs/issue-37/*.chs tests/bugs/issue-37/*.h tests/bugs/issue-37/*.c
+  tests/bugs/issue-38/*.chs tests/bugs/issue-38/*.h tests/bugs/issue-38/*.c
+  tests/bugs/issue-43/*.chs tests/bugs/issue-43/*.h tests/bugs/issue-43/*.c
+  tests/bugs/issue-44/*.chs tests/bugs/issue-44/*.h tests/bugs/issue-44/*.c
+  tests/bugs/issue-45/*.chs tests/bugs/issue-45/*.h tests/bugs/issue-45/*.c
+  tests/bugs/issue-47/*.chs tests/bugs/issue-47/*.h tests/bugs/issue-47/*.c
+  tests/bugs/issue-51/*.chs tests/bugs/issue-51/*.h tests/bugs/issue-51/*.c
+  tests/bugs/issue-54/*.chs tests/bugs/issue-54/*.h tests/bugs/issue-54/*.c
+  tests/bugs/issue-60/*.chs tests/bugs/issue-60/*.h tests/bugs/issue-60/*.c
+
+source-repository head
+  type:         git
+  location:     git://github.com/haskell/c2hs.git
+
+flag base3
+
+Executable c2hs
+    Build-Depends:  base >= 2 && < 5,
+                    language-c >= 0.4.2 && < 0.5,
+                    filepath
+
+    if flag(base3)
+        Build-Depends: base >= 3, process, directory, array, containers, pretty
+    else
+        Build-Depends: base < 3
+
+    hs-source-dirs: src
+    main-is:        Main.hs
+    other-modules:
+      C2HS.C
+      C2HS.C.Attrs
+      C2HS.C.Builtin
+      C2HS.C.Info
+      C2HS.C.Names
+      C2HS.C.Trav
+      C2HS.CHS
+      C2HS.CHS.Lexer
+      C2HS.Gen.Monad
+      C2HS.Gen.Bind
+      C2HS.Gen.Header
+      C2HS.State
+      C2HS.Switches
+      C2HS.Config
+      C2HS.Version
+
+      Control.StateBase
+      Control.State
+      Control.StateTrans
+      Data.Attributes
+      Data.DLists
+      Data.Errors
+      Data.NameSpaces
+      System.CIO
+      Text.Lexers
+
+    extensions:     ForeignFunctionInterface
+    c-sources:      src/C2HS/config.c
+    --TODO: eliminate the need to suppress these warnings:
+    ghc-options:    -Wall -fno-warn-incomplete-patterns -fwarn-tabs
+
+Test-Suite test-bugs
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      tests
+  main-is:             test-bugs.hs
+  build-tools:         c2hs
+  build-depends:       base,
+                       filepath,
+                       test-framework,
+                       test-framework-hunit,
+                       HUnit,
+                       shelly >= 1.0,
+                       text
+
+Test-Suite test-system
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      tests
+  main-is:             test-system.hs
+  build-tools:         c2hs
+  build-depends:       base,
+                       test-framework,
+                       test-framework-hunit,
+                       HUnit,
+                       shelly >= 1.0,
+                       text
+
+Test-Suite regression-suite
+  type:                exitcode-stdio-1.0
+  build-depends:       base,
+                       filepath,
+                       shelly >= 1.0,
+                       text,
+                       yaml >= 0.8
+  hs-source-dirs:      tests
+  main-is:             regression-suite.hs
+
+
+package-hashes:
+    MD5:fb3093201b54d187312eafef443e494f
+    SHA1:bad930646006eb8775d25188404df7051c3c0ba8
+    SHA256:b32ff232cf59d41ed875579400f95661bf5a194b94ccf4ea935315df7e0433f7
+    SHA512:19ef7a589a1700af2e2f2426b43b454ab49467a97d85c3731da77a9b163709d09e4e58b31d13c0127b807764cff7c62c2b8675cf36d91198d83a9ea9ed4c402c
+    Skein512_512:7fb6d4c9c229272cd82af0991dbcfbd5993358a9a733724abc9fc73b321f1beb6d5c344ce25c55655fc1ee34b8aa18dec1a6477be77f7530a6b9eef0cead2472
+
+package-locations:
+    https://hackage.haskell.org/package/c2hs-0.17.2/c2hs-0.17.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/c2hs-0.17.2.tar.gz
+

@@ -1,0 +1,108 @@
+Name:             cabal-sort
+Version:          0.0.2.1
+License:          BSD3
+License-File:     LICENSE
+Author:           Henning Thielemann <haskell@henning-thielemann.de>
+Maintainer:       Henning Thielemann <haskell@henning-thielemann.de>
+-- Homepage:         http://www.haskell.org/haskellwiki/Cabal
+Category:         Distribution
+Synopsis:         Topologically sort cabal packages
+Description:
+  If you have a bunch of packages you may want to compile or recompile,
+  then you need an order of compilation that meets the dependencies.
+  Given a number of cabal package files,
+  this program reads all those files
+  and emits them topologically sorted according to their dependencies.
+  This way you can compile many packages at once,
+  say if a very low-level package has changed.
+  .
+  For compiling a couple of packages from their local darcs repositories
+  in the right order, you may run something like
+  .
+  > for dir in `find . -name "*.cabal" | fgrep -v _darcs | xargs cabal-sort --info=dir`; do (cd $dir && cabal install); done
+  .
+  For uploading a set of packages to Hackage in the right order
+  you may run
+  .
+  > for dir in `find . -name "*.cabal" | fgrep -v _darcs | xargs cabal-sort --info=dir`; do (cd $dir && rm dist/*.tar.gz && cabal sdist && cabal upload dist/*.tar.gz); done
+  .
+  Problem 1: Given packages A, B, C,
+  where C depends on B and B depends on A,
+  and you call
+  .
+  > cabal-sort C.cabal A.cabal
+  .
+  then the emitted order of packages may be wrong,
+  because cabal-sort does not get to know the dependency of C on B.
+  Even if the order is correct,
+  B.cabal is missing in the output
+  and thus the list of cabal files cannot immediately be used
+  for a sequence of cabal-install runs.
+  .
+  Problem 2: We ignore flags and merge all dependencies.
+  This may lead to dependency cycles that cannot occur for any flag assignment.
+  .
+  There is a second program called @ghc-pkg-dep@
+  that finds recursively all packages that a set of packages depends on.
+  Duplicates are eliminated and the packages are given topologically sorted,
+  such that you can use this for recompilation of the packages.
+  .
+  > ghc-pkg-dep pkgA-0.1 pkgB-2.3 pkgC-0.1.2
+  .
+  Unfortunately ghc-pkg runs quite slowly.
+  In order to not get bored you may run the program with @--verbose=2@ option.
+  Maybe there is a way to query the complete GHC package database at once.
+Tested-With:       GHC==6.10.4
+Cabal-Version:     >=1.6
+Build-Type:        Simple
+Source-Repository head
+  type:     darcs
+  location: http://code.haskell.org/~thielema/cabal-sort/
+
+Source-Repository this
+  type:     darcs
+  location: http://code.haskell.org/~thielema/cabal-sort/
+  tag:      0.0.2.1
+
+
+Executable cabal-sort
+  Build-Depends:
+    Cabal >=1.6 && <1.11,
+    fgl >=5.4.2 && <5.5,
+    directory >=1 && <1.2,
+    filepath >=1.1 && <1.3,
+    containers >=0.2 && <0.5,
+    explicit-exception >=0.1.4 && <0.2,
+    transformers >=0.2 && <0.3,
+    base >=2 && <5
+
+  GHC-Options:      -Wall
+  Hs-source-dirs:   src
+  Main-Is:          CabalSort.hs
+
+Executable ghc-pkg-dep
+  Build-Depends:
+    Cabal >=1.6 && <1.11,
+    process >=1.0 && <1.1,
+    containers >=0.2 && <0.5,
+    explicit-exception >=0.1.4 && <0.2,
+    transformers >=0.2 && <0.3,
+    bytestring >=0.9.1 && <0.10,
+    base >=2 && <5
+
+  GHC-Options:      -Wall
+  Hs-source-dirs:   src
+  Main-Is:          GhcPkgDep.hs
+
+
+package-hashes:
+    MD5:4765e3e0f3d474bde025aeacc384ead9
+    SHA1:9b80afc551fe11394cc43d3ff51cbca807ddefcf
+    SHA256:c91f363bda014315e708eb0325da41ebbd138c6ad02a3ef509849823432d27f4
+    SHA512:f25362354d5eb588ae99e6b25a8c2477293ba56da18204149a6157d3e9bbd49b57795766a7647982263c724efc81ca9f3ede4cad1c246abf99381176e11d06f7
+    Skein512_512:6af40bb17cb03dca8f2e97d73e562ce002ba5233da8cce839a217ba0d5d139b877627d1ff5b3916b8bbe9f7cd433a6e508f2edda241d71533b1363bf2a259b50
+
+package-locations:
+    https://hackage.haskell.org/package/cabal-sort-0.0.2.1/cabal-sort-0.0.2.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/cabal-sort-0.0.2.1.tar.gz
+

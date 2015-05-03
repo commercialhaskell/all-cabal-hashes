@@ -1,0 +1,145 @@
+name:                data-dispersal
+
+-- The package version.  See the Haskell package versioning policy (PVP) 
+-- for standards guiding when and how versions should be incremented.
+-- http://www.haskell.org/haskellwiki/Package_versioning_policy
+-- PVP summary:      +-+------- breaking API changes
+--                   | | +----- non-breaking API additions
+--                   | | | +--- code changes with no API change
+version:             1.0.0.0
+
+synopsis:            Space-efficient and privacy-preserving data dispersal algorithms.
+
+description:
+  This library provides space-efficient (m,n)-information dispersal algorithms (IDAs). 
+  .
+  Given a ByteString @bstr@ of length @D@, we encode @bstr@ as a list @fs@ of @n@ 
+  'Fragment's, each containing a ByteString
+  of length @O(D/m)@. Then, each fragment in @fs@ could be stored on a separate 
+  machine for fault-tolerance.
+  Even if up to @n-m@ of these machines crash, we can still reconstruct the original 
+  ByteString out of the remaining m fragments.
+  The total space required for the n fragments is @O((n/m)*D)@.
+  Note that @m@ and @n@ are roughly in the same order, so the actual storage overhead 
+  for getting good fault-tolerance increases only by a constant factor.
+  .
+  The module @Data.IDA@ contains the basic information dispersal algorithm. The module
+  @Crypto.IDA@ augments the dispersal scheme by combining it with secret sharing, i.e.,
+  the knowledge of up to @m-1@ fragments does not leak any information about
+  the original data. See "Crypto.IDA" for details.
+  .
+  /GHCi Example:/
+  .
+  > > :m + Data.IDA
+  > > let msg = Data.ByteString.Char8.pack "my really important data"
+  > > let fragments = encode 5 15 msg
+  > -- Now we could distributed the fragments on different sites to add some 
+  > -- fault-tolerance.
+  > > let frags' = drop 5 $ take 10 fragments -- let's pretend that 10 machines crashed
+  > > decode frags'  
+  > "my really important data"
+  .
+  /Fault-Tolerance:/
+  .
+  Suppose that we have @N@ machines and encode our data as @2log(N)@ fragments 
+  with reconstruction threshold m = @log(N)@.
+  Let's assume that we store each fragment on a separate machine and each
+  machine fails (independently) with probability at most 0.5.
+  .
+  * What is the probability of our data being safe? 
+  @Pr[ at most n-m machines crash ] >= 1-0.5^(log(N)) = 1-N^(-1).@
+  .
+  * What is the overhead in terms of space that we pay for this level of fault-tolerance?
+  We have n fragments, each of size D\/m, so the total space is @n * D\/ m = 
+  2D.@
+  In other words, we can guarantee that the data survives with high probability 
+  by increasing the required space by a constant factor.
+  .
+  This library is based on the following works: 
+  .
+  * \"Efficient Dispersal of
+  Information for Security, Load Balancing, and Fault Tolerance\", by Michael O.
+  Rabin, JACM 1989.
+  .
+  * \"How to share a secret.\" by Adi Shamir.
+ In Communications of the ACM 22 (11): 612–613, 1979.
+  .
+  * \"Secret Sharing Made Short\" Hugo Krawczyk.
+  CRYPTO 1993: 136-146
+
+
+license:             LGPL-2.1
+
+license-file:        LICENSE
+
+author:              Peter Robinson <peter.robinson@monoid.at>
+
+maintainer:          peter.robinson@monoid.at
+
+copyright:           Peter Robinson 2014
+
+category:            Data, Cryptography
+
+build-type:          Simple
+
+cabal-version:       >=1.8
+
+homepage:            http://monoid.at/code
+
+
+library
+  hs-source-dirs:    src
+
+  exposed-modules:   Data.IDA 
+                     Data.IDA.Internal
+                     Data.IDA.FiniteField
+                     Crypto.IDA
+
+  build-depends:     base ==4.6.*
+                    ,array >= 0.4.0.1
+                    ,vector >= 0.10.11.0
+                    ,binary >= 0.7.2.1
+                    ,bytestring >= 0.10.0.2
+                    ,syb >= 0.4.0
+                    ,binary >= 0.5.1.1
+                    ,finite-field >= 0.8.0
+                    ,matrix >= 0.3.4.0
+                    ,AES >= 0.2.9
+                    ,entropy >= 0.3.2
+                    ,secret-sharing >= 1.0.0.0
+  
+  ghc-options:      -Wall 
+
+test-suite Main
+  type:            exitcode-stdio-1.0
+
+  x-uses-tf:       true
+
+  build-depends:   base >= 4 && < 5
+                   ,QuickCheck >= 2.4
+                   ,test-framework >= 0.4.1
+                   ,test-framework-quickcheck2
+                   ,array >= 0.4.0.1
+                   ,vector >= 0.10.11.0
+                   ,spool >= 0.1
+                   ,binary >= 0.7.2.1
+                   ,bytestring >= 0.10.0.2
+                   ,syb >= 0.4.0
+
+  hs-source-dirs:  src, tests
+
+  main-is:         Tests.hs
+
+
+
+package-hashes:
+    MD5:0eb24126398ce1ef1f3598dfc182d970
+    SHA1:6ea245cb341fcf21d709c28af410036571ae4ced
+    SHA256:57511d992bf76ae5e374611dd6b27f6f1a5a47da4df202b0a238ad60231797d8
+    SHA512:dff20a198cc4c073c055e1e78c0af10e5c9597b8c5a545687117a21e1d90581b5599f268a90b7e6c4167bb9931f48573cb47ca8e4f4ff187e1505cb06ccf871a
+    Skein512_512:423757f2da20c07827cefcf71006b6f6af47745031e4036542c8fa733217f694b55cfd1b25e3fbc7e8b92a8d70ad61ad70f7eae64224856056eb1b036119f8b1
+
+package-locations:
+    https://hackage.haskell.org/package/data-dispersal-1.0.0.0/data-dispersal-1.0.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/data-dispersal-1.0.0.0.tar.gz
+

@@ -1,0 +1,120 @@
+name: control-monad-exception
+version: 0.4.8
+Cabal-Version:  >= 1.2.3
+build-type: Simple
+license: PublicDomain
+author: Pepe Iborra
+maintainer: pepeiborra@gmail.com
+homepage: http://pepeiborra.github.com/control-monad-exception
+description: 
+  This package provides explicitly typed, checked exceptions as a library.
+  .
+  Computations throwing different types of exception can be combined seamlessly.
+  .
+  /Example/
+  .
+  > data Expr = Add Expr Expr | Div Expr Expr | Val Double
+  > eval (Val x)     = return x
+  > eval (Add a1 a2) = do
+  >    v1 <- eval a1
+  >    v2 <- eval a2
+  >    let sum = v1 + v2
+  >    if sum < v1 || sum < v2 then throw SumOverflow else return sum
+  > eval (Div a1 a2) = do
+  >    v1 <- eval a1
+  >    v2 <- eval a2
+  >    if v2 == 0 then throw DivideByZero else return (v1 / v2)
+  .
+  > data DivideByZero = DivideByZero deriving (Show, Typeable)
+  > data SumOverflow  = SumOverflow  deriving (Show, Typeable)
+  .
+  > instance Exception DivideByZero
+  > instance Exception SumOverflow
+  .
+  GHCi infers the following types
+  .
+  > eval :: (Throws DivideByZero l, Throws SumOverflow l) => Expr -> EM l Double
+  > eval `catch` \ (e::DivideByZero) -> return (-1)  :: Throws SumOverflow l => Expr -> EM l Double
+  > runEM(eval `catch` \ (e::SomeException) -> return (-1))  :: Expr -> Double
+  .
+  .
+  This package provides, among other things:
+  .
+    * Support for explicitly documented, unchecked exceptions (with 'tryEM').
+  .
+    * Support for selective unchecked exceptions (with 'UncaughtException').
+  .
+    * Support for exception stack traces (experimental). /Example:/
+  .
+  >       f () = $withLocTH $ throw MyException
+  >       g a  = $withLocTH $ f a
+  >
+  >       main = runEMT $ $withLocTH $ do
+  >       g () `catchWithSrcLoc` \loc (e::MyException) -> lift(putStrLn$ showExceptionWithTrace loc e)
+  .
+  >        -- Running main produces the output:
+  .
+  >       *Main> main
+  >       MyException
+  >        in Main(example.hs): (12,6)
+  >           Main(example.hs): (11,7)
+  .
+
+synopsis: Explicitly typed, checked exceptions with stack traces
+category: Control, Monads
+stability: experimental
+tested-with: GHC ==6.8.2
+tested-with: GHC ==6.10.2
+tested-with: GHC ==6.10.3
+
+Flag transformers
+  description: Use transformers and monads-fd instead of mtl
+  default: True 
+
+Flag extensibleExceptions
+  description: Use extensible-exception package
+  default: False
+
+Library
+  buildable: True
+  if flag(extensibleExceptions)
+    build-depends:
+      extensible-exceptions >= 0.1 && <0.2,
+      base >= 3.0 && <4
+  else
+    build-depends:
+      base >= 4 && < 5
+
+  if flag(transformers)
+    cpp-options: -DTRANSFORMERS
+    build-depends:
+      transformers >= 0.0.1 && <0.2,
+      monads-fd >= 0.0 && <0.1
+  else
+    build-depends: mtl
+
+  extensions:  MultiParamTypeClasses, 
+               FunctionalDependencies,
+               FlexibleInstances,
+               EmptyDataDecls,
+               DeriveDataTypeable,
+               UndecidableInstances
+  build-depends: pretty, template-haskell
+  exposed-modules:
+     Control.Monad.Exception.Class
+     Control.Monad.Exception.Throws
+     Control.Monad.Exception
+  ghc-options: -Wall -fno-warn-name-shadowing
+
+
+package-hashes:
+    MD5:949da55461d306f9a9a3860f70ca520c
+    SHA1:bc1325c701077050f72772a2476630cb263e9a97
+    SHA256:6914fdff7a85f4d4d354418d0e98117d5e4bf483fc8569fa9ff044556ecb9456
+    SHA512:9430ba94dc6350317944fb647ade9cc9c72d7e92e75235929ecf4467dfb69e85be0019a1485d897c1ff5b74e5e44312fb8963154bdb5c4505d82c73b0eb96bd6
+    Skein512_512:fb40032201d6eb56ca443a6da7235292fb815e7e7912c9b110d42d0923343da0aa6399b4a4953bfff717fab4699cb594e6f86243067afde5a4d222a916e54eaf
+
+package-locations:
+    https://hackage.haskell.org/package/control-monad-exception-0.4.8/control-monad-exception-0.4.8.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/control-monad-exception-0.4.8.tar.gz
+

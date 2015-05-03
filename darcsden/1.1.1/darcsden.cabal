@@ -1,0 +1,374 @@
+name:            darcsden
+version:         1.1.1
+synopsis:        Darcs repository UI and hosting/collaboration app (hub.darcs.net branch).
+description:
+    A web application and SSH server for browsing and hosting darcs
+    repositories and collaborating with others.
+    .
+    Installation: http://hub.darcs.net/simon/darcsden/README.md
+    .
+    Release notes: http://hub.darcs.net/simon/darcsden/ANNOUNCE.md
+
+cabal-version:   >=1.6
+build-type:      Simple
+license:         GPL
+license-file:    LICENSE
+author:          Alex Suraci <suraci.alex@gmail.com>
+maintainer:      Alex Suraci <suraci.alex@gmail.com>, Simon Michael <simon@joyful.com>
+homepage:        http://hackage.haskell.org/package/darcsden
+category:        Development, Distribution, Web
+tested-with:     GHC==7.8.4
+extra-source-files: 
+                    CHANGES.md
+                    LICENSE
+                    README.md
+		    public/js/relatize.js
+		    public/js/main.js
+		    public/js/jquery-1.8.1.min.js
+		    public/images/explore.xcf
+		    public/images/favicon.ico
+		    public/images/added.gif
+		    public/images/spinner.gif
+		    public/images/preference.gif
+		    public/images/favicon.xcf
+		    public/images/modified.gif
+		    public/images/delete-small.gif
+		    public/images/up.gif
+		    public/images/log.gif
+		    public/images/login.gif
+		    public/images/edit.xcf
+		    public/images/patches.gif
+		    public/images/fork.gif
+		    public/images/issues.gif
+		    public/images/patches.xcf
+		    public/images/new.xcf
+		    public/images/delete.gif
+		    public/images/new.gif
+		    public/images/home.gif
+		    public/images/issues.xcf
+		    public/images/folder.gif
+		    public/images/logout.gif
+		    public/images/file.gif
+		    public/images/register.gif
+		    public/images/explore.gif
+		    public/images/forkgif.xcf
+		    public/images/edit.gif
+		    public/images/private.gif
+		    public/images/removed.gif
+		    public/images/favicon.png
+		    public/codemirror-3.14/theme/elegant.css
+		    public/codemirror-3.14/LICENSE
+		    public/codemirror-3.14/lib/codemirror.css
+		    public/codemirror-3.14/lib/codemirror-compressed.js
+		    public/uptime.txt
+		    public/robots.txt
+		    public/css/main.css
+		    public/css/highlight.css
+		    public/bootstrap/js/bootstrap.js
+		    public/bootstrap/js/bootstrap.min.js
+		    public/bootstrap/img/glyphicons-halflings-white.png
+		    public/bootstrap/css/bootstrap.min.css
+		    public/bootstrap/css/bootstrap.css
+		    public/bootstrap/css/bootstrap-responsive.css
+		    public/bootstrap/css/bootstrap-responsive.min.css
+
+source-repository   head
+    type:           darcs
+
+    -- latest development branch, used to run hub.darcs.net
+    location:       http://hub.darcs.net/simon/darcsden
+
+    -- the 1.0 release branch
+    -- location:       http://hub.darcs.net/simon/darcsden-1.0
+
+    -- Alex's original darcsden trunk
+    -- location:       http://darcsden.com/alex/darcsden
+
+flag darcs28
+    Description:   Build with the released darcs 2.8.x, not the unreleased 2.9.x.
+    Default:       True
+
+-- Several flags just to help with building on windows in the short term.
+-- Disable these to skip the highlighting-kate/highlighter, pcre-light,
+-- and ssh dependencies.
+
+--- Enable at most one of these two:
+flag highlightingkate
+    Description:   Enable source code highlighting, using highlighting-kate (faster).
+    Default:       True
+flag highlighter
+    Description:   Enable source code highlighting, using highlighter.
+    Default:       False
+--
+
+flag closing
+    Description:   Enable closing of bugs in the post-hook
+    Default:       True
+
+flag ssh
+    Description:   Enable ssh server for remote pushes
+    Default:       True
+
+executable darcsden
+  hs-source-dirs:  src
+  main-is:         WebServer.hs
+  other-modules:
+                  DarcsDen.Darcs
+                  DarcsDen.Debug
+                  DarcsDen.Github.Handler
+                  DarcsDen.Github.Paths
+                  DarcsDen.Github.Util
+                  DarcsDen.Google.Handler
+                  DarcsDen.Google.Paths
+                  DarcsDen.Google.Util
+                  DarcsDen.Handler
+                  DarcsDen.Handler.Repository
+                  DarcsDen.Handler.Repository.Browse
+                  DarcsDen.Handler.Repository.Changes
+                  DarcsDen.Handler.Repository.Forks
+                  DarcsDen.Handler.Repository.Util
+                  DarcsDen.Handler.User
+                  DarcsDen.Pages.Base
+                  DarcsDen.Pages.HSPage
+                  DarcsDen.Pages.Repository
+                  DarcsDen.Pages.User
+                  DarcsDen.Pages.Util
+                  DarcsDen.Settings
+                  DarcsDen.State.Comment
+                  DarcsDen.State.ForgotPassword
+                  DarcsDen.State.Issue
+                  DarcsDen.State.Repository
+                  DarcsDen.State.Schema
+                  DarcsDen.State.Session
+                  DarcsDen.State.User
+                  DarcsDen.State.Util
+                  DarcsDen.Util
+                  DarcsDen.Validate
+                  DarcsDen.WebUtils
+
+  -- not -threaded until libdarcs is working directory thread safe
+  ghc-options:     -Wall -fno-warn-unused-do-bind
+
+  if flag(darcs28)
+    cpp-options: -DDARCS28
+    build-depends: darcs >= 2.8.4 && < 2.9
+  else
+    build-depends: darcs >= 2.9 && < 2.10
+
+  if flag(highlightingkate)
+    cpp-options: -DHIGHLIGHTINGKATE
+    build-depends: highlighting-kate
+
+  if flag(highlighter)
+    cpp-options: -DHIGHLIGHTER
+    build-depends: highlighter
+
+  if flag(ssh)
+    cpp-options: -DSSH_FLAG
+    build-depends:
+      ssh >= 0.3
+
+  build-depends:
+      base >= 4 && < 5
+    , base64-string
+    , blaze-builder
+    , blaze-html >= 0.5 && < 0.7
+    , blaze-markup
+    , bytestring
+    , CouchDB
+    , containers
+    , directory
+    , filepath
+    , harp
+    , hashed-storage
+    , HsOpenSSL
+    , hsp >= 0.7.3 && < 0.8
+    , http-conduit
+    , json
+    , mtl >= 2 && < 2.2
+    , mime-mail
+    , old-locale
+    , old-time
+    , pandoc >= 1.10 && < 1.12
+    , pureMD5
+    , process
+    , random
+    , redis
+    , safe
+    , SHA
+    , snap-core >= 0.8 && < 0.10
+    , snap-server >= 0.8 && < 0.10
+    , system-uuid
+    , split
+    , text
+    , time
+    , utf8-string
+    , xhtml
+    , xml
+
+  if os(windows)
+    cpp-options: -DWIN32
+    build-depends:
+      Win32-services-wrapper >= 0.1 && < 0.2
+
+executable darcsden-ssh
+  hs-source-dirs:  src
+  main-is:         SSHServer.hs
+  other-modules:
+                  DarcsDen.Darcs
+                  DarcsDen.Debug
+                  DarcsDen.Github.Handler
+                  DarcsDen.Github.Paths
+                  DarcsDen.Github.Util
+                  DarcsDen.Google.Handler
+                  DarcsDen.Google.Paths
+                  DarcsDen.Google.Util
+                  DarcsDen.Handler
+                  DarcsDen.Handler.Repository
+                  DarcsDen.Handler.Repository.Browse
+                  DarcsDen.Handler.Repository.Changes
+                  DarcsDen.Handler.Repository.Forks
+                  DarcsDen.Handler.Repository.Util
+                  DarcsDen.Handler.User
+                  DarcsDen.Pages.Base
+                  DarcsDen.Pages.HSPage
+                  DarcsDen.Pages.Repository
+                  DarcsDen.Pages.User
+                  DarcsDen.Pages.Util
+                  DarcsDen.Settings
+                  DarcsDen.State.Comment
+                  DarcsDen.State.ForgotPassword
+                  DarcsDen.State.Issue
+                  DarcsDen.State.Repository
+                  DarcsDen.State.Schema
+                  DarcsDen.State.Session
+                  DarcsDen.State.User
+                  DarcsDen.State.Util
+                  DarcsDen.Util
+                  DarcsDen.Validate
+                  DarcsDen.WebUtils
+
+  ghc-options:     -Wall -threaded -fno-warn-unused-do-bind
+  if flag(darcs28)
+    cpp-options: -DDARCS28
+    build-depends: darcs >= 2.8.4 && < 2.9
+  else
+    build-depends: darcs >= 2.9 && < 2.10
+  if flag(ssh)
+    cpp-options: -DSSH_FLAG
+    build-depends:
+      ssh >= 0.3
+
+executable darcsden-post-hook
+  hs-source-dirs:  src
+  main-is:         PostHook.hs
+  other-modules:
+                  DarcsDen.Darcs
+                  DarcsDen.Debug
+                  DarcsDen.Github.Handler
+                  DarcsDen.Github.Paths
+                  DarcsDen.Github.Util
+                  DarcsDen.Google.Handler
+                  DarcsDen.Google.Paths
+                  DarcsDen.Google.Util
+                  DarcsDen.Handler
+                  DarcsDen.Handler.Repository
+                  DarcsDen.Handler.Repository.Browse
+                  DarcsDen.Handler.Repository.Changes
+                  DarcsDen.Handler.Repository.Forks
+                  DarcsDen.Handler.Repository.Util
+                  DarcsDen.Handler.User
+                  DarcsDen.Pages.Base
+                  DarcsDen.Pages.HSPage
+                  DarcsDen.Pages.Repository
+                  DarcsDen.Pages.User
+                  DarcsDen.Pages.Util
+                  DarcsDen.Settings
+                  DarcsDen.State.Comment
+                  DarcsDen.State.ForgotPassword
+                  DarcsDen.State.Issue
+                  DarcsDen.State.Repository
+                  DarcsDen.State.Schema
+                  DarcsDen.State.Session
+                  DarcsDen.State.User
+                  DarcsDen.State.Util
+                  DarcsDen.Util
+                  DarcsDen.Validate
+                  DarcsDen.WebUtils
+
+  ghc-options:     -Wall -threaded -fno-warn-unused-do-bind
+
+  if flag(darcs28)
+    cpp-options: -DDARCS28
+    build-depends: darcs >= 2.8.4 && < 2.9
+  else
+    build-depends: darcs >= 2.9 && < 2.10
+  if flag(ssh)
+    cpp-options: -DSSH_FLAG
+  if flag(closing)
+    cpp-options: -DCLOSING
+    build-depends: pcre-light
+
+executable darcsden-test
+  hs-source-dirs: src
+  main-is:        Test.hs
+  other-modules:
+                  DarcsDen.Darcs
+                  DarcsDen.Debug
+                  DarcsDen.Github.Handler
+                  DarcsDen.Github.Paths
+                  DarcsDen.Github.Util
+                  DarcsDen.Google.Handler
+                  DarcsDen.Google.Paths
+                  DarcsDen.Google.Util
+                  DarcsDen.Handler
+                  DarcsDen.Handler.Repository
+                  DarcsDen.Handler.Repository.Browse
+                  DarcsDen.Handler.Repository.Changes
+                  DarcsDen.Handler.Repository.Forks
+                  DarcsDen.Handler.Repository.Util
+                  DarcsDen.Handler.User
+                  DarcsDen.Pages.Base
+                  DarcsDen.Pages.HSPage
+                  DarcsDen.Pages.Repository
+                  DarcsDen.Pages.User
+                  DarcsDen.Pages.Util
+                  DarcsDen.Settings
+                  DarcsDen.State.Comment
+                  DarcsDen.State.ForgotPassword
+                  DarcsDen.State.Issue
+                  DarcsDen.State.Repository
+                  DarcsDen.State.Schema
+                  DarcsDen.State.Session
+                  DarcsDen.State.User
+                  DarcsDen.State.Util
+                  DarcsDen.Util
+                  DarcsDen.Validate
+                  DarcsDen.WebUtils
+                  Test.Github
+                  Test.Google
+                  Test.Repository
+                  Test.User
+
+  ghc-options: -Wall -threaded -fno-warn-unused-do-bind
+
+  build-depends:
+      aeson
+    , CouchDB
+    , HUnit
+    , redis
+    , text
+    , webdriver
+
+
+package-hashes:
+    MD5:10382d0aa8221c9e563d6e3038d6eb7b
+    SHA1:01a7f90f4978fbf3b5aadaa59437dd92dfbff221
+    SHA256:85011d74d264d2dcf4a90665da5c7a17da77a3d74160309d16b12ea38c3ae8b7
+    SHA512:0611e36091c734ad828253d1b2d28c4dc376acbbdf9f88992212bb59a66fa91d75aa69849df3feb3fbf4c16f1e6e98718d70ad57e0f03a858c9307410bcfaea9
+    Skein512_512:335b20791372dd4a897e7b49de45834a0628068a78ccaf76be927ba0148b04221b57e751decf7fba03f856a570198f7171fae10ac0b81e05a62f9ee7ee5065f0
+
+package-locations:
+    https://hackage.haskell.org/package/darcsden-1.1.1/darcsden-1.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/darcsden-1.1.1.tar.gz
+

@@ -1,0 +1,118 @@
+----------------------------------------------------------------
+-- wren ng thornton <wren@community.haskell.org>    ~ 2010.11.12
+----------------------------------------------------------------
+
+Name:           bytestring-trie
+Version:        0.2.3
+-- Source-Repository requires version 1.6
+Cabal-Version:  >= 1.6
+Build-Type:     Simple
+Stability:      provisional
+Copyright:      Copyright (c) 2008--2011 wren ng thornton
+License:        BSD3
+License-File:   LICENSE
+Author:         wren ng thornton
+Maintainer:     wren@community.haskell.org
+Homepage:       http://code.haskell.org/~wren/
+Category:       Data, Data Structures
+Synopsis:       An efficient finite map from (byte)strings to values.
+Description:    An efficient finite map from (byte)strings to values.
+                .
+                The implementation is based on big-endian patricia
+                trees, like "Data.IntMap". We first trie on the
+                elements of "Data.ByteString" and then trie on the
+                big-endian bit representation of those elements.
+                Patricia trees have efficient algorithms for union
+                and other merging operations, but they're also quick
+                for lookups and insertions.
+                .
+                If you are only interested in being able to associate
+                strings to values, then you may prefer the @hashmap@
+                package which is faster for those only needing a
+                map-like structure. This package is intended for
+                those who need the extra capabilities that a trie-like
+                structure can offer (e.g., structure sharing to
+                reduce memory costs for highly redundant keys,
+                taking the submap of all keys with a given prefix,
+                contextual mapping, extracting the minimum and
+                maximum keys, etc.)
+
+Source-Repository head
+    Type:     darcs
+    Location: http://community.haskell.org/~wren/bytestring-trie
+
+----------------------------------------------------------------
+Flag base4
+    Default:     True
+    Description: base-4.0 emits "Prelude deprecated" messages in
+                 order to get people to be explicit about which
+                 version of base they use.
+
+Flag useCinternal
+    Default:     False
+    Description: Use optimized C implementation for indexOfDifference.
+                 See notes in Data.Trie.ByteStringInternal.
+
+Flag applicativeInBase
+    Default:     True
+    Description: Applicative functors were added in base-2.0
+
+Flag bytestringInBase
+    Default:     False
+    Description: The bytestring library was included in base-2.0
+                 and base-2.1.1, but for base-1.0 and base-3.0 it
+                 was a separate package
+
+----------------------------------------------------------------
+Library
+    Hs-Source-Dirs:  src
+    Exposed-Modules: Data.Trie
+                   , Data.Trie.Internal
+                   , Data.Trie.Convenience
+    Other-Modules:   Data.Trie.BitTwiddle
+                   , Data.Trie.ByteStringInternal
+                   , Data.Trie.Errors
+    Build-Depends: binary
+    
+    -- I think this is all that needs doing to get rid of the warnings?
+    -- BUG: looks like it's not enough
+    if flag(base4)
+        Build-Depends: base >= 4 && < 5
+    else
+        Build-Depends: base < 4
+        
+    if flag(bytestringInBase)
+        Build-Depends: base >= 2.0 && < 2.2
+    else
+        Build-Depends: base < 2.0 || >= 3, bytestring
+    
+    if flag(applicativeInBase)
+        Build-Depends: base >= 2.0
+        Cpp-Options: -DAPPLICATIVE_IN_BASE
+        -- BUG (Cabal 1.2 + Haddock): enable for Haddock, disable
+        -- for Hackage. Fixed in Cabal 1.6
+        --Ghc-Options: -DAPPLICATIVE_IN_BASE
+    else
+        Build-Depends: base < 2.0
+    
+    if flag(useCinternal)
+        C-Sources:     src/Data/Trie/ByteStringInternal/indexOfDifference.c
+        CC-Options:    -O3
+        Cpp-Options:   -D__USE_C_INTERNAL__
+-- Also need to add stuff to run Configure.hs, FWIW
+
+----------------------------------------------------------------
+----------------------------------------------------------- fin.
+
+
+package-hashes:
+    MD5:3077b794e0e7601e7a339adc0b4967de
+    SHA1:7345592eb80e39d00b5b5a156b974f269ebdebb8
+    SHA256:ea9d8265616549f5c363eb5d6563ab34aa4641bff96b440ce33a94d4dcd164fd
+    SHA512:051c7ec436d4d4e5b3aee642885deebf4ea459f4f864d3a333d7ea4981f6bd01b71b0a4130e8589b6b6958671c021a15bc79f6855bf0a713dbbe7ab3f4ce7cf1
+    Skein512_512:d221359a98c52d3bfed68a853c8a5761a2e5a37dd7a7ac6a819bbe7564204320958bd5296ed993de8eef63388a3000b63ce27abcdea4aa051ab700138a469878
+
+package-locations:
+    https://hackage.haskell.org/package/bytestring-trie-0.2.3/bytestring-trie-0.2.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/bytestring-trie-0.2.3.tar.gz
+

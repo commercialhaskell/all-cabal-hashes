@@ -1,0 +1,168 @@
+name:                data-dispersal
+
+-- The package version.  See the Haskell package versioning policy (PVP) 
+-- for standards guiding when and how versions should be incremented.
+-- http://www.haskell.org/haskellwiki/Package_versioning_policy
+-- PVP summary:      +-+------- breaking API changes
+--                   | | +----- non-breaking API additions
+--                   | | | +--- code changes with no API change
+version:             1.0.0.2
+
+synopsis:            Space-efficient and privacy-preserving data dispersal algorithms.
+
+description:
+  Given a ByteString of length @D@, we encode the ByteString as a list of @n@
+  'Fragment's, each containing a ByteString
+  of length @O(D/m)@. Then, each fragment could be stored on a separate 
+  machine to obtain fault-tolerance:
+  Even if all but @m@ of these machines crash, we can still reconstruct the original 
+  ByteString out of the remaining @m@ fragments.
+  Note that the total space requirement of the @m@ fragments is @m * O(D/m)=O(D),@
+  which is clearly space-optimal.
+  The total space required for the n fragments is @O((n/m)*D)@.
+  Note that @m@ and @n@ can be chosen to be of the same order, so the
+  asymptotic storage overhead for getting good fault-tolerance increases only by
+  a constant factor.
+  .
+  /GHCi Example:/
+  .
+  > > :m + Data.IDA
+  > > let msg = Data.ByteString.Char8.pack "my really important data"
+  > > let fragments = encode 5 15 msg
+  > -- Now we could distributed the fragments on different sites to add some 
+  > -- fault-tolerance.
+  > > let frags' = drop 5 $ take 10 fragments -- let's pretend that 10 machines crashed
+  > -- Let's look at the 5 fragments that we have left:
+  > > mapM_ (Prelude.putStrLn . show)  frags'
+  > (6,[273,771,899,737,285])
+  > (7,[289,939,612,285,936])
+  > (8,[424,781,1001,322,788])
+  > (9,[143,657,790,157,423])
+  > (10,[314,674,418,888,423])
+  > -- Space-efficiency: Note that the length of each of the 5 fragments is 5 
+  > -- and our original message has length 24. 
+  > > decode frags'  
+  > "my really important data"
+  .
+  /Encrypted Fragments:/ 
+  .
+  The module @Data.IDA@ contains an information dispersal algorithm that produces 
+  space-optimal fragments. However, the knowledge of 1 or more fragments might
+  allow an adversary to deduce some information about the original data.
+  The module @Crypto.IDA@ combines information dispersal with
+  secret sharing: the knowledge of up to @m-1@ fragments does not leak any
+  information about the original data. 
+  .
+  This could be useful in scenarios where we need to store data at untrusted
+  storage sites: To this end, we store one encrypted fragment at each site.
+  If at most @m-1@ of these untrusted sites collude, they will still
+  be unable to obtain any information about the original data.
+  The added security comes at the price of a slightly
+  increased fragment size (by an additional constant 32 bytes) and an
+  additional overhead in the running time of the encoding/decoding process.
+  The algorithm is fully described in module "Crypto.IDA". 
+  .
+  /Fault-Tolerance:/
+  .
+  Suppose that we have @N@ machines and encode our data as @2log(N)@ fragments 
+  with reconstruction threshold m = @log(N)@.
+  Let's assume that we store each fragment on a separate machine and each
+  machine fails (independently) with probability at most 0.5.
+  .
+  * What is the probability of our data being safe? 
+  @Pr[ at most n-m machines crash ] >= 1-0.5^(log(N)) = 1-N^(-1).@
+  .
+  * What is the overhead in terms of space that we pay for this level of fault-tolerance?
+  We have n fragments, each of size @O(D\/m)@, so the total space is @O(n D\/ m) = 
+  2D.@
+  In other words, we can guarantee that the data survives with high probability 
+  by increasing the required space by a constant factor.
+  .
+  This library is based on the following works: 
+  .
+  * \"Efficient Dispersal of
+  Information for Security, Load Balancing, and Fault Tolerance\", by Michael O.
+  Rabin, JACM 1989.
+  .
+  * \"How to share a secret.\" by Adi Shamir.
+ In Communications of the ACM 22 (11): 612–613, 1979.
+  .
+  * \"Secret Sharing Made Short\" Hugo Krawczyk.
+  CRYPTO 1993: 136-146
+
+
+license:             LGPL-2.1
+
+license-file:        LICENSE
+
+author:              Peter Robinson <peter.robinson@monoid.at>
+
+maintainer:          peter.robinson@monoid.at
+
+copyright:           Peter Robinson 2014
+
+category:            Data, Cryptography
+
+build-type:          Simple
+
+cabal-version:       >=1.8
+
+homepage:            http://monoid.at/code
+
+
+library
+  hs-source-dirs:    src
+
+  exposed-modules:   Data.IDA 
+                     Data.IDA.Internal
+                     Data.IDA.FiniteField
+                     Crypto.IDA
+
+  build-depends:     base >=4.6 && < 5
+                    ,array >= 0.4.0.1
+                    ,vector >= 0.10.11.0
+                    ,binary >= 0.7.2.1
+                    ,bytestring >= 0.10.0.2
+                    ,syb >= 0.4.0
+                    ,binary >= 0.5.1.1
+                    ,finite-field >= 0.8.0
+                    ,matrix >= 0.3.4.0
+                    ,AES >= 0.2.9
+                    ,entropy >= 0.3.2
+                    ,secret-sharing >= 1.0.0.0
+  
+  ghc-options:      -W
+
+test-suite Main
+  type:            exitcode-stdio-1.0
+
+  x-uses-tf:       true
+
+  build-depends:   base >= 4 && < 5
+                   ,QuickCheck >= 2.4
+                   ,test-framework >= 0.4.1
+                   ,test-framework-quickcheck2
+                   ,array >= 0.4.0.1
+                   ,vector >= 0.10.11.0
+                   ,spool >= 0.1
+                   ,binary >= 0.7.2.1
+                   ,bytestring >= 0.10.0.2
+                   ,syb >= 0.4.0
+
+  hs-source-dirs:  src, tests
+
+  main-is:         Tests.hs
+
+
+
+package-hashes:
+    MD5:9df065678dc7d71f9ca344829ea33816
+    SHA1:2b36bb8d0e63e076e1479acc10a9052a45823b38
+    SHA256:86af3b6970bf6d06b8ff27246af8e87f7b3734573c2d31b5d73105a83a69dcf4
+    SHA512:a0fbd5a6216680e165593f15b966674dbff1bea42af72746f46ff046acded6fb30a16d6b7feaa6b20a1c6cb911f669e1d3a2d78130440fcc8a215c3398ba6884
+    Skein512_512:8650fe371955194097a257ccb0558c6bb53b0e3ea5aef7557f670bb1c2e049f5d4f79d82eb13659d44afbb5a3321d7e85ca32e70a9edf9ea9e75532b4f4aab4b
+
+package-locations:
+    https://hackage.haskell.org/package/data-dispersal-1.0.0.2/data-dispersal-1.0.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/data-dispersal-1.0.0.2.tar.gz
+

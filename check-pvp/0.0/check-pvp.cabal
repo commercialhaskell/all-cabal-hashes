@@ -1,0 +1,231 @@
+Name:             check-pvp
+Version:          0.0
+License:          BSD3
+License-File:     LICENSE
+Author:           Henning Thielemann <haskell@henning-thielemann.de>
+Maintainer:       Henning Thielemann <haskell@henning-thielemann.de>
+Homepage:         http://www.haskell.org/haskellwiki/Import_modules_properly
+Category:         Distribution
+Synopsis:         Check whether module and package imports conform to the PVP
+Description:
+  Check whether the version ranges used in the @Build-Depends@ field
+  matches the style of module imports
+  according to the Package Versioning Policy (PVP).
+  See <http://www.haskell.org/haskellwiki/Package_versioning_policy>.
+  The tool essentially looks for any dependency
+  like @containers >=0.5 && <0.6@
+  that allows the addition of identifiers to modules
+  within the version range.
+  Then it checks whether all module imports from @containers@
+  are protected against name clashes
+  that could be caused by addition of identifiers.
+  .
+  You must run the tool in a directory containing a Cabal package.
+  .
+  > $ check-pvp
+  .
+  This requires that the package is configured,
+  since only then the association of packages to modules is known.
+  If you want to run the tool on a non-configured package
+  you may just check all imports for addition-proof style.
+  .
+  > $ check-pvp --include-all
+  .
+  It follows a detailed description of the procedure
+  and the rationale behind it.
+  .
+  First the program classifies all dependencies
+  in the Cabal file of the package.
+  You can show all classifications with the @--classify-dependencies@ option,
+  otherwise only problematic dependencies are shown.
+  .
+  A dependency like @containers >=0.5.0.3 && <0.5.1@
+  does not allow changes of the API of @containers@
+  and thus the program does not check its imports.
+  Clashing import abbreviations are an exception.
+  .
+  The dependency @containers >=0.5.1 && <0.6@
+  requires more care when importing modules from @containers@
+  and this is what the program is going to check next.
+  This is the main purpose of the program!
+  I warmly recommend this kind of dependency range
+  since it greatly reduces the work
+  to keep your package going together with its imported packages.
+  .
+  Dependencies like @containers >=0.5@ or @containers >=0.5 && <1@
+  are always problematic,
+  since within the specified version ranges identifier can disappear.
+  There is no import style that protects against removed identifiers.
+  .
+  An inclusive upper bound as in @containers >=0.5 && <=0.6@
+  will also cause a warning, because it is unnecessarily strict.
+  If you know that @containers-0.6@ works for you,
+  then @containers-0.6.0.1@ or @containers-0.6.1@ will also work,
+  depending on your import style.
+  A special case of inclusive upper bounds are specific versions
+  like in @containers ==0.6@.
+  The argument for the warning remains the same.
+  .
+  Please note that the check of ranges
+  is performed entirely on the package description.
+  The program will not inspect the imported module contents.
+  E.g. if you depend on @containers >=0.5 && <0.6@
+  but import in a way that risks name clashes,
+  then you may just extend the dependency to @containers >=0.5 && <0.6.1@
+  in order to let the checker fall silent.
+  If you use the dependency @containers >=0.5 && <0.6.1@
+  then the checker expects that you have verified
+  that your package works with all versions of kind @0.5.x@
+  and the version @0.6.0@.
+  Other versions would then work, too,
+  due to the constraints imposed by package versioning policy.
+  .
+  Let us now look at imports
+  that must be protected against identifier additions.
+  .
+  The program may complain about a lax import.
+  This means you have imported like
+  .
+  > import Data.Map as Map
+  .
+  Additions to @Data.Map@ may clash with other identifiers,
+  thus you must import either
+  .
+  > import qualified Data.Map as Map
+  .
+  or
+  .
+  > import Data.Map (Map)
+  .
+  The program may complain about an open list of constructors as in
+  .
+  > import Data.Sequence (ViewL(..))
+  .
+  Additions of constructors to @ViewL@ may also conflict with other identifiers.
+  You must instead import like
+  .
+  > import Data.Sequence (ViewL(EmptyL, (:<)))
+  .
+  or
+  .
+  > import qualified Data.Sequence as Seq
+  .
+  The program emits an error on clashing module abbreviations like
+  .
+  > import qualified Data.Map.Lazy as Map
+  > import qualified Data.Map.Strict as Map
+  .
+  This error is raised
+  whenever multiple modules are imported with the same abbreviation,
+  where at least one module is open for additions.
+  Our test is overly strict in the sense that it also blames
+  .
+  > import qualified Data.Map as Map
+  > import qualified Data.Map as Map
+  .
+  but I think it is good idea to avoid redundant imports anyway.
+  .
+  Additionally you can enable a test for hiding imports
+  with the @--pedantic@ option.
+  The import
+  .
+  > import Data.Map hiding (insert)
+  .
+  is not bad in the sense of the PVP,
+  but this way you depend on the existence of the identifier @insert@
+  although you do not need it.
+  If it is removed in a later version of @containers@,
+  then your import breaks although you did not use the identifier.
+  .
+  Finally you can control what items are checked.
+  First of all you can select the imports that are checked.
+  Normally the imports are checked that belong to lax dependencies
+  like @containers >=0.5 && <0.6@.
+  However this requires the package to be configured
+  in order to know which import belongs to which dependency.
+  E.g. @Data.Map@ belongs to @containers@.
+  You can just check all imports for being addition-proof
+  using the @--include-all@ option.
+  Following you can write the options
+  @--include-import@,
+  @--exclude-import@,
+  @--include-dependency@,
+  @--exclude-dependency@
+  that allow to additionally check or ignore imports
+  from certain modules or packages.
+  These modifiers are applied from left to right.
+  E.g. @--exclude-import=Prelude@ will accept any import style for @Prelude@
+  and @--exclude-dependency=foobar@ will ignore the package @foobar@,
+  say, because it does not conform to the PVP.
+  .
+  Secondly, you may ignore certain modules or components of the package
+  using the options
+  @--exclude-module@,
+  @--exclude-library@,
+  @--exclude-executables@,
+  @--exclude-testsuites@,
+  @--exclude-benchmarks@.
+  E.g. @--exclude-module=Paths_PKG@ will exclude the Paths module
+  that is generated by Cabal.
+  I assume that it will always be free of name clashes.
+  .
+  Known problems:
+  .
+  * The program cannot automatically filter out the @Paths@ module.
+  .
+  * The program cannot find and check preprocessed modules.
+  .
+  * The program may yield wrong results in the presence of Cabal conditions.
+  .
+  If this program proves to be useful
+  it might eventually be integrated in the @check@ command of @cabal-install@.
+  See <https://github.com/haskell/cabal/issues/1703>.
+  .
+  Alternative:
+  If you want to allow exclusively large version ranges, i.e. @>=x.y && <x.y+1@,
+  then you may also add the option @-fwarn-missing-import-lists@
+  to the @GHC-Options@ fields of your Cabal file.
+  See <https://ghc.haskell.org/trac/ghc/ticket/4977>.
+  Unfortunately there is no GHC warning on clashing module abbreviations.
+  See <https://ghc.haskell.org/trac/ghc/ticket/4980>.
+Tested-With:       GHC==7.4.2
+Cabal-Version:     >=1.6
+Build-Type:        Simple
+Source-Repository head
+  type:     darcs
+  location: http://code.haskell.org/~thielema/check-pvp/
+
+Source-Repository this
+  type:     darcs
+  location: http://code.haskell.org/~thielema/check-pvp/
+  tag:      0.0
+
+
+Executable check-pvp
+  Build-Depends:
+    Cabal >=1.6 && <1.19,
+    haskell-src-exts >=1.14 && <1.15,
+    filepath >=1.1 && <1.4,
+    containers >=0.2 && <0.6,
+    explicit-exception >=0.1.4 && <0.2,
+    transformers >=0.2 && <0.4,
+    non-empty >=0.1.3 && <0.3,
+    utility-ht >=0.0.10 && <0.1,
+    base >=4 && <4.7
+
+  GHC-Options:      -Wall
+  Hs-Source-Dirs:   src
+  Main-Is:          Main.hs
+
+
+package-hashes:
+    MD5:490c70d450473ebb12179c2451247ddc
+    SHA1:88df8d8386aee7af2c0cf145e0fd089e4c617634
+    SHA256:2567297dc53592db87da7ca8812d450837e8eb5d01e2cbb9fe09bc05b6d505af
+    SHA512:e3d2053c4421aa435e71e284fe7e963431cba4b6eb58fedb43db90b931244a3bf11e3aeef70aa640ec808cc164f8947001d893f95e0687397a8c9e455a6e8c54
+    Skein512_512:576273005e8774e79c1aa50545485ec8f1a6b346cfffdfc796ae52e2e1cf05cd865c6abbf161226de2f773aa904117d5eca2b6e7b45ed382bc9abfd433750f4e
+
+package-locations:
+    https://hackage.haskell.org/package/check-pvp-0.0/check-pvp-0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/check-pvp-0.0.tar.gz
+

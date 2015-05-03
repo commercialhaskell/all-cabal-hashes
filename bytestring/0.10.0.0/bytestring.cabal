@@ -1,0 +1,238 @@
+Name:                bytestring
+Version:             0.10.0.0
+x-revision: 1
+Synopsis:            Fast, compact, strict and lazy byte strings with a list interface
+Description:
+    An efficient compact, immutable byte string type (both strict and lazy)
+    suitable for binary or 8-bit character data.
+    .
+    The 'ByteString' type represents sequences of bytes or 8-bit characters.
+    It is suitable for high performance use, both in terms of large data
+    quantities, or high speed requirements. The 'ByteStrin'g functions follow
+    the same style as Haskell\'s ordinary lists, so it is easy to convert code
+    from using 'String' to 'ByteString'.
+    .
+    Two 'ByteString' variants are provided:
+    .
+      * Strict 'ByteString's keep the string as a single large array. This
+        makes them convenient for passing data between C and Haskell.
+    .
+      * Lazy 'ByteStrings' use a lazy list of strict chunks which makes it
+        suitable for I\/O streaming tasks.
+    .
+    The @Char8@ modules provide a character-based view of the same
+    underlying 'ByteString' types. This makes it convenient to handle mixed
+    binary and 8-bit character content (which is common in many file formats
+    and network protocols).
+    .
+    'ByteString's are not designed for Unicode. For Unicode strings you should
+    use the 'Text' type from the @text@ package.
+    .
+    These modules are intended to be imported qualified, to avoid name clashes
+    with "Prelude" functions, e.g.
+    .
+    > import qualified Data.ByteString as BS
+
+License:             BSD3
+License-file:        LICENSE
+Category:            Data
+Copyright:           Copyright (c) Don Stewart          2005-2009,
+                               (c) Duncan Coutts        2006-2011,
+                               (c) David Roundy         2003-2005,
+                               (c) Jasper Van der Jeugt 2010,
+                               (c) Simon Meier          2010-2011.
+
+Author:              Don Stewart,
+                     Duncan Coutts
+Maintainer:          Don Stewart <dons00@gmail.com>,
+                     Duncan Coutts <duncan@community.haskell.org>
+Bug-reports:         dons00@gmail.com,
+                     duncan@community.haskell.org
+Tested-With:         GHC==7.2.1, GHC==7.0.2, GHC==6.12.3,
+                     GHC==6.10.4, GHC ==6.8.2
+Build-Type:          Simple
+Cabal-Version:       >= 1.8
+extra-source-files:  README TODO
+
+source-repository head
+  type:     darcs
+  location: http://darcs.haskell.org/bytestring/
+
+library
+  build-depends:     base >= 3 && < 5, deepseq >= 1.1 && < 1.4
+
+  if impl(ghc >= 6.10)
+    build-depends:   ghc-prim, base >= 4
+
+  exposed-modules:   Data.ByteString
+                     Data.ByteString.Char8
+                     Data.ByteString.Unsafe
+                     Data.ByteString.Internal
+                     Data.ByteString.Lazy
+                     Data.ByteString.Lazy.Char8
+                     Data.ByteString.Lazy.Internal
+
+                     Data.ByteString.Lazy.Builder
+                     Data.ByteString.Lazy.Builder.Extras
+                     Data.ByteString.Lazy.Builder.ASCII
+
+  other-modules:
+                     -- these three modules should be exposed in a future
+                     -- release once we're confident the API is stable.
+                     Data.ByteString.Lazy.Builder.Internal
+                     Data.ByteString.Lazy.Builder.BasicEncoding
+                     Data.ByteString.Lazy.Builder.BasicEncoding.Extras
+                     Data.ByteString.Lazy.Builder.BasicEncoding.Internal
+
+                     Data.ByteString.Lazy.Builder.BasicEncoding.Binary
+                     Data.ByteString.Lazy.Builder.BasicEncoding.ASCII
+                     Data.ByteString.Lazy.Builder.BasicEncoding.Internal.Floating
+                     Data.ByteString.Lazy.Builder.BasicEncoding.Internal.UncheckedShifts
+                     Data.ByteString.Lazy.Builder.BasicEncoding.Internal.Base16
+
+  extensions:        CPP,
+                     ForeignFunctionInterface,
+                     BangPatterns
+
+  if impl(ghc)
+      extensions:   UnliftedFFITypes,
+                    MagicHash,
+                    UnboxedTuples,
+                    DeriveDataTypeable
+                    ScopedTypeVariables
+                    Rank2Types
+  if impl(ghc >= 6.11)
+      extensions:   NamedFieldPuns
+
+  ghc-options:      -Wall
+                    -O2
+                    -fmax-simplifier-iterations=10
+                    -fdicts-cheap
+  if impl(ghc >= 6.10)
+    ghc-options:    -fspec-constr-count=6
+
+  c-sources:         cbits/fpstring.c
+                     cbits/itoa.c
+  include-dirs:      include
+  includes:          fpstring.h
+  install-includes:  fpstring.h
+
+  nhc98-options:     -K4M -K3M
+
+-- QC properties, with GHC RULES disabled
+-- DISABLED: older Cabal lib versions have a bug which means they fall
+-- over when looking at test-suite sections that contain conditionals
+--
+--test-suite prop-compiled
+--  type:             exitcode-stdio-1.0
+--  main-is:          Properties.hs
+--  hs-source-dirs:   . tests
+--  build-depends:    base, deepseq, random, directory,
+--                    QuickCheck >= 2.3 && < 3
+--  if impl(ghc >= 6.10)
+--    build-depends:  ghc-prim
+--  c-sources:        cbits/fpstring.c
+--  include-dirs:     include
+--  ghc-options:      -fwarn-unused-binds
+--  if impl(ghc >= 6.10)
+--    ghc-options:    -fno-enable-rewrite-rules
+--  else
+--    ghc-options:    -fno-rewrite-rules
+--  extensions:       BangPatterns
+--  if impl(ghc)
+--      extensions:   UnliftedFFITypes,
+--                   MagicHash,
+--                    UnboxedTuples,
+--                    DeriveDataTypeable
+--                    ScopedTypeVariables
+--  if impl(ghc >= 6.11)
+--      extensions:   NamedFieldPuns
+
+test-suite test-builder
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   . tests tests/builder
+  main-is:          TestSuite.hs
+
+  build-depends:    base, ghc-prim,
+                    deepseq,
+                    QuickCheck                 >= 2.4 && < 3,
+                    byteorder                  == 1.0.*,
+                    dlist                      == 0.5.*,
+                    directory                  >= 1.0 && < 1.2,
+                    mtl                        == 2.0.*
+
+  ghc-options:      -Wall -fwarn-tabs
+
+  extensions:       CPP, ForeignFunctionInterface
+                    UnliftedFFITypes,
+                    MagicHash,
+                    UnboxedTuples,
+                    DeriveDataTypeable
+                    ScopedTypeVariables
+                    Rank2Types
+                    BangPatterns
+                    NamedFieldPuns
+
+  c-sources:        cbits/fpstring.c
+                    cbits/itoa.c
+  include-dirs:     include
+  includes:         fpstring.h
+  install-includes: fpstring.h
+
+benchmark bench-builder-all
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   . bench
+  main-is:          BenchAll.hs
+  build-depends:    base, deepseq, ghc-prim,
+                    criterion
+  c-sources:        cbits/fpstring.c
+                    cbits/itoa.c
+  include-dirs:     include
+  ghc-options:      -O2
+                    -fmax-simplifier-iterations=10
+                    -fdicts-cheap
+                    -fspec-constr-count=6
+
+benchmark bench-builder-boundscheck
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   . bench
+  main-is:          BoundsCheckFusion.hs
+  build-depends:    base, deepseq, ghc-prim,
+                    criterion
+  c-sources:        cbits/fpstring.c
+                    cbits/itoa.c
+  include-dirs:     include
+  ghc-options:      -O2
+                    -fmax-simplifier-iterations=10
+                    -fdicts-cheap
+                    -fspec-constr-count=6
+
+-- Sadly we cannot use benchmark bench-builder-csv currently because it
+-- depends on both text and binary, which both depend on bytestring
+-- which gives cabal fits about cyclic dependencies.
+--  type:             exitcode-stdio-1.0
+--  hs-source-dirs:   . bench
+--  main-is:          CSV.hs
+--  build-depends:    base, deepseq, ghc-prim,
+--                    text, binary,
+--                    criterion
+--  c-sources:        cbits/fpstring.c
+--                    cbits/itoa.c
+--  include-dirs:     include
+--  ghc-options:      -O2
+--                    -fmax-simplifier-iterations=10
+--                    -fdicts-cheap
+--                    -fspec-constr-count=6
+
+
+package-hashes:
+    MD5:604202189c6148069599c9550a034b27
+    SHA1:e844dfdd21fcf0a79042f5712e387d304d77ee5e
+    SHA256:0c7f28e2eab00992e3075ce6047d78d519049e99da69c8d8ec68b996bb01d8a5
+    SHA512:e3ed9ea9e6e511fc28e84f0dbbb3c63a47a49aad61268bed41fed619ebee56ad2da394fa67cb63d86ee53f158330eb5ed11def38f303166bce88dd3a31199239
+    Skein512_512:3987d224eb347dfbd653c36065fcdcb4693d2707afbb46bd83586bdf71361ba3feace34315d6f40bb66c823b47de29a3e6c5b7f1bbfa172bd42ad54bd164b901
+
+package-locations:
+    https://hackage.haskell.org/package/bytestring-0.10.0.0/bytestring-0.10.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/bytestring-0.10.0.0.tar.gz
+

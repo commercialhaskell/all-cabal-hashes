@@ -1,0 +1,214 @@
+Name:           bustle
+Category:       Network, Desktop
+Version:        0.4.7
+Cabal-Version:  >= 1.8
+Synopsis:       Draw pretty sequence diagrams of D-Bus traffic
+Description:    Draw pretty sequence diagrams of D-Bus traffic
+License:        OtherLicense
+License-file:   LICENSE
+Author:         Will Thompson <will@willthompson.co.uk>
+Maintainer:     Will Thompson <will@willthompson.co.uk>
+Data-files:     data/dfeet-method.png,
+                data/dfeet-signal.png,
+                data/bustle.ui,
+                LICENSE
+Build-type:     Custom
+Extra-source-files:
+                  -- C bits
+                    c-sources/bustle-pcap.c,
+                    c-sources/pcap-monitor.h,
+                    c-sources/config.h,
+                    Makefile,
+
+                  -- Stuff for nerds
+                    README,
+                    NEWS,
+                    HACKING,
+                    INSTALL,
+                    run-uninstalled.sh
+                  , Test/data/log-with-h.bustle
+
+                  -- Stuff for the stupid binary tarballs
+                  , bustle.sh
+                  , ldd-me-up.sh
+                  , LICENSE.bundled-libraries
+
+                  -- wow many translate
+                  , po/*.po
+                  , po/*.pot
+
+                  -- intl bits
+                  , data/bustle.appdata.xml.in
+                  , data/bustle.desktop.in
+
+                  -- icons
+                  , data/icons/16x16/bustle.png
+                  , data/icons/22x22/bustle.png
+                  , data/icons/32x32/bustle.png
+                  , data/icons/48x48/bustle.png
+                  , data/icons/256x256/bustle.png
+                  , data/icons/scalable/bustle.svg
+
+x-gettext-po-files:     po/*.po
+x-gettext-domain-name:  bustle
+
+Source-Repository head
+  Type:           git
+  Location:       git://anongit.freedesktop.org/bustle
+
+Flag InteractiveTests
+  Description:    Build interactive test programs
+  Default:        False
+
+Flag threaded
+  Description:    Build with the multi-threaded runtime
+  Default:        True
+
+Executable bustle
+  Main-is:       Bustle.hs
+  Other-modules: Bustle.Application.Monad
+               , Bustle.Diagram
+               , Bustle.Loader
+               , Bustle.Loader.OldSkool
+               , Bustle.Loader.Pcap
+               , Bustle.Markup
+               , Bustle.Monitor
+               , Bustle.Noninteractive
+               , Bustle.Regions
+               , Bustle.Renderer
+               , Bustle.StatisticsPane
+               , Bustle.Stats
+               , Bustle.Translation
+               , Bustle.Types
+               , Bustle.UI
+               , Bustle.UI.AboutDialog
+               , Bustle.UI.Canvas
+               , Bustle.UI.DetailsView
+               , Bustle.UI.FilterDialog
+               , Bustle.UI.OpenTwoDialog
+               , Bustle.UI.Recorder
+               , Bustle.UI.Util
+               , Bustle.Upgrade
+               , Bustle.Util
+               , Bustle.VariantFormatter
+  Ghc-options: -Wall
+               -fno-warn-unused-do-bind
+  if flag(threaded)
+    ghc-options: -threaded
+  C-sources: c-sources/pcap-monitor.c
+  pkgconfig-depends: glib-2.0 >= 2.26
+
+  Build-Depends: base >= 4 && < 5
+               , bytestring
+               , cairo
+               , containers
+               , dbus >= 0.10
+               , directory
+               , filepath
+               , glib
+               , gtk >= 0.12.4
+               , hgettext >= 0.1.5
+               , mtl
+               , pango
+               , parsec
+               , pcap
+               , process
+               , setlocale
+               , text
+               , time
+
+Executable test-monitor
+  if flag(InteractiveTests)
+    buildable: True
+  else
+    buildable: False
+
+  main-is: tests/Monitor.hs
+  other-modules: Bustle.Monitor
+  if flag(threaded)
+    Ghc-options: -threaded
+  C-sources: c-sources/pcap-monitor.c
+  pkgconfig-depends: glib-2.0
+  Build-Depends: base >= 4 && < 5
+               , bytestring
+               , cairo
+               , containers
+               , dbus
+               , directory
+               , filepath
+               , gtk > 0.12
+               , glib
+               , hgettext
+               , mtl
+               , pango
+               , parsec
+               , pcap
+               , setlocale
+               , text
+
+Executable dump-messages
+  if flag(InteractiveTests)
+    buildable: True
+  else
+    buildable: False
+
+  main-is: Test/DumpMessages.hs
+  Build-Depends: base
+               , bytestring
+               , containers
+               , dbus >= 0.10
+               , mtl
+               , pcap
+               , text
+
+Test-suite test-pcap-crash
+    type: exitcode-stdio-1.0
+    main-is: Test/PcapCrash.hs
+    other-modules: Bustle.Loader.Pcap
+    Build-Depends: base
+                 , bytestring
+                 , containers
+                 , dbus >= 0.10
+                 , mtl
+                 , pcap
+                 , text
+
+Test-suite test-regions
+    type: exitcode-stdio-1.0
+    main-is: Test/Regions.hs
+    other-modules: Bustle.Regions
+    Build-Depends: base
+                 , QuickCheck
+
+Test-suite test-renderer
+    type: exitcode-stdio-1.0
+    main-is: Test/Renderer.hs
+    other-modules: Bustle.Renderer
+    Build-Depends: base
+                 , cairo
+                 , containers
+                 , dbus >= 0.10
+                 , directory
+                 , filepath
+                 , gtk
+                 , mtl
+                 , text
+                 , pango
+                 , hgettext
+                 , setlocale
+                 , test-framework
+                 , test-framework-hunit
+                 , HUnit
+
+
+package-hashes:
+    MD5:1995cbee0c4435b876656f06a8409b31
+    SHA1:69abc091861f5708615041587b32d5ed487d1d15
+    SHA256:08b12207561157e639bc64e0b274e70e4909f50079cd97564c916d66a3f088b9
+    SHA512:c9b93ffda797a87342f5ba506db3c892bff8084fa0ec5897d676bef5e8367507970ae3e09555cda9b4de0c7b175dc396f2ccfb394d224e64225c0e7ded2164fd
+    Skein512_512:34493a51277c6242a4bc960345f4c65824686ecd79d801a19b741d9d18c2e3587aabca2656defbe4850a331079440ac09e9d99162dab5d5fd9d5f3a5143df7a0
+
+package-locations:
+    https://hackage.haskell.org/package/bustle-0.4.7/bustle-0.4.7.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/bustle-0.4.7.tar.gz
+

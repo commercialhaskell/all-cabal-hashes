@@ -1,0 +1,223 @@
+name:                caramia
+version:             0.6.0.0
+synopsis:            Less painful OpenGL 3.3 rendering
+homepage:            https://github.com/Noeda/caramia/
+license:             MIT
+license-file:        LICENSE
+author:              Mikko Juola
+copyright:           Copyright (c) 2014 Mikko Juola
+maintainer:          mikjuo@gmail.com
+category:            Graphics
+build-type:          Simple
+stability:           experimental
+cabal-version:       >=1.10
+extra-source-files:  README.md
+
+description:
+    This is a highish-level OpenGL bindings library for real-time graphics for
+    Haskell, using OpenGL 3.3.
+    .
+    Requirements:
+    .
+        * GHC 7.8+
+    .
+        * OpenGL 3.3
+    .
+    You need to use `-threaded` flag in executables that use this library.
+    .
+    Here are the most important features of this library:
+    .
+    * Safe and automatic finalization of OpenGL resources
+    .
+    * No implicit state (that is, no glBind* mess or equivalent). There is a
+    monad for mass-rendering that has implicit state but the state is localized
+    to running of that monad. (see Caramia.Render).
+    .
+    * Only vanilla OpenGL 3.3 required. Some extensions will be used if they are
+      available.
+    .
+    Here are some curious features that you might find useful.
+    .
+    * This library plays nice with other OpenGL libraries. It does not mess up
+        the implicit OpenGL state (except for aforementioned rendering monad).
+    .
+    * This library does not create an OpenGL context. You can use whatever
+        library you want to create an OpenGL context as long as it can get an
+        OpenGL 3.3 context. You may be interested at looking at the tests in
+        this package to see how to use this with the `sdl2` package.
+    .
+    * Operations are generalized over `MonadIO`. Works on top of pure `IO` and
+      also in your custom monad stacks, if they have `MonadIO` at bottom.
+    .
+    (At least) the following OpenGL concepts are present in this library:
+    .
+    * Buffer objects (you can do low-level mapping and use raw pointers)
+    .
+    * Geometry, vertex and fragment shaders
+    .
+    * Indexed and non-indexed rendering
+    .
+    * Framebuffers
+    .
+    * Textures (with many topologies, 1D, 2D, 3D, texture arrays, cube textures;
+        we also have buffer textures and multisampling textures)
+    .
+    * Vertex array objects
+    .
+    * Blending, stencil, depth and cull tests
+    .
+    * Instanced rendering
+    .
+    * Synchronization objects
+    .
+    * Query objects
+    .
+    Some notable missing features:
+    .
+    * Tesselation shaders. This is an OpenGL 4.x feature but we could add it.
+    .
+    * Using shaders with transform feedback.
+    .
+    * Multi-threaded rendering.
+    .
+    This library tries to avoid including obsolete or redundant features of OpenGL.
+
+flag build-toys
+    default:         False
+    description:     Build some toy programs to test and play with.
+
+source-repository head
+    type:            git
+    location:        https://github.com/Noeda/caramia.git
+
+library
+  exposed-modules:     Graphics.Caramia
+                       Graphics.Caramia.Blend
+                       Graphics.Caramia.Blend.Internal
+                       Graphics.Caramia.Buffer
+                       Graphics.Caramia.Buffer.Internal
+                       Graphics.Caramia.Color
+                       Graphics.Caramia.Context
+                       Graphics.Caramia.Framebuffer
+                       Graphics.Caramia.Framebuffer.Internal
+                       Graphics.Caramia.ImageFormats
+                       Graphics.Caramia.ImageFormats.Internal
+                       Graphics.Caramia.Internal.ContextLocalData
+                       Graphics.Caramia.Internal.OpenGLCApi
+                       Graphics.Caramia.Internal.OpenGLDebug
+                       Graphics.Caramia.Internal.TexStorage
+                       Graphics.Caramia.Memory
+                       Graphics.Caramia.Prelude
+                       Graphics.Caramia.Query
+                       Graphics.Caramia.Render
+                       Graphics.Caramia.Render.Internal
+                       Graphics.Caramia.Resource
+                       Graphics.Caramia.Shader
+                       Graphics.Caramia.Shader.Internal
+                       Graphics.Caramia.Sync
+                       Graphics.Caramia.Texture
+                       Graphics.Caramia.Texture.Internal
+                       Graphics.Caramia.VAO
+                       Graphics.Caramia.VAO.Internal
+
+  ghc-options:         -Wall -fno-warn-name-shadowing
+
+  build-depends:       base         >=4.7 && <5.0.0.0
+                      ,bytestring   >=0.10 && <1.0
+                      ,containers   >=0.5 && <1.0
+                      ,exceptions   >=0.6 && <1.0
+                      ,lens         >=4.6  && <5.0
+                      ,linear       >=1.15 && <2.0
+                      ,semigroups   >=0.15 && <1.0
+                      ,text         >=0.9 && <2.0
+                      ,transformers >=0.4 && <1.0
+                      ,vector       >=0.10 && <1.0
+                      ,gl           >=0.6.2 && <0.7
+
+  if !os(windows)
+    build-depends:     unix >=2.7 && <3.0
+
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+  if os(darwin)
+    frameworks:        OpenGL
+
+-- This is just a dumping ground test that does stupid things. It's used to
+-- check if things work at all.
+executable smoke-test
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      demos/smoke-test
+  if flag(build-toys)
+    build-depends:       base, caramia
+                        ,linear >=1.15 && <2.0
+                        ,sdl2 ==1.2.*
+                        ,text >=0.9 && <2.0
+  else
+    buildable:          False
+  default-language:    Haskell2010
+
+-- This one tests Caramia.Memory if it returns anything useful.
+executable memory-info
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      demos/memory-info
+  if flag(build-toys)
+    build-depends:       base, caramia
+                        ,sdl2 ==1.2.*
+  else
+    buildable:           False
+  default-language:    Haskell2010
+
+-- Gets OpenGL version with two different ways to check if there is one that's consistent.
+executable gl-info
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      demos/gl-info
+  if flag(build-toys)
+    build-depends:       base
+                        ,sdl2 ==1.2.*
+                        ,OpenGLRaw >=1.5
+  else
+    buildable:           False
+  default-language:    Haskell2010
+
+executable query-objects
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      demos/query-objects
+  if flag(build-toys)
+    build-depends:       base, caramia
+                        ,sdl2 ==1.2.*
+                        ,text >=0.9 && <2.0
+                        ,transformers >=0.4 && <1.0
+                        ,vector >=0.10 && <1.0
+  else
+    buildable:           False
+  default-language:    Haskell2010
+
+executable textures
+  main-is:             Main.hs
+  ghc-options:         -Wall -fno-warn-name-shadowing -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      demos/textures
+  if flag(build-toys)
+    build-depends:       base, caramia
+                        ,sdl2 ==1.2.*
+  else
+    buildable:           False
+  default-language:    Haskell2010
+
+
+
+package-hashes:
+    MD5:90d1b441a56ab5c31c4348bf8da588ba
+    SHA1:218b941ed58eff92a513e788544693d04d883309
+    SHA256:94c335adc542f17fef9a5de97255a3dc68615ae436f58d0a81990d2c5f9a126d
+    SHA512:a6862124cc49c20485a9fc56d580cd95ba9d64c5dc6dd28cce3600caeefa11e80c3b0d4b743178a931d70d00e574ef0c276d5741566d7820e4d73feec78a62bb
+    Skein512_512:3de7a749a1adf6a89e2fe96a329185bab034a84604848675646d9ef8b91485a5c49d9f04587b69b4579fda3526bf9e5518dfacce8f895dd6ea475fadfa4895ac
+
+package-locations:
+    https://hackage.haskell.org/package/caramia-0.6.0.0/caramia-0.6.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/caramia-0.6.0.0.tar.gz
+

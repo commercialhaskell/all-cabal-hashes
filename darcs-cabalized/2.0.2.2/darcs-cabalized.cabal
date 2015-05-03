@@ -1,0 +1,165 @@
+Name:           darcs-cabalized
+version:        2.0.2.2
+License:        GPL
+License-file:   COPYING
+Author:         David Roundy <droundy@darcs.net>, <darcs-devel@darcs.net>, et al.
+Maintainer:     <gwern0@gmail.com>
+
+Stability:      Experimental
+Category:       Development
+Synopsis:       David's Advanced Version Control System
+Description:    Darcs is a revision control system, along the lines of CVS or arch.
+                That means that it keeps track of various revisions and branches of
+                your project, allows for changes to propagate from one branch to another.
+                Darcs is intended to be an _advanced_ revision control system.
+                Darcs has two particularly distinctive features which differ from other,
+                centralized, revision control systems:
+                .
+                * each copy of the source is a fully functional branch, and
+                .
+                * underlying darcs is a consistent and powerful theory of patches.
+                .
+                The Darcs repository can be found at <http://darcs.net/>.
+                .
+                This is an unofficial package of Darcs, using Cabal; problems with it may well
+                be the fault of the packager and not the Darcs project.
+Homepage:       http://darcs.net/
+
+Build-Type:     Configure
+Cabal-Version:  >= 1.2
+Tested-with:    GHC==6.8.2
+
+data-files:      src/darcs_print.pdf, src/darcs_print.ps, src/patch-theory.pdf,
+                 src/best_practices.tex, src/building_darcs.tex, src/configuring_darcs.tex,
+                 src/features.tex, src/gpl.tex, src/switching.tex,
+                 tools/cgi/README, tools/cgi/README.in
+extra-source-files:
+                 -- C sources and headers. Are these redundant with c-sources:?
+                 src/Crypt/sha2.c, src/Crypt/sha2.h, src/atomic_create.c,
+                 src/atomic_create.h, src/c_compat.c, src/compat.h,
+                 src/fpstring.c, src/fpstring.h, src/gadts.h,
+                 src/hscurl.c, src/hscurl.h,
+                 src/hslibwww.c, src/hslibwww.h,
+                 src/impossible.h, src/maybe_relink.c, src/maybe_relink.h,
+                 src/umask.c, src/umask.h,
+                 -- Build files; we include the autoconf files just in case
+                 -- the user wishes to re-autoconf on her system.
+                 darcs-cabalized.buildinfo, darcs-cabalized.buildinfo.in, configure, configure.ac,
+                 autoconf.mk, autoconf.mk.in, aclocal.m4, src/Autoconf.lhs.in,
+                 src/ThisVersion.lhs.in, install-sh,
+                 -- Windows files
+                 src/win32/send_email.c, src/win32/send_email.h, src/win32/sys/mman.h,
+                 src/win32/CtrlC.hs, src/win32/System/Posix/Files.hsc,
+                 src/win32/System/Posix/IO.hsc, src/win32/System/Posix.hs,
+                 -- TODO: factor out these standalone executables to other sections
+                 src/preproc.hs, src/darcsman.hs, src/unit.lhs, src/make_changelog.hs,
+                 -- The tools directory would make a sensible 'darcs-tools' package
+                 tools/zsh_completion_new, tools/update_roundup.pl,
+                 tools/zsh_completion_old, tools/cgi/cgi.conf,
+                 tools/cgi/darcs.cgi.in, tools/cgi/darcs.cgi,
+                 tools/cgi/cgi.conf.in, tools/cgi/xslt/repos.xslt,
+                 tools/cgi/xslt/errors.xslt, tools/cgi/xslt/browse.xslt,
+                 tools/cgi/xslt/common.xslt, tools/cgi/xslt/annotate.xslt,
+                 tools/cgi/xslt/styles.css, tools/cgi/xslt/rss.xslt,
+                 tools/cgi/xslt/patches.xslt, tools/cgi/xslt/errors.xml,
+                 tools/cgi/README.in, tools/cygwin-wrapper.bash,
+                 tools/upload.cgi, tools/darcs_completion
+extra-tmp-files: darcs.buildinfo, autoconf.mk, configure
+
+flag small_base
+    description: Choose the new smaller, split-up base package. Defaults to True.
+
+flag curses
+     description: Enables curses and curl support. Defaults to True
+
+Executable          darcs
+    main-is:        darcs.lhs
+    hs-source-dirs: src
+
+    build-depends: regex-compat, mtl, parsec, html, QuickCheck, HUnit
+    if flag(small_base)
+        build-depends: base >= 3, unix, old-time, directory, process, containers, array, bytestring
+    else
+        build-depends: base < 3
+
+    -- We need optimizations and warnings, regardless of what Hackage says
+    ghc-options:      -Wall -O2 -funbox-strict-fields
+    ghc-prof-options: -prof -auto-all
+
+    -- the CPP and CC options are supplied from darcs.buildinfo
+    extensions:     CPP, ForeignFunctionInterface
+
+    other-modules:  FileSystem, Ssh,
+                    FastPackedString, Workaround,
+                    Crypt.SHA256, URL, Context, HTTP,
+                    Darcs.Patch.ReadMonads, Darcs.URL,
+                    Darcs.FilePathUtils, Darcs.External, Darcs.RepoPath,
+                    Darcs.Email, Darcs.Compat,
+                    IsoDate, ThisVersion, Exec,
+                    CommandLine, Autoconf,
+                    ThisVersion, DateMatcher, OldDate,
+                    Printer, Lcs, RegChars, FileName,
+                    Darcs.Sealed, Darcs.Resolution, Darcs.TheCommands,
+                    Darcs.ColorPrinter, Darcs.Utils, Darcs.ArgumentDefaults,
+                    Darcs.Patch, Darcs.PrintPatch, Darcs.SignalHandler,
+                    Darcs.Lock, Darcs.FilePathMonad, Darcs.Patch.Check,
+                    Darcs.Patch.Patchy, Darcs.Patch.Prim, Darcs.Patch.Commute,
+                    Darcs.Patch.Properties, Darcs.Patch.Viewing, Darcs.Patch.Apply,
+                    Darcs.Patch.Core, Darcs.Patch.Real, Darcs.Patch.Bundle,
+                    Darcs.Patch.Choices, Darcs.Patch.TouchesFiles, Darcs.Patch.Permutations,
+                    Darcs.Patch.QuickCheck, Darcs.Patch.MatchData, Darcs.Patch.Ordered,
+                    Darcs.Patch.Test, Darcs.Patch.Set, Darcs.Patch.Show,
+                    Darcs.Patch.Unit, Darcs.Patch.Info, Darcs.Patch.Match,
+                    Darcs.Patch.Read, Darcs.Patch.Non, Darcs.Patch.Depends,
+                    Darcs.Population, Darcs.Repository.Prefs, Darcs.Repository.Internal,
+                    Darcs.Repository.DarcsRepo, Darcs.Repository.Pristine, Darcs.Repository.Motd,
+                    Darcs.Repository.HashedRepo, Darcs.Repository.InternalTypes, Darcs.Repository.Format,
+                    Darcs.Repository.Checkpoint, Darcs.Repository.ApplyPatches, Darcs.Repository.HashedIO,
+                    Darcs.Global, Darcs.Bug, Darcs.HopefullyPrivate,
+                    Darcs.Commands.ShowContents, Darcs.Commands.Check, Darcs.Commands.Record,
+                    Darcs.Commands.Remove, Darcs.Commands.Mv, Darcs.Commands.Convert,
+                    Darcs.Commands.ShowRepo, Darcs.Commands.Apply, Darcs.Commands.Help,
+                    Darcs.Commands.Tag, Darcs.Commands.Unrevert, Darcs.Commands.Optimize,
+                    Darcs.Commands.ShowBug, Darcs.Commands.TransferMode, Darcs.Commands.ShowFiles,
+                    Darcs.Commands.Dist, Darcs.Commands.Repair, Darcs.Commands.AmendRecord,
+                    Darcs.Commands.Push, Darcs.Commands.ShowTags, Darcs.Commands.ShowAuthors,
+                    Darcs.Commands.Replace, Darcs.Commands.Changes, Darcs.Commands.WhatsNew,
+                    Darcs.Commands.Add, Darcs.Commands.Get, Darcs.Commands.Init,
+                    Darcs.Commands.Put, Darcs.Commands.TrackDown, Darcs.Commands.Unrecord,
+                    Darcs.Commands.Rollback, Darcs.Commands.Revert, Darcs.Commands.Annotate,
+                    Darcs.Commands.Pull, Darcs.Commands.Diff, Darcs.Commands.Send,
+                    Darcs.Commands.Show, Darcs.Commands.SetPref, Darcs.Commands.MarkConflicts,
+                    Darcs.Arguments, Darcs.CommandsAux, Darcs.Test,
+                    Darcs.Repository, Darcs.CheckFileSystem, Darcs.Flags,
+                    Darcs.RemoteApply, Darcs.Progress, Darcs.Hopefully,
+                    Darcs.SlurpDirectory, Darcs.Commands, Darcs.Diff,
+                    Darcs.Show, Darcs.Match, Darcs.SelectChanges,
+                    Darcs.PopulationData, Darcs.IO, English,
+                    UTF8, SHA1, Autoconf
+
+    c-sources:      src/atomic_create.c
+                    src/c_compat.c
+                    src/fpstring.c
+                    src/maybe_relink.c
+                    src/umask.c
+                    src/Crypt/sha2.c
+                    src/hscurl.c
+    include-dirs:   src
+
+    -- zlib is mandatory; we need extra-libraries to fix FFI link errors
+    extra-libraries: z
+    if flag(curses)
+       extra-libraries: curses, curl
+
+
+package-hashes:
+    MD5:e0e7538aa0351e9657ee8a71b9274a2d
+    SHA1:7a8f8549752aa6e573fcff87fb94880460b1fe66
+    SHA256:2d98a879ca40a3f68d6b64e4d69895377988e1cb6a3421a2b999d1fac1d881d1
+    SHA512:2a877eba6c9ce8ea7734a99b001592e678e215d23bc1b928d7136c8dd259390987333b004e2bbeaf4335eea6f1b2be582876f3a7799b2ca196229e70af595252
+    Skein512_512:78c71ce469b8684cb2482d1022a1cc07a31eb097a38c8cebd1b74415c7fee53b8994913957de54a0b711b414747272bc7c257ff44a13aede59f142cc6caa96b2
+
+package-locations:
+    https://hackage.haskell.org/package/darcs-cabalized-2.0.2.2/darcs-cabalized-2.0.2.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/darcs-cabalized-2.0.2.2.tar.gz
+

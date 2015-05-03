@@ -1,0 +1,124 @@
+name: control-monad-exception
+version: 0.5
+Cabal-Version:  >= 1.2.3
+build-type: Simple
+license: PublicDomain
+author: Pepe Iborra
+maintainer: pepeiborra@gmail.com
+homepage: http://pepeiborra.github.com/control-monad-exception
+description: 
+  This package provides explicitly typed, checked exceptions as a library.
+  .
+  Computations throwing different types of exception can be combined seamlessly.
+  .
+  /Example/
+  .
+  > data Expr = Add Expr Expr | Div Expr Expr | Val Double
+  > eval (Val x)     = return x
+  > eval (Add a1 a2) = do
+  >    v1 <- eval a1
+  >    v2 <- eval a2
+  >    let sum = v1 + v2
+  >    if sum < v1 || sum < v2 then throw SumOverflow else return sum
+  > eval (Div a1 a2) = do
+  >    v1 <- eval a1
+  >    v2 <- eval a2
+  >    if v2 == 0 then throw DivideByZero else return (v1 / v2)
+  .
+  > data DivideByZero = DivideByZero deriving (Show, Typeable)
+  > data SumOverflow  = SumOverflow  deriving (Show, Typeable)
+  .
+  > instance Exception DivideByZero
+  > instance Exception SumOverflow
+  .
+  GHCi infers the following types
+  .
+  > eval :: (Throws DivideByZero l, Throws SumOverflow l) => Expr -> EM l Double
+  > eval `catch` \ (e::DivideByZero) -> return (-1)  :: Throws SumOverflow l => Expr -> EM l Double
+  > runEM(eval `catch` \ (e::SomeException) -> return (-1))  :: Expr -> Double
+  .
+  .
+  In addition to explicitly typed exceptions his package provides:
+  .
+    * Support for explicitly documented, unchecked exceptions (with 'tryEM').
+  .
+    * Support for selective unchecked exceptions (with 'UncaughtException').
+  .
+    * Support for exception call traces via 'Control.Monad.Loc.MonadLoc'. /Example:/
+  .
+  >
+  > f () = do throw MyException
+  > g a  = do f a
+  >
+  > main = runEMT $ do g () `catchWithSrcLoc`
+  >                        \loc (e::MyException) -> lift(putStrLn$ showExceptionWithTrace loc e)
+  >
+  > -- Running main produces the output:
+  >
+  > *Main> main
+  >  MyException
+  >    in f, Main(example.hs): (1,6)
+  >       g, Main(example.hs): (2,6)
+  >       main, Main(example.hs): (5,9)
+  >       main, Main(example.hs): (4,16)
+
+synopsis: Explicitly typed, checked exceptions with stack traces
+category: Control, Monads
+stability: experimental
+tested-with: GHC ==6.8.2
+tested-with: GHC ==6.10.2
+tested-with: GHC ==6.10.3
+
+Flag transformers
+  description: Use transformers and monads-fd instead of mtl
+  default: True 
+
+Flag extensibleExceptions
+  description: Use extensible-exception package
+  default: False
+
+Library
+  buildable: True 
+  build-depends: control-monad-failure, monadloc, pretty
+
+  if flag(extensibleExceptions)
+    build-depends:
+      extensible-exceptions >= 0.1 && <0.2,
+      base >= 3.0 && <4
+  else
+    build-depends:
+      base >= 4 && < 5
+
+  if flag(transformers)
+    cpp-options: -DTRANSFORMERS
+    build-depends:
+      transformers >= 0.0.1 && <0.2,
+      monads-fd >= 0.0 && <0.1
+  else
+    build-depends: mtl
+
+  extensions:  MultiParamTypeClasses, 
+               FunctionalDependencies,
+               FlexibleInstances,
+               EmptyDataDecls,
+               DeriveDataTypeable,
+               UndecidableInstances
+
+  exposed-modules:
+     Control.Monad.Exception.Catch
+     Control.Monad.Exception.Throws
+     Control.Monad.Exception
+  ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
+
+
+package-hashes:
+    MD5:bbf476ff05e947c87ad07fa3b0707a40
+    SHA1:adf067f0661a4cbfec709ce646ce57a47343a483
+    SHA256:e295a140e5d736d9de0cb08a782852ee7436d9bb90faa0cd28fa0b9f7a169b6b
+    SHA512:941d349113e7185fe5630e8cfbde383975edd0e485a03711867707274d4d42e3ec317088db03b8b4d6c33f328e61fac9d094f497c3bb68e61d311b71bb45f956
+    Skein512_512:33b8dd3ef75e2e9043e1b153b1a1df621fbfc589444917f0159e27d200f65edbf8b7714ceca4ed10c0f1544d9ac17b6aa0ff3c2f2cd39333a2907691682e6b47
+
+package-locations:
+    https://hackage.haskell.org/package/control-monad-exception-0.5/control-monad-exception-0.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/control-monad-exception-0.5.tar.gz
+

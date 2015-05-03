@@ -1,0 +1,143 @@
+name: control-monad-exception
+version: 0.10.3
+Cabal-Version:  >= 1.10
+build-type: Simple
+license: PublicDomain
+author: Pepe Iborra
+maintainer: pepeiborra@gmail.com
+homepage: http://pepeiborra.github.com/control-monad-exception
+description: 
+  This package provides explicitly typed, checked exceptions as a library.
+  .
+  Computations throwing different types of exception can be combined seamlessly.
+  .
+  /Example/
+  .
+  > data Expr = Add Expr Expr | Div Expr Expr | Val Double
+  > eval (Val x)     = return x
+  > eval (Add a1 a2) = do
+  >    v1 <- eval a1
+  >    v2 <- eval a2
+  >    let sum = v1 + v2
+  >    if sum < v1 || sum < v2 then throw SumOverflow else return sum
+  > eval (Div a1 a2) = do
+  >    v1 <- eval a1
+  >    v2 <- eval a2
+  >    if v2 == 0 then throw DivideByZero else return (v1 / v2)
+  .
+  > data DivideByZero = DivideByZero deriving (Show, Typeable)
+  > data SumOverflow  = SumOverflow  deriving (Show, Typeable)
+  .
+  > instance Exception DivideByZero
+  > instance Exception SumOverflow
+  .
+  GHCi infers the following types
+  .
+  > eval :: (Throws DivideByZero l, Throws SumOverflow l) => Expr -> EM l Double
+  > eval `catch` \ (e::DivideByZero) -> return (-1)  :: Throws SumOverflow l => Expr -> EM l Double
+  > runEM(eval `catch` \ (e::SomeException) -> return (-1))  :: Expr -> Double
+  .
+  .
+  In addition to explicitly typed exceptions his package provides:
+  .
+    * Support for explicitly documented, unchecked exceptions (via 'Control.Monad.Exception.tryEMT').
+  .
+    * Support for selective unchecked exceptions (via 'Control.Monad.Exception.UncaughtException').
+  .
+    * Support for exception call traces via 'Control.Monad.Loc.MonadLoc'. /Example:/
+  .
+  >
+  > f () = do throw MyException
+  > g a  = do f a
+  >
+  > main = runEMT $ do g () `catchWithSrcLoc`
+  >                        \loc (e::MyException) -> lift(putStrLn$ showExceptionWithTrace loc e)
+  >
+  > -- Running main produces the output:
+  >
+  > *Main> main
+  >  MyException
+  >    in f, Main(example.hs): (1,6)
+  >       g, Main(example.hs): (2,6)
+  >       main, Main(example.hs): (5,9)
+  >       main, Main(example.hs): (4,16)
+  .
+  /Changes/:
+  .
+  .  
+     * 0.9.0 - Moved to transformers (finally leaving the whole mtl-transformers cisma behind)
+  .  
+     * 0.10.0 - removed the dependency on safe-failure
+  .  
+     * 0.10.1 - compatibility with failure 0.2 (thanks to Bas van Dijk)
+  .  
+     * 0.10.2 - use the identity type from mtl (thanks to Bas), require minimum cabal-install version (thanks to Bernhard Urban)
+
+synopsis: Explicitly typed, checked exceptions with stack traces
+category: Control, Monads, Failure
+stability: experimental
+tested-with: GHC == 6.12.1
+bug-reports: http://github.com/pepeiborra/control-monad-exception/issues
+
+Flag extensibleExceptions
+  description: Use extensible-exception package
+  default: False
+
+Library
+  default-language: Haskell98
+  buildable: True 
+  build-depends: failure >= 0.1 && < 0.3
+               , transformers >= 0.2
+               , monadloc
+
+  if flag(extensibleExceptions)
+    build-depends:
+      extensible-exceptions >= 0.1 && <0.2,
+      base >= 3.0 && <4
+  else
+    build-depends:
+      base >= 4 && < 5
+
+  default-extensions:
+     CPP
+     DeriveDataTypeable
+     EmptyDataDecls
+     ExistentialQuantification
+     FlexibleContexts
+     FlexibleInstances
+     FunctionalDependencies
+     MultiParamTypeClasses
+     OverlappingInstances
+     PackageImports
+     PatternGuards
+     ScopedTypeVariables
+     TypeFamilies
+     TypeSynonymInstances
+     UndecidableInstances
+
+  exposed-modules:
+     Control.Monad.Exception
+     Control.Monad.Exception.Base
+     Control.Monad.Exception.Catch
+     Control.Monad.Exception.Throws
+
+  ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
+
+
+
+source-repository head
+  type:     git
+  location: git://github.com/pepeiborra/control-monad-exception.git
+
+
+package-hashes:
+    MD5:764eeb765c509265f47fabf4cd427663
+    SHA1:38aee77b3e0110385cd3c9a6e4243859ce7c211e
+    SHA256:de27878d7df267d5ac16a8e27d2f581adbfa102eac75805b092307c9fffa6283
+    SHA512:beead4a43f7295a1021050139c9bd798e1649b80274182fb7ff2f932bcf53460243202e68e81d5a14bdf1d3a0cbea2c3ccf2978dd84d58c4268ff5bac1332f00
+    Skein512_512:db29ea092c1d761ff688a188941767d2ee78a0fca91e694246fd1d8ee048526bf39a1bf9b06199bf9965cd5d2cdaff66f42512a15b91e52d712d9c8cf3443c7a
+
+package-locations:
+    https://hackage.haskell.org/package/control-monad-exception-0.10.3/control-monad-exception-0.10.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/control-monad-exception-0.10.3.tar.gz
+

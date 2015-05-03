@@ -1,0 +1,100 @@
+Name:                cairo-appbase
+
+Version:             0.3
+
+Synopsis:            A template for building new GUI applications using GTK, Glade and Cairo.
+
+Description:
+    This template includes working callbacks to handle the File and Help
+    menus and File Save/Open dialogs, with dummy handlers for selecting
+    filenames and the Edit menu's Cut, Copy, and Paste. The main canvas uses
+    Cairo for graphics rendering, and includes example code from the cairo
+    package.
+    .
+    To build your own application on top of this, first grab the code. You
+    can either grab it from hackage with @cabal unpack cairo-appbase@, or
+    clone the git repo:
+    .
+    >   git clone git://github.com/kfish/cairo-appbase.git
+    .
+    To add widgets, install glade from your distro system and run
+    @glade data/main.glade@
+    .
+    Note that you must run @cabal install@ to put the glade file in the correct
+    place for your application to pick it up. To modify the code, edit
+    @src/cairo-appbase.hs@. Hooking up functions to widgets is very simple: get
+    a widget by name (which you set in glade file), and hook one of its
+    signals (which you found in the Signals tab in glade) to an @IO ()@ action:
+    .
+    > cut1 <- get G.castToMenuItem "cut1"
+    > G.onActivateLeaf cut1 $ myCut
+    .
+    The template code includes a trivial definition of myCut:
+    .
+    > myCut :: IO ()
+    > myCut = putStrLn "Cut"
+    .
+    A real application will want to pass data to the callback. In C, this is
+    fairly tedious as you only have a single void * to pass to callbacks as
+    @user_data@, and applications typically do lots of marshalling and
+    unmarshalling to pass data around. In Haskell however, you can make
+    yourself a more complex callback handler and use a curried version of it
+    in each instance:
+    .
+    > cut1 <- get G.castToMenuItem "cut1"
+    > G.onActivateLeaf cut1 $ myComplexCut project phase 7
+    >
+    > ...
+    >
+    > myCut :: Project -> MoonPhase -> LuckyNumber -> IO ()
+    > myCut project phase num = do
+    >     let selection = currentSelection project
+    >     when (phase == Full) howl
+    >     when (num /= 7) fail
+    >     doActualCut selection
+    .
+
+License:             BSD3
+License-file:        LICENSE
+Author:              Conrad Parker, Johan Bockgård
+Maintainer:          conrad@metadecks.org
+Category:            Development
+
+Cabal-Version:       >= 1.8
+Build-type:          Simple
+Data-Files:          data/main.glade
+
+flag splitBase
+  description: Use the split-up base package.
+
+Executable cairo-appbase
+  if flag(splitBase)
+    build-depends:
+      base >= 3 && < 6
+  else
+    build-depends:
+      base < 3
+
+  Main-Is:             cairo-appbase.hs
+  Hs-Source-Dirs:      src
+  Build-Depends:       glib, gtk, glade, cairo
+
+------------------------------------------------------------------------
+-- Git repo
+--
+source-repository head
+  type: git
+  location: git://github.com/kfish/cairo-appbase.git
+
+
+package-hashes:
+    MD5:86c731ae198a9f0cc6ec81834f8447ee
+    SHA1:70e003b33190509dc88ccc028d5c98724f35d611
+    SHA256:4a091013c57c38e749739cc91dd40dddd143d633b884815e3a1ddae3d967281f
+    SHA512:3cd283d1df98ca5d64cb3bd813432329d9acc07596482d3dcdaeb45e7857074eec5ca8bded24a8251e57d7901efebd207c075c4ea93e40f67b124b7e18bf7bc5
+    Skein512_512:32e84a5809f04bb84e6ee31656d8fc40756bb9beb242e2442d5949cd64720e09d771ec7e179f22fb0c2f02494b5f63ef83b0cc171af4ed12169a296edd52a8a1
+
+package-locations:
+    https://hackage.haskell.org/package/cairo-appbase-0.3/cairo-appbase-0.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/cairo-appbase-0.3.tar.gz
+

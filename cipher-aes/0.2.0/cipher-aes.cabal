@@ -1,0 +1,91 @@
+Name:                cipher-aes
+Version:             0.2.0
+x-revision: 1
+Description:
+    Fast AES cipher implementation with advanced mode of operations.
+    .
+    The modes of operations available are ECB (Electronic code book),
+    CBC (Cipher block chaining), CTR (Counter), XTS (XEX with ciphertext stealing),
+    GCM (Galois Counter Mode).
+    .
+    The AES implementation uses AES-NI when available (on x86 and x86-64 architecture),
+    but fallback gracefully to a software C implementation.
+    .
+    The software implementation uses S-Boxes, which might suffer for cache timing issues.
+    However do notes that most other known software implementations, including very popular
+    one (openssl, gnutls) also uses similar implementation. If it matters for your
+    case, you should make sure you have AES-NI available, or you'll need to use a different
+    implementation.
+    .
+License:             BSD3
+License-file:        LICENSE
+Copyright:           Vincent Hanquez <vincent@snarc.org>
+Author:              Vincent Hanquez <vincent@snarc.org>
+Maintainer:          Vincent Hanquez <vincent@snarc.org>
+Synopsis:            Fast AES cipher implementation with advanced mode of operations
+Category:            Cryptography
+Build-Type:          Simple
+Homepage:            http://github.com/vincenthz/hs-cipher-aes
+Cabal-Version:       >=1.8
+Extra-Source-Files:  Tests/*.hs
+                     cbits/*.h
+                     cbits/aes_x86ni_impl.c
+
+Library
+  Build-Depends:     base >= 4 && < 5
+                   , bytestring
+                   , byteable
+                   , crypto-cipher-types < 0.0.3
+                   , securemem >= 0.1.2
+  Exposed-modules:   Crypto.Cipher.AES
+  ghc-options:       -Wall -optc-O3 -fno-cse -fwarn-tabs
+  C-sources:         cbits/aes_generic.c
+                     cbits/aes.c
+                     cbits/gf.c
+                     cbits/cpu.c
+  if os(linux) && (arch(i386) || arch(x86_64))
+    CC-options:      -mssse3 -maes -mpclmul -DWITH_AESNI
+    C-sources:       cbits/aes_x86ni.c
+
+Test-Suite test-cipher-aes
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    Tests
+  Main-Is:           Tests.hs
+  Build-depends:     base >= 4 && < 5
+                   , cipher-aes
+                   , crypto-cipher-types
+                   , crypto-cipher-tests
+                   , bytestring
+                   , byteable
+                   , QuickCheck >= 2
+                   , test-framework >= 0.3.3
+                   , test-framework-quickcheck2 >= 0.2.9
+
+Benchmark bench-cipher-aes
+  hs-source-dirs:    Benchmarks
+  Main-Is:           Benchmarks.hs
+  type:              exitcode-stdio-1.0
+  Build-depends:     base >= 4 && < 5
+                   , bytestring
+                   , cipher-aes
+                   , crypto-cipher-types
+                   , crypto-cipher-benchmarks
+                   , criterion
+                   , mtl
+
+source-repository head
+  type:     git
+  location: git://github.com/vincenthz/hs-cipher-aes
+
+
+package-hashes:
+    MD5:36e973674f23c694dfa64ebe6956ac1a
+    SHA1:c235419f36f3cbc531f5b4fdbb7b9c8ffb6f1a26
+    SHA256:44ca175b2901b4bc698485b51198514b92f4df6c4321712b168fea7ca44b65dd
+    SHA512:4ce59b6bbfb71ca30025f5f0dc4326376418e79a0a4536c7e183e1e43aa8f1325af37c8c009119b22d268a463e210ec69e79512834368651f709e6cd8cadc367
+    Skein512_512:a9c8c7ea6f8a03666537f8d8c3abf088fd3e8b5ee054568a431231d13a409954c6359ee29683ea1646efd2695237c9a993dd2a9852c6d5608fa5d3f16dd390d7
+
+package-locations:
+    https://hackage.haskell.org/package/cipher-aes-0.2.0/cipher-aes-0.2.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/cipher-aes-0.2.0.tar.gz
+
