@@ -1,0 +1,187 @@
+name:           ADPfusion
+version:        0.1.0.0
+author:         Christian Hoener zu Siederdissen, 2011-2012
+copyright:      Christian Hoener zu Siederdissen, 2011-2012
+homepage:       http://www.tbi.univie.ac.at/~choener/adpfusion
+maintainer:     choener@tbi.univie.ac.at
+category:       Algorithms, Data Structures, Bioinformatics
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+stability:      experimental
+cabal-version:  >= 1.6.0
+synopsis:
+                Efficient, high-level dynamic programming.
+description:
+                ADPfusion combines stream-fusion (using the stream interface
+                provided by the vector library) and type-level programming to
+                provide highly efficient dynamic programming combinators.
+                .
+                From the programmers' viewpoint, ADPfusion behaves very much
+                like the original ADP implementation
+                <http://bibiserv.techfak.uni-bielefeld.de/adp/> developed by
+                Robert Giegerich and colleagues, though both combinator
+                semantics and backtracking are different.
+                .
+                The library internals, however, are designed not only to speed
+                up ADP by a large margin (which this library does), but also to
+                provide further runtime improvements by allowing the programmer
+                to switch over to other kinds of data structures with better
+                time and space behaviour. Most importantly, dynamic programming
+                tables can be strict, removing indirections present in lazy,
+                boxed tables.
+                .
+                As a simple benchmark, consider the Nussinov78 algorithm which
+                translates to three nested for loops (for C). In the figure,
+                four different approaches are compared using inputs with size
+                100 characters to 1000 characters in increments of 100
+                characters. "C" is an implementation ("./C/" directory) in "C"
+                using "gcc -O3". "ADP" is the original ADP approach (see link
+                above), while "GAPC" uses the "GAP" language
+                (<http://gapc.eu/>).
+                <<https://github.com/choener/ADPfusion/gaplike-performance.png>>
+                .
+                Please note that actual performance will depend much on table
+                layout and data structures accessed during calculations, but in
+                general performance is very good: close to C and better than
+                other high-level approaches (that I know of).
+                .
+                .
+                .
+                Even complex ADP code tends to be completely optimized to loops
+                that use only unboxed variables (Int# and others,
+                indexIntArray# and others).
+                .
+                Completely novel (compared to ADP), is the idea of allowing
+                efficient monadic combinators. This facilitates writing code
+                that performs backtracking, or samples structures
+                stochastically, among others things.
+                .
+                This version is still highly experimental and makes use of
+                multiple recent improvements in GHC. This is particularly true
+                for the monadic interface.
+                .
+                .
+                .
+                Newley added are the ADP.Fusion.GAPlike modules. These allow
+                for writing grammars with only one (non)-terminal combinator.
+                The logic for index manipulation is now moved into data types
+                for terminals and non-terminals.
+                .
+                While this change leads to slightly more complicated instances
+                for each new terminal or non-terminal, the overall code
+                complexity is significantly lower. In addition, Constraint
+                Kinds make complex interactions between (non)-terminals
+                possible, while still managing to produce high-performance
+                code.
+                .
+                The final goal would, of course, be to have no inter-terminal
+                combinators anymore.
+                .
+                * GHC 7.6, LLVM, and -fnew-codegen recommended: gives a speedup
+                  of x2 for GAPcriterion
+                .
+                .
+                .
+                .
+                Long term goals: Outer indices with more than two dimensions,
+                specialized table design, a combinator library, a library for
+                computational biology.
+                .
+                Two algorithms from the realm of computational biology are
+                provided as examples on how to write dynamic programming
+                algorithms using this library:
+                <http://hackage.haskell.org/package/Nussinov78> and
+                <http://hackage.haskell.org/package/RNAFold>.
+                .
+                Changes since 0.0.1.2:
+                .
+                * require GHC 7.6
+                .
+                * ADP.Fusion.GAPlike module for (almost) combinator-less grammars
+                .
+                * ConstraintKinds for constrained parsers in GAPlike.
+                .
+                .
+                .
+                Changes since 0.0.1.0:
+                .
+                * compatibility with GHC 7.4
+                .
+                * note: still using fundeps & and TFs together. The TF-only version does not optimize as well (I know why but not yet how to fix it)
+                .
+                .
+                .
+                Using the new code generator?
+                .
+                The new code generator is not official yet, but I recommend trying it out:
+                <<https://github.com/choener/ADPfusion/gaplike-newcodegen.png>>
+
+
+
+Extra-Source-Files:
+  README.md
+  ADP/Fusion/QuickCheck.hs
+  ADP/Fusion/QuickCheck/Arbitrary.hs
+
+
+Flag devel
+  description: build criterion benchmarks and pull in QuickCheck
+  default: False
+
+
+library
+  build-depends:
+    base >= 4 && < 5,
+    ghc-prim,
+    primitive      == 0.5.*   ,
+    vector         == 0.10.*  ,
+    PrimitiveArray == 0.4.*
+  exposed-modules:
+    ADP.Fusion
+    ADP.Fusion.Monadic
+    ADP.Fusion.Monadic.Internal
+    ADP.Fusion.GAPlike
+
+  ghc-options:
+    -O2 -funbox-strict-fields
+
+executable GAPcriterion
+  buildable:
+    False
+  if flag(devel)
+    buildable:
+      True
+    build-depends:
+      criterion  == 0.6.* ,
+      QuickCheck == 2.5
+  other-modules:
+    ADP.Fusion.GAPlike.DevelCommon
+    ADP.Fusion.GAPlike.Criterion
+    ADP.Fusion.GAPlike.QuickCheck
+  main-is:
+    Tests/GAPcriterion.hs
+  ghc-options:
+    -fllvm -O2 -funbox-strict-fields -optlo-O3 -optlo-std-compile-opts
+  if impl(GHC > 7.4)
+    ghc-options:
+      -fnew-codegen
+
+
+source-repository head
+  type: git
+  location: git://github.com/choener/ADPfusion
+
+
+
+package-hashes:
+    MD5:e9afefb28309c624a3d4d332767a4b21
+    SHA1:2398989cb19751fc4fc1aa067d8270a3e53a1d21
+    SHA256:4454d0a4fc2977392c3576ece6ae00aef3e27eb9e8017f3a3df5fdebed160526
+    SHA512:f67bced0de90ee803c09d25c8fac7ab49d05feb69947a25b1b0311e68a19ce294ab99e4d3ec9febddda59402bff428e99045e45d606fda417be027bf4e41a34f
+    Skein512_512:b6168e5b56dc0f2b2de8a639ca49fcbedcf7e242e3b931a3ae51c583c3493f92914338760f50ff5cd3e8c7a94fc6a6d2f96f3d189a273ef37aabc8dcdc28e802
+
+package-locations:
+    https://hackage.haskell.org/package/ADPfusion-0.1.0.0/ADPfusion-0.1.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/ADPfusion-0.1.0.0.tar.gz
+
