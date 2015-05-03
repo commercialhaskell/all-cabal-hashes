@@ -1,0 +1,92 @@
+name:                effin
+version:             0.1.1.0
+synopsis:            A Typeable-free implementation of extensible effects
+homepage:            https://github.com/YellPika/effin
+license:             BSD3
+license-file:        LICENSE
+author:              Anthony Vandikas
+maintainer:          yellpika@gmail.com
+copyright:           (c) 2014 Anthony Vandikas
+category:            Control, Effect
+build-type:          Simple
+cabal-version:       >=1.10
+description:
+  This package implements extensible effects, and alternative to monad
+  transformers. The original paper can be found at
+  <http://okmij.org/ftp/Haskell/extensible/exteff.pdf>. The main differences
+  between this library and the one described in the paper are that this library
+  does not use the Typeable type class, and has a simpler API for handling
+  effects.
+  .
+  For example, the following code implements a handler for exceptions:
+  .
+  > runException :: Effect (Exception e ': es) a -> Effect es (Either e a)
+  > runException =
+  >     handle (\x -> return (Right x))
+  >     $ eliminate (\(Exception e) -> return (Left e))
+  >     $ defaultRelay
+  .
+  Compare this to the corresponding code in extensible-effects
+  (<http://hackage.haskell.org/package/extensible-effects>):
+  .
+  > runExc :: Typeable e => Eff (Exc e :> r) a -> Eff r (Either e a)
+  > runExc = loop . admin
+  >   where
+  >     loop (Val x) = return (Right x)
+  >     loop (E u)   = handleRelay u loop (\(Exc e) -> return (Left e))
+  .
+  In particular:
+  .
+  * Effect implementors are not required to do any recursion.
+  .
+  * The functions for writing effect handlers can be easily composed.
+
+flag mtl
+  description: Enable MTL support
+  default: True
+  manual: True
+
+library
+  exposed-modules:
+    Control.Effect,
+    Control.Effect.Coroutine,
+    Control.Effect.Exception,
+    Control.Effect.Lift,
+    Control.Effect.List,
+    Control.Effect.Reader,
+    Control.Effect.State,
+    Control.Effect.Thread,
+    Control.Effect.Union,
+    Control.Effect.Writer,
+    Control.Monad.Effect
+
+  other-modules:
+    Data.Union
+
+  build-depends: base >= 4.7 && < 4.8
+  if flag(mtl)
+    build-depends: mtl >= 2.1 && < 3
+
+  hs-source-dirs: src
+  default-language: Haskell2010
+  ghc-options: -Wall
+
+  if flag(mtl)
+    cpp-options: -DMTL
+
+source-repository head
+  type:     git
+  location: git://github.com/YellPika/effin.git
+
+
+package-hashes:
+    MD5:54186b554fddad819c9d8cdd32e9bcf3
+    SHA1:51c6df246d4247092522442996cfbc6caaa87ada
+    SHA256:8333eee82d17c905bd6b7b2702331b51684dd51a47bd3d2eca2c09eecf04a070
+    SHA512:e569cad18b998d418483f0c40b0fbd3ce2ea8dffc1fd61ecb049151a2b7b4ea7562424040476bd819db4945bdc097b4e99d9c6db8f132076cdb5701468beb030
+    Skein512_512:b1d69bee799607690efbe1f482f9bcfe473e6a640b97bb29c77947e49c3bf1fbf803c2ceafc52e984c5bd9d78d36e4bc8f0e8d0bc06879234731ac54857a8862
+
+package-locations:
+    https://hackage.haskell.org/package/effin-0.1.1.0/effin-0.1.1.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/effin-0.1.1.0.tar.gz
+

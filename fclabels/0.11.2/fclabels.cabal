@@ -1,0 +1,157 @@
+Name:            fclabels
+Version:         0.11.2
+Author:          Sebastiaan Visser, Erik Hesselink, Chris Eidhof, Sjoerd Visscher.
+Synopsis:        First class accessor labels implemented as lenses.
+
+Description:     First class labels that act as bidirectional record fields.
+                 .
+                 The labels are implemented as lenses and are fully composable
+                 and can be used to get, set and modify parts of a datatype in
+                 a consistent way. The lens datatype, conveniently called
+                 `:->', is an instance of the `Category' type class: meaning it
+                 has a proper identity and composition. The library has support
+                 for automatically deriving labels from record selectors that
+                 start with an underscore. Labels can be used in a purely
+                 functional setting or be applied to mutable state in some
+                 state monad.
+                 .
+                 To illustrate this package, let's take the following two example
+                 datatypes (somehow Haddock removes the curly braces):
+                 .
+                 > data Person = Person {
+                 >     _name   :: String
+                 >   , _age    :: Int
+                 >   , _isMale :: Bool
+                 >   , _place  :: Place
+                 >   }
+                 .
+                 > data Place = Place {
+                 >     _city
+                 >   , _country
+                 >   , _continent :: String
+                 >   }
+                 .
+                 Both are record datatypes with all record labels prefixed by
+                 an underscore.  This underscore is an indication for our
+                 Template Haskell code to derive lenses for these fields.
+                 Deriving lenses can be done with this simple one-liner:
+                 .
+                 > $(mkLabels [''Person, ''Place])
+                 .
+                 These lenses can be used to get, set and modify the value and
+                 are fully composable.
+                 .
+                 Now let's look at this example. This 71 year old fellow, called Jan,
+                 is my neighbour and didn't mind using him as an example:
+                 .
+                 > jan :: Person
+                 > jan = Person "Jan" 71 True (Place "Utrecht" "The Netherlands" "Europe")
+                 .
+                 When we want to be sure Jan is really as old as he claims we
+                 can use the @getL@ function to get the age out as an integer:
+                 .
+                 > hisAge :: Int
+                 > hisAge = getL age jan
+                 .
+                 Consider he now wants to move to Amsterdam: what better place
+                 to spend your old days. Using composition we can change the
+                 city value deep inside the structure:
+                 .
+                 > moveToAmsterdam :: Person -> Person
+                 > moveToAmsterdam = setL (city . place) "Amsterdam"
+                 .
+                 > moveToAmsterdam jan ==
+                 >  Person "Jan" 71 True (Place "Amsterdam" "The Netherlands" "Europe")
+                 .
+                 Composition is done using the dot operator which is part of
+                 the @Control.Category@ module. Make sure to import this module
+                 and hide the default @(.)@, @id@ and @modL@ function from the
+                 Prelude.
+                 .
+                 Now, because Jan is an old guy, moving to another city is not a
+                 very easy task, this really takes a while. It will probably
+                 take no less than two years before he will actually be
+                 settled. To reflect this change it might be useful to have a
+                 first class view on the @Person@ data type that only reveals
+                 the age and city.  This can be done by using a neat
+                 @Applicative@ functor instance:
+                 .
+                 > ageAndCity :: Person :-> (Int, String)
+                 > ageAndCity = Lens $ (,) <$> fst `for` age <*> snd `for` (city . place)
+                 .
+                 Because the applicative type class on its own is not very
+                 capable of expressing bidirectional relations, which we need
+                 for our lenses, the actual instance is defined for an internal
+                 helper structure called @Point@. Points are a bit more general
+                 than lenses. As you can see above, the @Label@ constructor has
+                 to be used to convert a @Point@ back into a @Label@. The @for@
+                 function must be used to indicate which partial destructor to
+                 use for which lens in the applicative composition.
+                 .
+                 Now that we have an appropriate age+city view on the @Person@
+                 data type (which is itself a lens again), we can use the
+                 @modL@ function to make Jan move to Amsterdam over exactly two
+                 years:
+                 .
+                 > moveToAmsterdamOverTwoYears :: Person -> Person
+                 > moveToAmsterdamOverTwoYears = modL ageAndCity (\(a, b) -> (a+2, "Amsterdam"))
+                 .
+                 > moveToAmsterdamOverTwoYears jan ==
+                 >  Person "Jan" 73 True (Place "Amsterdam" "The Netherlands" "Europe")
+                 .
+                 This package also contains a lens data type that encodes
+                 bidirectional functions. Just like lenses, lenses can be
+                 composed with other lenses using the @Control.Category@ type
+                 class. Lenses can be used to change the type of a lens. The
+                 @Iso@ type class, which can be seen as a bidirectional
+                 functor, can be used to apply lenses to lenses. For example,
+                 when we want to treat the age of a person as a string we can
+                 do the following:
+                 .
+                 > ageAsString :: Person :-> String
+                 > ageAsString :: (show :<->: read) % age
+                 .
+                 A final note: this library might look cryptic at first sight, but give it a
+                 try, it is not that hard.
+                 .
+                 .
+                 > CHANGELOG
+                 >   0.11.1.1 -> 0.11.2
+                 >   - Relaxed template haskell dependency constraint
+                 >     for GHC 7.2
+                 >   - Removed redundant import warnings.
+
+Maintainer:      Sebastiaan Visser <haskell@fvisser.nl>
+License:         BSD3
+License-File:    LICENCE
+Category:        Data
+Cabal-Version:   >= 1.6
+Build-Type:      Simple
+
+Library
+  HS-Source-Dirs:  src
+  Exposed-Modules: Data.Record.Label
+                   Data.Record.Label.Core
+                   Data.Record.Label.Monadic
+  Other-Modules:   Data.Record.Label.TH
+  Build-Depends:   base >= 3 && < 5
+                 , template-haskell >= 2.2 && < 2.7
+                 , mtl >= 1.1 && <= 2.1
+  GHC-Options:     -Wall
+
+Source-Repository head
+  Type:            git
+  Location:        git://github.com/sebastiaanvisser/fclabels.git
+
+
+package-hashes:
+    MD5:92958c99b513da4a44e5175b44709f5d
+    SHA1:f4b4a3056d949fb48e8cf1397b0b8ca9bd64db63
+    SHA256:6e06429e93d5afe419afb3cba8dcc977a61619b4a047e2122b060f27fc035047
+    SHA512:3e19392c1b1758ba7d4f53bc04e600c8183b39e6055f0aaf62e39c0650f78d4db0044e088ed3e5e1259cd9d462f7db6a6271c1021b9f2c7c95347a2993caf59f
+    Skein512_512:1d511c4b5b0275789d66bd9ebaafb79d5a7568ba5566428758391185f2f3d5ec1d3bb0cb1d8d38bdcbdc663cdc77d95648631b4e9cedcb1bde3b097f3d852cc1
+
+package-locations:
+    https://hackage.haskell.org/package/fclabels-0.11.2/fclabels-0.11.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/fclabels-0.11.2.tar.gz
+

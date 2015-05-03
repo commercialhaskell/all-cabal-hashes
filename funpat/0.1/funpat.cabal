@@ -1,0 +1,89 @@
+Name:           funpat
+Version:        0.1
+Cabal-Version:  >= 1.8.0.2
+License:        BSD3
+License-File:   LICENSE
+Author:         Gergely Devai
+Maintainer:     deva@inf.elte.hu
+Category:       Language
+Build-type:     Simple
+Stability:      experimental
+Synopsis:       A generalization of pattern matching
+Description:
+    This library provides pattern matching with /restricted function patterns/
+    (RFPs). An expression is an RFP iff exists an equivalent valid Haskell
+    pattern. For example @(\"abc\" ++ xs)@ is an RFP, because @(\'a\' : \'b\' : \'c\' : xs)@
+    is an equivalent valid Haskell pattern. On the other hand, @(xs ++ \"abc\")@
+    is not an RFP. Details are discussed in the paper /Restricted Function Patterns/
+    presented at /TFP 2011/.
+    .
+    /Example 1./ Here is a function to chop off the prefix @\"prefix\" of strings@:
+    .
+    @
+    unprefix :: String -> String
+    unprefix s = match s $ do
+    \   with $ \\z ->   \"prefix\" ++ z ~> z
+    \   with $ \\z ->   z             ~> z
+    @
+    .
+    /Example 2./ Let's have a small embedded language:
+    .
+    @
+    data Expr = Symbol String | Expr :$ Expr
+    \    deriving (Eq,Show,Typeable)
+    .
+    instance Num Expr where
+    \    fromInteger n = Symbol $ show n
+    \    a + b = Symbol \"+\" :$ a :$ b
+    \    a * b = Symbol \"*\" :$ a :$ b
+    \    ...
+    @
+    .
+    In order to allow pattern matching on expressions of type @Expr@, the
+    following @Matchable@ instance is needed:
+    .
+    @
+    instance Matchable Expr where
+    \    Symbol s .=. Symbol z   = Just [s :=: z]
+    \    (e :$ f) .=. (g :$ h)   = Just [e :=: g, f :=: h]
+    \    _ .=. _                 = Nothing
+    @
+    .
+    Now we can pattern match on expressions even if the constructors of
+    the @Expr@ type were hidden:
+    .
+    @
+    transform :: Expr -> Expr
+    transform e = match e $ do
+    \    with $ \\a ->        0 + a       ~> a
+    \    with $ \\a b c ->    a * (b + c) ~> a * b + a * c
+    \    with $ \\a ->        a           ~> a
+    @
+    
+Library
+  Build-Depends:
+    base >= 4.2.0.2 && < 4.4,
+    mtl >= 2.0.1.0 && <3
+  Exposed-modules:
+    Language.FunPat,
+    Language.FunPat.Interface,
+    Language.FunPat.Instances,
+    Language.FunPat.Match
+  Extensions:
+    GADTs
+    TypeFamilies
+    FlexibleContexts
+    DeriveDataTypeable
+
+
+package-hashes:
+    MD5:00f4d76e9a6f5dde333c30bffef2671e
+    SHA1:5982f17fb2ccf620014765e5dbf068e82e4f4d95
+    SHA256:dc2b226bbb72a65a5281e86d766b3f26b0b1a898d08cd53f0c6cb98a9ecb747d
+    SHA512:47f7c964961fa64c7fbf026e1edd2027499309149b82848412ba43faf56159fb6d2b49340e7bdb54af254ca075753f0776bb3d80d466ca49ef6e74e9e1e933d1
+    Skein512_512:b82a7f4c763adcfddce129ec3db14d76d7a4f7676dc2d8b062a3a2423889f0da66f5bab5edda4c834c768e597e29331f8321e58f973234e6cb2a876db416e4d6
+
+package-locations:
+    https://hackage.haskell.org/package/funpat-0.1/funpat-0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/funpat-0.1.tar.gz
+

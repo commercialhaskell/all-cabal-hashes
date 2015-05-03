@@ -1,0 +1,155 @@
+name:                diagrams-builder
+version:             0.5
+synopsis:            hint-based build service for the diagrams graphics EDSL.
+
+description:         @diagrams-builder@ provides backend-agnostic tools for
+                     dynamically turning code into rendered diagrams,
+                     using the @hint@ wrapper to the GHC API.  It
+                     supports conditional recompilation using hashing
+                     of diagrams source code, to avoid recompiling
+                     code that has not changed.  It is useful for
+                     creating tools which compile diagrams code
+                     embedded in other documents.  For example, it is
+                     used by the @BlogLiterately-diagrams@ package (a
+                     plugin for @BlogLiterately@) to compile diagrams
+                     embedded in Markdown-formatted blog posts.
+                     .
+                     Executables specific to the cairo, SVG, and postscript
+                     backends are included (more executables specific
+                     to other backends may be included in the future).
+                     All take an input file and an expression to
+                     render, and output an image file.  If you want
+                     these executables you must explicitly enable the
+                     @-fcairo@, @-fsvg@, or @-fps@ flags.
+                     .
+                     A LaTeX package, @diagrams-latex.sty@, is also
+                     provided in the @latex/@ directory of the source
+                     distribution, which renders diagrams code found
+                     within @diagram@ environments. Note that
+                     @diagrams-latex.sty@ is licensed under the GPL.
+homepage:            http://projects.haskell.org/diagrams
+license:             BSD3
+license-file:        LICENSE
+extra-source-files:  CHANGES.markdown, README.markdown, latex/diagrams-latex.sty
+author:              Brent Yorgey
+maintainer:          diagrams-discuss@googlegroups.com
+category:            Graphics
+build-type:          Simple
+cabal-version:       >=1.10
+tested-with:         GHC == 7.4.2, GHC == 7.6.1
+bug-reports:         https://github.com/diagrams/diagrams-builder/issues
+Source-repository head
+  type:     git
+  location: https://github.com/diagrams/diagrams-builder
+
+library
+  exposed-modules:     Diagrams.Builder
+                       Diagrams.Builder.Opts
+                       Diagrams.Builder.Modules
+                       Diagrams.Builder.CmdLine
+  build-depends:       base >=4.2 && < 4.7,
+                       mtl >= 2.1 && < 2.2,
+                       diagrams-lib >=0.6 && < 1.1,
+                       hint ==0.3.*,
+                       directory,
+                       filepath,
+                       transformers >= 0.3 && < 0.4,
+                       split >= 0.2 && < 0.3,
+                       haskell-src-exts >= 1.14 && < 1.15,
+                       cmdargs >= 0.6 && < 0.11,
+                       lens >= 3.9 && < 3.11,
+                       hashable >= 1.2 && < 1.3
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  other-extensions:    StandaloneDeriving,
+                       DeriveDataTypeable,
+                       ScopedTypeVariables,
+                       FlexibleContexts
+
+flag cairo
+  description: install cairo-specific builder tool
+  default:     False
+  manual:      True
+
+flag svg
+  description: install svg-specific builder tool
+  default:     False
+  manual:      True
+
+flag ps
+  description: install postscript-specific builder tool
+  default:     False
+  manual:      True
+
+executable diagrams-builder-cairo
+  main-is:             diagrams-builder-cairo.hs
+  hs-source-dirs:      src/tools
+  default-language:    Haskell2010
+  other-extensions:    DeriveDataTypeable
+                       RecordWildCards
+
+  if !flag(cairo)
+    buildable: False
+
+  if flag(cairo)
+    build-depends:     base >= 4 && < 5,
+                       filepath,
+                       directory,
+                       diagrams-builder,
+                       diagrams-lib >= 0.6 && < 1.1,
+                       diagrams-cairo >= 0.6 && < 1.1,
+                       cmdargs >= 0.6 && < 0.11,
+                       lens >= 3.8 && < 3.11
+
+executable diagrams-builder-svg
+  main-is:             diagrams-builder-svg.hs
+  hs-source-dirs:      src/tools
+  default-language:    Haskell2010
+  other-extensions:    DeriveDataTypeable
+                       RecordWildCards
+
+  if !flag(svg)
+    buildable: False
+
+  if flag(svg)
+    build-depends:     base >= 4 && < 5,
+                       filepath,
+                       directory,
+                       diagrams-builder,
+                       diagrams-lib >= 0.6 && < 1.1,
+                       diagrams-svg >= 0.8.0.1 && < 1.1,
+                       blaze-svg >= 0.3.3 && < 0.4,
+                       bytestring >= 0.9.2 && < 0.11,
+                       cmdargs >= 0.6 && < 0.11
+
+executable diagrams-builder-ps
+  main-is:             diagrams-builder-ps.hs
+  hs-source-dirs:      src/tools
+  default-language:    Haskell2010
+  other-extensions:    DeriveDataTypeable
+                       RecordWildCards
+
+  if !flag(ps)
+    buildable: False
+
+  if flag(ps)
+    build-depends:     base >= 4 && < 5,
+                       filepath,
+                       directory,
+                       diagrams-builder,
+                       diagrams-lib >= 0.6 && < 1.1,
+                       diagrams-postscript >= 0.6 && < 1.1,
+                       cmdargs >= 0.6 && < 0.11,
+                       lens >= 3.8 && < 3.11
+
+package-hashes:
+    MD5:c5304a93b9721889c8db77b74272579c
+    SHA1:ea372159f3bbf73b751171e84ea8bb03f991e717
+    SHA256:98a40143d2e8a0f3823140ab3622714dd714d80367909e39b5d1a2122cf5ffa0
+    SHA512:724093e79ad28c25a0de79a9ad1e5ca10955819151d8d3a94c0c313645b85b7db9c7b1f7b13c2ad83b45137a17900ad80f7cfd79d579d432c2944f5bb5a6bfd6
+    Skein512_512:e1e1c67b8686894f0b1431fefc0bc7b2e57dc66f28e15ed8f6d5e4d20da90b9c56202361562e4b7e506bdaa9177ebb8758c5e39bb0cb9b841c280ace2e34cbfa
+
+package-locations:
+    https://hackage.haskell.org/package/diagrams-builder-0.5/diagrams-builder-0.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/diagrams-builder-0.5.tar.gz
+

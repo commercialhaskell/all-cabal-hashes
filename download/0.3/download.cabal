@@ -1,0 +1,122 @@
+name:            download
+version:         0.3
+homepage:        http://code.haskell.org/~dons/code/download
+synopsis:        High-level file download based on URLs
+description:     High-level file download based on URLs
+ .
+ Download web content as strict bytestring, strings, HTML tags, XML, RSS
+ or Atom feeds or JSON, via HTTP, FTP or file protocols, using a URL
+ interface.
+ .
+ Importing the library:
+ .                 
+ > import Network.Download
+ .
+ Loading a webpage as a "ByteString":
+ .
+ > doc  <- openURI "http://haskell.org"
+ .
+ Loading from a file:
+ .
+ > doc  <- openURI "file:///tmp/A.hs"
+ .
+ Loading a HTML page as a list of tags:
+ .
+ > tags <- openAsTags "http://haskell.org"
+ .
+ Loading a HTML page as XML:
+ .
+ > tags <- openAsXML "http://haskell.org"
+ .
+ Loading an RSS or Atom feed:
+ .
+ > feed <- openAsFeed "http://haskell.org"
+ .
+ These data types can the be processed further with the XML, Feed and
+ TagSoup libraries.
+ .
+category:        Network
+license:         BSD3
+license-file:    LICENSE
+copyright:       (c) 2008, Don Stewart <dons@galois.com>
+author:          Don Stewart
+maintainer:      Don Stewart <dons@galois.com>
+cabal-version:   >= 1.2.0
+build-type:      Simple
+tested-with:     GHC ==6.8.2
+
+-- flag external
+--  description: Build with an external libdownload
+--  default:     False
+
+flag small_base
+  description: Build with new smaller base library
+
+library
+    exposed-modules: Network.Download
+    extensions:      CPP,
+                     ForeignFunctionInterface,
+                     EmptyDataDecls,
+                     GeneralizedNewtypeDeriving
+
+    ghc-options:     -Wall -fvia-C
+
+    if flag(small_base)
+        build-depends:   base >= 3, bytestring
+    else
+        build-depends:   base > 3
+
+    build-depends: tagsoup, feed, xml
+
+    ------------------------------------------------------------------------
+    -- Building libdownload
+    --
+    -- We can build against either an external libdownload, or an internal one.
+
+--    if flag(external)
+--        extra-libraries:    download
+--        c-sources:          cbits/hs_download_utils.c
+--        include-dirs:       cbits
+--        includes:           hs_download_utils.h
+--        install-includes:   hs_download_utils.h
+--    else
+
+    cc-options:         -O2
+                        -DINET6
+                        -D_GNU_SOURCE
+                        -D_FILE_OFFSET_BITS=64
+                        -UDEBUG
+
+    c-sources:          cbits/download.c
+                        cbits/common.c
+                        cbits/ftp.c
+                        cbits/http.c
+                        cbits/file.c
+                        cbits/hs_download_utils.c
+
+    include-dirs:       cbits
+    includes:           download.h
+                        common.h
+                        ftperr.h
+                        httperr.h
+                        hs_download_utils.h
+
+    install-includes:   common.h
+                        download.h
+                        ftperr.h
+                        httperr.h
+                        hs_download_utils.h
+                                               
+
+
+package-hashes:
+    MD5:e1c448810786d7a75f4562f034431b63
+    SHA1:4e20c61a7141dcc4453cc5d0be9fa772a1f3e1b9
+    SHA256:9678beb2060c079efe225f6bf0084e828f610df52ce98734ab97b7646326325c
+    SHA512:4413faf167388dc68006fc2097813d4ef72fd6ff18a9e6caf5c75832a0ba619d3786bc07b1ae05262bdd286abf7fa791bcbcbbd20973249982fa5f6a91633513
+    Skein512_512:eee329b3dc1a940bde6142f960d43a9b47823a653aa1b407cc83461fd9d06e80e11256d7bf01393c3b81df726bfc1cde4a443af0fdbd544165e7376938e894f0
+
+package-locations:
+    https://hackage.haskell.org/package/download-0.3/download-0.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/download-0.3.tar.gz
+

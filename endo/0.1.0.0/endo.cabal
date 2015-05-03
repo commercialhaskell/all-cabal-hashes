@@ -1,0 +1,130 @@
+name:                   endo
+version:                0.1.0.0
+x-revision: 1
+synopsis:               Endomorphism utilities.
+description:
+  Package defines extra functions for 'Data.Monoid.Endo' data type, and also
+  generic endomorphism folding machinery. Generic endomorphism folding can be
+  used for various purposes, including as a builder.
+  .
+  Here is an example how to use with
+  <http://hackage.haskell.org/package/optparse-applicative optparse-applicative>
+  package:
+  .
+  > data Verbosity = Silent | Normal | Verbose | Annoying
+  >   deriving (Show)
+  .
+  > data Config = Config Verbosity FilePath
+  >   deriving (Show)
+  .
+  > options :: Parser Config
+  > options = runIdentityT $ runEndo defaultConfig <$> options'
+  >   where
+  >     options' :: IdentityT Parser (Endo Config)
+  >     options' = foldEndo
+  >         <*> outputOption     -- IdentityT Parser (Maybe (E Config))
+  >         <*> verbosityOption  -- IdentityT Parser (Maybe (E Config))
+  >         <*> annoyingFlag     -- IdentityT Parser (E Config)
+  >         <*> silentFlag       -- IdentityT Parser (E Config)
+  >         <*> verboseFlag      -- IdentityT Parser (E Config)
+  >
+  >     defaultConfig :: Config
+  >     defaultConfig = Config Normal ""
+  .
+  > main :: IO ()
+  > main = execParser (info options fullDesc) >>= print
+  .
+  > ghci> :main -o an.out.put --annoying
+  > Config Annoying "an.out.put"
+  .
+  For details how individual option parsers look like see module
+  "Data.Monoid.Endo.Fold" which contains other examples as well as this one.
+
+homepage:               https://github.com/trskop/endo
+bug-reports:            https://github.com/trskop/endo/issues
+license:                BSD3
+license-file:           LICENSE
+author:                 Peter Trško
+maintainer:             peter.trsko@gmail.com
+copyright:              (c) 2013-2015 Peter Trško
+category:               Data
+build-type:             Simple
+cabal-version:          >=1.10
+
+-- Examples require lens and optparse-applicative packages in addition to this
+-- packackage's dependencies. When using sandbox it is possible to use "cabal
+-- repl" to test examples by using following command:
+--
+--     cabal repl                                         \
+--         --ghc-option="-iexample"                       \
+--         --ghc-options="-package lens"                  \
+--         --ghc-options="-package optparse-applicative"  \
+--         --ghc-options="-package transformers"
+extra-source-files:
+    ChangeLog.md
+  , README.md
+  , example/Example/Config/*.hs
+  , example/Example/*.hs
+  , example/*.hs
+
+flag pedantic
+  description:          Pass additional warning flags to GHC.
+  default:              False
+  manual:               True
+
+library
+  hs-source-dirs:       src
+  exposed-modules:
+      Data.Monoid.Endo
+    , Data.Monoid.Endo.Fold
+
+  default-language:     Haskell2010
+  other-extensions:
+      DeriveDataTypeable
+    , DeriveGeneric
+    , FlexibleInstances
+    , NoImplicitPrelude
+    , TypeFamilies
+
+  build-depends:
+    -- {{{ Distributed with GHC or Haskell Platform ---------------------------
+      base >=4.6 && <4.8
+    , transformers >=0.3 && <0.4
+    -- }}} Distributed with GHC or Haskell Platform ---------------------------
+
+    , between == 0.9.*
+
+  if impl(GHC >= 7.8)
+    cpp-options:        -DHAVE_MINIMAL_PRAGMA
+                        -DKIND_POLYMORPHIC_TYPEABLE
+  if impl(GHC >= 7.9)
+    cpp-options:        -DAPPLICATIVE_MONAD
+
+  ghc-options:          -Wall
+  if flag(pedantic)
+    ghc-options:
+      -fwarn-tabs
+      -fwarn-implicit-prelude
+--    -Werror
+
+source-repository head
+  type:                 git
+  location:             git://github.com/trskop/endo.git
+
+source-repository this
+  type:                 git
+  location:             git://github.com/trskop/endo.git
+  tag:                  0.1.0.0
+
+
+package-hashes:
+    MD5:50c98ff2c534c6d2141de6fda75fb8b4
+    SHA1:b474f6b671319d9aa166dff26f3b24cf8f122d8e
+    SHA256:340665e4b156b4d658f4cb2ab4fdadd4c5c7d380632fd1331b781cdc9c69e8be
+    SHA512:a0fe4a18ca12455bb08cf0ed049253199f81f54b9d3c07883eb3d6d29c2717a64d3eb0ee078fc5edf5653d41c20abecbd4ffb773c377e137fa72ccbc6646aebc
+    Skein512_512:fde964dfa3b69352f5794ca7df1c7dde6c71e30647711242a2ad6c42c17d8a1b635a001184ebe59586b5ce69b2e1147346cae80e1c176a6cf4d3b8f1cd932c30
+
+package-locations:
+    https://hackage.haskell.org/package/endo-0.1.0.0/endo-0.1.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/endo-0.1.0.0.tar.gz
+

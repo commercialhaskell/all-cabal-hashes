@@ -1,0 +1,170 @@
+name: dbus
+version: 0.10.7
+license: GPL-3
+license-file: license.txt
+author: John Millikin <jmillikin@gmail.com>
+maintainer: John Millikin <jmillikin@gmail.com>
+build-type: Simple
+cabal-version: >= 1.8
+category: Network, Desktop
+stability: experimental
+homepage: https://john-millikin.com/software/haskell-dbus/
+bug-reports: mailto:jmillikin@gmail.com
+
+synopsis: A client library for the D-Bus IPC system.
+description:
+  D-Bus is a simple, message-based protocol for inter-process
+  communication, which allows applications to interact with other parts of
+  the machine and the user's session using remote procedure calls.
+  .
+  D-Bus is a essential part of the modern Linux desktop, where it replaces
+  earlier protocols such as CORBA and DCOP.
+  .
+  This library is an implementation of the D-Bus protocol in Haskell. It
+  can be used to add D-Bus support to Haskell applications, without the
+  awkward interfaces common to foreign bindings.
+  .
+  Example: connect to the session bus, and get a list of active names.
+  .
+  @
+  &#x7b;-\# LANGUAGE OverloadedStrings \#-&#x7d;
+  .
+  import Data.List (sort)
+  import DBus
+  import DBus.Client
+  .
+  main = do
+  &#x20;   client <- connectSession
+  &#x20;   //
+  &#x20;   \-- Request a list of connected clients from the bus
+  &#x20;   reply <- call_ client (methodCall \"\/org\/freedesktop\/DBus\" \"org.freedesktop.DBus\" \"ListNames\")
+  &#x20;       &#x7b; methodCallDestination = Just \"org.freedesktop.DBus\"
+  &#x20;       &#x7d;
+  &#x20;   //
+  &#x20;   \-- org.freedesktop.DBus.ListNames() returns a single value, which is
+  &#x20;   \-- a list of names (here represented as [String])
+  &#x20;   let Just names = fromVariant (methodReturnBody reply !! 0)
+  &#x20;   //
+  &#x20;   \-- Print each name on a line, sorted so reserved names are below
+  &#x20;   \-- temporary names.
+  &#x20;   mapM_ putStrLn (sort names)
+  @
+  .
+  >$ ghc --make list-names.hs
+  >$ ./list-names
+  >:1.0
+  >:1.1
+  >:1.10
+  >:1.106
+  >:1.109
+  >:1.110
+  >ca.desrt.dconf
+  >org.freedesktop.DBus
+  >org.freedesktop.Notifications
+  >org.freedesktop.secrets
+  >org.gnome.ScreenSaver
+
+
+extra-source-files:
+  benchmarks/DBusBenchmarks.hs
+  --
+  examples/dbus-monitor.hs
+  examples/export.hs
+  examples/introspect.hs
+  examples/list-names.hs
+  --
+  tests/DBusTests.hs
+  tests/DBusTests/*.hs
+
+source-repository head
+  type: git
+  location: https://john-millikin.com/code/haskell-dbus/
+
+source-repository this
+  type: git
+  location: https://john-millikin.com/code/haskell-dbus/
+  tag: haskell-dbus_0.10.7
+
+library
+  ghc-options: -Wall -O2
+  hs-source-dirs: lib
+
+  -- IMPORTANT: keep these in sync with the test suite
+  build-depends:
+      base >= 4.0 && < 5.0
+    , bytestring >= 0.9
+    , cereal >= 0.3.4 && < 0.5
+    , containers >= 0.1 && < 0.6
+    , libxml-sax >= 0.7 && < 0.8
+    , network >= 2.2.3
+    , parsec >= 2.0 && < 3.2
+    , random >= 1.0 && < 1.1
+    , text >= 0.11.1.5
+    , transformers >= 0.2 && < 0.4
+    , unix >= 2.2
+    , vector >= 0.7 && < 0.11
+    , xml-types >= 0.3 && < 0.4
+
+  exposed-modules:
+    DBus
+    DBus.Client
+    DBus.Introspection
+    DBus.Socket
+    DBus.Transport
+
+  other-modules:
+    DBus.Address
+    DBus.Message
+    DBus.Types
+    DBus.Wire
+
+test-suite dbus_tests
+  type: exitcode-stdio-1.0
+  main-is: DBusTests.hs
+  hs-source-dirs: lib,tests
+
+  build-depends:
+      base >= 4.0 && < 5.0
+    , bytestring >= 0.9
+    , cereal >= 0.3.4 && < 0.5
+    , chell >= 0.3 && < 0.4
+    , chell-quickcheck >= 0.2 && < 0.3
+    , containers >= 0.1 && < 0.6
+    , directory
+    , filepath
+    , libxml-sax >= 0.7 && < 0.8
+    , network >= 2.2.3
+    , parsec >= 2.0 && < 3.2
+    , process >= 1.0 && < 1.2
+    , QuickCheck == 2.4.*
+    , random >= 1.0 && < 1.1
+    , text >= 0.11.1.5
+    , transformers >= 0.2 && < 0.4
+    , unix >= 2.2
+    , vector >= 0.7 && < 0.11
+    , xml-types >= 0.3 && < 0.4
+
+benchmark dbus_benchmarks
+  type: exitcode-stdio-1.0
+  main-is: DBusBenchmarks.hs
+  hs-source-dirs: benchmarks
+  ghc-options: -Wall -O2 -fno-warn-orphans
+
+  build-depends:
+      dbus
+    , base > 4.0 && < 5.0
+    , criterion >= 0.8 && < 0.9
+    , deepseq
+
+
+package-hashes:
+    MD5:28fe7641d11b1460ba5e8e831258e857
+    SHA1:b4b3e4ccb06bfa6bba2a92cc63501b994f655e1b
+    SHA256:b0fb9227c47018c95819487949df2955ba4e4ba70a616ad33ff9806bb8f55f77
+    SHA512:09b76b40455e17aae227f3d5ee555fe4127c665bc5e7e19eb7bc599ec39d4df4dbe95c61dc0c4c4e95e742827535675ed5b50cb50e59352d04fd7ec96ce6e6e4
+    Skein512_512:d4a7cbf64ba284a300e687e19c63af55888a97d87529405fdf5fec9a4269a63f851b0761c4b60e0609d11b086742a504c65142717215e817b72d287185e476e7
+
+package-locations:
+    https://hackage.haskell.org/package/dbus-0.10.7/dbus-0.10.7.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/dbus-0.10.7.tar.gz
+

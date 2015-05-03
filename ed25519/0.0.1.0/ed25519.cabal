@@ -1,0 +1,239 @@
+name:                ed25519
+version:             0.0.1.0
+category:            Cryptography
+license:             MIT
+synopsis:            ed25519 cryptographic signatures
+homepage:            http://thoughtpolice.github.com/hs-ed25519
+bug-reports:         http://github.com/thoughtpolice/hs-ed25519/issues
+license-file:        LICENSE.txt
+copyright:           Copyright (c) Austin Seipp 2013
+author:              Austin Seipp
+maintainer:          Austin Seipp <aseipp@pobox.com>
+build-type:          Custom
+cabal-version:       >=1.10
+tested-with:         GHC == 7.4.1, GHC == 7.4.2,
+                     GHC == 7.6.1, GHC == 7.6.2, GHC == 7.6.3
+
+description:
+  This package provides a simple, portable implementation of the
+  ed25519 public-key signature system. It also includes support for
+  detached signatures.
+  .
+  The underlying implementation uses the @ref10@ implementation of
+  ed25519 from SUPERCOP, and should be relatively fast.
+  .
+  For more information (including how to get a copy of the software)
+  visit <http://ed25519.cr.yp.to>.
+
+extra-source-files:
+  .travis.yml
+  AUTHORS.txt
+  README.md
+  CONTRIBUTING.md
+  CHANGELOG.md
+  src/cbits/*.c
+  src/cbits/include/*.h
+
+source-repository head
+  type: git
+  location: https://github.com/thoughtpolice/hs-ed25519.git
+
+-------------------------------------------------------------------------------
+-- Flags
+
+flag test-properties
+  default: True
+  manual: True
+
+-- Enable these when/if we need them.
+flag test-hunit
+  default: False
+  manual: True
+
+-- Can't run due to needing C library apparently?
+flag test-doctests
+  default: False
+  manual: True
+
+flag test-hlint
+  default: True
+  manual: True
+
+flag threaded
+  default: True
+  manual: True
+
+flag llvm
+  default: False
+  manual: True
+
+flag optimized
+  default: True
+  manual: True
+
+-------------------------------------------------------------------------------
+-- Build pt 1: main project
+
+library
+  build-depends:
+    base >= 4 && < 5,
+    bytestring
+
+  exposed-modules:
+    Crypto.Sign.Ed25519
+
+  if flag(optimized)
+    ghc-options: -O2
+
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  ghc-options:        -Wall -fwarn-tabs
+  default-language:   Haskell2010
+  hs-source-dirs:     src
+  cc-options:         -O3 -march=native
+  c-sources:          src/cbits/ed25519.c
+  include-dirs:       src/cbits src/cbits/include
+
+-------------------------------------------------------------------------------
+-- Build pt 2: Tests
+
+test-suite properties
+  type: exitcode-stdio-1.0
+  main-is: properties.hs
+  ghc-options: -w
+  hs-source-dirs: tests
+  default-language:   Haskell2010
+
+  if flag(threaded)
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  if !flag(test-properties)
+    buildable: False
+  else
+    build-depends:
+      base,
+      ed25519,
+      bytestring,
+      deepseq,
+      QuickCheck       >= 2.4,
+      tasty            >= 0.3,
+      tasty-quickcheck >= 0.3,
+      tasty-th         >= 0.1.1
+
+test-suite hunit
+  type: exitcode-stdio-1.0
+  main-is: hunit.hs
+  ghc-options: -w
+  hs-source-dirs: tests
+  default-language:   Haskell2010
+
+  if flag(threaded)
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  if !flag(test-hunit)
+    buildable: False
+  else
+    build-depends:
+      base,
+      ed25519,
+      bytestring,
+      deepseq,
+      QuickCheck       >= 2.4,
+      tasty            >= 0.3,
+      tasty-hunit      >= 0.2,
+      tasty-th         >= 0.1.1
+
+--
+-- Style/doc tests below
+--
+
+test-suite hlint
+  type: exitcode-stdio-1.0
+  main-is: hlint.hs
+  ghc-options: -w
+  hs-source-dirs: tests
+  default-language:   Haskell2010
+
+  if flag(threaded)
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  if !flag(test-hlint)
+    buildable: False
+  else
+    build-depends:
+      base,
+      hlint >= 1.7
+
+test-suite doctests
+  type:           exitcode-stdio-1.0
+  main-is:        doctests.hs
+  ghc-options:    -Wall
+  hs-source-dirs: tests
+  default-language:   Haskell2010
+
+  if flag(threaded)
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  if !flag(test-doctests)
+    buildable: False
+  else
+    build-depends:
+      base,
+      bytestring,
+      containers,
+      directory      >= 1.0,
+      deepseq,
+      doctest        >= 0.9.1,
+      filepath,
+      semigroups     >= 0.9
+
+  if impl(ghc<7.6.1)
+    ghc-options: -Werror
+
+-------------------------------------------------------------------------------
+-- Build pt 3: benchmarks
+
+benchmark bench1
+  type:               exitcode-stdio-1.0
+  build-depends:
+    base >= 4 && < 5,
+    bytestring,
+    criterion,
+    deepseq,
+    ed25519
+
+  if flag(optimized)
+    ghc-options: -O2
+
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  default-language:   Haskell2010
+  hs-source-dirs:     benchmarks
+  main-is:            bench1.hs
+
+
+package-hashes:
+    MD5:b07b8c80a9961adfa686f57de1dff6e4
+    SHA1:cbdcfd1517dc25805cbbd39018abab02571c0046
+    SHA256:0632fa9b809eb171cfbbc904aca231bc25ad94fdd447edfe500cefc69b4645d8
+    SHA512:289cce8c014d4b5d84d7030ea614795d04021e5eef7df5d5ab67ce0ac1ba011908f780a7a244f50b72c3d7c20b8e95ecaf7c2c9fdd661ea8208b31d72c15ea28
+    Skein512_512:b31e8f44f906ca9285accf1fa0d866ef9acd6929fb816e0f85fecc5cffc66e12a809c8c238922d596bc460551f91b184c9aedad0c709e1650be08e27bb4e24ed
+
+package-locations:
+    https://hackage.haskell.org/package/ed25519-0.0.1.0/ed25519-0.0.1.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/ed25519-0.0.1.0.tar.gz
+

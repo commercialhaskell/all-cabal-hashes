@@ -1,0 +1,165 @@
+name: dbus
+version: 0.10.4
+license: GPL-3
+license-file: license.txt
+author: John Millikin <jmillikin@gmail.com>
+maintainer: John Millikin <jmillikin@gmail.com>
+build-type: Simple
+cabal-version: >= 1.6
+category: Network, Desktop
+stability: experimental
+homepage: https://john-millikin.com/software/haskell-dbus/
+bug-reports: mailto:jmillikin@gmail.com
+
+synopsis: A client library for the D-Bus IPC system.
+description:
+  D-Bus is a simple, message-based protocol for inter-process
+  communication, which allows applications to interact with other parts of
+  the machine and the user's session using remote procedure calls.
+  .
+  D-Bus is a essential part of the modern Linux desktop, where it replaces
+  earlier protocols such as CORBA and DCOP.
+  .
+  This library is an implementation of the D-Bus protocol in Haskell. It
+  can be used to add D-Bus support to Haskell applications, without the
+  awkward interfaces common to foreign bindings.
+  .
+  Example: connect to the session bus, and get a list of active names.
+  .
+  @
+  &#x7b;-\# LANGUAGE OverloadedStrings \#-&#x7d;
+  .
+  import Data.List (sort)
+  import DBus
+  import DBus.Client
+  .
+  main = do
+  &#x20;   client <- connectSession
+  &#x20;   //
+  &#x20;   \-- Request a list of connected clients from the bus
+  &#x20;   reply <- call_ client (methodCall \"\/org\/freedesktop\/DBus\" \"org.freedesktop.DBus\" \"ListNames\")
+  &#x20;       &#x7b; methodCallDestination = Just \"org.freedesktop.DBus\"
+  &#x20;       &#x7d;
+  &#x20;   //
+  &#x20;   \-- org.freedesktop.DBus.ListNames() returns a single value, which is
+  &#x20;   \-- a list of names (here represented as [String])
+  &#x20;   let Just names = fromVariant (methodReturnBody reply !! 0)
+  &#x20;   //
+  &#x20;   \-- Print each name on a line, sorted so reserved names are below
+  &#x20;   \-- temporary names.
+  &#x20;   mapM_ putStrLn (sort names)
+  @
+  .
+  >$ ghc --make list-names.hs
+  >$ ./list-names
+  >:1.0
+  >:1.1
+  >:1.10
+  >:1.106
+  >:1.109
+  >:1.110
+  >ca.desrt.dconf
+  >org.freedesktop.DBus
+  >org.freedesktop.Notifications
+  >org.freedesktop.secrets
+  >org.gnome.ScreenSaver
+
+
+extra-source-files:
+  benchmarks/Benchmarks.hs
+  benchmarks/haskell-dbus-benchmarks.cabal
+  --
+  examples/dbus-monitor.hs
+  examples/export.hs
+  examples/introspect.hs
+  examples/list-names.hs
+  --
+  tests/data/dbus-daemon.xml
+  tests/haskell-dbus-tests.cabal
+  tests/DBusTests.hs
+  tests/DBusTests/*.hs
+
+source-repository head
+  type: bazaar
+  location: https://john-millikin.com/branches/haskell-dbus/0.10/
+
+source-repository this
+  type: bazaar
+  location: https://john-millikin.com/branches/haskell-dbus/0.10/
+  tag: haskell-dbus_0.10.4
+
+flag network-bytestring-610
+  default: False
+
+flag network-bytestring
+  default: True
+
+library
+  ghc-options: -Wall -O2
+  hs-source-dirs: lib
+
+  -- IMPORTANT: if you change these dependencies, also update them in
+  -- tests/
+  build-depends:
+      base >= 4.0 && < 5.0
+    , bytestring >= 0.9
+    , cereal >= 0.3.4 && < 0.4
+    , containers >= 0.1 && < 0.6
+    , libxml-sax >= 0.7 && < 0.8
+    , parsec >= 2.0 && < 3.2
+    , random >= 1.0 && < 1.1
+    , text >= 0.11.1.5 && < 0.12
+    , transformers >= 0.2 && < 0.4
+    , unix >= 2.2 && < 2.7
+    , vector >= 0.7 && < 0.11
+    , xml-types >= 0.3 && < 0.4
+
+  -- haskell-dbus requires Network.Socket.ByteString, which can be provided
+  -- by EITHER (network >= 2.2.3) or (network-bytestring >= 0.1.2).
+  --
+  -- Flags do most of the work, but a little manual intervention is needed
+  -- because GHC 6.10 can't build (network >= 2.3.0.12). We want to make
+  -- network-bytestring the default *only* on old compilers, which requires
+  -- defining a separate flag with a different default value.
+  if impl(ghc < 6.12)
+    if flag(network-bytestring-610)
+      build-depends:
+          network >= 2.2.3
+    else
+      build-depends:
+          network >= 2.2 && < 2.2.3
+        , network-bytestring >= 0.1.2 && < 0.2
+  else
+    if flag(network-bytestring)
+      build-depends:
+          network >= 2.2.3
+    else
+      build-depends:
+          network >= 2.2 && < 2.2.3
+        , network-bytestring >= 0.1.2 && < 0.2
+
+  exposed-modules:
+    DBus
+    DBus.Client
+    DBus.Introspection
+    DBus.Socket
+    DBus.Transport
+
+  other-modules:
+    DBus.Address
+    DBus.Message
+    DBus.Types
+    DBus.Wire
+
+
+package-hashes:
+    MD5:37d7c18abd7a4b397265e90eed035e92
+    SHA1:db44baca4bbe52e04892415bdf78efa19c73dd42
+    SHA256:4ec887442939a15243be2af6824a8cf8bc3f3c9841f8496540acb71ae6d36433
+    SHA512:c3f1db3eb7192311f833656924727d49cb6c47e6b05f2aefca72734a8a148c04d2530868db6c6900b206e68b946510619606ec18cbdd948a7507bbe1c84f207e
+    Skein512_512:362981a157963bd96fe732f457052568a9324c5bc5362440fd230c4e180d3ad12661424ae381e0737b7732eab163d592e55cc3216fb23d3003f358c6353cdfa8
+
+package-locations:
+    https://hackage.haskell.org/package/dbus-0.10.4/dbus-0.10.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/dbus-0.10.4.tar.gz
+

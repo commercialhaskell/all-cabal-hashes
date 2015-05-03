@@ -1,0 +1,121 @@
+name: direct-sqlite
+version: 2.3.14
+build-type: Simple
+license: BSD3
+license-file: LICENSE
+copyright: Copyright (c) 2012, 2013 Irene Knapp
+author: Irene Knapp <irene.knapp@icloud.com>
+maintainer: Janne Hellsten <jjhellst@gmail.com>
+homepage: https://github.com/IreneKnapp/direct-sqlite
+bug-reports: https://github.com/IreneKnapp/direct-sqlite/issues/new
+category: Database
+synopsis: Low-level binding to SQLite3.  Includes UTF8 and BLOB support.
+Cabal-version: >= 1.10
+Build-type: Simple
+description:
+  This package is not very different from the other SQLite3 bindings out
+  there, but it fixes a few deficiencies I was finding.  As compared to
+  bindings-sqlite3, it is slightly higher-level, in that it supports
+  marshalling of data values to and from the database.  In particular, it
+  supports strings encoded as UTF8, and BLOBs represented as ByteStrings.
+
+extra-source-files:
+  cbits/sqlite3.c
+  cbits/sqlite3.h
+  changelog
+
+Source-Repository head
+  type: git
+  location: git://github.com/IreneKnapp/direct-sqlite.git
+
+flag systemlib
+  description: Use the system-wide sqlite library
+  default: False
+
+flag fulltextsearch
+  description: Enable full-text search when using the bundled sqlite library
+  default: True
+
+flag urifilenames
+  description: Enable URI filenames when using the bundled sqlite library
+  default: True
+
+Library
+  exposed-modules:
+    Database.SQLite3
+    Database.SQLite3.Direct
+    Database.SQLite3.Bindings
+    Database.SQLite3.Bindings.Types
+
+  if flag(systemlib) {
+    cpp-options: -Ddirect_sqlite_systemlib
+    extra-libraries: sqlite3
+  } else {
+    if !os(windows) {
+      extra-libraries: pthread
+    }
+    c-sources: cbits/sqlite3.c
+    if flag(fulltextsearch) && flag(urifilenames) {
+      cc-options: -DSQLITE_ENABLE_FTS3
+                  -DSQLITE_ENABLE_FTS3_PARENTHESIS
+                  -DSQLITE_ENABLE_FTS4
+                  -DSQLITE_USE_URI
+    } else {
+      if flag(fulltextsearch) {
+        cc-options: -DSQLITE_ENABLE_FTS3
+                    -DSQLITE_ENABLE_FTS3_PARENTHESIS
+                    -DSQLITE_ENABLE_FTS4
+      }
+      if flag(urifilenames) {
+        cc-options: -DSQLITE_USE_URI
+      }
+    }
+  }
+
+  include-dirs: .
+  build-depends: base >= 4.1 && < 5,
+                 bytestring >= 0.9.2.1,
+                 text >= 0.11
+  ghc-options: -Wall -fwarn-tabs
+  default-language: Haskell2010
+
+
+test-suite test
+  type:           exitcode-stdio-1.0
+
+  hs-source-dirs: test
+  main-is:        Main.hs
+  other-modules:
+    StrictEq
+
+  ghc-options: -Wall -threaded -fno-warn-name-shadowing -fno-warn-unused-do-bind
+
+  default-language: Haskell2010
+
+  default-extensions: DeriveDataTypeable
+                    , NamedFieldPuns
+                    , OverloadedStrings
+                    , Rank2Types
+                    , RecordWildCards
+                    , ScopedTypeVariables
+
+  build-depends: base
+               , base16-bytestring
+               , bytestring
+               , directory
+               , HUnit
+               , direct-sqlite
+               , text
+
+
+package-hashes:
+    MD5:957040500366fbadf28654d6260fc801
+    SHA1:a26c3d044a68470e636ccec37b6160341ea29d68
+    SHA256:bcf4801e7a55616737209c3fa7443415fa63e7748664a1f7b49a144bb9c8bb77
+    SHA512:b2695c4a0c1916dae3fbc9d2c8a7dae08249f493845093af4980bc8d559a856f226cc3c01de2a61d931ff67aff432f6d3424abcf278cb7ed0858cd20f44b6025
+    Skein512_512:e34bf8b0cc935d7e55b9ff4fb4036366a1afe029fd4bd0c7b2560f87188e7a8146fd12090d10d49c905e0cd4bd874b8bffcd293dfd70c6a41fd6e14238b0bcc8
+
+package-locations:
+    https://hackage.haskell.org/package/direct-sqlite-2.3.14/direct-sqlite-2.3.14.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/direct-sqlite-2.3.14.tar.gz
+

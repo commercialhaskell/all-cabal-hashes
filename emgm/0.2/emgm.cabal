@@ -1,0 +1,209 @@
+name:                   emgm
+version:                0.2
+synopsis:               Extensible and Modular Generics for the Masses
+homepage:               http://www.cs.uu.nl/wiki/GenericProgramming/EMGM
+description:
+
+  EMGM is a general-purpose library for generic programming with type classes.
+  .
+  The design is based on the idea of modeling algebraic datatypes as
+  sum-of-product structures. Many datatypes can be modeled this way, and
+  because they all share a common structure, we can write generic functions that
+  work on this structure.
+  .
+  The library provides three main components:
+  .
+  (1) 'Common' - /A common foundation for building generic functions and adding support for datatypes./
+  This includes the collection of datatypes (e.g. sum, product, unit) and type
+  classes (e.g. 'Generic', 'Rep'), that are used throughout the library. This is
+  what you need to define your own generic functions, to add generic support for
+  your datatype, or to define ad-hoc cases.
+  .
+  (2) 'Data' - /Support for using standard datatypes generically./
+  Types such as @[a]@, tuples, and @Maybe@ are built into Haskell or come
+  included in the standard libraries. EMGM provides full support for generic
+  functions on these datatypes. The modules in this component are also useful as
+  guides when adding generic support for your own datatypes.
+  .
+  (3) 'Functions' - /A collection of useful generic functions./
+  These work with a variety of datatypes and provide a wide range of operations.
+  For example, there is 'crush', a generalization of the fold functions. It is
+  one of the most useful functions, because it allows you to flexibly extract
+  the elements of a polymorphic container.
+  .
+  For more information on the EMGM library, see the homepage:
+  <http://www.cs.uu.nl/wiki/GenericProgramming/EMGM>
+
+category:               Generics
+copyright:              (c) 2008 Universiteit Utrecht
+license:                BSD3
+license-file:           LICENSE
+author:                 Sean Leather,
+                        José Pedro Magalhães,
+                        Alexey Rodriguez,
+                        Andres Löh
+maintainer:             generics@haskell.org
+stability:              experimental
+extra-source-files:     README,
+                        examples/Ex00StartHere.hs,
+                        examples/Ex01UsingFunctions.hs,
+                        examples/Ex02AddingDatatypeSupport.hs,
+                        examples/Ex03DefiningFunctions.hs,
+                        tests/Base.hs,
+                        tests/Bimap.hs,
+                        tests/Collect.hs,
+                        tests/Compare.hs,
+                        tests/Crush.hs,
+                        tests/Derive.hs,
+                        tests/Enum.hs,
+                        tests/Main.hs,
+                        tests/Map.hs,
+                        tests/ReadShow.hs,
+                        tests/TTree.hs,
+                        tests/UnzipWith.hs,
+                        tests/ZipWith.hs,
+                        util/hpc.lhs
+extra-tmp-files:        .hpc
+build-type:             Custom
+cabal-version:          >= 1.2.1
+tested-with:            GHC == 6.8.3, GHC == 6.10.1
+
+--------------------------------------------------------------------------------
+
+flag th23
+  description:          Define a CPP flag that enables conditional compilation
+                        for template-haskell package version 2.3 and newer.
+
+flag test
+  description:          Enable the test configuration: Build the test
+                        executable, reduce build time.
+  default:              False
+
+flag hpc
+  description:          Enable program coverage on test executable.
+  default:              False
+
+flag nolib
+  description:          Don't build the library. This is useful for speeding up
+                        the modify-build-test loop. With "-ftest" (only), the
+                        build command will build both the library and the test
+                        executable. With "-ftest -fnolib", the build command
+                        builds only the test executable.
+  default:              False
+
+--------------------------------------------------------------------------------
+
+Library
+  hs-source-dirs:       src
+
+  exposed-modules:      Generics.EMGM
+
+                        -- Common foundation
+                        Generics.EMGM.Common
+                        Generics.EMGM.Common.Representation
+                        Generics.EMGM.Common.Base
+                        Generics.EMGM.Common.Base2
+                        Generics.EMGM.Common.Base3
+                        Generics.EMGM.Common.Derive
+
+                        -- Generic functions
+                        Generics.EMGM.Functions
+                        Generics.EMGM.Functions.Collect
+                        Generics.EMGM.Functions.Compare
+                        Generics.EMGM.Functions.Crush
+                        Generics.EMGM.Functions.Enum
+                        Generics.EMGM.Functions.Map
+                        Generics.EMGM.Functions.Read
+                        Generics.EMGM.Functions.Show
+                        Generics.EMGM.Functions.ZipWith
+                        Generics.EMGM.Functions.UnzipWith
+
+                        -- Supported datatypes
+                        Generics.EMGM.Data
+                        Generics.EMGM.Data.Bool
+                        Generics.EMGM.Data.Either
+                        Generics.EMGM.Data.List
+                        Generics.EMGM.Data.Maybe
+                        Generics.EMGM.Data.Tuple
+                        Generics.EMGM.Data.TH
+
+  other-modules:        Generics.EMGM.Common.Derive.Common
+                        Generics.EMGM.Common.Derive.ConDescr
+                        Generics.EMGM.Common.Derive.EP
+                        Generics.EMGM.Common.Derive.Instance
+
+  build-depends:        base >= 3.0 && < 4.0,
+                        template-haskell < 2.4
+
+  -- Include deriveRep for Loc. This was introduced with
+  -- template-haskell-2.3, included with GHC 6.10.
+  if flag(th23)
+    build-depends:      template-haskell >= 2.3
+    cpp-options:        -DTH_LOC_DERIVEREP
+  else
+    build-depends:      template-haskell < 2.3
+
+  extensions:           CPP
+
+  ghc-options:          -Wall
+  if flag(test)
+    -- Faster build
+    ghc-options:        -O0
+  else
+    -- Smaller binary, more optimized?
+    ghc-options:        -O2
+
+    -- This adds even more optimization, but slows the build down a lot (e.g.
+    -- 5x) I think we shouldn't use it unless we can prove the benefit. [SPL]
+    --ghc-options:        -fvia-C -optc-O3
+
+  -- Don't build the library
+  if flag(nolib)
+    buildable:          False
+
+--------------------------------------------------------------------------------
+
+Executable test
+  hs-source-dirs:       src, tests, examples
+  other-modules:        Generics.EMGM
+  extensions:           CPP
+  main-is:              Main.hs
+
+  build-depends:        base >= 3.0 && < 4.0,
+                        template-haskell < 2.4
+
+  -- Include deriveRep for Loc. This was introduced with
+  -- template-haskell-2.3, included with GHC 6.10.
+  if flag(th23)
+    build-depends:      template-haskell >= 2.3
+    cpp-options:        -DTH_LOC_DERIVEREP
+  else
+    build-depends:      template-haskell < 2.3
+
+  -- Only enable the build-depends here if configured with "-ftest". This
+  -- allows users to use EMGM without having to install QuickCheck.
+  if flag(test)
+    build-depends:      QuickCheck >= 2.1 && < 2.2,
+                        HUnit >= 1.2 && < 1.3
+  else
+    buildable:          False
+
+  ghc-options:          -Wall -O0 -fno-warn-missing-signatures
+
+  -- Add program coverage if configured with "-fhpc".
+  if flag(hpc)
+    ghc-options:        -fhpc
+
+
+
+package-hashes:
+    MD5:0e5cdc4e55bb5aaf3d4b36fbcb572349
+    SHA1:d17a920e64a7da55211af35437ae03d1a5fe67e3
+    SHA256:476234c15eb71cbabe48c7891257cda1ea4d4ff802183a78ee584108632089dd
+    SHA512:e3730b5986fdaef9122c1bdc044de4a67b928d39f34911516f762e0c6bbe9f92f753c5cfe568a6851ce75111354cd6b56479a1933b152a3b13e3d9fdbf5269c8
+    Skein512_512:e9054a3115dc0f8985b8ca88b154bc8c1a33e4f62484a59d9ba5de3ee0568409e502569cad8d55516c5e54fbea05b59ba39f0df2070117b2ee16f711588ba1d3
+
+package-locations:
+    https://hackage.haskell.org/package/emgm-0.2/emgm-0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/emgm-0.2.tar.gz
+

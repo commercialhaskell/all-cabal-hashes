@@ -1,0 +1,184 @@
+name:                   emgm
+version:                0.1
+synopsis:               Extensible and Modular Generics for the Masses
+homepage:               http://www.cs.uu.nl/wiki/GenericProgramming/EMGM
+description:
+
+  EMGM is a general-purpose library for generic programming with type classes.
+  .
+  The design is based on the idea of modeling algebraic datatypes as
+  sum-of-product structures. Many datatypes can be modeled this way, and,
+  because they all share a common structure, we can write generic functions that
+  work on this structure.
+  .
+  The library provides three main components:
+  .
+  (1) 'Common' - /A common foundation for building generic functions and adding support for datatypes./
+  This includes the collection of datatypes (e.g. sum, product, unit) and type
+  classes (e.g. 'Generic', 'Rep'), that are used throughout the library. This is
+  what you need to define your own generic functions, to add generic support for
+  your datatype, or to define ad-hoc cases.
+  .
+  (2) 'Functions' - /A collection of useful generic functions./
+  These work with a variety of datatypes and provide a wide range of operations.
+  For example, there is 'crush', a generalization of the fold functions. It is
+  one of the most useful functions, because it allows you to flexibly extract
+  the elements of a polymorphic container.
+  .
+  (3) 'Data' - /Support for using standard datatypes generically./
+  Types such as @[a]@, tuples, and @Maybe@ are built into Haskell or come
+  included in the standard libraries. EMGM provides full support for generic
+  functions on these datatypes. The modules in this component are also useful as
+  guides when adding generic support for your own datatypes.
+  .
+  EMGM originated in the research of Ralf Hinze, Bruno Oliveira, and Andres Löh
+  [1,2]. The library was further explored in a comparison of generic programming
+  libraries by Alexey Rodriguez, et al [3]. Lastly, this released package was
+  developed simultaneously with the writing of lecture notes for the 2008
+  Advanced Functional Programming Summer School [4] (forthcoming). These are
+  good resources for learning how the library works and how to use it, but be
+  aware that names may have been changed to protect the innocent.
+  .
+  (1) Ralf Hinze. Generics for the Masses. In ICFP 2004: Proceedings of the 9th ACM
+  SIGPLAN international conference on Functional programming, pages 236-243. ACM
+  Press, 2004.
+  (<http://www.informatik.uni-bonn.de/~ralf/publications.html#P21>)
+  .
+  (2) Bruno C. d. S. Oliveira, Ralf Hinze, and Andres Löh. Extensible and Modular
+  Generics for the Masses. In Henrik Nilsson, editor, Trends in Functional
+  Programming, pages 199-216, 2006.
+  (<http://web.comlab.ox.ac.uk/publications/publication444-abstract.html>)
+  .
+  (3) Alexey Rodriguez, Johan Jeuring, Patrik Jansson, Alex Gerdes, Oleg Kiselyov,
+  and Bruno C. d. S. Oliveira. Comparing Libraries for Generic Programming in
+  Haskell. Technical Report UU-CS-2008-010. Department of Information and
+  Computing Sciences, Utrecht University.
+  (<http://www.cs.uu.nl/wiki/bin/view/Alexey/ComparingLibrariesForGenericProgrammingInHaskell>)
+  .
+  (4) Johan Jeuring, Sean Leather, José Pedro Magalhães, and Alexey Rodriguez
+  Yakushev. Libraries for Generic Programming in Haskell. Technical Report
+  UU-CS-2008-025. Department of Information and Computing Sciences, Utrecht
+  University.
+  (<http://www.cs.uu.nl/research/techreps/UU-CS-2008-025.html>)
+
+category:               Generics
+copyright:              (c) 2008 Universiteit Utrecht
+license:                BSD3
+license-file:           LICENSE
+author:                 Sean Leather,
+                        José Pedro Magalhães,
+                        Alexey Rodriguez,
+                        Andres Löh
+maintainer:             generics@haskell.org
+stability:              experimental
+extra-source-files:     README
+extra-tmp-files:        .hpc
+build-type:             Custom
+cabal-version:          >= 1.2.1
+tested-with:            GHC == 6.8.3, GHC == 6.9.20080916
+
+--------------------------------------------------------------------------------
+
+flag test
+  description:          Enable the test configuration: Build the test
+                        executable, reduce build time.
+  default:              False
+
+flag hpc
+  description:          Enable program coverage on test executable.
+  default:              False
+
+flag nolib
+  description:          Don't build the library. This is useful for speeding up
+                        the modify-build-test loop. With "-ftest" (only), the
+                        build command will build both the library and the test
+                        executable. With "-ftest -fnolib", the build command
+                        builds only the test executable.
+  default:              False
+
+--------------------------------------------------------------------------------
+
+Library
+  hs-source-dirs:       src
+  exposed-modules:      Generics.EMGM
+
+                        -- Common foundation
+                        Generics.EMGM.Common
+                        Generics.EMGM.Common.Representation
+                        Generics.EMGM.Common.Base
+                        Generics.EMGM.Common.Base2
+                        Generics.EMGM.Common.Base3
+
+                        -- Generic functions
+                        Generics.EMGM.Functions
+                        Generics.EMGM.Functions.Collect
+                        Generics.EMGM.Functions.Compare
+                        Generics.EMGM.Functions.Crush
+                        Generics.EMGM.Functions.Enum
+                        Generics.EMGM.Functions.Map
+                        Generics.EMGM.Functions.Read
+                        Generics.EMGM.Functions.Show
+                        Generics.EMGM.Functions.ZipWith
+                        Generics.EMGM.Functions.UnzipWith
+
+                        -- Supported datatypes
+                        Generics.EMGM.Data
+                        Generics.EMGM.Data.Bool
+                        Generics.EMGM.Data.Either
+                        Generics.EMGM.Data.List
+                        Generics.EMGM.Data.Maybe
+                        Generics.EMGM.Data.Tuple
+
+  build-depends:        base >= 3.0
+  extensions:           CPP
+
+  ghc-options:          -Wall
+  if flag(test)
+    -- Faster build
+    ghc-options:        -O0
+  else
+    -- Smaller binary, more optimized?
+    ghc-options:        -O2
+
+    -- This adds even more optimization, but slows the build down a lot (e.g.
+    -- 5x) I think we shouldn't use it unless we can prove the benefit. [SPL]
+    --ghc-options:        -fvia-C -optc-O3
+
+  -- Don't build the library
+  if flag(nolib)
+    buildable:          False
+
+--------------------------------------------------------------------------------
+
+Executable test
+  hs-source-dirs:       src, tests, examples
+  other-modules:        Generics.EMGM
+  extensions:           CPP
+  main-is:              Main.hs
+
+  ghc-options:          -Wall -O0 -fno-warn-missing-signatures
+
+  -- Add program coverage if configured with "-fhpc".
+  if flag(hpc)
+    ghc-options:        -fhpc
+
+  -- Only enable the build-depends here if configured with "-ftest". This
+  -- keeps users from having to install QuickCheck 2 in order to use EMGM.
+  if flag(test)
+    build-depends:      QuickCheck >= 2.0, HUnit >= 1.2
+  else
+    buildable:          False
+
+
+
+package-hashes:
+    MD5:b935c22492b96fe8a39d9f717ec7a481
+    SHA1:66d87ac06d1e20ec39517aae25068d1db32f2639
+    SHA256:b3c01728fa38c57b0d7850ccaa29d0ca9bd379f455e9777e340b0c65be66f462
+    SHA512:8dd3b10aa8f3e671996b5d304581e15d5f0b3f54939d0b43c45b157d6c528600f459c710b75d1d118f2018c10b3a5a97735ec96bf481f6c863e91f93e1e4b9ce
+    Skein512_512:027194dc508b289a690821f440feb9f63842a4bd450d79eb0d491ef83bd8435cad028e2ba61fe1cdccabb10caefc6a59146a348a6a762b413bca231c4d7ca76e
+
+package-locations:
+    https://hackage.haskell.org/package/emgm-0.1/emgm-0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/emgm-0.1.tar.gz
+

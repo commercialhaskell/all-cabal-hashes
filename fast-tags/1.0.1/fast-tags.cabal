@@ -1,0 +1,97 @@
+name: fast-tags
+version: 1.0.1
+cabal-version: >= 1.8
+build-type: Simple
+synopsis: Fast incremental vi and emacs tags.
+description:
+    Yet another tags program.  Like hasktags, it uses its own parser rather
+    than haskell-src or haskell-src-exts, so it's fast.  It understands
+    hsc and literate haskell.
+    .
+    In addition, it will load an existing tags file and merge generated tags.
+    .
+    The intent is to bind it to vim's BufWrite autocommand to automatically
+    keep the tags file up to date.  This only works for files changed by the
+    editor of course, so you may want to bind 'rm tags' to a 'pull' posthook.
+    .
+    Limitations:
+    .
+    - Not using a real haskell parser means there is likely to be dark
+    corners that don't parse right.
+    .
+    - Code has to be indented \"properly\", so brace and semicolon style with
+    strange dedents will probably confuse it.
+
+category: Haskell, Development
+license: BSD3
+license-file: LICENSE
+author: Evan Laforge
+maintainer: Evan Laforge <qdunkan@gmail.com>
+stability: stable
+tested-with: GHC>=7.0.3
+data-files: README
+extra-source-files:
+    changelog.md
+    src/*.hs
+
+homepage: https://github.com/elaforge/fast-tags
+source-repository head
+    type: git
+    location: git://github.com/elaforge/fast-tags.git
+
+flag fast
+    description:
+        Spend more time optimizing a program (may yield up to 25% speedup)
+    default:     False
+
+library
+    build-depends:
+        base >= 3 && < 5, containers, cpphs >1.18, filepath, directory,
+        -- text 0.11.1.12 has a bug.
+        text (> 0.11.1.12 || < 0.11.1.12), deepseq
+    exposed-modules: FastTags
+    hs-source-dirs: src
+    ghc-options: -Wall -fno-warn-name-shadowing
+    ghc-prof-options: -Wall -fno-warn-name-shadowing -auto-all
+    if flag(fast)
+        ghc-options:
+            -funfolding-creation-threshold=10000 -funfolding-use-threshold=2500
+
+executable fast-tags
+    main-is: src/Main.hs
+    build-depends:
+        base >= 3 && < 5, containers, filepath, directory,
+        -- text 0.11.1.12 has a bug.
+        text (> 0.11.1.12 || < 0.11.1.12),
+        fast-tags
+    ghc-options: -Wall -fno-warn-name-shadowing
+    ghc-prof-options: -Wall -fno-warn-name-shadowing -auto-all
+    if flag(fast)
+        ghc-options:
+            -funfolding-creation-threshold=10000 -funfolding-use-threshold=2500
+
+test-suite test-fast-tags
+    type: exitcode-stdio-1.0
+    main-is: MainTest.hs
+    hs-source-dirs: tests
+    ghc-options: -main-is MainTest
+    ghc-prof-options: -main-is MainTest
+    build-depends:
+        base >= 3 && < 5, containers, filepath, directory,
+        -- text 0.11.1.12 has a bug.
+        text (> 0.11.1.12 || < 0.11.1.12),
+        tasty, tasty-hunit,
+        fast-tags
+
+
+package-hashes:
+    MD5:fe5028c34495c95351cfc53c0009cbc7
+    SHA1:27575bbfad4d42675d3015a0957e7e6de7dad529
+    SHA256:9f5a397aba13d56b4ea1c8fc8d057a97b6fbe74c56b0f1640359cd82b8647d6d
+    SHA512:06f3167865587ba7e7fced956cf7c97b29f329a1aa751471a71c28c8e95798dccfb644061452faf0ad82215088cd199a4e6903a66c15e844f9e202e960178b23
+    Skein512_512:b1127b0d78c00ad9233da78f54154b69e6328f04325d6d52b5de1c5caf965d0dec4aac1b8e44d9a7048abdc29f63c8bbe80ba5d4825dba2fc8d1e04706a00458
+
+package-locations:
+    https://hackage.haskell.org/package/fast-tags-1.0.1/fast-tags-1.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/fast-tags-1.0.1.tar.gz
+

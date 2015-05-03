@@ -1,0 +1,148 @@
+name: direct-sqlite
+version: 2.3.5
+build-type: Simple
+license: BSD3
+license-file: LICENSE
+copyright: Copyright (c) 2012, 2013 Irene Knapp
+author: Irene Knapp <irene.knapp@icloud.com>
+maintainer: irene.knapp@icloud.com
+homepage: http://ireneknapp.com/software/
+bug-reports: https://github.com/IreneKnapp/direct-sqlite/issues/new
+category: Database
+synopsis: Low-level binding to SQLite3.  Includes UTF8 and BLOB support.
+Cabal-version: >= 1.10
+Build-type: Simple
+description:
+  This package is not very different from the other SQLite3 bindings out
+  there, but it fixes a few deficiencies I was finding.  As compared to
+  bindings-sqlite3, it is slightly higher-level, in that it supports
+  marshalling of data values to and from the database.  In particular, it
+  supports strings encoded as UTF8, and BLOBs represented as ByteStrings.
+  .
+  Release history:
+  .
+  [Version 2.3.5] Add support to compile bundled SQLite3 with full-text search.  Upgrade bundled SQLite3 to 3.7.17.
+  .
+  [Version 2.3.4] Work around a linker error on some systems; add
+  column-name reporting.
+  .
+  [Version 2.3.3.1] Upgrade bundled SQLite3 to 3.7.15.2.
+  .
+  [Version 2.3.3] Add trace support, as a feature for debugging.
+  .
+  [Version 2.3.2] Add execPrint, execWithCallback, and interruptibly functions.
+  Add bindings for sqlite3_last_insert_rowid and sqlite3_changes.  Change the
+  Show instance of the Utf8 newtype to better match the IsString instance.
+  .
+  [Version 2.3.1] Upgrade the bundled SQLite3 to 3.7.15.  Add bindings for
+  sqlite3_interrupt.  Export Int rather than CInt.
+  .
+  [Version 2.3] Mark some FFI calls "unsafe", for a substantial performance
+  benefit.
+  .
+  [Version 2.2.1] Bump down text library version to match with the
+  latest Haskell Platform.
+  .
+  [Version 2.2] actually does what version 2.1 claimed to, since the author
+  made a mistake with git.
+  .
+  [Version 2.1] improves handling of invalid UTF-8 and changes error handling
+  to be more complete.  It also adds a build flag to build against the system
+  sqlite instead of the bundled one, optionally (disabled by default).
+  .
+  [Version 2.0] uses Text for strings instead of String.
+  .
+  [Version 1.1.0.1] switches to the Faction packaging system and makes no other
+  changes.
+  .
+  [Version 1.1] adds the SQLite amalgamation file (version 3.7.5) to the
+  project, so that there are no external dependencies.
+
+extra-source-files:
+  cbits/sqlite3.c
+  cbits/sqlite3.h
+
+Source-Repository head
+  type: git
+  location: git://github.com/IreneKnapp/direct-sqlite.git
+
+flag systemlib
+  description: Use the system-wide sqlite library
+  default: False
+
+flag fulltextsearch
+  description: Enable full-text search when using the bundled sqlite library
+  default: True
+
+Library
+  exposed-modules:
+    Database.SQLite3
+    Database.SQLite3.Direct
+    Database.SQLite3.Bindings
+    Database.SQLite3.Bindings.Types
+
+  if flag(systemlib) {
+    cpp-options: -Ddirect_sqlite_systemlib
+    extra-libraries: sqlite3
+    if flag(fulltextsearch) {
+      buildable: False
+    }
+  } else {
+    if !os(windows) {
+      extra-libraries: pthread
+    }
+    c-sources: cbits/sqlite3.c
+    if flag(fulltextsearch) {
+      cc-options: -DSQLITE_ENABLE_FTS3
+                  -DSQLITE_ENABLE_FTS3_PARENTHESIS
+                  -DSQLITE_ENABLE_FTS4
+    }
+  }
+
+  include-dirs: .
+  build-depends: base >= 4.1 && < 5,
+                 bytestring >= 0.9.2.1 && < 1,
+                 text >= 0.11 && < 1
+  ghc-options: -Wall -fwarn-tabs
+  default-language: Haskell2010
+
+
+test-suite test
+  type:           exitcode-stdio-1.0
+
+  hs-source-dirs: test
+  main-is:        Main.hs
+  other-modules:
+    StrictEq
+
+  ghc-options: -Wall -threaded -fno-warn-name-shadowing -fno-warn-unused-do-bind
+
+  default-language: Haskell2010
+
+  default-extensions: DeriveDataTypeable
+                    , NamedFieldPuns
+                    , OverloadedStrings
+                    , Rank2Types
+                    , RecordWildCards
+                    , ScopedTypeVariables
+
+  build-depends: base
+               , base16-bytestring
+               , bytestring
+               , directory
+               , HUnit
+               , direct-sqlite
+               , text
+
+
+package-hashes:
+    MD5:bdd90cc087a7d4545e38999b640723ff
+    SHA1:ba71661474cf8bade15701a7823ff9e9e048a462
+    SHA256:7ac5e318f940882f198d5f7ab477d0f4764517cbf5ece75d44f72c9b3d1fcd9f
+    SHA512:c32264d170c6e7a08bf5614bd72ef3caf551c70e7a8098db8077a984c154afaf58b520732b3947c8dd3b14f639271c50a1423066240cdd7efe42adcf2fa3da76
+    Skein512_512:6015d2ca201e50c8e0ef37e4ddd96853f0e0af8b46b8a2f399ef6314ea09dffd8d8db40b9ab746d3446eee394c26924aecf2c39b399a68b263533a852b1d9c93
+
+package-locations:
+    https://hackage.haskell.org/package/direct-sqlite-2.3.5/direct-sqlite-2.3.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/direct-sqlite-2.3.5.tar.gz
+

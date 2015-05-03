@@ -1,0 +1,689 @@
+
+-------------------------------------------------------------------------------
+
+name:		deepseq-bounded
+version:        0.7.0.1
+synopsis:       Bounded deepseq, including support for generic deriving
+license:	BSD3
+license-file:	LICENSE
+author:         Andrew G. Seniuk
+maintainer:     Andrew Seniuk <rasfar@gmail.com>
+homepage:       http://fremissant.net/deepseq-bounded
+bug-reports:    http://fremissant.net/deepseq-bounded/trac
+---bug-reports:    Andrew Seniuk <rasfar@gmail.com>
+category:       Control
+--hackage-tags:   leak, space, parallel, strictness, forcing, diagnostic, remedial, bsd3, library
+build-type:     Simple
+stability:      provisional
+cabal-version:  >= 1.18
+
+-- GHC <= 7.4.2 won't work, unless you're also HASKELL98_FRAGMENT
+-- (or at least USE_SOP is False).
+tested-with:    GHC==7.6.3, GHC==7.8.1, GHC==7.8.3, GHC==7.8.4, GHC==7.10.1
+--tested-with:    GHC==7.6.3, GHC==7.8.*, GHC==7.10.1   -- illegal syntax
+
+description:
+    This package provides methods for partially (or fully) evaluating data
+    structures (\"bounded deep evaluation\").
+    .
+    More information is available on the project <http://www.fremissant.net/deepseq-bounded homepage>.
+    There may be activity on this <http://www.reddit.com/r/haskell/comments/2pscxh/ann_deepseqbounded_seqaid_leaky/ reddit> discussion, where your comments are invited.
+    .
+    Quoting from the
+    <http://hackage.haskell.org/package/deepseq deepseq> package:
+    .
+    \"/Artificial forcing is often used for adding strictness to a program, e.g. in order to force pending exceptions, remove space leaks, or force lazy IO to happen. It is also useful in parallel programs, to ensure work does not migrate to the wrong thread./\"
+    .
+    Sometimes we don't want to, or cannot, force all the way, for instance
+    when dealing with potentially infinite values of coinductive types.
+    Also, bounded forcing bridges the theoretical axis between shallow seq
+    and full deepseq.
+    .
+    We provide two new classes <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-NFDataN.html#t:NFDataN NFDataN> and <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-NFDataP.html#t:NFDataP NFDataP>.
+    Instances of these provide bounded deep evaluation for arbitrary polytypic terms:
+    .
+    * <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-NFDataN.html#t:NFDataN rnfn> bounds the forced evaluation by depth of recursion.
+    .
+    * <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-NFDataP.html#t:NFDataP rnfp> forces based on patterns (static or dynamic).
+    .
+    Instances of <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-NFDataN.html NFDataN> and <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-NFDataP.html NFDataP> can be automatically derived via <http://hackage.haskell.org/package/generics-sop/docs/Generics-SOP.html Generics.SOP>, backed by the <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-Generic-GNFDataN.html GNFDataN> and <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-Generic-GNFDataP.html GNFDataP> modules.
+    <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-NFDataN.html NFDataN> can optionally be derived by the standard <http://downloads.haskell.org/~ghc/7.8.3/docs/html/libraries/base-4.7.0.1/GHC-Generics.html GHC.Generics> facility (but not so for <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-NFDataP.html NFDataP>).
+    .
+    Another approach is <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-Seqable.html Seqable>, which is similar to <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-NFDataN.html NFDataN>,
+    but optimised for use as a dynamically-reconfigurable forcing harness
+    in the <http://hackage.haskell.org/package/seqaid seqaid> auto-instrumentation tool.
+    .
+    Recent developments supporting parallelisation control (in <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-Pattern.html Pattern>
+    and <http://hackage.haskell.org/package/deepseq-bounded-0.7.0.0/docs/Control-DeepSeq-Bounded-Seqable.html Seqable> modules) may justify renaming this library to
+    something which encompasses both strictness and parallelism aspects.
+    .
+    / NOTE: Versions >=0.6.* are substantially different from the original (now deprecated) 0.5.* release, particularly as regards NFDataP. /
+
+extra-source-files:
+      README
+    , changelog.txt
+    , hackage-tags.txt
+    , tests/*.hs
+    , HTML/*.html
+    , HTML/*.css
+    , deepseq-bounded-seqaid-leaky.html
+    , deepseq-bounded-seqaid-leaky.css
+    , cafe-and-glasgow-users-0.6.txt
+
+-- source-repository head
+--   type:     git
+--   location: https://www.fremissant.com/package/deepseq-bounded.git
+-- 
+-- source-repository this
+--   type:     git
+--   location: https://www.fremissant.com/package/deepseq-bounded.git
+--   tag:      deepseq-bounded-0.6.0-release
+
+-------------------------------------------------------------------------------
+
+Flag HELLO_HACKAGE_VISITOR
+  Description: [Note to those reading on Hackage:] Please ignore these flags, which would be better presented in a collapsed state. The flags are mostly for development purposes.
+  Default: False
+  Manual: True
+
+Flag HASKELL98_FRAGMENT
+  Description: Sacrifice generic deriving, the NFDataPDyn module, and a couple functions from the PatUtil module, in exchange for true Haskell98 conformance (portability). (One non-H98 thing it insists on is PatternGuards, although this could be relieved in the obvious way, at the expense of code clarity.)
+--Default: True
+  Default: False
+  Manual: True
+
+Flag USE_PAR_PATNODE
+  Description: On match, spark recursive submatching for parallel evaluation.
+  Default: True
+--Default: False
+  Manual: True
+
+Flag USE_PSEQ_PATNODE
+  Description: Use Control.Parallel.pseq to order the evaluation of recursive submatching. This is done by providing a permutation argument; refer to the Control.DeepSeq.Bounded.Pattern.PatNode API for additional documentation. Configurable per PatNode.
+  Default: True
+--Default: False
+  Manual: True
+
+Flag USE_TRACE_PATNODE
+  Description: Log a traceline to stderr en passant. Configurable per PatNode. Fires when node is pattern-matched, whether or not the match succeeds.
+  Default: True
+--Default: False
+  Manual: True
+
+Flag USE_PING_PATNODE
+  Description: Raise an asynchronous exception en passant. This can be useful for gauging term shape relative to pattern shape, dynamically. Configurable per PatNode. Fires when node is pattern-matched, whether or not the match succeeds.
+  Default: True
+--Default: False
+  Manual: True
+
+Flag USE_DIE_PATNODE
+  Description: Kill (just this) thread immediately. To kill the whole program from a pattern node match, use USE_PING_PATNODE, catch the exception in the main thread, and respond from there as you see fit. Configurable per PatNode. Fires when node is pattern-matched, whether or not the match succeeds.
+  Default: True
+--Default: False
+  Manual: True
+
+Flag USE_TIMING_PATNODE
+  Description: Get as precise a measurement of the time of matching as possible, and optionally (depending on how you use the API) measuring and reporting (storing?) differential timestamps (relative to parent node already matched). Not sure how useable this will be (the timestamps need to be very high resolution and cheap enough to obtain), but the principle has its place here, and the flag makes it possible to exclude all this code in case it's not working out. Configurable per PatNode. Fires when node is pattern-matched, whether or not the match succeeds.
+  Default: True
+--Default: False
+  Manual: True
+
+Flag USE_PAR_SEQABLE
+  Description: This flag (now) only affects Seqable. (Refer to USE_PAR_PATNODE for a comparable flag affecting NFDataP.) USE_PAR_SEQABLE = True depends on parallel, and permits (dynamically configurable) sparking of Sequable recursive demand propagation.
+  Default: True
+--Default: False
+  Manual: True
+
+-- Flag DEPTH_USES_INT64
+--   Description: This won't be implemented for a while, probably.
+-- --Default: True
+--   Default: False
+--   Manual: True
+
+Flag JUST_ALIAS_GSEQABLE
+  Description: The SOP generic function is probably more performant, anyway! (This will be forced False if HASKELL98_FRAGMENT is True.)
+  Default: True
+--Default: False
+  Manual: True
+
+Flag JUST_ALIAS_GNFDATAN
+  Description: The SOP generic function is probably more performant, anyway! (This will be forced False if HASKELL98_FRAGMENT is True.)
+--Default: True
+  Default: False
+  Manual: True
+
+Flag JUST_ALIAS_GNFDATAP
+  Description: The SOP generic function is probably more performant, anyway! (This will be forced False if HASKELL98_FRAGMENT is True.)
+--Default: True
+  Default: False
+  Manual: True
+
+Flag PROVIDE_DATA_FAMILY
+  Description: Provide a data family comprising instances corresponding to the Seqable, NFDataN and NFDataP modules. (This will be forced False if HASKELL98_FRAGMENT is True.)
+  Default: True
+--Default: False
+  Manual: True
+
+Flag USE_CURLY_BRACE_INSTEAD_OF_PAREN_FOR_SUBPATTERNS
+  Description: Choose grouping convention (concrete syntax) for pattern strings in the DSL. When True, you have "XX.*Y..Y" instead of the (new) default "((.*)..)". Where X=opening curly brace, and Y=closing curly brace - it seems Cabal makes it impossible to present a curly brace in a flag description, even escaped? Unless Unicode entities? &#123; \u007D &#x7d; Nope.
+--Default: True
+  Default: False
+  Manual: True
+
+Flag ABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_NUMBER_ALONE__SAFE_ONLY_TO_DEPTH_19
+  Description: So you can write "2(!53)" instead of "*2(!*5*3)". This will be unambiguous up to a depth of 19. (It may still be unambiguous for higher depths, depending on the use case.) This could be convenient if you work a lot manually with the pattern DSL, particularly for vertical alignment of pattern structures, but otherwise it should be False as ambigities can develop, for instance under (showPat . shrinkPat . compilePat) iteration.
+---Default: True
+  Default: False
+  Manual: True
+
+Flag ABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_SINGLE_DIGIT__CAN_ONLY_EXPRESS_DOWN_TO_DEPTH_9
+  Description: Similar to the preceding, but use "1" instead of "!" for depth-1, and moreover, use "0" instead of "." for depth-0.  (This is such a niche-case syntax variant, that may as well go all the way!)  It makes for very tidy when you're not using a lot of other attributes. This grammar variant is unambiguous; the danger here is only that conventions get mixed in practise...
+---Default: True
+  Default: False
+  Manual: True
+
+Flag PROVIDE_OLD_SHRINK_PAT
+  Description: Provide shrinkPat_old temporarily, for compatibility of seqaid demo output with documents already written. This flag (and the shrinkPat_old function) will probably be removed in 0.7.
+  Default: True
+--Default: False
+  Manual: True
+
+Flag USE_WW_DEEPSEQ
+  Description: Depend on deepseq and deepseq-generics, to provide conditional deep forcing. This is optional.
+  Default: True
+--Default: False
+  Manual: True
+
+Flag WARN_PATTERN_MATCH_FAILURE
+  Description: For NFDataP, if a pattern match fails a warning is output to stderr.
+--Default: True
+  Default: False
+  Manual: True
+
+Flag USE_SOP
+  Description: Use the generics-sop package instead of GHC.Generics (in GNFDataN) and instead of SYB (in NFDataPDyn). If USE_SOP is False, then NFDataPDyn, GNFDataP, and GSeqable modules will not be available.
+  Default: True
+--Default: False
+  Manual: True
+
+Flag NFDATA_INSTANCE_PATTERN
+  Description: A flag to assist debugging, affecting a few modules.
+  Default: True
+--Default: False
+  Manual: True
+
+-- This does indeed work for me (it is auto-toggled when cpphs is unavailable).
+-- Default to False, since it seems more likely there's a native cpp, than
+-- that a cpphs installation works smoothly.
+Flag USE_CPPHS
+  Description: Non-manual flag to allow the build system to try cpphs first, and if that fails, then to try system-wide cpp (typically GNU). I've actually toggled the default, so the build system will try for a system-wide cpp first, and failing that, will try to use cpphs, installing it if necessary. I prefer cpp. I am not getting my most invaluable -Wundef option with cpphs using -optP-Wundef -optP--cpp in my ghc-options. Does cpphs implement it? Not sure...
+  Default: False
+--Default: True
+  Manual: False
+
+-------------------------------------------------------------------------------
+
+library {
+
+  if flag(USE_CPPHS)
+     build-tools: cpphs
+
+  hs-source-dirs: src
+
+  -- This library is Haskell98 if you exclude the generics bits.
+  -- See the comment below (other-extensions) for more specifics.
+  if flag(HASKELL98_FRAGMENT)
+    default-language: Haskell98
+  else
+    default-language: Haskell2010
+
+  default-extensions:  CPP
+
+-- If you exclude PatUtil.mkPat and PatUtil.growPat (which use SYB),
+-- and NFDataPDyn, GNFDataN, and GNFDataP (which use GHC.Generics
+-- and/or Generics.SOP), none of the code depends in any essential
+-- way on language extensions. I use PatternGuards for convenience,
+-- but they could be translated away easily, and we'd have Haskell98.
+  if flag(HASKELL98_FRAGMENT)
+    other-extensions:    PatternGuards
+  else
+    -- ... and more (see what SOP and SYB actually need)
+    other-extensions:    PatternGuards, DeriveGeneric
+--if impl(ghc >= 7.2)
+--  other-extensions: Safe
+
+  exposed-modules:
+      Control.DeepSeq.Bounded
+    , Control.DeepSeq.Bounded.Seqable
+    , Control.DeepSeq.Bounded.NFDataN
+    , Control.DeepSeq.Bounded.Pattern
+    , Control.DeepSeq.Bounded.Compile
+    , Control.DeepSeq.Bounded.PatUtil
+    , Control.DeepSeq.Bounded.NFDataP
+  if ! flag(HASKELL98_FRAGMENT)
+     exposed-modules:
+         Control.DeepSeq.Bounded.Generic
+       , Control.DeepSeq.Bounded.Generic.GNFDataN
+     if flag(USE_SOP)
+        exposed-modules:
+            Control.DeepSeq.Bounded.Generic.GNFDataP
+          , Control.DeepSeq.Bounded.Generic.GSeqable
+          , Control.DeepSeq.Bounded.NFDataPDyn
+
+  ghc-options: -optP-Wundef -fno-warn-overlapping-patterns
+
+  if flag(USE_CPPHS)
+     ghc-options: -pgmPcpphs -optP--cpp
+--else
+--   ghc-options: -cpp
+--ghc-options: -pgmP/usr/bin/cpp
+
+--ghc-options:         -Wall -fenable-rewrite-rules    -ddump-rules -ddump-simpl-stats -ddump-rule-firings
+--ghc-options:         -Wall -fenable-rewrite-rules
+  ghc-options:         -fenable-rewrite-rules   
+--ghc-options:         -fenable-rewrite-rules -O2
+
+  ghc-options:         -fno-warn-duplicate-exports
+
+  build-depends:
+
+      base == 4.*
+--- , base == 4.7.0.1
+
+    , array == 0.5.*
+    , random == 1.1
+
+      -- mtl for State so can assign unique IDs to Pattern nodes,
+      -- but this could be done without the State monad (I read...).
+--  , mtl == 2.1.3.1
+    , mtl == 2.1.*
+
+---- We don't really depend on the cpphs /library/, but installing
+---- the library also installs the cpphs executable, so in case
+---- build-tools doesn't nab it, this ought to!
+--if flag(USE_CPPHS)
+--   build-depends:
+--       cpphs >= 1.14
+
+  if ! flag(HASKELL98_FRAGMENT)
+     build-depends:
+         syb < 0.5
+
+  -- deepseq not used for any legitimate reason, unless USE_WW_DEEPSEQ;
+  -- but it's used in some debugging and testing code (although probably
+  -- shouldn't be), so the dep stays for now:
+  build-depends:
+      deepseq == 1.3.* || == 1.4.*
+
+  if flag(USE_WW_DEEPSEQ)
+     build-depends:
+         deepseq == 1.3.* || == 1.4.*
+     if ! flag(HASKELL98_FRAGMENT)
+        build-depends:
+            deepseq-generics == 0.1.*
+     cpp-options: -DUSE_WW_DEEPSEQ=1
+  else
+     cpp-options: -DUSE_WW_DEEPSEQ=0
+
+  if flag(USE_CURLY_BRACE_INSTEAD_OF_PAREN_FOR_SUBPATTERNS)
+     cpp-options: -DUSE_CURLY_BRACE_INSTEAD_OF_PAREN_FOR_SUBPATTERNS=1
+  else
+     cpp-options: -DUSE_CURLY_BRACE_INSTEAD_OF_PAREN_FOR_SUBPATTERNS=0
+
+  if flag(ABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_NUMBER_ALONE__SAFE_ONLY_TO_DEPTH_19)
+     cpp-options: -DABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_NUMBER_ALONE__SAFE_ONLY_TO_DEPTH_19=1
+  else
+     cpp-options: -DABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_NUMBER_ALONE__SAFE_ONLY_TO_DEPTH_19=0
+
+  if flag(ABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_SINGLE_DIGIT__CAN_ONLY_EXPRESS_DOWN_TO_DEPTH_9)
+     cpp-options: -DABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_SINGLE_DIGIT__CAN_ONLY_EXPRESS_DOWN_TO_DEPTH_9=1
+  else
+     cpp-options: -DABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_SINGLE_DIGIT__CAN_ONLY_EXPRESS_DOWN_TO_DEPTH_9=0
+
+  if flag(WARN_PATTERN_MATCH_FAILURE)
+     cpp-options: -DWARN_PATTERN_MATCH_FAILURE=1
+  else
+     cpp-options: -DWARN_PATTERN_MATCH_FAILURE=0
+
+  if ! flag(HASKELL98_FRAGMENT)
+      if flag(USE_SOP)
+         build-depends:
+             generics-sop == 0.1.*
+         cpp-options: -DUSE_SOP=1
+      else
+         cpp-options: -DUSE_SOP=0
+  else
+      cpp-options: -DUSE_SOP=0
+
+  if flag(HASKELL98_FRAGMENT)
+     cpp-options: -DHASKELL98_FRAGMENT=1
+  else
+     cpp-options: -DHASKELL98_FRAGMENT=0
+
+--if flag(DEPTH_USE_INT64)
+--   cpp-options: -DDEPTH_USE_INT64=1
+--else
+--   cpp-options: -DDEPTH_USE_INT64=0
+
+  if flag(NFDATA_INSTANCE_PATTERN)
+     cpp-options: -DNFDATA_INSTANCE_PATTERN=1
+  else
+     cpp-options: -DNFDATA_INSTANCE_PATTERN=0
+
+  if ! flag(HASKELL98_FRAGMENT)
+     if flag(USE_PAR_SEQABLE)
+        build-depends:
+            parallel == 3.2.*
+        cpp-options: -DUSE_PAR_SEQABLE=1
+     else
+        cpp-options: -DUSE_PAR_SEQABLE=0
+  else
+     cpp-options: -DUSE_PAR_SEQABLE=0
+
+  if ! flag(HASKELL98_FRAGMENT)
+     if flag(USE_PAR_PATNODE)
+        build-depends:
+            parallel == 3.2.*
+        cpp-options: -DUSE_PAR_PATNODE=1
+     else
+        cpp-options: -DUSE_PAR_PATNODE=0
+  else
+     cpp-options: -DUSE_PAR_PATNODE=0
+
+  if ! flag(HASKELL98_FRAGMENT)
+     if flag(USE_PSEQ_PATNODE)
+        build-depends:
+            parallel == 3.2.*
+        cpp-options: -DUSE_PSEQ_PATNODE=1
+     else
+        cpp-options: -DUSE_PSEQ_PATNODE=0
+  else
+     cpp-options: -DUSE_PSEQ_PATNODE=0
+
+  if flag(USE_TRACE_PATNODE)
+     cpp-options: -DUSE_TRACE_PATNODE=1
+  else
+     cpp-options: -DUSE_TRACE_PATNODE=0
+
+  -- Not H98 because uses Control.Concurrent which is GHC-specific.
+  -- (I'm not sure if Control.Exception is H98 or not, but it uses that too.)
+  if ! flag(HASKELL98_FRAGMENT)
+     if flag(USE_PING_PATNODE)
+        cpp-options: -DUSE_PING_PATNODE=1
+     else
+        cpp-options: -DUSE_PING_PATNODE=0
+  else
+     cpp-options: -DUSE_PING_PATNODE=0
+
+  if ! flag(HASKELL98_FRAGMENT)
+     if flag(USE_DIE_PATNODE)
+        cpp-options: -DUSE_DIE_PATNODE=1
+     else
+        cpp-options: -DUSE_DIE_PATNODE=0
+  else
+     cpp-options: -DUSE_DIE_PATNODE=0
+  
+  if flag(USE_TIMING_PATNODE)
+     cpp-options: -DUSE_TIMING_PATNODE=1
+  else
+     cpp-options: -DUSE_TIMING_PATNODE=0
+
+  if flag(HASKELL98_FRAGMENT)
+     cpp-options: -DJUST_ALIAS_GSEQABLE=0
+     cpp-options: -DJUST_ALIAS_GNFDATAN=0
+     cpp-options: -DJUST_ALIAS_GNFDATAP=0
+     cpp-options: -DPROVIDE_DATA_FAMILY=0
+  else
+     if flag(PROVIDE_DATA_FAMILY)
+        cpp-options: -DPROVIDE_DATA_FAMILY=1
+     else
+        cpp-options: -DPROVIDE_DATA_FAMILY=0
+     if flag(USE_SOP)
+        if flag(JUST_ALIAS_GSEQABLE)
+           cpp-options: -DJUST_ALIAS_GSEQABLE=1
+        else
+           cpp-options: -DJUST_ALIAS_GSEQABLE=0
+        if flag(JUST_ALIAS_GNFDATAN)
+           cpp-options: -DJUST_ALIAS_GNFDATAN=1
+        else
+           cpp-options: -DJUST_ALIAS_GNFDATAN=0
+        if flag(JUST_ALIAS_GNFDATAP)
+           cpp-options: -DJUST_ALIAS_GNFDATAP=1
+        else
+           cpp-options: -DJUST_ALIAS_GNFDATAP=0
+     else
+        cpp-options: -DJUST_ALIAS_GSEQABLE=0
+        cpp-options: -DJUST_ALIAS_GNFDATAN=0
+        cpp-options: -DJUST_ALIAS_GNFDATAP=0
+
+--ghc-options: -O0
+--ghc-options: -O2
+
+}
+
+-------------------------------------------------------------------------------
+
+test-suite deepseq-bounded-tests {
+
+  if flag(USE_CPPHS)
+     build-tools: cpphs
+
+  if flag(HASKELL98_FRAGMENT)
+    default-language: Haskell98
+  else
+    default-language: Haskell2010
+
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      tests
+  main-is:             Suite.hs
+  default-extensions:  CPP
+
+  other-modules:       Tests, Foo
+  if flag(HASKELL98_FRAGMENT)
+     other-modules:       Blah98
+  else
+     other-modules:       Blah, Bottom, FooG
+
+  ghc-options: -optP-Wundef -fno-warn-overlapping-patterns
+
+  if flag(USE_CPPHS)
+     ghc-options: -pgmPcpphs -optP--cpp
+--else
+--   ghc-options: -cpp
+
+--ghc-options:         -Wall -fenable-rewrite-rules -O -ddump-rules -ddump-simpl-stats -ddump-rule-firings
+--ghc-options:         -Wall -fenable-rewrite-rules -O
+--ghc-options:         -fenable-rewrite-rules -O
+--ghc-options:         -fenable-rewrite-rules -O2
+
+  build-depends:
+      base == 4.*
+
+    , deepseq-bounded
+
+    , HUnit == 1.2.*
+    , random == 1.1
+
+    , template-haskell >= 2.8 && < 3
+
+---- We don't really depend on the cpphs /library/, but installing
+---- the library also installs the cpphs executable, so in case
+---- build-tools doesn't nab it, this ought to!
+--if flag(USE_CPPHS)
+--   build-depends:
+--       cpphs >= 1.14
+
+  if ! flag(HASKELL98_FRAGMENT)
+     build-depends:
+         ghc-prim
+--       ghc-prim <= 0.3.1.0
+
+  if ! flag(HASKELL98_FRAGMENT)
+     build-depends:
+         syb < 0.5
+
+  -- deepseq not used for any legitimate reason, unless USE_WW_DEEPSEQ;
+  -- but it's used in some debugging and testing code (although probably
+  -- shouldn't be), so the dep stays for now:
+  build-depends:
+      deepseq == 1.3.* || == 1.4.*
+
+  if flag(USE_WW_DEEPSEQ)
+     build-depends:
+         deepseq == 1.3.* || == 1.4.*
+     if ! flag(HASKELL98_FRAGMENT)
+         build-depends:
+             deepseq-generics == 0.1.*
+     cpp-options: -DUSE_WW_DEEPSEQ=1
+  else
+     cpp-options: -DUSE_WW_DEEPSEQ=0
+
+  if ! flag(HASKELL98_FRAGMENT)
+      if flag(USE_SOP)
+         build-depends:
+             generics-sop == 0.1.*
+         cpp-options: -DUSE_SOP=1
+      else
+         cpp-options: -DUSE_SOP=0
+  else
+      cpp-options: -DUSE_SOP=0
+
+  if flag(HASKELL98_FRAGMENT)
+     cpp-options: -DHASKELL98_FRAGMENT=1
+  else
+     cpp-options: -DHASKELL98_FRAGMENT=0
+
+  if flag(WARN_PATTERN_MATCH_FAILURE)
+     cpp-options: -DWARN_PATTERN_MATCH_FAILURE=1
+  else
+     cpp-options: -DWARN_PATTERN_MATCH_FAILURE=0
+
+  if flag(USE_CURLY_BRACE_INSTEAD_OF_PAREN_FOR_SUBPATTERNS)
+     cpp-options: -DUSE_CURLY_BRACE_INSTEAD_OF_PAREN_FOR_SUBPATTERNS=1
+  else
+     cpp-options: -DUSE_CURLY_BRACE_INSTEAD_OF_PAREN_FOR_SUBPATTERNS=0
+
+  -- (Probably not actually referenced in the tests.)
+  if flag(ABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_NUMBER_ALONE__SAFE_ONLY_TO_DEPTH_19)
+     cpp-options: -DABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_NUMBER_ALONE__SAFE_ONLY_TO_DEPTH_19=1
+  else
+     cpp-options: -DABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_NUMBER_ALONE__SAFE_ONLY_TO_DEPTH_19=0
+
+  -- (Probably not actually referenced in the tests.)
+  if flag(ABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_SINGLE_DIGIT__CAN_ONLY_EXPRESS_DOWN_TO_DEPTH_9)
+     cpp-options: -DABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_SINGLE_DIGIT__CAN_ONLY_EXPRESS_DOWN_TO_DEPTH_9=1
+  else
+     cpp-options: -DABBREV_WN_AND_TN_CONCRETE_SYNTAX_TO_SINGLE_DIGIT__CAN_ONLY_EXPRESS_DOWN_TO_DEPTH_9=0
+
+--if flag(DEPTH_USE_INT64)
+--   cpp-options: -DDEPTH_USE_INT64=1
+--else
+--   cpp-options: -DDEPTH_USE_INT64=0
+
+  if ! flag(HASKELL98_FRAGMENT)
+     if flag(USE_PAR_SEQABLE)
+        build-depends:
+            parallel == 3.2.*
+        -- I'm not 100% sure where this has to go
+        ghc-options: -threaded
+        cpp-options: -DUSE_PAR_SEQABLE=1
+     else
+        cpp-options: -DUSE_PAR_SEQABLE=0
+  else
+     cpp-options: -DUSE_PAR_SEQABLE=0
+
+  if ! flag(HASKELL98_FRAGMENT)
+     if flag(USE_PAR_PATNODE)
+        build-depends:
+            parallel == 3.2.*
+        -- I'm not 100% sure where this has to go
+        ghc-options: -threaded
+        cpp-options: -DUSE_PAR_PATNODE=1
+     else
+        cpp-options: -DUSE_PAR_PATNODE=0
+  else
+     cpp-options: -DUSE_PAR_PATNODE=0
+
+  if ! flag(HASKELL98_FRAGMENT)
+     if flag(USE_PSEQ_PATNODE)
+        build-depends:
+            parallel == 3.2.*
+        cpp-options: -DUSE_PSEQ_PATNODE=1
+     else
+        cpp-options: -DUSE_PSEQ_PATNODE=0
+  else
+     cpp-options: -DUSE_PSEQ_PATNODE=0
+
+  if flag(USE_TRACE_PATNODE)
+     cpp-options: -DUSE_TRACE_PATNODE=1
+  else
+     cpp-options: -DUSE_TRACE_PATNODE=0
+
+  -- Not H98 because uses Control.Concurrent which is GHC-specific.
+  -- (I'm not sure if Control.Exception is H98 or not, but it uses that too.)
+  if ! flag(HASKELL98_FRAGMENT)
+     if flag(USE_PING_PATNODE)
+        cpp-options: -DUSE_PING_PATNODE=1
+     else
+        cpp-options: -DUSE_PING_PATNODE=0
+  else
+     cpp-options: -DUSE_PING_PATNODE=0
+
+  if ! flag(HASKELL98_FRAGMENT)
+     if flag(USE_DIE_PATNODE)
+        cpp-options: -DUSE_DIE_PATNODE=1
+     else
+        cpp-options: -DUSE_DIE_PATNODE=0
+  else
+     cpp-options: -DUSE_DIE_PATNODE=0
+
+  if flag(USE_TIMING_PATNODE)
+     cpp-options: -DUSE_TIMING_PATNODE=1
+  else
+     cpp-options: -DUSE_TIMING_PATNODE=0
+
+  if flag(HASKELL98_FRAGMENT)
+     cpp-options: -DJUST_ALIAS_GSEQABLE=0
+     cpp-options: -DJUST_ALIAS_GNFDATAN=0
+     cpp-options: -DJUST_ALIAS_GNFDATAP=0
+--   cpp-options: -DPROVIDE_DATA_FAMILY=0
+  else
+--   if flag(PROVIDE_DATA_FAMILY)
+--      cpp-options: -DPROVIDE_DATA_FAMILY=1
+--   else
+--      cpp-options: -DPROVIDE_DATA_FAMILY=0
+     if flag(USE_SOP)
+        if flag(JUST_ALIAS_GSEQABLE)
+           cpp-options: -DJUST_ALIAS_GSEQABLE=1
+        else
+           cpp-options: -DJUST_ALIAS_GSEQABLE=0
+        if flag(JUST_ALIAS_GNFDATAN)
+           cpp-options: -DJUST_ALIAS_GNFDATAN=1
+        else
+           cpp-options: -DJUST_ALIAS_GNFDATAN=0
+        if flag(JUST_ALIAS_GNFDATAP)
+           cpp-options: -DJUST_ALIAS_GNFDATAP=1
+        else
+           cpp-options: -DJUST_ALIAS_GNFDATAP=0
+     else
+        cpp-options: -DJUST_ALIAS_GSEQABLE=0
+        cpp-options: -DJUST_ALIAS_GNFDATAN=0
+        cpp-options: -DJUST_ALIAS_GNFDATAP=0
+
+}
+
+-------------------------------------------------------------------------------
+
+
+
+package-hashes:
+    MD5:302a855ca93aa3b77794fd9e4a5f444d
+    SHA1:ad35ec2d2a59793f726cc6a6c6145703275c79b3
+    SHA256:bd0d17ff43b91340eff580bf2cf85ee75cec0fad01ae12de33f294423e51e829
+    SHA512:d7bcb6df7a59caddd80d592d2394fac903afc067a66ad531dedddbb63afc889add01220391add3d88cee8effe3d325c9cf24bf5305d273745247ded59948e87b
+    Skein512_512:0bbf87edf3b95a25edf8fda209c99257e510c9167b4225710f1ffb55ba6163d160bf778b9d7d982ed4bb8a10ce06e8e89daeb385db8802b19e3c3e889a1baecc
+
+package-locations:
+    https://hackage.haskell.org/package/deepseq-bounded-0.7.0.1/deepseq-bounded-0.7.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/deepseq-bounded-0.7.0.1.tar.gz
+

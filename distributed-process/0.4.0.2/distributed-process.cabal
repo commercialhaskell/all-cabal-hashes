@@ -1,0 +1,187 @@
+Name:          distributed-process 
+Version:       0.4.0.2
+Cabal-Version: >=1.8
+Build-Type:    Simple
+License:       BSD3 
+License-File:  LICENSE
+Copyright:     Well-Typed LLP
+Author:        Duncan Coutts, Nicolas Wu, Edsko de Vries
+Maintainer:    edsko@well-typed.com, duncan@well-typed.com
+Stability:     experimental
+Homepage:      http://github.com/haskell-distributed/distributed-process
+Bug-Reports:   mailto:edsko@well-typed.com
+Synopsis:      Cloud Haskell: Erlang-style concurrency in Haskell 
+Description:   This is an implementation of Cloud Haskell, as described in
+               /Towards Haskell in the Cloud/ by Jeff Epstein, Andrew Black,
+               and Simon Peyton Jones
+               (<http://research.microsoft.com/en-us/um/people/simonpj/papers/parallel/>),
+               although some of the details are different. The precise message
+               passing semantics are based on /A unified semantics for future Erlang/
+               by	Hans Svensson, Lars-Åke Fredlund and Clara Benac Earle.
+
+               You will probably also want to install a Cloud Haskell backend such
+               as distributed-process-simplelocalnet.
+Tested-With:   GHC==7.2.2 GHC==7.4.1 GHC==7.4.2
+Category:      Control 
+
+Source-Repository head
+  Type:     git
+  Location: https://github.com/haskell-distributed/distributed-process
+  SubDir:   distributed-process
+
+flag th
+  description: Build with Template Haskell support
+  default: True
+
+flag benchmarks
+  description: Build benchmarks
+  default: False
+
+Library
+  Build-Depends:     base >= 4.4 && < 5,
+                     binary >= 0.5 && < 0.6,
+                     network-transport >= 0.3 && < 0.4,
+                     stm >= 2.3 && < 2.5,
+                     transformers >= 0.2 && < 0.4,
+                     mtl >= 2.0 && < 2.2,
+                     data-accessor >= 0.2 && < 0.3,
+                     bytestring >= 0.9 && < 0.11,
+                     containers >= 0.4 && < 0.6,
+                     old-locale >= 1.0 && < 1.1,
+                     time >= 1.2 && < 1.5,
+                     random >= 1.0 && < 1.1,
+                     ghc-prim >= 0.2 && < 0.4,
+                     distributed-static >= 0.2 && < 0.3,
+                     rank1dynamic >= 0.1 && < 0.2,
+                     syb >= 0.3 && < 0.4
+  Exposed-modules:   Control.Distributed.Process,
+                     Control.Distributed.Process.Serializable,
+                     Control.Distributed.Process.Closure,
+                     Control.Distributed.Process.Node,
+                     Control.Distributed.Process.Internal.Primitives,
+                     Control.Distributed.Process.Internal.CQueue,
+                     Control.Distributed.Process.Internal.Types,
+                     Control.Distributed.Process.Internal.Closure.BuiltIn,
+                     Control.Distributed.Process.Internal.Messaging,
+                     Control.Distributed.Process.Internal.StrictList,
+                     Control.Distributed.Process.Internal.StrictMVar,
+                     Control.Distributed.Process.Internal.WeakTQueue
+                     Control.Distributed.Process.Internal.StrictContainerAccessors
+  Extensions:        RankNTypes,
+                     ScopedTypeVariables,
+                     FlexibleInstances,
+                     UndecidableInstances,
+                     ExistentialQuantification,
+                     GADTs,
+                     GeneralizedNewtypeDeriving,
+                     DeriveDataTypeable,
+                     CPP,
+                     BangPatterns
+  ghc-options:       -Wall
+  HS-Source-Dirs:    src
+  if flag(th)
+     Build-Depends:   template-haskell >= 2.6 && < 2.9
+     Exposed-modules: Control.Distributed.Process.Internal.Closure.TH
+     CPP-Options:     -DTemplateHaskellSupport
+
+Test-Suite TestCH
+  Type:              exitcode-stdio-1.0
+  Main-Is:           TestCH.hs
+  Build-Depends:     base >= 4.4 && < 5,
+                     random >= 1.0 && < 1.1,
+                     ansi-terminal >= 0.5 && < 0.6,
+                     distributed-process,
+                     network-transport >= 0.3 && < 0.4,
+                     network-transport-tcp >= 0.3 && < 0.4,
+                     binary >= 0.5 && < 0.6,
+                     network >= 2.3 && < 2.5
+  Other-modules:     TestAuxiliary
+  Extensions:        CPP,
+                     ScopedTypeVariables,
+                     DeriveDataTypeable,
+                     GeneralizedNewtypeDeriving
+  ghc-options:       -Wall -threaded -rtsopts -with-rtsopts=-N -fno-warn-unused-do-bind 
+  HS-Source-Dirs:    tests 
+
+Test-Suite TestClosure
+  Type:              exitcode-stdio-1.0
+  Main-Is:           TestClosure.hs
+  Build-Depends:     base >= 4.4 && < 5,
+                     random >= 1.0 && < 1.1,
+                     ansi-terminal >= 0.5 && < 0.6,
+                     distributed-static >= 0.2 && < 0.3,
+                     distributed-process,
+                     network-transport >= 0.3 && < 0.4,
+                     network-transport-tcp >= 0.3 && < 0.4,
+                     bytestring >= 0.9 && < 0.11,
+                     network >= 2.3 && < 2.5
+  Other-modules:     TestAuxiliary
+  Extensions:        CPP, 
+                     ScopedTypeVariables
+  ghc-options:       -Wall -threaded -rtsopts -with-rtsopts=-N -fno-warn-unused-do-bind 
+  HS-Source-Dirs:    tests 
+
+Executable distributed-process-throughput 
+  if flag(benchmarks)
+    Build-Depends:   base >= 4.4 && < 5,
+                     distributed-process,
+                     network-transport-tcp >= 0.3 && < 0.4,
+                     bytestring >= 0.9 && < 0.11,
+                     binary >= 0.5 && < 0.6
+  else
+    buildable: False
+  Main-Is:           benchmarks/Throughput.hs
+  ghc-options:       -Wall
+  Extensions:        BangPatterns
+
+Executable distributed-process-latency
+  if flag(benchmarks)
+    Build-Depends:   base >= 4.4 && < 5,
+                     distributed-process,
+                     network-transport-tcp >= 0.3 && < 0.4,
+                     bytestring >= 0.9 && < 0.11,
+                     binary >= 0.5 && < 0.6
+  else
+    buildable: False
+  Main-Is:           benchmarks/Latency.hs
+  ghc-options:       -Wall
+  Extensions:        BangPatterns
+
+Executable distributed-process-channels
+  if flag(benchmarks)
+    Build-Depends:   base >= 4.4 && < 5,
+                     distributed-process,
+                     network-transport-tcp >= 0.3 && < 0.4,
+                     bytestring >= 0.9 && < 0.11,
+                     binary >= 0.5 && < 0.6
+  else
+    buildable: False
+  Main-Is:           benchmarks/Channels.hs
+  ghc-options:       -Wall
+  Extensions:        BangPatterns
+
+Executable distributed-process-spawns
+  if flag(benchmarks)
+    Build-Depends:   base >= 4.4 && < 5,
+                     distributed-process,
+                     network-transport-tcp >= 0.3 && < 0.4,
+                     bytestring >= 0.9 && < 0.11,
+                     binary >= 0.5 && < 0.6
+  else
+    buildable: False
+  Main-Is:           benchmarks/Spawns.hs
+  ghc-options:       -Wall
+  Extensions:        BangPatterns
+
+
+package-hashes:
+    MD5:04c2d8aade77c927b42c4e0924ca9222
+    SHA1:cbbced81699baf44708bdd0ae3317130da06732c
+    SHA256:dc7a03b9a4ba2e0c1ba84379593d620ceff8246837b0f8325d0455f34b545d72
+    SHA512:0daf589f00b01755bd6fbca8b270c37164502532fffeb7ec14de2f2fc4ad2a5187dffaca73d148459c15239663181c4a5c36c4d50bdd1e06287a9a4b6f06d867
+    Skein512_512:5cfd66d0621e401805b83789963cb376d68659d755600dcdf738f3685d8f81adea406afb3a79a96ac46c69ab2a8c83e6be8aacfc8058c4a218dfdde76edcb3cc
+
+package-locations:
+    https://hackage.haskell.org/package/distributed-process-0.4.0.2/distributed-process-0.4.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/distributed-process-0.4.0.2.tar.gz
+

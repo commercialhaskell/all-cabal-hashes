@@ -1,0 +1,129 @@
+name:                esqueleto
+version:             1.3.4.5
+synopsis:            Bare bones, type-safe EDSL for SQL queries on persistent backends.
+homepage:            https://github.com/meteficha/esqueleto
+license:             BSD3
+license-file:        LICENSE
+author:              Felipe Lessa
+maintainer:          felipe.lessa@gmail.com
+copyright:           (c) 2012 Felipe Almeida Lessa
+category:            Database
+build-type:          Simple
+cabal-version:       >=1.8
+description:
+  @persistent@ is a library for type-safe data serialization.  It
+  has many kinds of backends, such as SQL backends
+  (@persistent-mysql@, @persistent-postgresql@,
+  @persistent-sqlite@) and NoSQL backends (@persistent-mongoDB@).
+  .
+  While @persistent@ is a nice library for storing and retrieving
+  records, currently it has a poor interface for SQL backends
+  compared to SQL itself.  For example, it's extremely hard to do
+  a type-safe @JOIN@ on a many-to-one relation, and simply
+  impossible to do any other kinds of @JOIN@s (including for the
+  very common many-to-many relations).  Users have the option of
+  writing raw SQL, but that's error prone and not type-checked.
+  .
+  @esqueleto@ is a bare bones, type-safe EDSL for SQL queries
+  that works with unmodified @persistent@ SQL backends.  Its
+  language closely resembles SQL, so (a) you don't have to learn
+  new concepts, just new syntax, and (b) it's fairly easy to
+  predict the generated SQL and optimize it for your backend.
+  Most kinds of errors committed when writing SQL are caught as
+  compile-time errors---although it is possible to write
+  type-checked @esqueleto@ queries that fail at runtime.
+  .
+  Currently, @SELECT@s, @UPDATE@s, @INSERT@s and @DELETE@s are supported.
+  Not all SQL features are available, but most of them can be easily added
+  (especially functions), so please open an issue or send a pull request if
+  you need anything that is not covered by @esqueleto@ on
+  <https://github.com/meteficha/esqueleto/>.
+  .
+  The name of this library means \"skeleton\" in Portuguese and
+  contains all three SQL letters in the correct order =).  It was
+  inspired by Scala's Squeryl but created from scratch.
+
+source-repository head
+  type:     git
+  location: git://github.com/meteficha/esqueleto.git
+
+Flag postgresql
+  Description: test postgresql. default is to test sqlite.
+  Default: False
+
+Flag mysql
+  Description: test MySQL/MariaDB. default is to test sqlite.
+  Default: False
+
+library
+  exposed-modules:
+    Database.Esqueleto
+    Database.Esqueleto.Internal.Language
+    Database.Esqueleto.Internal.Sql
+  other-modules:
+    Database.Esqueleto.Internal.PersistentImport
+  build-depends:
+      base                 >= 4.5    && < 4.7
+    , text                 >= 0.11
+    , persistent           >= 1.2    && < 1.4
+    , transformers         >= 0.2
+    , unordered-containers >= 0.2
+    , tagged               >= 0.2
+
+    , monad-logger
+    , conduit
+    , resourcet
+  hs-source-dirs: src/
+  ghc-options: -Wall
+
+test-suite test
+  type: exitcode-stdio-1.0
+  ghc-options:    -Wall
+  hs-source-dirs: test
+  main-is:        Test.hs
+  build-depends:
+      -- Library dependencies used on the tests.  No need to
+      -- specify versions since they'll use the same as above.
+      base, persistent, transformers, conduit, text
+
+      -- Test-only dependencies
+    , containers
+    , HUnit
+    , QuickCheck
+    , hspec               >= 1.3 && < 1.9
+    , persistent-sqlite   >= 1.2 && < 1.4
+    , persistent-template >= 1.2 && < 1.4
+    , monad-control
+    , monad-logger        >= 0.3
+
+      -- This library
+    , esqueleto
+
+  if flag(postgresql)
+    build-depends:
+        postgresql-simple     >= 0.2
+      , postgresql-libpq      >= 0.6
+      , persistent-postgresql >= 1.2.0
+
+    cpp-options: -DWITH_POSTGRESQL
+
+  if flag(mysql)
+    build-depends:
+        mysql-simple          >= 0.2.2.3
+      , mysql                 >= 0.1.1.3
+      , persistent-mysql      >= 1.2.0
+
+    cpp-options: -DWITH_MYSQL
+
+
+package-hashes:
+    MD5:6ce43e75723f177d5983a01c168aacf0
+    SHA1:f7541f8c9158b2b28114f7279d9f3587fb0075ad
+    SHA256:673f89273e4cdaeb2363eff04e47d624981fe4eae79196dbd9a5bf636c3b853b
+    SHA512:f454b2d21b85a329558c5c1f78b5ecd609430dbdfcf20373f4829b17b79600579c85ac9caf12734b53b402d3718b150d27556bf758d53ef57de3750811081934
+    Skein512_512:288236afc9aa636e8797c5ecbd1932252157c2ac471c952b4ca19f4fd0309d97cd6cf5d41ac8e74f91a6b3483644e7b461f80a2c6df6dea292c3a286d7da9ec4
+
+package-locations:
+    https://hackage.haskell.org/package/esqueleto-1.3.4.5/esqueleto-1.3.4.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/esqueleto-1.3.4.5.tar.gz
+

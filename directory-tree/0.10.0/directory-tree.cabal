@@ -1,0 +1,83 @@
+name:            directory-tree
+version:         0.10.0
+homepage:        http://coder.bsimmons.name/blog/2009/05/directory-tree-module-released/
+synopsis:        A simple directory-like tree datatype, with useful IO functions 
+description:     A simple directory-like tree datatype, with useful IO functions and Foldable and Traversable instance  
+ .
+ Provides a simple data structure mirroring a directory tree on the 
+ filesystem, as well as useful functions for reading and writing 
+ file and directory structures in the IO monad.
+ .
+ Importing the library and optional (useful) Foldable and Traverable libraries:
+ .
+ > import System.Directory.Tree
+ > import qualified Data.Foldable as F
+ > import qualified Data.Traversable as T
+ .
+ Write a hand-made directory tree of textfiles (strings) to the disk. 
+ Simulates creating a new user Tux's home directory on a unix machine:
+ .
+ > writeDirectory$ "/home" :/ Dir "Tux" [File "README" "Welcome!"]
+ .
+ "read" a directory by opening all the files at a filepath with readFile,
+ returning an 'AnchoredDirTree String' (d2). Then check for any IO failures:
+ .
+ > do (base :/ d2) <- readDirectory "../parent_dir/dir2/"
+ >    let failed = anyFailed d2
+ >    if failed then ...
+ .
+ Use Foldable instance function to concat a directory 'dir' of text files into a
+ single file under the same directory:
+ .
+ > do (b :/ dt) <- readDirectory dir
+ >    let f = F.concat dt
+ >    return$ b :/ File "ALL_TEXT" f
+ .
+ Open all the files in the current directory as lazy bytestrings, ignoring 
+ the base path in Anchored wrapper:
+ .
+ > import qualified Data.ByteString.Lazy as B
+ > do (_ :/ dTree) <- readDirectoryWith B.readFile "./"     
+ .
+ This version also offers an experimental function `readDirectoryWithL` that does
+ lazy directory IO, allowing you to treat the returned `DirTree` as if it were a
+ normal lazily-generated data structure.
+ .
+ For example, the following does only the amount of IO necessary to list the file
+ names of the children of the root directory, similar to "ls /":
+ .
+ > do d <- readDirectoryWithL readFile "/"
+ >    mapM_ (putStrLn . name) $ contents $ free d
+ . 
+ Any ideas or suggestions for improvements are most welcome :-)
+ .
+ 
+category:        Data, System
+license:         BSD3
+license-file:    LICENSE
+copyright:       (c) 2011, Brandon Simmons <brandon.m.simmons@gmail.com>
+author:          Brandon Simmons
+maintainer:      Brandon Simmons <brandon.m.simmons@gmail.com>
+cabal-version:   >= 1.2.0
+build-type:      Simple
+tested-with:     GHC <=6.12.1
+extra-source-files: EXAMPLES/Examples.hs, EXAMPLES/LazyExamples.hs
+
+
+library
+    exposed-modules: System.Directory.Tree
+    build-depends: base <5, filepath <2, directory <2
+    ghc-options:       -Wall
+
+
+package-hashes:
+    MD5:fcf28bd7b889121c3bf3b34a5e45c831
+    SHA1:5879fa76f8488fbab376abf3a28fc4c4f64f0e98
+    SHA256:a41eef473e5e4ee9a76dcbc74ad68536126109dadb9f98af01ccf45264e26021
+    SHA512:b6d0f837eb22fe7fd93a33cffad76330eb43f709f39c7e973893ee9d1abdda23e6ec4c366bcc6b7a3fd4f31562a155dc655e4beb6dd4fdff9e535f3c86209229
+    Skein512_512:aec61b18a71edee5507266aedbb0b71e017e3280dde22a8b579f3176e437d914da5e2d8a60dd68b3cebacf2fb79966bcc3c179be551df8fcb29295ab980756fe
+
+package-locations:
+    https://hackage.haskell.org/package/directory-tree-0.10.0/directory-tree-0.10.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/directory-tree-0.10.0.tar.gz
+
