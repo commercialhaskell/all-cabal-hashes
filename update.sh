@@ -1,4 +1,4 @@
-#!/usr/bin/exec bash
+#!/usr/bin/env bash
 
 set -xue
 
