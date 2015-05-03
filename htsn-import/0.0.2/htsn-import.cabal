@@ -1,0 +1,259 @@
+name:           htsn-import
+version:        0.0.2
+cabal-version:  >= 1.8
+author:         Michael Orlitzky
+maintainer:	Michael Orlitzky <michael@orlitzky.com>
+category:       Utils
+license:        GPL-3
+license-file:   doc/LICENSE
+build-type:     Simple
+extra-source-files:
+  doc/dbschema/*.png
+  doc/htsn-importrc.example
+  doc/man1/htsn-import.1
+  doc/README.dbschema
+  doc/README.schemagen
+  doc/TODO
+  makefile
+  schema/*.dtd
+  schemagen/Heartbeat/*.xml
+  schemagen/injuriesxml/*.xml
+  schemagen/Injuries_Detail_XML/*.xml
+  schemagen/newsxml/*.xml
+  schemagen/Odds_XML/*.xml
+  schemagen/weatherxml/*.xml
+  test/shell/*.test
+  test/xml/*.xml
+  test/xml/*.dtd
+synopsis:
+  Import XML files from The Sports Network into an RDBMS.
+description:
+  /Usage/:
+  .
+  @
+  htsn-import [OPTIONS] [FILES]
+  @
+  .
+  The Sports Network <http://www.sportsnetwork.com/> offers an XML feed
+  containing various sports news and statistics. Our sister program
+  /htsn/ is capable of retrieving the feed and saving the individual
+  XML documents contained therein. But what to do with them?
+  .
+  The purpose of /htsn-import/ is to take these XML documents and
+  get them into something we can use, a relational database management
+  system (RDBMS), loosely known as a SQL database. The structure of
+  relational database, is, well, relational, and the feed XML is not. So
+  there is some work to do before the data can be inserted.
+  .
+  First, we must parse the XML. Each supported document type (see below)
+  has a full pickle/unpickle implementation (\"pickle\" is simply a
+  synonym for serialize here). That means that we parse the entire
+  document into a data structure, and if we pickle (serialize) that data
+  structure, we get the exact same XML document tha we started with.
+  .
+  This is important for two reasons. First, it serves as a second level
+  of validation. The first validation is performed by the XML parser,
+  but if that succeeds and unpicking fails, we know that something is
+  fishy. Second, we don't ever want to be surprised by some new element
+  or attribute showing up in the XML. The fact that we can unpickle the
+  whole thing now means that we won't be surprised in the future.
+  .
+  The aforementioned feature is especially important because we
+  automatically migrate the database schema every time we import a
+  document. If you attempt to import a \"newsxml.dtd\" document, all
+  database objects relating to the news will be created if they do not
+  exist. We don't want the schema to change out from under us without
+  warning, so it's important that no XML be parsed that would result in
+  a different schema than we had previously. Since we can
+  pickle/unpickle everything already, this should be impossible.
+  .
+  Examples and usage documentation are available in the man page.
+
+executable htsn-import
+  build-depends:
+    base                        == 4.*,
+    cmdargs                     >= 0.10.6,
+    configurator                == 0.2.*,
+    directory                   == 1.2.*,
+    filepath                    == 1.3.*,
+    hslogger                    == 1.2.*,
+    htsn-common                 == 0.0.1,
+    hxt                         == 9.3.*,
+    groundhog                   == 0.4.*,
+    groundhog-postgresql        == 0.4.*,
+    groundhog-sqlite            == 0.4.*,
+    groundhog-th                == 0.4.*,
+    MissingH                    == 1.2.*,
+    old-locale                  == 1.0.*,
+    tasty                       == 0.7.*,
+    tasty-hunit                 == 0.4.*,
+    time                        == 1.4.*,
+    transformers                == 0.3.*,
+    tuple                       == 0.2.*
+
+  main-is:
+    Main.hs
+
+  hs-source-dirs:
+    src/
+
+  other-modules:
+    Backend
+    CommandLine
+    Configuration
+    ConnectionString
+    ExitCodes
+    OptionalConfiguration
+    TSN.Codegen
+    TSN.Database
+    TSN.DbImport
+    TSN.Picklers
+    TSN.XmlImport
+    TSN.XML.Heartbeat
+    TSN.XML.Injuries
+    TSN.XML.InjuriesDetail
+    TSN.XML.News
+    TSN.XML.Odds
+    TSN.XML.Weather
+    Xml
+
+  ghc-options:
+    -Wall
+    -fwarn-hi-shadowing
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-orphans
+    -fwarn-type-defaults
+    -fwarn-tabs
+    -fwarn-incomplete-record-updates
+    -fwarn-monomorphism-restriction
+    -fwarn-unused-do-bind
+    -O2
+
+  ghc-prof-options:
+    -prof
+    -fprof-auto
+    -fprof-cafs
+    -- The following unbreak profiling with template haskell. We have
+    -- to build the program twice; once without profile and again with
+    -- these flags.
+    -hisuf hi_p
+    -osuf o_p
+
+
+test-suite testsuite
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src test
+  main-is: TestSuite.hs
+  build-depends:
+    base                        == 4.*,
+    cmdargs                     >= 0.10.6,
+    configurator                == 0.2.*,
+    directory                   == 1.2.*,
+    filepath                    == 1.3.*,
+    hslogger                    == 1.2.*,
+    htsn-common                 == 0.0.1,
+    hxt                         == 9.3.*,
+    groundhog                   == 0.4.*,
+    groundhog-postgresql        == 0.4.*,
+    groundhog-sqlite            == 0.4.*,
+    groundhog-th                == 0.4.*,
+    MissingH                    == 1.2.*,
+    old-locale                  == 1.0.*,
+    tasty                       == 0.7.*,
+    tasty-hunit                 == 0.4.*,
+    time                        == 1.4.*,
+    transformers                == 0.3.*,
+    tuple                       == 0.2.*
+
+  -- It's not entirely clear to me why I have to reproduce all of this.
+  ghc-options:
+    -Wall
+    -fwarn-hi-shadowing
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-orphans
+    -fwarn-type-defaults
+    -fwarn-tabs
+    -fwarn-incomplete-record-updates
+    -fwarn-monomorphism-restriction
+    -fwarn-unused-do-bind
+    -O2
+
+
+test-suite doctests
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Doctests.hs
+  build-depends:
+    base      == 4.*,
+    -- Additional test dependencies.
+    doctest   == 0.9.*
+
+  -- It's not entirely clear to me why I have to reproduce all of this.
+  ghc-options:
+    -Wall
+    -fwarn-hi-shadowing
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-orphans
+    -fwarn-type-defaults
+    -fwarn-tabs
+    -fwarn-incomplete-record-updates
+    -fwarn-monomorphism-restriction
+    -fwarn-unused-do-bind
+    -rtsopts
+    -threaded
+    -optc-O3
+    -optc-march=native
+    -O2
+
+
+-- These won't work without shelltestrunner installed in your
+-- $PATH. Maybe there is some way to tell Cabal that.
+test-suite shelltests
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: ShellTests.hs
+
+  build-depends:
+    base                        == 4.*,
+    cmdargs                     >= 0.10.6,
+    configurator                == 0.2.*,
+    directory                   == 1.2.*,
+    filepath                    == 1.3.*,
+    hslogger                    == 1.2.*,
+    htsn-common                 == 0.0.1,
+    hxt                         == 9.3.*,
+    groundhog                   == 0.4.*,
+    groundhog-postgresql        == 0.4.*,
+    groundhog-sqlite            == 0.4.*,
+    groundhog-th                == 0.4.*,
+    MissingH                    == 1.2.*,
+    old-locale                  == 1.0.*,
+    process                     == 1.1.*,
+    tasty                       == 0.7.*,
+    tasty-hunit                 == 0.4.*,
+    time                        == 1.4.*,
+    transformers                == 0.3.*,
+    tuple                       == 0.2.*
+
+
+
+source-repository head
+  type: git
+  location: http://michael.orlitzky.com/git/htsn-import.git
+  branch: master
+
+
+package-hashes:
+    MD5:2ba9c0ca5a33cde0830064924a62085d
+    SHA1:10f2fb314b6dbb89c23189e962542a3ed1954c1b
+    SHA256:3a7aa77024ad5bf315ba688892d5f583e0e7e05a4dac73b860cecadc8a0547d7
+    SHA512:f517ee03385b3c3a5863ea38c15c0f02897e322ee024362404d3dda5f133c2fb5fdb00aad2bc449f1e3c3301edffeb3c07a06ca350e4b9f9dac781ce7542dab6
+    Skein512_512:7ea457e35de29ae8d05b36e9597653f91db830bc9cd23e0b7c85a41c3064ee78e9c045be8623a4b1a946668d8606c943102fa0d0b4ed8307fd0d3ca87f55b27b
+
+package-locations:
+    https://hackage.haskell.org/package/htsn-import-0.0.2/htsn-import-0.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/htsn-import-0.0.2.tar.gz
+

@@ -1,0 +1,131 @@
+Name:                   hledger-interest
+Version:                1.1
+Synopsis:               computes interest for a given account
+License:                BSD3
+License-file:           LICENSE
+Author:                 Peter Simons <simons@cryp.to>
+Maintainer:             Peter Simons <simons@cryp.to>
+Homepage:               http://github.com/peti/hledger-interest
+Category:               Finance
+Build-type:             Simple
+Cabal-version:          >= 1.6
+Tested-With:            GHC == 6.12.3, GHC == 7.0.4, GHC == 7.2.1
+Description:
+ hledger-interest is a small command-line utility based on Simon
+ Michael's hleder library. Its purpose is to compute interest for a
+ given ledger account. Using command line flags, the program can be
+ configured to use various schemes for day-counting, such as act/act,
+ 30/360, 30E/360, and 30/360isda. Furthermore, it supports a (small)
+ number of interest schemes, i.e. annual interest with a fixed rate and
+ the scheme mandated by the German BGB288 (Basiszins für
+ Verbrauchergeschäfte). Extending support for other schemes is fairly
+ easy, but currently requires changing to the source code.
+ .
+ As an example, consider the following loan, stored in a file called
+ @test.ledger@:
+ .
+ > 2008/09/26 Loan
+ >     Assets:Bank          EUR 10000.00
+ >     Liabilities:Loan
+ >
+ > 2008/11/27 Payment
+ >     Assets:Bank          EUR -3771.12
+ >     Liabilities:Loan
+ >
+ > 2009/05/03 Payment
+ >     Assets:Bank          EUR -1200.00
+ >     Liabilities:Loan
+ >
+ > 2010/12/10 Payment
+ >     Assets:Bank          EUR -3700.00
+ >     Liabilities:Loan
+ .
+ Suppose that loan earns 5% interest per year, and payments amortize
+ interest before amortizing the principal claim, then the resulting
+ ledger would look like this:
+ .
+ > $ hledger-interest --file=test.ledger --source=Expenses:Interest --target=Liabilities:Loan --30-360 --annual=0.05 Liabilities:Loan
+ > 2008/09/26 Loan
+ >     Assets:Bank              EUR  10000.00
+ >     Liabilities:Loan
+ >
+ > 2008/11/27 Payment
+ >     Assets:Bank              EUR  -3771.12
+ >     Liabilities:Loan
+ >
+ > 2008/11/27 5.00% interest for EUR -10000.00 over 61 days
+ >     Liabilities:Loan         EUR    -84.72
+ >     Expenses:Interest
+ >
+ > 2008/12/31 5.00% interest for EUR -6313.60 over 34 days
+ >     Liabilities:Loan         EUR    -29.81
+ >     Expenses:Interest
+ >
+ > 2009/05/03 Payment
+ >     Assets:Bank              EUR  -1200.00
+ >     Liabilities:Loan
+ >
+ > 2009/05/03 5.00% interest for EUR -6343.42 over 123 days
+ >     Liabilities:Loan         EUR   -108.37
+ >     Expenses:Interest
+ >
+ > 2009/12/31 5.00% interest for EUR -5251.78 over 238 days
+ >     Liabilities:Loan         EUR   -173.60
+ >     Expenses:Interest
+ >
+ > 2010/12/10 Payment
+ >     Assets:Bank              EUR  -3700.00
+ >     Liabilities:Loan
+ >
+ > 2010/12/10 5.00% interest for EUR -5425.38 over 340 days
+ >     Liabilities:Loan         EUR   -256.20
+ >     Expenses:Interest
+ >
+ > 2010/12/31 5.00% interest for EUR -1981.58 over 21 days
+ >     Liabilities:Loan         EUR     -5.78
+ >     Expenses:Interest
+ .
+ Running the utility with @--help@ gives a brief overview over the
+ available options:
+ .
+ > Usage: hledger-interest [OPTION...] ACCOUNT
+ >   -h          --help            print this message and exit
+ >   -V          --version         show version number and exit
+ >   -v          --verbose         echo input ledger to stdout (default)
+ >   -q          --quiet           don't echo input ledger to stdout
+ >               --today           update account until today
+ >   -f FILE     --file=FILE       input ledger file
+ >   -s ACCOUNT  --source=ACCOUNT  interest source account
+ >   -t ACCOUNT  --target=ACCOUNT  interest target account
+ >               --act             use 'act' day counting convention
+ >               --30-360          use '30/360' day counting convention
+ >               --30E-360         use '30E/360' day counting convention
+ >               --30E-360isda     use '30E/360isda' day counting convention
+ >               --constant=RATE   constant interest rate
+ >               --annual=RATE     annual interest rate
+ >               --bgb288          compute interest according to German BGB288
+
+Source-Repository head
+  Type:                 git
+  Location:             git://github.com/peti/hledger-interest.git
+
+Executable hledger-interest
+  Main-is:              Main.hs
+  Build-depends:        base >= 3 && < 5, hledger-lib >= 0.14, time, mtl, Cabal
+  other-modules:        Hledger.Interest
+                        Hledger.Interest.DayCountConvention
+                        Hledger.Interest.Rate
+  Ghc-Options:          -Wall
+
+
+package-hashes:
+    MD5:d5a5794654236e2d8e4ba28fc9db1b20
+    SHA1:8e6f4eeaf659bf22513622a4d5d5354fff8d50cf
+    SHA256:cfe3fd542b1142b66c8f211db992e0a6ae19b20928193315822d093ab76d8d63
+    SHA512:8be52b7b702b7695c8e94eaddcd2aaa3ac7d9781d522522d7c4a991f40ed660bd71b36df3b57f767638a1d3708ff9cbd62a1c29fdb1812c04d7efecf7e67f2a5
+    Skein512_512:957386226e8d9c24a2b9025a395c67db5c12e40d421a229fc21a8472f516de90783ac5028f9f13c23b7a0043317516d218f09fe60705ca63eeb95985aa31388d
+
+package-locations:
+    https://hackage.haskell.org/package/hledger-interest-1.1/hledger-interest-1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hledger-interest-1.1.tar.gz
+

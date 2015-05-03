@@ -1,0 +1,314 @@
+name:           htsn
+version:        0.0.1
+cabal-version:  >= 1.8
+author:         Michael Orlitzky
+maintainer:	Michael Orlitzky <michael@orlitzky.com>
+category:       Utils
+license:        GPL-3
+license-file:   doc/LICENSE
+build-type:     Simple
+extra-source-files:
+  doc/htsnrc.example
+  doc/man1/htsn.1
+  doc/init.openrc
+  test/xml/*.xml
+synopsis:
+  Parse XML files from The Sports Network feed.
+description:
+  /Usage/:
+  .
+  @
+  htsn [OPTIONS] [HOSTNAMES]
+  @
+  .
+  The Sports Network <http://www.sportsnetwork.com/> offers an XML feed
+  containing various sports news and statistics. The goal of /htsn/
+  is to watch the XML feed and parse the individual XML documents into
+  files.
+  .
+  Once started, we will choose an XML feed host to connect to. The
+  choice is made from a list in a round-robin fashion, and by default,
+  the list contains all known TSN feed hosts. Once we have a connection,
+  your username and password are sent. If they are accepted, we begin to
+  parse the feed saving all XML files to the configured output directory
+  (see @--output-directory@).
+  .
+  If we encounter an error (say, the connection is dropped), then we
+  will attempt to connect to the next host in the list after waiting
+  five seconds. This process continues indefinitely.
+  .
+  The program can run either interactively (that is, outputting to the
+  console), or as a daemon with the @--daemonize@ flag.
+  .
+  /Input/:
+  .
+  The program takes no input; a username and password must be supplied
+  on the command-line or in a configuration file.
+  .
+  /Output/:
+  .
+  Output is not generated when running as a daemon; otherwise, standard
+  out and standard error are fairly noisy. All traffic between /htsn/ and
+  the feed server is displayed on stdout. Status messages are
+  interspersed when they are generated with warnings and errors going to
+  stderr. The following can be expected:
+  .
+    * The only data we send to the feed are the username and password.
+      These will be highlighted in green on stdout.
+  .
+    * All data received from the feed will be echoed in the default color
+      to stdout.
+  .
+    * Informational messages will be highlighted in cyan and sent to stdout.
+  .
+    * Warnings will be highlighted in yellow and sent to stderr.
+  .
+    * Errors will be highlighted in red and sent to stderr.
+  .
+  /Logging/:
+  .
+  Logging is done either to syslog or a file. The destination and
+  verbosity are controlled by the @--log-file@, @--log-level@,
+  and @--syslog@ parameters which may be specified either on the command
+  line or in the configuration file.
+  .
+  /Options/:
+  .
+  @
+  \--daemonize, -d
+  @
+  .
+  Run as a daemon, in the background. When running as a daemon the
+  \--pidfile, --run-as-group, and --run-as-user flags become relevant.
+  .
+  Default: disabled
+  .
+  @
+  \--log-file
+  @
+  .
+  If you specify a file here, logs will be written to it (possibly in
+  addition to syslog). Can be either a relative or absolute path. It
+  will not be auto-rotated; use something log logrotate for that.
+  .
+  Default: none
+  .
+  @
+  \--log-level
+  @
+  .
+  How verbose should the logs be? We log notifications at three levels:
+  INFO, WARN, and ERROR. Specify the \"most boring\" level of
+  notifications you would like to receive (in all-caps); more
+  interesting notifications will be logged as well.
+  .
+  Default: INFO
+  .
+  @
+  \--output-directory, -o
+  @
+  .
+  To which directory should we write the XML files?
+  .
+  Default: .
+  .
+  @
+  \--password
+  @
+  .
+  The password associated with your TSN username. A password is
+  required, so you must supply one either on the command line or in a
+  configuration file.
+  .
+  Default: none
+  .
+  @
+  \--pidfile
+  @
+  .
+  (Daemon mode only) Create a PID file in the given location. This is
+  used by the init system on Unix to keep track of the running daemon.
+  Its parent directory must be writable by the user/group that we will
+  run as!
+  .
+  Default: \/run\/htsn\/htsn.pid
+  .
+  @
+  \--run-as-group
+  @
+  .
+  (Daemon mode only) Run as the given system group. The PID file is
+  written before privileges are dropped, so the only privileges needed
+  by /htsn/ are those necessary to write the XML files and (optionally)
+  the log file.
+  .
+  Default: the current group
+  .
+  @
+  \--run-as-user
+  @
+  .
+  (Daemon mode only) Run as the given system user. The PID file is
+  written before privileges are dropped, so the only privileges needed
+  by /htsn/ are those necessary to write the XML files and (optionally)
+  the log file.
+  .
+  Default: the current user
+  .
+  @
+  \--syslog, -s
+  @
+  .
+  Enable logging to syslog. On Windows this will attempt to communicate
+  (over UDP) with a syslog daemon on localhost, which will most likely
+  not work.
+  .
+  Default: disabled
+  .
+  @
+  \--username, -u
+  @
+  .
+  Your TSN username. A username is required, so you must supply one
+  either on the command line or in a configuration file.
+  .
+  Default: none
+  .
+  /Feed Hosts/:
+  .
+  It is possible to pass a list of feed hostnames on the command-line
+  (see [HOSTNAMES] in the synopsis). By default /htsn/ will attempt
+  to connect to every known TSN XML feed host in a round-robin fashion,
+  so there is rarely a need to do this.
+  .
+  /Configuration File/:
+  .
+  Any of the command-line options mentioned above can be specified in a
+  configuration file instead. We first look for \"htsnrc\" in the
+  system configuration directory (/etc on Unix). We then look for a file
+  named \".htsnrc\" in the user's home directory. The latter will override
+  the former.
+  .
+  The file's syntax is given by examples in the htsnrc.example file
+  (included with /htsn/).
+  .
+  Options specified on the command-line override those in either
+  configuration file.
+
+
+executable htsn
+  build-depends:
+    ansi-terminal               == 0.6.*,
+    base                        == 4.*,
+    cmdargs                     >= 0.10.6,
+    configurator                == 0.2.*,
+    directory                   == 1.2.*,
+    filepath                    == 1.3.*,
+    hdaemonize                  == 0.4.*,
+    hslogger                    == 1.2.*,
+    hxt                         == 9.3.*,
+    MissingH                    == 1.2.*,
+    network                     == 2.4.*,
+    tasty                       == 0.5.*,
+    tasty-hunit                 == 0.4.*,
+    transformers                == 0.3.*,
+    unix                        == 2.6.*
+
+  main-is:
+    Main.hs
+
+  hs-source-dirs:
+    src/
+
+  other-modules:
+    CommandLine
+    Configuration
+    ExitCodes
+    Logging
+    OptionalConfiguration
+    Terminal
+    TSN.FeedHosts
+    TSN.Xml
+    Unix
+
+  ghc-options:
+    -Wall
+    -fwarn-hi-shadowing
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-orphans
+    -fwarn-type-defaults
+    -fwarn-tabs
+    -fwarn-incomplete-record-updates
+    -fwarn-monomorphism-restriction
+    -fwarn-unused-do-bind
+    -rtsopts
+    -threaded
+    -optc-O3
+    -optc-march=native
+    -O2
+
+  ghc-prof-options:
+    -prof
+    -auto-all
+    -caf-all
+
+
+
+test-suite testsuite
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src test
+  main-is: TestSuite.hs
+  build-depends:
+    ansi-terminal               == 0.6.*,
+    base                        == 4.*,
+    cmdargs                     >= 0.10.6,
+    configurator                == 0.2.*,
+    directory                   == 1.2.*,
+    filepath                    == 1.3.*,
+    hdaemonize                  == 0.4.*,
+    hslogger                    == 1.2.*,
+    hxt                         == 9.3.*,
+    MissingH                    == 1.2.*,
+    network                     == 2.4.*,
+    tasty                       == 0.5.*,
+    tasty-hunit                 == 0.4.*,
+    transformers                == 0.3.*,
+    unix                        == 2.6.*
+
+  -- It's not entirely clear to me why I have to reproduce all of this.
+  ghc-options:
+    -Wall
+    -fwarn-hi-shadowing
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-orphans
+    -fwarn-type-defaults
+    -fwarn-tabs
+    -fwarn-incomplete-record-updates
+    -fwarn-monomorphism-restriction
+    -fwarn-unused-do-bind
+    -rtsopts
+    -threaded
+    -optc-O3
+    -optc-march=native
+    -O2
+
+
+source-repository head
+  type: git
+  location: http://michael.orlitzky.com/git/htsn.git
+  branch: master
+
+
+package-hashes:
+    MD5:683359de19f942064775b2ff00f3dd00
+    SHA1:cb78f843eff66aa568ff5871b8eae0e53d256947
+    SHA256:0817bebf3cb46e30fe2010bbc64fe2d868e7755d2b3a3c6a16a1a7efa7b0a45a
+    SHA512:702c66214b9594a60d99c12f4f1e4466ae1ace0265dad18f19918071b4ec9a6be7d16a0019b8a377f63a58e89225d0a57abace0c05778a7a717e67d9df84be60
+    Skein512_512:38357687e5a3896eaca137f245155889fe0b9c3da4c9820b82062c97f2153b5b88828bd30ce63e6e07e5ed12cfdaeb48f5f874a5d419a81fccc77b64db370858
+
+package-locations:
+    https://hackage.haskell.org/package/htsn-0.0.1/htsn-0.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/htsn-0.0.1.tar.gz
+

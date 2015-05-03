@@ -1,0 +1,133 @@
+Name:               hsqml
+Version:            0.3.1.1
+Cabal-version:      >= 1.14
+Build-type:         Custom
+License:            BSD3
+License-file:       LICENSE
+Copyright:          (c) 2010-2014 Robin KAY
+Author:             Robin KAY
+Maintainer:         komadori@gekkou.co.uk
+Stability:          experimental
+Homepage:           http://www.gekkou.co.uk/software/hsqml/
+Bug-reports:        http://trac.gekkou.co.uk/hsqml/
+Category:           Graphics
+Synopsis:           Haskell binding for Qt Quick
+Extra-source-files:
+    README CHANGELOG SetupNoTH.hs
+    cbits/*.cpp cbits/*.h test/Graphics/QML/Test/*.hs
+Description:
+    A Haskell binding for Qt Quick, a cross-platform framework for creating
+    graphical user interfaces. For further information on installing and using
+    this library, please see the project's web site.
+
+Flag UsePkgConfig
+    Description:
+        Use pkg-config for libraries instead of the platform default mechanism.
+    Default: False
+
+Flag ThreadedTestSuite
+    Description:
+        Build test executable with the threaded RTS.
+    Default: True
+
+Flag ForceGHCiLib
+    Description:
+        Force enable GHCi workaround library if not using shared libraries.
+    Default: True
+
+Library
+    Default-language: Haskell2010
+    Build-depends:
+        base         == 4.*,
+        containers   >= 0.4 && < 0.6,
+        filepath     == 1.3.*,
+        text         >= 0.11 && < 1.2,
+        tagged       >= 0.4 && < 0.8,
+        transformers >= 0.2 && < 0.5
+    Exposed-modules:
+        Graphics.QML
+        Graphics.QML.Debug
+        Graphics.QML.Engine
+        Graphics.QML.Marshal
+        Graphics.QML.Objects
+    Other-modules:
+        Graphics.QML.Internal.BindPrim
+        Graphics.QML.Internal.BindObj
+        Graphics.QML.Internal.BindCore
+        Graphics.QML.Internal.JobQueue
+        Graphics.QML.Internal.Marshal
+        Graphics.QML.Internal.MetaObj
+        Graphics.QML.Internal.Types
+    Hs-source-dirs: src
+    C-sources:
+        cbits/Class.cpp
+        cbits/Engine.cpp
+        cbits/Intrinsics.cpp
+        cbits/Manager.cpp
+        cbits/Object.cpp
+    Include-dirs: cbits
+    X-moc-headers:
+        cbits/Engine.h
+        cbits/Manager.h
+    X-separate-cbits: True
+    Build-tools: c2hs
+    if flag(ForceGHCiLib)
+        X-force-ghci-lib: True
+    if os(windows) && !flag(UsePkgConfig)
+        Include-dirs: /QT_ROOT/include
+        Extra-libraries:
+            Qt5Core, Qt5Gui, Qt5Widgets, Qt5Qml, Qt5Quick, stdc++
+        Extra-lib-dirs: /SYS_ROOT/bin /QT_ROOT/bin
+        if impl(ghc < 7.8)
+            -- Pre-7.8 GHCi can't load eh_frame sections
+            GHC-options: -optc-fno-asynchronous-unwind-tables
+    else
+        if os(darwin) && !flag(UsePkgConfig)
+            Frameworks: QtCore QtGui QtWidgets QtQml QtQuick
+            CC-options: -F /QT_ROOT/lib
+            GHC-options: -framework-path /QT_ROOT/lib
+            X-framework-dirs: /QT_ROOT/lib
+        else
+            Pkgconfig-depends:
+                Qt5Core    >= 5.0 && < 6.0,
+                Qt5Gui     >= 5.0 && < 6.0,
+                Qt5Widgets >= 5.0 && < 6.0,
+                Qt5Qml     >= 5.0 && < 6.0,
+                Qt5Quick   >= 5.0 && < 6.0
+        Extra-libraries: stdc++
+
+Test-Suite hsqml-test1
+    Type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    Hs-source-dirs: test
+    Main-is: Test1.hs
+    Build-depends:
+        base       == 4.*,
+        containers >= 0.4 && < 0.6,
+        directory  >= 1.1 && < 1.3,
+        text       >= 0.11 && < 1.2,
+        tagged     >= 0.4 && < 0.8,
+        QuickCheck >= 2.4 && < 2.8,
+        hsqml      == 0.3.*
+    if os(darwin) && !flag(UsePkgConfig)
+        -- Library not registered yet
+        GHC-options: -framework-path /QT_ROOT/lib
+    if flag(ThreadedTestSuite)
+        GHC-options: -threaded
+
+Source-repository head
+    type:     darcs
+    location: http://hub.darcs.net/komadori/HsQML/
+
+
+package-hashes:
+    MD5:82029334348fbf104501416df8e140b0
+    SHA1:d6b2f604b6a913af1dffcb78a5c326a6129e7cdc
+    SHA256:79d1f669364c17c7c18740ba2e5dcf38732ae683e646e4c50e98425e01d31ac0
+    SHA512:789c6c6ac7091a7b3f013c75486e2cf1ec70a2c5b677d1c6de46944102d4b1d146b3f5501f56c79530dc1240e6e079b430a90dfd69ea58cc670d64ba9fdeb1ea
+    Skein512_512:1118eadffa061660629ea1144a684f9539dbda08e80a1233f6ca11502f4d6eed3054cdca1710c54e3fd16f39ceb2e5914b3d3d1482b3f3821871bd030e2667cf
+
+package-locations:
+    https://hackage.haskell.org/package/hsqml-0.3.1.1/hsqml-0.3.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hsqml-0.3.1.1.tar.gz
+

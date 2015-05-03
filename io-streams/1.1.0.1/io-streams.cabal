@@ -1,0 +1,274 @@
+Name:                io-streams
+Version:             1.1.0.1
+License:             BSD3
+License-file:        LICENSE
+Category:            Data, Network, IO-Streams
+Build-type:          Simple
+Maintainer:          Gregory Collins <greg@gregorycollins.net>
+Cabal-version:       >= 1.10
+Synopsis:            Simple, composable, and easy-to-use stream I/O
+Tested-With:         GHC==7.6.2, GHC==7.6.1, GHC==7.4.2, GHC==7.4.1,
+                     GHC==7.2.2, GHC==7.0.4
+Description:
+  /Overview/
+  .
+  The io-streams library contains simple and easy-to-use primitives for I/O
+  using streams. Most users will want to import the top-level convenience
+  module "System.IO.Streams", which re-exports most of the library:
+  .
+  @
+  import           "System.IO.Streams" (InputStream, OutputStream)
+  import qualified "System.IO.Streams" as Streams
+  @
+  .
+  For first-time users, @io-streams@ comes with an included tutorial, which can
+  be found in the "System.IO.Streams.Tutorial" module.
+  .
+  /Features/
+  .
+  The @io-streams@ user API has two basic types: @InputStream a@ and
+  @OutputStream a@, and three fundamental I/O primitives:
+  .
+  @
+  \-\- read an item from an input stream
+  Streams.'System.IO.Streams.read' :: 'System.IO.Streams.InputStream' a -> IO (Maybe a)
+  .
+  \-\- push an item back to an input stream
+  Streams.'System.IO.Streams.unRead' :: a -> 'System.IO.Streams.InputStream' a -> IO ()
+  .
+  \-\- write to an output stream
+  Streams.'System.IO.Streams.write' :: Maybe a -> 'System.IO.Streams.OutputStream' a -> IO ()
+  @
+  .
+  Streams can be transformed by composition and hooked together with provided combinators:
+  .
+  @
+  ghci> Streams.fromList [1,2,3::Int] >>= Streams.map (*10) >>= Streams.toList
+  [10,20,30]
+  @
+  .
+  Stream composition leaves the original stream accessible:
+  .
+  @
+  ghci> input \<- Streams.fromByteString \"long string\"
+  ghci> wrapped \<- Streams.takeBytes 4 input
+  ghci> Streams.read wrapped
+  Just \"long\"
+  ghci> Streams.read wrapped
+  Nothing
+  ghci> Streams.read input
+  Just \" string\"
+  @
+  .
+  Simple types and operations in the IO monad mean straightforward and simple
+  exception handling and resource cleanup using Haskell standard library
+  facilities like 'Control.Exception.bracket'.
+  .
+  @io-streams@ comes with:
+  .
+    * functions to use files, handles, concurrent channels, sockets, lists,
+      vectors, and more as streams.
+  .
+    * a variety of combinators for wrapping and transforming streams, including
+      compression and decompression using zlib, controlling precisely how many
+      bytes are read from or written to a stream, buffering output using
+      bytestring builders, folds, maps, filters, zips, etc.
+  .
+    * support for parsing from streams using @attoparsec@.
+  .
+    * support for spawning processes and communicating with them using streams.
+  .
+  /ChangeLog/
+  .
+    [@1.1.0.1@] A couple of Haddock markup fixes.
+  .
+    [@1.1.0.0@] Reworked, simplified, and streamlined the internals of the
+                library. Exports from "System.IO.Streams.Internal" relying on
+                Sources and Sinks were deleted because they are no longer
+                necessary: Source(..), Sink(..), defaultPushback,
+                withDefaultPushback, nullSource, nullSink, singletonSource,
+                simpleSource, sourceToStream, sinkToStream, generatorToSource,
+                and consumerToSink.
+  .
+    [@1.0.2.2@] Fixed a bug in which \"takeBytes 0\" was erroneously requesting
+                input from the wrapped stream.
+  .
+    [@1.0.2.1@] Fixed a compile error on GHC 7.0.x.
+  .
+    [@1.0.2.0@] Added "System.IO.Streams.Process" (support for communicating
+                with system processes using streams), added new functions to
+                "System.IO.Streams.Handle" for converting @io-streams@ types to
+                'System.IO.Handle's. (Now you can pass streams from this
+                library to places that expect Handles and everything will
+                work.)
+  .
+    [@1.0.1.0@] Added 'System.IO.Streams.Combinators.ignoreEof'.
+  .
+    [@1.0.0.1@] Fixed some haddock markup.
+
+Extra-Source-Files:  CONTRIBUTORS README.md
+
+------------------------------------------------------------------------------
+Library
+  hs-source-dirs:    src
+  Default-language:  Haskell2010
+
+  ghc-options:       -O2 -Wall -fwarn-tabs -funbox-strict-fields
+                     -fno-warn-unused-do-bind
+
+  ghc-prof-options:  -prof -auto-all
+
+  Exposed-modules:   System.IO.Streams,
+                     System.IO.Streams.Attoparsec,
+                     System.IO.Streams.Builder,
+                     System.IO.Streams.ByteString,
+                     System.IO.Streams.Combinators,
+                     System.IO.Streams.Concurrent,
+                     System.IO.Streams.Core,
+                     System.IO.Streams.Debug,
+                     System.IO.Streams.Handle,
+                     System.IO.Streams.File,
+                     System.IO.Streams.List,
+                     System.IO.Streams.Network,
+                     System.IO.Streams.Process,
+                     System.IO.Streams.Text,
+                     System.IO.Streams.Vector,
+                     System.IO.Streams.Zlib,
+                     System.IO.Streams.Internal,
+                     System.IO.Streams.Tutorial
+
+  Other-modules:     System.IO.Streams.Internal.Attoparsec,
+                     System.IO.Streams.Internal.Search
+
+  Build-depends:     base          >= 4     && <5,
+                     attoparsec    >= 0.10  && <0.11,
+                     blaze-builder >= 0.3.1 && <0.4,
+                     bytestring    >= 0.9   && <0.11,
+                     network       >= 2.4   && <2.5,
+                     primitive     >= 0.2   && <0.6,
+                     process       >= 1     && <1.2,
+                     text          >= 0.10  && <0.12,
+                     time          >= 1.2   && <1.5,
+                     transformers  >= 0.2   && <0.4,
+                     vector        >= 0.7   && <0.11,
+                     zlib-bindings >= 0.1   && <0.2
+
+  if impl(ghc >= 7.2)
+    other-extensions: Trustworthy
+
+  other-extensions:
+    BangPatterns,
+    CPP,
+    DeriveDataTypeable,
+    FlexibleInstances,
+    GeneralizedNewtypeDeriving,
+    MultiParamTypeClasses,
+    OverloadedStrings,
+    RankNTypes,
+    TypeSynonymInstances
+
+
+------------------------------------------------------------------------------
+Test-suite testsuite
+  Type:              exitcode-stdio-1.0
+  hs-source-dirs:    src test
+  Main-is:           TestSuite.hs
+  Default-language:  Haskell2010
+
+  Other-modules:     System.IO.Streams.Tests.Attoparsec,
+                     System.IO.Streams.Tests.Builder,
+                     System.IO.Streams.Tests.ByteString,
+                     System.IO.Streams.Tests.Combinators,
+                     System.IO.Streams.Tests.Common,
+                     System.IO.Streams.Tests.Debug,
+                     System.IO.Streams.Tests.File,
+                     System.IO.Streams.Tests.Handle,
+                     System.IO.Streams.Tests.Internal,
+                     System.IO.Streams.Tests.List,
+                     System.IO.Streams.Tests.Network,
+                     System.IO.Streams.Tests.Process,
+                     System.IO.Streams.Tests.Text,
+                     System.IO.Streams.Tests.Vector,
+                     System.IO.Streams.Tests.Zlib,
+                     System.IO.Streams,
+                     System.IO.Streams.Attoparsec,
+                     System.IO.Streams.Builder,
+                     System.IO.Streams.ByteString,
+                     System.IO.Streams.Combinators,
+                     System.IO.Streams.Concurrent,
+                     System.IO.Streams.Core,
+                     System.IO.Streams.Debug,
+                     System.IO.Streams.Handle,
+                     System.IO.Streams.File,
+                     System.IO.Streams.List,
+                     System.IO.Streams.Network,
+                     System.IO.Streams.Process,
+                     System.IO.Streams.Text,
+                     System.IO.Streams.Vector,
+                     System.IO.Streams.Zlib,
+                     System.IO.Streams.Internal,
+                     System.IO.Streams.Internal.Attoparsec,
+                     System.IO.Streams.Internal.Search
+
+
+  ghc-options:       -O2 -Wall -fhpc -fwarn-tabs -funbox-strict-fields -threaded
+                     -fno-warn-unused-do-bind
+  ghc-prof-options:  -prof -auto-all
+
+  if !os(windows)
+    cpp-options: -DENABLE_PROCESS_TESTS
+
+
+  Build-depends:     base          >= 4     && <5,
+                     attoparsec    >= 0.10  && <0.11,
+                     blaze-builder >= 0.3.1 && <0.4,
+                     bytestring    >= 0.9   && <0.11,
+                     deepseq       >= 1.2   && <1.4,
+                     directory     >= 1.1   && <2,
+                     filepath      >= 1.2   && <2,
+                     mtl           >= 2     && <3,
+                     network       >= 2.4   && <2.5,
+                     primitive     >= 0.2   && <0.5,
+                     process       >= 1     && <1.2,
+                     text          >= 0.10  && <0.12,
+                     time          >= 1.2   && <1.5,
+                     transformers  >= 0.2   && <0.4,
+                     vector        >= 0.7   && <0.11,
+                     zlib-bindings >= 0.1   && <0.2,
+
+                     HUnit                      >= 1.2      && <2,
+                     QuickCheck                 >= 2.3.0.2  && <3,
+                     test-framework             >= 0.6      && <0.7,
+                     test-framework-hunit       >= 0.2.7    && <0.3,
+                     test-framework-quickcheck2 >= 0.2.12.1 && <0.3,
+                     zlib                       >= 0.5      && <0.6
+
+  if impl(ghc >= 7.2)
+    other-extensions: Trustworthy
+
+  other-extensions:
+    BangPatterns,
+    CPP,
+    DeriveDataTypeable,
+    FlexibleInstances,
+    GeneralizedNewtypeDeriving,
+    MultiParamTypeClasses,
+    OverloadedStrings,
+    RankNTypes
+
+source-repository head
+  type:     git
+  location: git://github.com/snapframework/io-streams.git
+
+
+package-hashes:
+    MD5:7fc863075bfbc59fdf2f18842154ac90
+    SHA1:af261841598221d3efd73882a0f32c124958f709
+    SHA256:7c75849bf947abada6484dfae7f6dabe82129034f846569c1cf81f276fd7e56b
+    SHA512:d567951595670378f800ada6f9bae5adbbb3594939e9a32a49fe4141ce6bafcbcb008bc233a743f9568cf64bd14bf877cc320782bfe12a6b8b636f421d21c95f
+    Skein512_512:fbd855fc12b8a7a217f4d003a3824a075bc499a76a7136046f0e15d80d0f79bda1a48d54eff8ddb5dcbd4837d7550103de5c5a22924656c5c901b62938f9e99a
+
+package-locations:
+    https://hackage.haskell.org/package/io-streams-1.1.0.1/io-streams-1.1.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/io-streams-1.1.0.1.tar.gz
+

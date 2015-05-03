@@ -1,0 +1,169 @@
+name:                hsoptions
+version:             1.0.0.0
+cabal-version:       >= 1.18
+synopsis:            Haskell library that supports command-line flag processing
+description:
+  Haskell library that supports command-line flag processing.
+  .
+  Too see an user guide and list of features go to
+  <https://github.com/josercruz01/hsoptions#table-of-contents>.
+  .
+  Flags are declared in the code by using the 'make' function, which takes the
+  flag's name, help text and type as arguments.
+  .
+  The flags are parsed from the command line stream of from a file
+  if the @--usingFile \<filename\>@ flag is sent to the program.
+  .
+  Flags can be customized by calling configuration function, such as
+  'defaultIs' or 'aliasIs', that change how the flag behaves, how it
+  is parsed and validated.
+  .
+  The 'processMain' function needs to be called at the beginning of the 'main'
+  function. This function takes as arguments:
+  .
+      * The @program description@
+  .
+      * A list of @all declared flags@
+  .
+      * Three callbacks:
+  .
+          * * @success@
+  .
+          * * @failure@
+  .
+          * * @display help@
+  .
+  If there is any kind of validation error @failure@ is
+  called with the list of errors. If the @--help@ flag was sent by the user
+  @display help@ is called. Otherwise if there are no problems the @success@
+  function is called.
+  .
+  A default implementation of @failure@ and @display help@ is provided in the
+  library ('defaultDisplayHelp', 'defaultDisplayErrors') with a basic bahavior.
+  .
+  Basically @success@ becomes the \'real\' main function. It takes as argument
+  a tuple ('FlagResults', 'ArgsResults'). 'FlagResults' is a data structure
+  that can be used to query flags by using the 'get' function. 'ArgsResults' is
+  just an array of 'String' containing the remaining not-flag arguments.
+  .
+  A simple example (more in
+  <https://github.com/josercruz01/hsoptions/tree/master/examples>)
+  .
+  > import System.Console.HsOptions
+  >
+  > userName = make ( "user_name",
+  >                 , "the user name of the app",
+  >                 , [ parser stringParser,
+  >                   , aliasIs ["u"]
+  >                   ]
+  >                 )
+  > userAge = make ("age", "the age of the user", [parser intParser])
+  >
+  > flagData = combine [flagToData userName, flagToData userAge]
+  >
+  > main :: IO ()
+  > main = processMain "Simple example for HsOptions."
+  >                    flagData
+  >                    success
+  >                    failure
+  >                    defaultDisplayHelp
+  >
+  > success :: ProcessResults -> IO ()
+  > success (flags, args) = do let nextAge = (flags `get` userAge) + 5
+  >                            putStrLn ("Hello " ++ flags `get` userName)
+  >                            putStrLn ("In 5 years you will be " ++
+  >                                      show nextAge ++
+  >                                      " years old!")
+  >
+  > failure :: [FlagError] -> IO ()
+  > failure errs = do putStrLn "Some errors occurred:"
+  >                   mapM_ print errs
+  .
+  At the 'processMain' function each of the input flags is validated against the
+  declared flags. Within the @success@ function you can be sure that all required
+  flags exist, all flag types are correct and all validation was successful.
+
+homepage:            https://github.com/josercruz01/hsoptions
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Jose Raymundo Cruz
+maintainer:          jose.r.cruz01@gmail.com
+copyright:           (c) Jose Raymundo Cruz (jose.r.cruz01@gmail.com)
+category:            System
+build-type:          Simple
+cabal-version:       >=1.8
+extra-source-files:  README.md
+source-repository    head
+           type:     git
+           location: https://github.com/josercruz01/hsoptions
+
+library
+  exposed-modules:
+    System.Console.HsOptions
+    System.Console.HsOptions.Parser
+    System.Console.HsOptions.ParserCore
+    System.Console.HsOptions.Types
+    System.Console.HsOptions.Core
+  -- other-modules:
+  build-depends:     base == 4.6.*,
+                     containers == 0.5.*,
+                     parsec == 3.1.*,
+                     regex-posix == 0.95.*,
+                     regex-compat == 0.95.*,
+                     directory == 1.2.*
+  hs-source-dirs:    src
+  ghc-options:       -Wall
+
+test-suite unit-tests
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    tests/unit, src
+  main-is:           MainTestSuite.hs
+  ghc-options:       -Wall
+  other-modules:     UnitTestHelper, 
+                     System.Console.HsOptionsTestHelpers
+  build-depends:     base == 4.6.*,
+                     hsoptions,
+                     containers == 0.5.*,
+                     parsec == 3.1.*,
+                     directory == 1.2.*,
+                     regex-posix == 0.95.*,
+                     regex-compat == 0.95.*,
+                     HUnit >=1.2 && <2,
+                     QuickCheck >=2.4 && <=2.7,
+                     test-framework == 0.8.*,
+                     test-framework-hunit == 0.3.*,
+                     test-framework-quickcheck2 == 0.3.*
+
+-- Example programs
+executable SimpleFlag
+  main-is:           SimpleFlag.hs
+  hs-source-dirs:    examples
+  build-depends:     base == 4.6.*,
+                     hsoptions
+
+executable ComplexFlag
+  main-is:           ComplexFlag.hs
+  hs-source-dirs:    examples
+  ghc-options:       -Wall
+  build-depends:     base == 4.6.*,
+                     hsoptions
+
+executable DependentDefaultsDemo
+  main-is:           DependentDefaultsDemo.hs
+  hs-source-dirs:    examples
+  ghc-options:       -Wall
+  build-depends:     base == 4.6.*,
+                     hsoptions
+
+
+package-hashes:
+    MD5:cb78e4d3fc5b69212312d61d265099f0
+    SHA1:5647d68771133dc328e46d2e808745f437413fe2
+    SHA256:c13af099d97541e419c1929d0b12506b573092235a0d79cb1b7af1a7ea8b9ab0
+    SHA512:a96da27917d134c3734b5929940401d3caf029cd44ceaa210ba23cead9a063749d350eb2bbc179436c425817857894e553e9670512b0420702adab59e06aa05e
+    Skein512_512:fa000a11170bf64f5485804f03dc8cd592d0dafcb2b62139376d14e3b46e3fccb5c55cb97943f97fa2d35b69218329b5bbe53100a04f0d036b651763aa461fe6
+
+package-locations:
+    https://hackage.haskell.org/package/hsoptions-1.0.0.0/hsoptions-1.0.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hsoptions-1.0.0.0.tar.gz
+

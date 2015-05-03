@@ -1,0 +1,149 @@
+
+name:                hsbencher
+version:             1.0
+-- CHANGELOG:
+-- 1.0 : Initial release, new flexible benchmark format.
+
+synopsis:  Flexible benchmark runner for Haskell and non-Haskell benchmarks.
+
+description: Benchmark frameworks are usually very specific to the
+  host language/environment.  Hence they are usually about as reusable
+  as compiler passes (that is, not).
+
+
+  Nevertheless, hsbencher is an attempt at a reusable benchmark
+  framework.  It knows fairly little about what the benchmarks do, and
+  is mostly concerned with defining and iterating through
+  configuration spaces (e.g. varying the number of threads), and
+  managing the data that results.
+
+
+  Benchmark data is stored in simple text files, and optionally
+  uploaded to Google Fusion Tables.
+
+  -- TODO: Describe clusterbench functionality when it's ready.
+
+
+  hsbencher attempts to stradle the divide between language-specific
+  and language-agnostic by having an extensible set of `BuildMethod`s.
+  As shipped, hsbencher knows a little about cabal, ghc, and less
+  about Make, but it can be taught more.
+
+
+  The general philosophy is to have benchmarks follow a simple
+  protocol, for example printing out a line "SELFTIMED: 3.3s" if they
+  wish to report their own timing.  The focus is on benchmarks that
+  run long enough to run in their own process.  This is typical of
+  parallelism benchmarks and different than the fine grained
+  benchmarks that are well supported by "Criterion".
+
+
+license:             BSD3
+license-file:        LICENSE
+author:              Ryan Newton
+maintainer:          rrnewton@gmail.com
+copyright:           (c) Ryan Newton 2013
+category:            Development
+build-type:          Simple
+cabal-version:       >=1.10
+
+extra-source-files:  README.md
+                     example/make_and_ghc/runit.sh
+                     example/make_and_ghc/benchmark.hs
+                     example/make_and_ghc/bench1/Makefile
+                     example/make_and_ghc/bench1/hello.c
+                     example/make_and_ghc/bench2/Hello.hs
+                     example/cabal/runit.sh
+                     example/cabal/benchmark.hs
+                     example/cabal/bench1/bench1.cabal
+                     example/cabal/bench1/Hello.hs
+
+Flag fusion
+  description:
+      Add support for Google Fusion Table upload of benchmark data.
+  default: False  
+
+Library 
+  source-repository head
+    type:  git
+    location: https://github.com/rrnewton/HSBenchScaling.git
+
+  exposed-modules: HSBencher
+                   HSBencher.App
+                   HSBencher.Types
+                   HSBencher.Logging
+                   HSBencher.Methods
+                   HSBencher.Utils
+                   HSBencher.MeasureProcess
+  other-modules: Paths_hsbencher
+  build-depends:   
+      -- base ==4.6.*, bytestring ==0.10.*, process ==1.1.*, directory ==1.2.*, filepath ==1.3.*, random ==1.0.*, 
+      -- unix ==2.6.*, containers ==0.5.*, time ==1.4.*, mtl ==2.1.*, async >= 2.0,
+      base >= 4.5 && <= 4.7, bytestring, process, directory, filepath, random, unix, containers, time, mtl, async, 
+      hydra-print >= 0.1.0.3, io-streams >= 1.0,
+      GenericPretty >= 1.2
+  default-language:    Haskell2010
+
+  if flag(fusion) {
+    build-depends: handa-gdata >= 0.6.2
+    cpp-options: -DFUSION_TABLES
+  }
+
+-- [2013.05.28] This will come back later when the new ASCII benchmark file format is finished:
+-----------------------------------------------------------------------------------------------
+-- Executable hsbencher
+--   main-is: Main.hs
+--   -- other-modules:       
+--   build-depends:
+--       -- <DUPLICATED from above>
+--       base >= 4.5, bytestring, process, directory, filepath, random, unix, containers, time, mtl, async, 
+--       hydra-print >= 0.1.0.3, io-streams >= 1.0,
+--       GenericPretty >= 1.2
+--       -- </DUPLICATED>
+
+--   ghc-options: -threaded 
+
+--   if flag(fusion) {
+--     build-depends: handa-gdata >= 0.6.2
+--     cpp-options: -DFUSION_TABLES
+--   }
+--   default-language:    Haskell2010
+
+
+Test-suite test1
+  main-is: example/cabal/benchmark.hs
+  type: exitcode-stdio-1.0
+  build-depends:
+    -- <DUPLICATED from above>
+    base >= 4.5 && <= 4.7, bytestring, process, directory, filepath, random, unix, containers, time, mtl, async, 
+    hydra-print >= 0.1.0.3, io-streams >= 1.0,
+    GenericPretty >= 1.2, hsbencher
+    -- </DUPLICATED>
+  ghc-options: -threaded 
+  default-language:  Haskell2010
+
+
+Test-suite test2
+  main-is: example/make_and_ghc/benchmark.hs
+  type: exitcode-stdio-1.0
+  build-depends:
+    -- <DUPLICATED from above>
+    base >= 4.5 && <= 4.7, bytestring, process, directory, filepath, random, unix, containers, time, mtl, async, 
+    hydra-print >= 0.1.0.3, io-streams >= 1.0,
+    GenericPretty >= 1.2, hsbencher
+    -- </DUPLICATED>
+  ghc-options: -threaded 
+  default-language:  Haskell2010
+
+
+package-hashes:
+    MD5:f944bbb91c197b59f8be2886a83429a1
+    SHA1:6e289acf32c2ae4308f20cadfdebeede603fa528
+    SHA256:a0b55cdcb0f9bb8eabc7014f3577487dc41d1f68a32bec13a8140894749590a5
+    SHA512:ba9fcf46f0d873471e7a7001cb641613f930e80ff62dd81a703bef54a07bd992f73d55a4c0519908072bd56dbc9bbf5229c9934af2997e426935c989f2b170d6
+    Skein512_512:8ac604d4240128131d2845f903cc6a49572e9ca888b19a67cce64d18aaa37ad58ff1ae1b669c9d1f1562f4004c21389cd5dfab0274428a0a98a30e96acda6c7a
+
+package-locations:
+    https://hackage.haskell.org/package/hsbencher-1.0/hsbencher-1.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hsbencher-1.0.tar.gz
+

@@ -1,0 +1,209 @@
+name:           java-bridge
+version:        0.9
+
+license:        MIT
+license-file:   LICENSE
+
+author:         Julian Fleischer <julian.fleischer@fu-berlin.de>
+maintainer:     Julian Fleischer <julian.fleischer@fu-berlin.de>
+
+stability:      experimental
+category:       Foreign, Java, JVM, FFI Tools
+
+cabal-version:  >= 1.8
+
+synopsis:       Bindings to the JNI and a high level interface generator.
+description:    This package offers bindings to the
+                /Java Native Interface/ and a high level interface
+                generator.
+                .
+                [@low level bindings to the JNI@]
+                    The low level bindings are located in
+                    "Foreign.Java.JNI.Safe" and "Foreign.Java.JNI.Unsafe".
+                    When using these bindings you will have to deal with
+                    pointers and manage global references manually.
+                .
+                [@medium level interface@]
+                    The medium level interface is located in
+                    "Foreign.Java". It offers an abstraction over the JNI,
+                    i.e. you will not have to deal with pointers
+                    explicitly nor do you need to manually do conversions
+                    between native types and Haskell types.
+                    Also references will automatically be released by
+                    the Haskell runtime when no longer needed. You will
+                    still need to manually lookup classes and methods in
+                    order to use them.
+                .
+                .
+                >>> INSTALLATION / USAGE
+                .
+                It should suffice to do @cabal install@ (or
+                @cabal install java-bridge@ when installing from
+                hackageDB). /You need to have a JDK installed prior to
+                installing this library/.
+                .
+                Setup will try to find the location of your java
+                installation automatically. This is needed in order to
+                load @libjvm@. Note that this library is loaded
+                dynamically, which  means that linking errors might not
+                show up during installation.
+                .
+                You can specify the location of @libjvm@ manually using
+                the environment variable @FFIJNI_LIBJVM@. This
+                environment variable is consulted by @Setup.hs@ as well
+                as by the library each time @libjvm@ is loaded - which
+                means that you can override the path to @libjvm@ at any
+                time. The function @getCompiledLibjvmPath@ in
+                "Foreign.Java.JNI.Safe" will tell you what path to
+                @libjvm@ has been set during compilation of the library.
+                .
+                .
+                >>> FUN WITH (cabal-) FLAGS
+                .
+                The following cabal flags are available to you for
+                configuring your installation:
+                .
+                [@ONLY_CORE@]
+                    Build only the Core Modules which offer a
+                    direct binding to the Java Native Interface.
+                    The core modules are "Foreign.Java.JNI",
+                    "Foreign.Java.JNI.Safe",
+                    and "Foreign.Java.JNI.Unsafe".
+                    This implies @NO_TOOLS@.
+                    Defaults to @False@.
+                .
+                [@DEBUG@]
+                    Enable a debug build. Defaults to @False@.
+                .
+                [@OSX_GUI@]
+                    Build the library with special support for
+                    Cocoa on Mac OS X (you will not be able to
+                    use AWT or Swing without). Defaults to @True@
+                    on Darwin (OS X).
+                .
+                [@OSX_FRAMEWORK@]
+                    Use the JavaVM framework on MacOS X instead
+                    of loading the dynamic library. Defaults to
+                    @False@. Enable this flag if building on your
+                    OS X machine fails. Defaults to @False@.
+                .
+                Use for example
+                @cabal install -f OSX_FRAMEWORK -f EXAMPLES@
+                or @cabal configure -f DEBUG@.
+                
+build-type:     Custom
+
+extra-source-files: include/jni.h,
+                    src/Foreign/Java/JNI/core.hs,
+                    src/ffijni.h,
+                    src/hfunction.h,
+                    GetProperty.java,
+                    HFunction.java,
+                    ReadClass.java,
+                    HACKING.txt,
+                    ISSUES.txt,
+                    README.md
+
+flag ONLY_CORE
+    Description:    Build only the Core Modules which offer a
+                    direct binding to the Java Native Interface.
+    Default:        False
+
+flag DEBUG
+    Description:    Enable a debug build.
+    Default:        False
+
+flag OSX_GUI
+    Description:    Build the library with special support for
+                    Cocoa on Mac OS X.
+    Default:        True
+
+flag OSX_FRAMEWORK
+    Description:    Use the JavaVM framework on MacOS X instead
+                    of loading the dynamic library.
+    Default:        False
+
+
+Library
+    cc-options:         -DFFIJNI_BRIDGE_VERSION="1.0"
+    cpp-options:        -DFFIJNI_BRIDGE_VERSION="1.0"
+
+    build-depends:      base >= 4.5 && < 5
+                        , directory >= 1.1.0.2
+                        , filepath >= 1.3
+
+    hs-source-dirs:     src
+
+    exposed-modules:    Foreign.Java.JNI,
+                        Foreign.Java.JNI.Safe,
+                        Foreign.Java.JNI.Unsafe
+
+    other-modules:      Foreign.Java.JNI.Types
+
+    if flag(ONLY_CORE)
+        cc-options:         -DFFIJNI_ONLY_CORE
+        cpp-options:        -DFFIJNI_ONLY_CORE
+
+    else
+        exposed-modules:    Foreign.Java
+                            , Foreign.Java.Bindings
+                            , Foreign.Java.Utils
+                            , Foreign.Java.Value
+
+        build-depends:      cpphs >= 1.16
+                            , strings >= 1.1
+                            , mtl >= 2.1.1
+                            , transformers >= 0.3
+
+        other-modules:      Foreign.Java.Types
+                            , Foreign.Java.JavaMonad
+                            , Foreign.Java.Util
+
+    if flag(DEBUG)
+        cc-options:         -DFFIJNI_DEBUG
+        cpp-options:        -DFFIJNI_DEBUG
+
+    c-sources:          src/ffijni.c
+    includes:           src/ffijni.h
+    cc-options:         -Wall --std=c99
+
+    if os(darwin)
+        buildable: True
+        cc-options: -Wno-deprecated-declarations -DFFIJNI_MACOSX
+        cpp-options: -DFFIJNI_MACOSX
+        build-depends: unix
+        if flag(OSX_GUI)
+            cc-options: -DFFIJNI_OSX_GUI
+            cpp-options: -DFFIJNI_OSX_GUI
+            frameworks: Cocoa
+        if flag(OSX_FRAMEWORK)
+            cc-options: -DFFIJNI_OSX_FRAMEWORK
+            cpp-options: -DFFIJNI_OSX_FRAMEWORK
+            frameworks: JavaVM
+    else
+        if os(linux)
+            buildable: True
+            cc-options: -DFFIJNI_LINUX
+            cpp-options: -DFFIJNI_LINUX
+            build-depends: unix
+        else
+            if os(windows)
+                buildable: True
+                cc-options: -DFFIJNI_WINDOWS
+                cpp-options: -DFFIJNI_WINDOWS
+            else
+                buildable: False
+
+
+
+package-hashes:
+    MD5:730218a3b101a3055e2be2f93ccae57b
+    SHA1:75fa0809250e6f8f90342b90329fe3e5ddaf0d6d
+    SHA256:1ee92e22b4c6e09cda080fb26d43ca8046dae91b3365d3b90739ae5bdbd11452
+    SHA512:1fd2c1a0cbaf4e5e705cf155083511eb1fe0cb9e9da40d5e34eb9deaa278e5d4b21565313a2f6981561bdc2ab75d39e572b87ead323d68fffbd60c94873b3f80
+    Skein512_512:21a743477bda16f31ca87cf343de1b1c030008149c6ae30c415a0fdc8303ee639921c3cfb6f91976d27f86e3eb22666abae128a47f18b208f64c593805032c2f
+
+package-locations:
+    https://hackage.haskell.org/package/java-bridge-0.9/java-bridge-0.9.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/java-bridge-0.9.tar.gz
+

@@ -1,0 +1,142 @@
+Name:           intel-aes
+Version:        0.2.1.1
+
+-- 0.1.2.4  -- minor bump for David (dmpots) Mac OS support
+-- 0.2.0.0  -- major bump for API reorg
+-- 0.2.1.0  -- include prebuilts and tested with 6.12, 7.0, 7.2
+-- 0.2.1.1  -- removed deps on c_test.c
+
+License:                BSD3
+License-file:           LICENSE
+Stability:              Beta
+Maintainer:		Ryan Newton <rrnewton@gmail.com>
+Author:			Ryan Newton <rrnewton@gmail.com>, 
+                        Svein Ove Aas <svein.ove@aas.no>, Thomas M. DuBuisson <thomas.dubuisson@gmail.com>
+Copyright:              Copyright (c) 2011 Intel Corporation
+Synopsis:               Hardware accelerated AES encryption and Random Number Generation.
+HomePage:               https://github.com/rrnewton/intel-aes/wiki
+Description: 
+  AES encryption with optional hardware acceleration.  Plus,
+  statistically sound, splittable random number generation based on AES.
+  This package is nothing more than a wrapper around the Intel-provided
+  AESNI sample library which also includes a portable software
+  implementation of AES by Brian Gladman.  It contains C,
+  assembly, and Haskell sources.  And it includes prebuilt dynamic
+  libraries to make the build process less fragile.
+  (Rebuilding requires the @yasm@ assembler.)  But prebuilt shared
+  libraries are not included for all platforms yet.  (Volunteers
+  needed!)
+
+  -- Regarding portability, see:
+  --   https://github.com/rrnewton/intel-aes/issues/#issue/1
+
+  Finally, note that this package is currently triggering some haddock
+  problems. A manually built copy of the documentation can be found
+  at:
+
+    <http://cs.indiana.edu/~rrnewton/intel-aes-doc/>
+
+-- Here are some example results from an Intel X5680 processor.
+
+--  How many random numbers can we generate in a second on one thread?
+-- 	  First, timing with System.Random interface:
+-- 	     14,482,725 random ints generated [System.Random stdGen]    
+-- 		 16,061 random ints generated [PureHaskell/reference]   
+-- 		 32,309 random ints generated [PureHaskell]             
+-- 	      2,401,893 random ints generated [Gladman inefficient]     
+-- 	     15,980,625 random ints generated [Gladman]                 
+-- 	      2,329,500 random ints generated [IntelAES inefficient]    
+-- 	     32,383,799 random ints generated [IntelAES]                
+-- 	 Comparison to C's rand():
+-- 	     71,347,778 random ints generated [rand in Haskell loop]    
+
+
+
+Category: Cryptography
+Cabal-Version: >=1.8
+Tested-With: GHC == 7.0.1
+-- Portability: Works on Linux, Mac OS.  Untested on Windows.
+
+build-type: Custom
+
+extra-source-files:
+      cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/Makefile
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/asm/x64/do_rdtsc.s
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/asm/x64/iaesx64.s
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/asm/x86/do_rdtsc.s
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/asm/x86/iaesx86.s
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/include/iaes_asm_interface.h
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/include/iaesni.h
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/mk_lnx_lib.sh
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/mk_win_lib.bat
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/src/aessample.c
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/src/aessampletiming.cpp
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/src/intel_aes.c
+    , cbits/Intel_AESNI_Sample_Library_v1.0/intel_aes_lib/where_files_come_from_and_license.txt
+    , cbits/Makefile
+    , cbits/c_test.c
+
+    -- Including the gladman implementation for now as well:
+    , cbits/gladman/aes.h, cbits/gladman/aesopt.h, cbits/gladman/aestab.h
+    , cbits/gladman/brg_endian.h, cbits/gladman/brg_types.h, cbits/gladman/aes.txt
+    , cbits/gladman/aes_via_ace.h, cbits/gladman/ctr_inc.h
+
+    , benchmark-intel-aes-rng.hs
+    , cbits/prebuilt/libintel_aes_linux_x86_64.so
+    , cbits/prebuilt/libintel_aes_darwin_x86_64.dylib
+
+
+
+source-repository head
+  type:     git
+  location: git://github.com/rrnewton/intel-aes.git
+
+
+----------------------------------------------------------------------------------------------------
+library
+  build-depends:  base >= 4 && < 5, random, DRBG, split, process, time,
+                  crypto-api >= 0.5, 
+                  bytestring, cereal, tagged, largeword,
+                  -- For AES.Tests only:
+                  rdtsc, unix
+
+  exposed-modules: 
+                    System.Random.AES
+                 ,  Codec.Crypto.ConvertRNG
+                 ,  System.Random.AES.Tests
+  other-modules:  
+                    Benchmark.BinSearch
+                 ,  Codec.Encryption.AES
+                 ,  Codec.Encryption.AESAux
+                 ,  Codec.Utils
+                 ,  Codec.Encryption.BurtonRNGSlow
+                 ,  Codec.Crypto.IntelAES.AESNI
+                 ,  Codec.Crypto.GladmanAES
+  GHC-Options: -O2 
+  extra-libraries: intel_aes
+
+  -- The gladman sources are straightforward and can be built by Cabal (unlike the intel C/asm)
+  C-sources: cbits/gladman/aescrypt.c, cbits/gladman/aeskey.c, cbits/gladman/aestab.c,
+             cbits/gladman/aes_modes.c, cbits/gladman/ctr_inc.c
+
+  -- Include this script as well:
+  -- data-files: benchmark-intel-aes-rng.hs
+  Include-Dirs: cbits
+
+-- ----------------------------------------------------------------------------------------------------
+
+-- Example documentation generation command:
+--    cabal haddock --hoogle --executables --hyperlink-source --haddock-options="--html"
+
+
+package-hashes:
+    MD5:c7dc8ddfd4d7c62a4706c541d3aedde6
+    SHA1:380d56f246953d300467528720015b9ae55837db
+    SHA256:a9b231a7c0286a3082786f50e9e86c05f49696749d70a2d7abe953eb694b9e85
+    SHA512:86116ae2d26fe1f24cae31e455aceaaab69b9cd45146d7de8ba6e44c564f692d26a830e1e51819a4c8de4483be37c3bf3f830595d403cb42a980e88a6fe8f3d5
+    Skein512_512:f5b5b4fe56a34acf3715a182baabb0f99088439221a52ce544c696e25a06df2928df1f3a95cf2d49b414b19643977711710b02e4ed2173ba05ca34f46518246a
+
+package-locations:
+    https://hackage.haskell.org/package/intel-aes-0.2.1.1/intel-aes-0.2.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/intel-aes-0.2.1.1.tar.gz
+

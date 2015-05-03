@@ -1,0 +1,159 @@
+Name:               hmatrix
+Version:            0.5.1.1
+License:            GPL
+License-file:       LICENSE
+Author:             Alberto Ruiz
+Maintainer:         Alberto Ruiz <aruiz@um.es>
+Stability:          provisional
+Homepage:           http://www.hmatrix.googlepages.com
+Synopsis:           Linear algebra and numerical computations
+Description:        This library provides a purely functional interface to basic linear algebra
+                    and other numerical computations, internally implemented using
+                    GSL, BLAS and LAPACK.
+Category:           Math
+tested-with:        GHC ==6.10.2
+
+cabal-version:      >=1.2
+build-type:         Simple
+extra-source-files: lib/Numeric/LinearAlgebra/Tests/quickCheckCompat.h
+
+
+flag splitBase
+    description:    Choose the new smaller, split-up base package.
+
+flag mkl
+    description:    Link with Intel's MKL optimized libraries.
+    default:        False
+
+flag accelerate
+    description:    Use the accelerate framework for LAPACK/BLAS on OS X
+    default:        False
+
+flag unsafe
+    description: Compile the library with bound checking disabled.
+    default: False
+
+
+library
+    if flag(splitBase)
+      build-depends:    base >= 3, array, QuickCheck, HUnit, storable-complex
+    else
+      build-depends:    base < 3, QuickCheck, HUnit, storable-complex
+
+    Build-Depends:      haskell98
+    Extensions:         ForeignFunctionInterface,
+                        CPP
+
+    hs-source-dirs:     lib
+    Exposed-modules:    Data.Packed,
+                        Data.Packed.Vector,
+                        Data.Packed.Matrix,
+                        Numeric.GSL.Differentiation,
+                        Numeric.GSL.Integration,
+                        Numeric.GSL.Fourier,
+                        Numeric.GSL.Polynomials,
+                        Numeric.GSL.Minimization,
+                        Numeric.GSL.Vector,
+                        Numeric.GSL.Special,
+                        Numeric.GSL.Special.Gamma,
+                        Numeric.GSL.Special.Erf,
+                        Numeric.GSL.Special.Airy,
+                        Numeric.GSL.Special.Exp,
+                        Numeric.GSL.Special.Bessel,
+                        Numeric.GSL.Special.Clausen,
+                        Numeric.GSL.Special.Coulomb,
+                        Numeric.GSL.Special.Coupling,
+                        Numeric.GSL.Special.Dawson,
+                        Numeric.GSL.Special.Debye,
+                        Numeric.GSL.Special.Dilog,
+                        Numeric.GSL.Special.Elementary,
+                        Numeric.GSL.Special.Ellint,
+                        Numeric.GSL.Special.Expint,
+                        Numeric.GSL.Special.Fermi_dirac,
+                        Numeric.GSL.Special.Gegenbauer,
+                        Numeric.GSL.Special.Hyperg,
+                        Numeric.GSL.Special.Laguerre,
+                        Numeric.GSL.Special.Lambert,
+                        Numeric.GSL.Special.Pow_int,
+                        Numeric.GSL.Special.Psi,
+                        Numeric.GSL.Special.Synchrotron,
+                        Numeric.GSL.Special.Trig,
+                        Numeric.GSL.Special.Zeta,
+                        Numeric.GSL.Special.Log,
+                        Numeric.GSL.Special.Legendre,
+                        Numeric.GSL,
+                        Numeric.LinearAlgebra,
+                        Numeric.LinearAlgebra.LAPACK,
+                        Numeric.LinearAlgebra.Linear,
+                        Numeric.LinearAlgebra.Instances,
+                        Numeric.LinearAlgebra.Interface,
+                        Numeric.LinearAlgebra.Algorithms,
+                        Graphics.Plot,
+                        Numeric.LinearAlgebra.Tests
+                        Data.Packed.Convert
+                        Data.Packed.ST
+    other-modules:      Data.Packed.Internal,
+                        Data.Packed.Internal.Common,
+                        Data.Packed.Internal.Vector,
+                        Data.Packed.Internal.Matrix,
+                        Numeric.GSL.Special.Internal,
+                        Numeric.LinearAlgebra.Tests.Instances,
+                        Numeric.LinearAlgebra.Tests.Properties
+    C-sources:          lib/Numeric/LinearAlgebra/LAPACK/lapack-aux.c,
+                        lib/Numeric/GSL/gsl-aux.c
+
+    ghc-prof-options:   -auto-all
+
+    ghc-options:        -Wall -fno-warn-missing-signatures -fno-warn-orphans -fno-warn-unused-binds
+
+    if flag(unsafe)
+        cpp-options: -DUNSAFE
+
+    if impl(ghc < 6.10.2)
+        cpp-options: -DFINIT
+
+    if flag(mkl)
+      if arch(x86_64)
+        extra-libraries:   gsl mkl_lapack mkl_intel_lp64 mkl_sequential mkl_core
+      else
+        extra-libraries:   gsl mkl_lapack mkl_intel mkl_sequential mkl_core
+    else
+      if flag(accelerate)
+        frameworks: Accelerate
+        extra-libraries: gsl
+      else
+
+        extra-libraries: gsl lapack
+
+        -- Include additional libraries if they are
+        -- required by your system to link -lgsl -llapack
+
+        -- (In ubuntu/debian cblas is included in blas,
+        --  which is automatically linked by lapack, so
+        -- nothing more is required.)
+
+        -- Examples:
+
+            -------- if blas/cblas are not automatically linked by lapack:
+            -- blas cblas
+
+            -------- Nonoptimized cblas included in gsl:
+            -- gslcblas
+
+            -------- Arch Linux with atlas-lapack:
+            -- f77blas cblas atlas gcc_s
+            -------- Arch Linux with normal blas and lapack:
+            -- blas gslcblas gfortran
+
+
+package-hashes:
+    MD5:cbd0df482294e67e2c52111e2efc9dfb
+    SHA1:b445b6d39cf18bf71511820d5a934dc47f30de83
+    SHA256:f545cf4973653091f3ef8e37caf857f2a95e8370d8cb251863fbda80eb1575c6
+    SHA512:ec41b56a859ee9dd7a8d6215943fdac5f828348edc47f06970b1013055e24c7034fdc7f7e93736bbe1bac8519077cdf6730a638f29e744697c44dfde03da6cb1
+    Skein512_512:3c871576d8641c4c02626f4910581969b37b72a7ac9c7e9b532af43f7f22cadd4bedee99c313e5a856408002f65a955fb39f6a6ec11d14bc00e7f4f50ede91e7
+
+package-locations:
+    https://hackage.haskell.org/package/hmatrix-0.5.1.1/hmatrix-0.5.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hmatrix-0.5.1.1.tar.gz
+

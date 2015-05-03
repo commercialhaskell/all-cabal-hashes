@@ -1,0 +1,288 @@
+name:           hledger-web
+-- also in cpp-options below
+version: 0.19
+category:       Finance
+synopsis:       A web interface for the hledger accounting tool.
+description:    
+                hledger is a library and set of user tools for working
+                with financial data (or anything that can be tracked in a
+                double-entry accounting ledger.) It is a haskell port and
+                friendly fork of John Wiegley's Ledger. hledger provides
+                command-line, curses and web interfaces, and aims to be a
+                reliable, practical tool for daily use.
+
+license:        GPL
+license-file:   LICENSE
+author:         Simon Michael <simon@joyful.com>
+maintainer:     Simon Michael <simon@joyful.com>
+homepage:       http://hledger.org
+bug-reports:    http://code.google.com/p/hledger/issues
+stability:      beta
+tested-with:    GHC==7.4.2
+cabal-version:  >= 1.8
+build-type:     Simple
+extra-tmp-files:
+extra-source-files:
+                messages/en.msg
+                config/routes
+                static/style.css
+                static/hledger.js
+                static/jquery.js
+                static/jquery.url.js
+                static/jquery.flot.js
+                static/dhtmlxcommon.js
+                static/dhtmlxcombo.js
+                static/excanvas.min.js
+                static/combo_select.gif
+                static/favicon.ico
+
+source-repository head
+  type:     darcs
+  location: http://joyful.com/repos/hledger
+
+-- Flag production
+--     Description:   Build fully optimised and with web files embedded (not loaded from ./static/)
+--     Default:       True
+
+flag threaded
+    Description:   Build with support for multithreaded execution.
+    Default:       True
+
+flag blaze_html_0_5
+    description:   Use the newer 0.5 version of blaze-html and blaze-markup.
+    default:       True
+
+
+flag dev
+    Description:   Turn on development settings, like auto-reload templates.
+    Default:       False
+
+flag library-only
+    Description:   Build for use with "yesod devel"
+    Default:       False
+
+
+library
+    hs-source-dirs:  . app
+
+    exposed-modules: Application
+                     Foundation
+                     Import
+                     Settings
+                     Settings.StaticFiles
+                     Settings.Development
+                     Handler.Handlers
+    other-modules:
+                      Hledger.Web
+                      Hledger.Web.Main
+                      Hledger.Web.Options
+
+    -- if flag(library-only)
+    --     Buildable: True
+    -- else
+    --     Buildable: False
+
+    ghc-options:   -Wall -fno-warn-unused-do-bind
+    cpp-options:   -DVERSION="0.19"
+    if flag(dev) || flag(library-only)
+        cpp-options:   -DDEVELOPMENT
+
+    extensions: TemplateHaskell
+                QuasiQuotes
+                OverloadedStrings
+                NoImplicitPrelude
+                CPP
+                MultiParamTypeClasses
+                TypeFamilies
+                GADTs
+                GeneralizedNewtypeDeriving
+                FlexibleContexts
+                EmptyDataDecls
+                NoMonomorphismRestriction
+
+    build-depends: base                          >= 4          && < 5
+                 -- , yesod-platform                >= 1.1        && < 1.2
+                 , yesod                         >= 1.1        && < 1.2
+                 , yesod-core                    >= 1.1.2      && < 1.2
+                 , yesod-static                  >= 1.1        && < 1.2
+                 , yesod-default                 >= 1.1        && < 1.2
+                 , yesod-form                    >= 1.1        && < 1.2
+                 , clientsession                 >= 0.8        && < 0.9
+                 , bytestring                    >= 0.9        && < 0.11
+                 , text                          >= 0.11       && < 0.12
+                 , template-haskell
+                 , hamlet                        >= 1.1        && < 1.2
+                 , shakespeare-css               >= 1.0        && < 1.1
+                 , shakespeare-js                >= 1.0        && < 1.1
+                 , shakespeare-text              >= 1.0        && < 1.1
+                 , hjsmin                        >= 0.1        && < 0.2
+                 , monad-control                 >= 0.3        && < 0.4
+                 , wai-extra                     >= 1.3        && < 1.4
+                 , yaml                          >= 0.8        && < 0.9
+                 , http-conduit                  >= 1.8        && < 1.9
+                 , directory                     >= 1.1        && < 1.3
+                 , warp                          >= 1.3        && < 1.4
+                 , data-default
+
+                   , hledger == 0.19.1
+                   , hledger-lib == 0.19.1
+                   , cmdargs >= 0.10 && < 0.11
+                   , directory
+                   , filepath
+                   , HUnit
+                   , io-storage >= 0.3 && < 0.4
+                   , network-conduit
+                   , old-locale
+                   , parsec
+                   , regexpr >= 0.5.1
+                   , safe >= 0.2
+                   , time
+                   , transformers
+                   , wai
+                   , wai-extra
+                   , warp
+                   , yaml
+
+    if flag(blaze_html_0_5)
+      cpp-options:   -DBLAZE_HTML_0_5
+      build-depends:
+                     blaze-html               >= 0.5     && < 0.6
+                   , blaze-markup             >= 0.5.1   && < 0.6
+    else
+      build-depends:
+                     blaze-html               >= 0.4     && < 0.5
+
+
+executable         hledger-web
+    cpp-options:   -DVERSION="0.19"
+
+    if flag(library-only)
+        Buildable: False
+
+    if flag(dev)
+        cpp-options:   -DDEVELOPMENT
+        ghc-options:   -O0 -Wall -fno-warn-unused-do-bind
+    else
+        ghc-options:   -O2 -Wall -fno-warn-unused-do-bind
+
+    if flag(threaded)
+        ghc-options:   -threaded
+
+    extensions: TemplateHaskell
+                QuasiQuotes
+                OverloadedStrings
+                NoImplicitPrelude
+                CPP
+                OverloadedStrings
+                MultiParamTypeClasses
+                TypeFamilies
+
+    hs-source-dirs:  . app
+
+    main-is:       main.hs
+    other-modules:
+                     Application
+                     Foundation
+                     Import
+                     Settings
+                     Settings.StaticFiles
+                     Settings.Development
+                     Handler.Handlers
+                     Hledger.Web
+                     Hledger.Web.Main
+                     Hledger.Web.Options
+
+    build-depends:
+                     hledger-web
+                   , hledger == 0.19.1
+                   , hledger-lib == 0.19.1
+                   , base                          >= 4.3        && < 5
+                   , cmdargs >= 0.10 && < 0.11
+                   , directory
+                   , filepath
+                   , HUnit
+                   , io-storage >= 0.3 && < 0.4
+                   , old-locale
+                   , parsec
+                   , regexpr >= 0.5.1
+                   , safe >= 0.2
+                   , time
+
+                   -- , yesod-platform                == 1.1.*
+                   , yesod >= 1.1.3 && < 1.2
+                   , yesod-core
+                   , yesod-default
+                   , yesod-static
+                   , clientsession
+                   , hamlet
+                   , network-conduit
+                   , shakespeare-text
+                   , template-haskell
+                   , text
+                   , transformers
+                   , wai
+                   , wai-extra
+                   , warp
+                   , yaml
+                   , hjsmin                        >= 0.1        && < 0.2
+                   , http-conduit                  >= 1.8        && < 1.9
+
+    if flag(blaze_html_0_5)
+      cpp-options:   -DBLAZE_HTML_0_5
+      build-depends:
+                     blaze-html               >= 0.5     && < 0.6
+                   , blaze-markup             >= 0.5.1   && < 0.6
+    else
+      build-depends:
+                     blaze-html               >= 0.4     && < 0.5
+
+    build-depends:
+                 --  base                          >= 4          && < 5
+                 -- -- , yesod-platform                >= 1.1        && < 1.2
+                 -- , yesod                         >= 1.1        && < 1.2
+                 -- , yesod-core                    >= 1.1.2      && < 1.2
+                 -- , yesod-static                  >= 1.1        && < 1.2
+                 -- , yesod-default                 >= 1.1        && < 1.2
+                 -- , yesod-form                    >= 1.1        && < 1.2
+                 -- , clientsession                 >= 0.8        && < 0.9
+                 -- , bytestring                    >= 0.9        && < 0.11
+                 -- , text                          >= 0.11       && < 0.12
+                 -- , template-haskell
+                 -- , hamlet                        >= 1.1        && < 1.2
+                 -- , shakespeare-css               >= 1.0        && < 1.1
+                 -- , shakespeare-js                >= 1.0        && < 1.1
+                 -- , shakespeare-text              >= 1.0        && < 1.1
+                 -- , hjsmin                        >= 0.1        && < 0.2
+                 -- , monad-control                 >= 0.3        && < 0.4
+                 -- , wai-extra                     >= 1.3        && < 1.4
+                 -- , yaml                          >= 0.8        && < 0.9
+                 -- , http-conduit                  >= 1.8        && < 1.9
+                 -- , directory                     >= 1.1        && < 1.3
+                 -- , warp                          >= 1.3        && < 1.4
+                  data-default
+
+test-suite test
+    type:              exitcode-stdio-1.0
+    main-is:           main.hs
+    hs-source-dirs:    tests
+    ghc-options:       -Wall
+
+    build-depends: 
+                   base
+                 , hledger-web
+                 , yesod-test >= 0.3 && < 0.4
+                 , yesod-default
+                 , yesod-core
+
+
+package-hashes:
+    MD5:b705db8f17fc0b8b9452f0b72f6c8ccf
+    SHA1:855a5094fcd389122f20a9d67a56d90695138238
+    SHA256:e3224cf31989bcf0b9006836688838dcf4a6c048027cf8b7fb5b49d2f905025d
+    SHA512:d8072ec6fbf287bcebf73ccd665bc1900caa78ef30a093d55a254d0f4dabab3796cdae22d24231079cd5910b188fe05a882d21cfad7a0f49bbf5869bfe59714c
+    Skein512_512:d4af19ca8317dce0f4890382b522cd5a46510f4db0bd1fa94ec4ebae7aad0bef31e391ef5c7468d1bc6b2f8fa68ca239effb5cdea650610ecc011dc93dd13568
+
+package-locations:
+    https://hackage.haskell.org/package/hledger-web-0.19/hledger-web-0.19.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hledger-web-0.19.tar.gz
+

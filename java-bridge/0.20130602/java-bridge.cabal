@@ -1,0 +1,355 @@
+name:           java-bridge
+version:        0.20130602
+
+license:        MIT
+license-file:   LICENSE
+
+author:         Julian Fleischer <julian.fleischer@fu-berlin.de>
+maintainer:     Julian Fleischer <julian.fleischer@fu-berlin.de>
+
+stability:      experimental
+category:       Foreign, Java, JVM, FFI Tools
+
+cabal-version:  >= 1.8
+
+synopsis:       Bindings to the JNI and a high level interface generator.
+description:    This package offers bindings to the /Java Native Interface/
+                and a high level interface generator.
+                .
+                [@low level bindings to the JNI@]
+                    The low level bindings are located in "Foreign.Java.JNI.Safe"
+                    and "Foreign.Java.JNI.Unsafe". When using these bindings you
+                    will have to deal with pointers and manage global references
+                    manually.
+                .
+                [@medium level interface@]
+                    The medium level interface is located in "Foreign.Java".
+                    It offers an abstraction over the JNI, i.e. you will not
+                    have to deal with pointers explicitly nor do you need to
+                    manually do conversions between native types and Haskell
+                    types. Also references will automatically be released by
+                    the Haskell runtime when no longer needed. You will still
+                    need to manually lookup classes and methods in order to use
+                    them.
+                .
+                [@high level bindings generator@]
+                    You can also generate high level bindings using the tools
+                    @j2hs@ and @hs2j@ that come along with this package. The tools
+                    works in both directions, i.e. you can generate glue code to use
+                    existing Java libraries from within Haskell as well as to use
+                    Haskell from within Java. This is the most convenient way
+                    to deal with a Java library.
+                .
+                .
+                >>> INSTALLATION / USAGE
+                .
+                It should suffice to do @cabal install@ (or
+                @cabal install java-bridge@ when installing from hackageDB).
+                /You need to have a JDK installed prior to installing this library/.
+                .
+                Setup will try to find the location of your java installation
+                automatically. This is needed in order to load @libjvm@.
+                Note that this library is loaded dynamically, which
+                means that linking errors might not show up during installation.
+                .
+                You can specify the location of @libjvm@ manually using the
+                environment variable @FFIJNI_LIBJVM@. This environment variable
+                is consulted by @Setup.hs@ as well as by the library each time
+                @libjvm@ is loaded - which means that you can override the path to
+                @libjvm@ at any time. The function @getCompiledLibjvmPath@ in
+                "Foreign.Java.JNI.Safe" will tell you what path to @libjvm@ has
+                been set during compilation of the library.
+                .
+                .
+                >>> FUN WITH (cabal-) FLAGS
+                .
+                The following cabal flags are available to you for configuring
+                your installation:
+                .
+                [@ONLY_CORE@]
+                    Build only the Core Modules which offer a
+                    direct binding to the Java Native Interface.
+                    The core modules are "Foreign.Java.JNI",
+                    "Foreign.Java.JNI.Safe", and "Foreign.Java.JNI.Unsafe".
+                    This implies @NO_TOOLS@.
+                    Defaults to @False@.
+                .
+                [@NO_TOOLS@]
+                    Do not build the @j2hs@ and @hs2j@ executables.
+                    Defaults to @False@.
+                .
+                [@DEBUG@]
+                    Enable a debug build. Defaults to @False@.
+                .
+                [@OSX_GUI@]
+                    Build the library with special support for
+                    Cocoa on Mac OS X (you will not be able to
+                    use AWT or Swing without). Defaults to @True@
+                    on Darwin (OS X).
+                .
+                [@OSX_FRAMEWORK@]
+                    Use the JavaVM framework on MacOS X instead
+                    of loading the dynamic library. Defaults to
+                    @False@. Enable this flag if building on your
+                    OS X machine fails. Defaults to @False@.
+                .
+                [@EXAMPLES@]
+                    Build a set of examples. They are prefixed
+                    with @java-@ and located along your haskell
+                    executables. Defaults to @False@.
+                .
+                Use for example @cabal install -f OSX_FRAMEWORK -f EXAMPLES@
+                or @cabal configure -f DEBUG@.
+                .
+                .
+                >>> HACKING
+                .
+                See @HACKING.txt@ and @ISSUES.txt@ in the tar.gz-package.
+                
+build-type:     Custom
+
+extra-source-files: src/Foreign/Java/JNI/core.hs,
+                    src/ffijni.h,
+                    GetProperty.java,
+                    examples/calculator/calculator.cabal,
+                    examples/system-properties/Makefile,
+                    HACKING.txt,
+                    ISSUES.txt,
+                    README.md
+
+flag ONLY_CORE
+    Description:    Build only the Core Modules which offer a
+                    direct binding to the Java Native Interface.
+    Default:        False
+
+flag NO_TOOLS
+    Description:    Do not build the `j2hs' and `hs2j' executables.
+    Default:        False
+
+flag DEBUG
+    Description:    Enable a debug build.
+    Default:        False
+
+flag OSX_GUI
+    Description:    Build the library with special support for
+                    Cocoa on Mac OS X.
+    Default:        True
+
+flag OSX_FRAMEWORK
+    Description:    Use the JavaVM framework on MacOS X instead
+                    of loading the dynamic library.
+    Default:        False
+
+flag EXAMPLES
+    Description:    Build a set of sample executables.
+    Default:        False
+
+
+Library
+    cc-options:         -DFFIJNI_BRIDGE_VERSION="0.20130602"
+    cpp-options:        -DFFIJNI_BRIDGE_VERSION="0.20130602"
+
+    build-depends:      base >= 4.5 && < 5
+                        , directory >= 1.1.0.2
+                        , filepath >= 1.3
+
+    hs-source-dirs:     src
+
+    exposed-modules:    Foreign.Java.JNI,
+                        Foreign.Java.JNI.Safe,
+                        Foreign.Java.JNI.Unsafe
+
+    other-modules:      Foreign.Java.JNI.Types
+
+    if flag(ONLY_CORE)
+        cc-options:         -DFFIJNI_ONLY_CORE
+        cpp-options:        -DFFIJNI_ONLY_CORE
+
+    else
+        exposed-modules:    Foreign.Java
+                            , Foreign.Java.Bindings
+                            , Foreign.Java.Bindings.JavaTypes
+                            , Foreign.Java.Bindings.HaskellTypes
+                            , Foreign.Java.Bindings.Support
+                            , Foreign.Java.Control
+                            , Foreign.Java.IO
+                            , Foreign.Java.Maybe
+                            , Foreign.Java.Utils
+                            , Foreign.Java.Value
+                            , Foreign.Java.Tutorial
+
+        build-depends:      hinduce-missingh
+                            , cpphs >= 1.16
+                            , strings >= 1.1
+                            , multimap >= 1.2
+                            -- the following are part of the Haskell Platform
+                            , mtl >= 2.1.1
+                            , syb >= 0.3.6.1
+                            , transformers >= 0.3
+                            , containers >= 0.4.2.1
+
+        other-modules:      Foreign.Java.Types
+                            , Foreign.Java.JavaMonad
+                            , Foreign.Java.Util
+                            , Foreign.Java.Bindings.ReflectJava
+                            , Foreign.Java.Bindings.ReflectHaskell
+                            , Foreign.Java.Bindings.Java2Haskell
+                            , Foreign.Java.Bindings.Haskell2Java
+                            , Foreign.Java.Bindings.JavaSE6
+                            , Foreign.Java.Bindings.Typomatic
+
+    if flag(DEBUG)
+        cc-options:         -DFFIJNI_DEBUG
+        cpp-options:        -DFFIJNI_DEBUG
+
+    c-sources:          src/ffijni.c
+    includes:           src/ffijni.h
+    cc-options:         -Wall --std=c99
+
+    if os(darwin)
+        buildable: True
+        cc-options: -Wno-deprecated-declarations -DFFIJNI_MACOSX
+        cpp-options: -DFFIJNI_MACOSX
+        build-depends: unix
+        if flag(OSX_GUI)
+            cc-options: -DFFIJNI_OSX_GUI
+            cpp-options: -DFFIJNI_OSX_GUI
+            frameworks: Cocoa
+        if flag(OSX_FRAMEWORK)
+            cc-options: -DFFIJNI_OSX_FRAMEWORK
+            cpp-options: -DFFIJNI_OSX_FRAMEWORK
+            frameworks: JavaVM
+    else
+        if os(linux)
+            buildable: True
+            cc-options: -DFFIJNI_LINUX
+            cpp-options: -DFFIJNI_LINUX
+            build-depends: unix
+        else
+            if os(windows)
+                buildable: True
+                cc-options: -DFFIJNI_WINDOWS
+                cpp-options: -DFFIJNI_WINDOWS
+            else
+                buildable: False
+
+
+Executable j2hs
+    if flag(ONLY_CORE)
+        buildable: False
+    else
+        if flag(NO_TOOLS)
+            buildable: False
+        else
+            buildable: True
+
+    hs-source-dirs: j2hs
+    main-is: Main.hs
+
+    other-modules:  Common
+                    , Options
+                    , Java2Haskell
+
+    build-depends:  base >= 4.5 && < 5
+                    , java-bridge
+                    -- The following are part of the GHC core packages:
+                    , containers >= 0.4.2.1
+                    , directory >= 1.1.0.2
+                    , filepath >= 1.3
+                    -- These are part of the Haskell Platform:
+                    , syb >= 0.3.6.1
+                    , split >= 0.2.1.1
+                    -- These are available from HackageDB:
+                    , strings >= 1.1
+                    , multimap >= 1.2
+                    , names >= 0.3.1 && < 0.4
+                    , named-records >= 0.5
+                    -- These are also available form HackageDB but from
+                    -- another maintainer than this package:
+                    , bimap >= 0.2.4
+                    , hint >= 0.3.3.4
+
+
+Executable h2js
+    if flag(ONLY_CORE)
+        buildable: False
+    else
+        if flag(NO_TOOLS)
+            buildable: False
+        else
+            buildable: True
+
+    hs-source-dirs: hs2j
+    main-is: Main.hs
+
+    other-modules:  Common
+                    , Options
+                    , Haskell2Java
+
+    build-depends:  base >= 4.5 && < 5
+                    , java-bridge
+                    -- The following are part of the GHC core packages:
+                    , containers >= 0.4.2.1
+                    , directory >= 1.1.0.2
+                    , filepath >= 1.3
+                    -- These are part of the Haskell Platform:
+                    , syb >= 0.3.6.1
+                    , split >= 0.2.1.1
+                    -- These are available from HackageDB:
+                    , strings >= 1.1
+                    , multimap >= 1.1
+                    , names >= 0.3.1 && < 0.4
+                    , named-records >= 0.5
+                    -- These are also available form HackageDB but from
+                    -- another maintainer than this package:
+                    , bimap >= 0.2.4
+                    , hint >= 0.3.3.4
+
+
+Executable java-calculator
+    if flag(EXAMPLES)
+        if os(darwin)
+            if flag(OSX_GUI)
+                buildable: True
+            else
+                buildable: False
+        else
+            buildable: True
+    else
+        buildable: False
+
+    build-depends:  base >= 4 && < 5
+                    , java-bridge
+
+    hs-source-dirs: examples/calculator/src
+    main-is: calculator.hs
+
+    ghc-options: -threaded
+
+
+Executable java-system-properties
+    if flag(EXAMPLES)
+        buildable: True
+    else
+        buildable: False
+
+    build-depends:  base >= 4 && < 5
+                    , java-bridge
+
+    hs-source-dirs: examples/system-properties
+    main-is: system-properties.hs
+
+
+
+
+package-hashes:
+    MD5:57a3e7c3d3312a4ce5a109848b16a8f1
+    SHA1:1c12fa67143b800fc017da49e306daf9983fdedb
+    SHA256:cc56169941cce6ca77ef57c2b17a51129ed4ced0ca788ce5818c9c3267704f6b
+    SHA512:f05664c8975b39aa2e34540bdd2ec6f2519f1e126bced1469bb70f4163b7fe25721444c6c9b11cb7fad41324afc7f997a787be6f09b01ba23cf40a8f7cd18774
+    Skein512_512:d288d4693204520773658344cd2481db48ba7f782a1cdb47b67f3d8b3834aef6d065072b84ed7733dae4748bf4286e631ddea0d008378e9ee4deddb5d37eb41e
+
+package-locations:
+    https://hackage.haskell.org/package/java-bridge-0.20130602/java-bridge-0.20130602.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/java-bridge-0.20130602.tar.gz
+

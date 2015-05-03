@@ -1,0 +1,287 @@
+name:           hledger-web
+version: 0.22.8
+stability:      beta
+category:       Finance
+synopsis:       A web interface for the hledger accounting tool.
+description:    
+                hledger is a library and set of user tools for working
+                with financial data (or anything that can be tracked in a
+                double-entry accounting ledger.) It is a haskell port and
+                friendly fork of John Wiegley's Ledger. hledger provides
+                command-line, curses and web interfaces, and aims to be a
+                reliable, practical tool for daily use.
+
+license:        GPL
+license-file:   LICENSE
+author:         Simon Michael <simon@joyful.com>
+maintainer:     Simon Michael <simon@joyful.com>
+homepage:       http://hledger.org
+bug-reports:    http://hledger.org/bugs
+tested-with:    GHC==7.6.3
+cabal-version:  >= 1.8
+build-type:     Simple
+extra-tmp-files:
+extra-source-files:
+                messages/en.msg
+                config/routes
+                static/css/bootstrap.css
+                static/select2.css
+                static/select2.js
+                static/select2.min.js
+                static/select2-spinner.gif
+                static/select2.png
+                static/excanvas.js
+                static/excanvas.min.js
+                static/favicon.ico
+                static/hledger.js
+                static/img/glyphicons-halflings-white.png
+                static/img/glyphicons-halflings.png
+                static/jquery.flot.js
+                static/jquery.flot.min.js
+                static/jquery.js
+                static/jquery.min.js
+                static/jquery.url.js
+                static/style.css
+                templates/default-layout.hamlet
+                templates/default-layout-wrapper.hamlet
+                templates/homepage.hamlet
+                templates/homepage.julius
+                templates/homepage.lucius
+                templates/normalize.lucius
+                CHANGES
+
+source-repository head
+    type:     git
+    location: https://github.com/simonmichael/hledger
+
+flag threaded
+    Description:   Build with support for multithreaded execution.
+    Default:       True
+
+flag blaze_html_0_4
+    description:   Use the older 0.4 version of blaze-html. No longer well tested.
+    default:       False
+
+flag dev
+    Description:   Turn on development settings, like auto-reload templates.
+    Default:       False
+
+flag library-only
+    Description:   Build for use with "yesod devel"
+    Default:       False
+
+library
+    cpp-options:   -DVERSION="0.22.8"
+    if flag(dev) || flag(library-only)
+        cpp-options: -DDEVELOPMENT
+ 
+    ghc-options:   -Wall -fno-warn-unused-do-bind
+ 
+    extensions:
+                CPP
+                MultiParamTypeClasses
+                NoImplicitPrelude
+                OverloadedStrings
+                QuasiQuotes
+                RecordWildCards
+                TemplateHaskell
+                TypeFamilies
+                -- seem to not be needed at present:
+                -- GADTs
+                -- GeneralizedNewtypeDeriving
+                -- FlexibleContexts
+                -- EmptyDataDecls
+                -- NoMonomorphismRestriction
+
+    hs-source-dirs:  . app
+    exposed-modules:  Application
+                     Foundation
+                     Import
+                     Settings
+                     Settings.StaticFiles
+                     Settings.Development
+                     Handler.Common
+                     Handler.JournalEditR
+                     Handler.JournalEntriesR
+                     Handler.JournalR
+                     Handler.Post
+                     Handler.RegisterR
+                     Handler.RootR
+                     Handler.Utils
+    other-modules:
+                     Hledger.Web
+                     Hledger.Web.Main
+                     Hledger.Web.Options
+                     -- Setup -- stops yesod devel complaining, requires build-depends: Cabal
+    build-depends:
+                     hledger              == 0.22.2
+                   , hledger-lib          == 0.22.2
+                   , base                 >= 4 && < 5
+                   , bytestring
+                   , clientsession
+                   , cmdargs              >= 0.10 && < 0.11
+                   , data-default
+                   , directory
+                   , filepath
+                   , hjsmin
+                   , http-conduit
+                   , http-client          >= 0.2 && < 0.4
+                   , HUnit
+                   , network-conduit
+                   , conduit-extra
+                   , old-locale
+                   , parsec
+                   , regexpr              >= 0.5.1
+                   , safe                 >= 0.2
+-- http://www.yesodweb.com/blog/2014/04/consolidation-progress
+-- in order to support both the old and new versions of shakespeare,
+-- you just need to ensure that you have both the shakespeare and
+-- deprecated packages listed in your cabal file. In other words, if
+-- previously you depended on hamlet, now you should depend on hamlet
+-- and shakespeare. When you're ready to drop backwards compatibility,
+-- simply put a lower bound of >= 2.0 on shakespeare and remove the
+-- deprecated packages.
+                   , hamlet
+                   , shakespeare-text >= 1.0 && < 1.2
+                   , shakespeare      >= 1.0 && < 2.1
+                   , template-haskell
+                   , text
+                   , time
+                   , transformers
+                   , wai
+                   , wai-extra
+                   , wai-handler-launch   >= 1.3 && < 2.1
+                   , warp                 >= 1.3 && < 2.2
+                   , yaml
+                   , yesod                >= 1.2 && < 1.3
+                   , yesod-core
+                   , yesod-static
+                   , json
+
+    if flag(blaze_html_0_4)
+      cpp-options:   -DBLAZE_HTML_0_4
+      build-depends:
+                     blaze-html               >= 0.4     && < 0.5
+    else
+      build-depends:
+                     blaze-html               >= 0.5     && < 0.8
+                   , blaze-markup             >= 0.5.1   && < 0.7
+
+
+executable         hledger-web
+    if flag(library-only)
+        Buildable: False
+
+    cpp-options:   -DVERSION="0.22.8"
+    if flag(dev)
+        cpp-options:   -DDEVELOPMENT
+
+    ghc-options:   -Wall -fno-warn-unused-do-bind
+    if flag(threaded)
+        ghc-options:   -threaded
+    if flag(dev)
+        ghc-options:   -O0
+    else
+        ghc-options:   -O2
+
+    extensions: 
+                CPP
+                MultiParamTypeClasses
+                NoImplicitPrelude
+                OverloadedStrings
+                QuasiQuotes
+                RecordWildCards
+                TemplateHaskell
+                TypeFamilies
+
+    hs-source-dirs:  . app
+    main-is:         main.hs
+    other-modules:
+                     Application
+                     Foundation
+                     Import
+                     Settings
+                     Settings.StaticFiles
+                     Settings.Development
+                     Handler.Common
+                     Handler.JournalEditR
+                     Handler.JournalEntriesR
+                     Handler.JournalR
+                     Handler.Post
+                     Handler.RegisterR
+                     Handler.RootR
+                     Handler.Utils
+                     Hledger.Web
+                     Hledger.Web.Main
+                     Hledger.Web.Options
+
+    build-depends:
+                     hledger              == 0.22.2
+                   , hledger-lib          == 0.22.2
+                   , base                 >= 4 && < 5
+                   , bytestring
+                   , clientsession
+                   , cmdargs              >= 0.10 && < 0.11
+                   , data-default
+                   , directory
+                   , filepath
+                   , hjsmin
+                   , http-conduit
+                   , http-client          >= 0.2 && < 0.4
+                   , HUnit
+                   , network-conduit
+                   , conduit-extra
+                   , old-locale
+                   , parsec
+                   , regexpr              >= 0.5.1
+                   , safe                 >= 0.2
+                   , hamlet
+                   , shakespeare-text >= 1.0 && < 1.2
+                   , shakespeare      >= 1.0 && < 2.1
+                   , template-haskell
+                   , text
+                   , time
+                   , transformers
+                   , wai
+                   , wai-extra
+                   , wai-handler-launch   >= 1.3 && < 2.1
+                   , warp                 >= 1.3 && < 2.2
+                   , yaml
+                   , yesod                >= 1.2 && < 1.3
+                   , yesod-core
+                   , yesod-static
+                   , json
+
+    if flag(blaze_html_0_4)
+      cpp-options:   -DBLAZE_HTML_0_4
+      build-depends:
+                     blaze-html               >= 0.4     && < 0.5
+    else
+      build-depends:
+                     blaze-html               >= 0.5     && < 0.8
+                   , blaze-markup             >= 0.5.1   && < 0.7
+
+test-suite test
+    type:              exitcode-stdio-1.0
+    ghc-options:       -Wall
+    hs-source-dirs:    tests
+    main-is:           main.hs
+    build-depends: 
+                     hledger-web
+                   , base
+                   , hspec
+                   , yesod                >= 1.2 && < 1.3
+                   , yesod-test           >= 1.2 && < 1.3
+
+
+package-hashes:
+    MD5:d7486d802d37676c222a9dc72395dd1e
+    SHA1:40661597b95c8c38b721b67b265591ee45198d46
+    SHA256:c341df251645969d5a74ce7013c222a6d67b9449aacaa2a804001dff20c90815
+    SHA512:aa83e216d787645c6a2781e7b2dd142efa9c745d5e0771498a2f4a02d82e18b01b2a889636381f903c314f6fc0361ebe451a2b330a0f0b3b16ebdfe7a9c14523
+    Skein512_512:3431d3373ccc975a7f2ab47bf8815f6c1e1f2dfbc98b8e77fb811b80083fd7a684920d63f8c99a8c34df02e09985789a5af6c9feb16480ff3bae9194c6225c4f
+
+package-locations:
+    https://hackage.haskell.org/package/hledger-web-0.22.8/hledger-web-0.22.8.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hledger-web-0.22.8.tar.gz
+

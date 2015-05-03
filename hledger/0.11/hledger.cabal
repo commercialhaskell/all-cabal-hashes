@@ -1,0 +1,188 @@
+name:           hledger
+version: 0.11
+category:       Finance
+synopsis:       A command-line (or curses or web-based) double-entry accounting tool.
+description:
+                hledger reads a plain text general journal or time log
+                describing your transactions and displays precise
+                balance and register reports via command-line, curses
+                or web interface.  It is a remix, in haskell, of John
+                Wiegley's excellent c++ ledger.  hledger aims to be a
+                practical, accessible tool for end users and a useful
+                library for finance-minded haskell programmers.
+
+license:        GPL
+license-file:   LICENSE
+author:         Simon Michael <simon@joyful.com>
+maintainer:     Simon Michael <simon@joyful.com>
+homepage:       http://hledger.org
+bug-reports:    http://code.google.com/p/hledger/issues
+stability:      experimental
+tested-with:    GHC==6.10, GHC==6.12
+cabal-version:  >= 1.2
+build-type:     Custom
+data-dir:       data
+data-files:
+                web/style.css
+extra-tmp-files:
+extra-source-files:
+  README.rst
+  README2.rst
+  MANUAL.markdown
+  NEWS.rst
+  CONTRIBUTORS.rst
+  data/sample.journal
+  data/sample.timelog
+  data/sample.rules
+
+flag chart
+  description: enable simple balance pie chart generation
+  default:     False
+
+flag vty
+  description: enable the curses-style ui
+  default:     False
+
+flag web
+  description: enable the web ui (using yesod/hamlet/simpleserver, requires ghc 6.12)
+  default:     False
+
+flag web610
+  description: enable the web ui (using loli/hsp/simpleserver, works with ghc 6.10)
+  default:     False
+
+executable hledger
+  main-is:        hledger.hs
+  -- should set patchlevel here as in Makefile
+  cpp-options:    -DPATCHLEVEL=0
+  other-modules:
+                  Hledger.Cli.Main
+                  Hledger.Cli.Options
+                  Hledger.Cli.Tests
+                  Hledger.Cli.Utils
+                  Hledger.Cli.Version
+                  Hledger.Cli.Commands.Add
+                  Hledger.Cli.Commands.All
+                  Hledger.Cli.Commands.Balance
+                  Hledger.Cli.Commands.Convert
+                  Hledger.Cli.Commands.Histogram
+                  Hledger.Cli.Commands.Print
+                  Hledger.Cli.Commands.Register
+                  Hledger.Cli.Commands.Stats
+  build-depends:
+                  hledger-lib >= 0.11
+                 ,HUnit
+                 ,base >= 3 && < 5
+                 ,containers
+                 ,csv
+                 ,directory
+                 ,filepath
+                 ,mtl
+                 ,old-locale
+                 ,old-time
+                 ,parsec
+                 ,process
+                 ,regexpr >= 0.5.1
+                 ,safe >= 0.2
+                 ,time
+                 ,utf8-string >= 0.3
+
+  if flag(chart)
+    cpp-options: -DCHART
+    other-modules:Hledger.Cli.Commands.Chart
+    build-depends:
+                  Chart >= 0.11
+                 ,colour
+
+  if flag(vty)
+    cpp-options: -DVTY
+    other-modules:Hledger.Cli.Commands.Vty
+    build-depends:
+                  vty >= 4.0.0.1
+
+  if flag(web)
+    cpp-options: -DWEB
+    other-modules:Hledger.Cli.Commands.Web
+    build-depends:
+                  io-storage >= 0.3 && < 0.4
+                 ,yesod >= 0.4.0 && < 0.5
+                 ,convertible-text >= 0.3.0.1
+
+  if flag(web610)
+    cpp-options: -DWEB610
+    other-modules:Hledger.Cli.Commands.Web610
+    build-depends:
+                  hsp
+                 ,hsx
+                 ,xhtml >= 3000.2
+                 ,loli
+                 ,io-storage
+                 ,hack-contrib
+                 ,hack
+                 ,hack-handler-simpleserver
+                 ,HTTP >= 4000.0
+                 ,applicative-extras
+
+-- modules and dependencies below should be as above, except
+-- chart, vty, web etc. are not presently exposed as library functions
+library
+  -- should set patchlevel here as in Makefile
+  cpp-options:    -DPATCHLEVEL=0
+  exposed-modules:
+                  Hledger.Cli.Main
+                  Hledger.Cli.Options
+                  Hledger.Cli.Tests
+                  Hledger.Cli.Utils
+                  Hledger.Cli.Version
+                  Hledger.Cli.Commands.Add
+                  Hledger.Cli.Commands.All
+                  Hledger.Cli.Commands.Balance
+                  Hledger.Cli.Commands.Convert
+                  Hledger.Cli.Commands.Histogram
+                  Hledger.Cli.Commands.Print
+                  Hledger.Cli.Commands.Register
+                  Hledger.Cli.Commands.Stats
+  build-depends:
+                  hledger-lib >= 0.11
+                 ,HUnit
+                 ,base >= 3 && < 5
+                 ,containers
+                 ,csv
+                 ,directory
+                 ,filepath
+                 ,mtl
+                 ,old-locale
+                 ,old-time
+                 ,parsec
+                 ,process
+                 ,regexpr >= 0.5.1
+                 ,safe >= 0.2
+                 ,time
+                 ,utf8-string >= 0.3
+
+-- source-repository head
+--   type:     darcs
+--   location: http://joyful.com/repos/hledger
+-- disabled for now due to:
+-- The 'source-repository' section is new in Cabal-1.6. Unfortunately it messes
+-- up the parser in earlier Cabal versions so you need to specify 'cabal-version:
+-- >= 1.6'.
+
+-- cf http://www.haskell.org/cabal/release/cabal-latest/doc/users-guide/authors.html
+
+-- Additional dependencies:
+-- required for make test: test-framework, test-framework-hunit
+-- required for make bench: tabular-0.1
+
+
+package-hashes:
+    MD5:e4163dcbcf9b9894e109bef1303791ed
+    SHA1:082579fa1b6321805a86ea194a3359d8cf5fddb8
+    SHA256:cfe01d7e0a73163bb3b064a0a1773040dbba1b391ea86c6d0d7ab1537d559896
+    SHA512:a180411ba2c2e99ea0ba3b01831ae9eb6711586e73c9c31d3a3ec7eccc8badc6df005cfabc117acab8f69c769c13837f64102deaa265813b7e2519f1738b471d
+    Skein512_512:c28f891ded57fe69884b016e22957ee26c10995e9ca02aa1f7e532a87fde8b4e920282d824d922cefe3e7c5527ae32fe292e688ed4afa987d0104f4fa7ffe5e1
+
+package-locations:
+    https://hackage.haskell.org/package/hledger-0.11/hledger-0.11.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hledger-0.11.tar.gz
+

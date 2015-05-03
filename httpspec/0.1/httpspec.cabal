@@ -1,0 +1,77 @@
+Name:                httpspec
+Version:             0.1
+Synopsis:            Specification of HTTP request/response generators and parsers
+License:             LGPL
+License-file:        LICENSE
+Author:              David Leuschner
+Maintainer:          David Leuschner <leuschner@openfactis.org>
+Category:            Data, Web
+Description:
+  Using httpspec you can write a specification for a HTTP request/response
+  defining the method, headers, url parameters and the body.  This
+  specification bidirectionally maps an abstract request/response data
+  type to a concrete realisation as a HTTP request/response.  The
+  specification can be used to generate HTTP requests/responses from an
+  abstract description and it can be used to parse a HTTP request/response
+  into such an abstract description.  The idea is very similar to the way
+  pickling of XML data is described in HXT.
+
+  For example, the abstract representation of an authentication request
+  and response could be described as
+
+  data AuthUserReq
+      = AuthUserReq
+        { authUser_user :: String
+        , authUser_pass :: String
+        }
+
+  data AuthUserRes
+      = AuthUserOk { authUserOk_sid :: String }
+      | AuthUserFailed
+
+  Using httpspec you can define a mapping between HTTP and these types:
+
+  instance HasReqSpec AuthUserReq where
+    reqSpec =
+        rsMeth Http.POST $
+        rsPath "/authenticate-user" $
+        rsWrap (uncurry AuthUserReq, \(AuthUserReq a b) -> (a,b)) $
+        rsPair (rsParam "uid") (rsParam "pass")
+
+  instance HasResSpec AuthUserRes where
+    resSpec =
+        rsSwitch
+        [ rsCase (AuthUserOk,authUserOk_sid) $
+          rsStatus 200 $
+          rsContentType "text/plain" $
+          rsEncodingFixed UTF8 $
+          rsBody
+        , rsCaseConst AuthUserFailed $
+          rsStatus 403
+        ]
+Build-Type:          Simple
+Cabal-Version:       >= 1.2
+
+Library
+  Hs-Source-Dirs:    src
+  GHC-Options: -Wall
+  Build-Depends:     base >= 4 && < 5, bytestring, bidispec, mtl,
+                     tagsoup == 0.6, hxt > 8.3 && < 8.4, pretty,
+                     Safe, cgi, network, HTTP, filepath, containers,
+                     encoding >= 0.6
+  Exposed-Modules:   Data.HttpSpec,Data.HttpSpec.HttpTypes
+                     Data.HttpSpec.Pretty, Data.HttpSpec.MiscHelper
+                     Data.HttpSpec.XmlHelper, Data.HttpSpec.EncodingHelper
+
+
+package-hashes:
+    MD5:58792e5dc0c1caf125fae692674faae7
+    SHA1:f09af1d9a08b02cf7c61b216356ad9791f61181b
+    SHA256:edca3d0cb7a8ea0a9dd9da40bd69d9089eb44429b01ef20b146c000fd7712011
+    SHA512:4434d4da460db84c76e87f69dc01d129ad5c71298760aaa0fb59247142e0701ae24ee692677816f91e7dc1355e3eb4ac7ddf7cfe351ed3ae2ac83f363c03e567
+    Skein512_512:00c07bf0df7cc12bd4e31c9c0c4fda4388a310be63d4df73703df65ee9fe1f6dcea310dff1d015cdfd41cc506df36bc5c8a5fa73f5d187c243bcd6f014e59f0b
+
+package-locations:
+    https://hackage.haskell.org/package/httpspec-0.1/httpspec-0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/httpspec-0.1.tar.gz
+

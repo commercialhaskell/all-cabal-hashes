@@ -1,0 +1,305 @@
+
+name:                hsbencher
+version:             1.20.0.5
+----------------------------------------
+-- Detailed CHANGELOG:
+----------------------------------------
+-- For less-detailed changelog that shows up in the user-visible docs,
+-- see below.
+----------------------------------------------------------------------
+-- 1.0   : Initial release, new flexible benchmark format.
+-- 1.1   : Change interface to RunInPlace
+-- 1.1.1 : add defaultMainModifyConfig
+-- 1.2   : Significant interface changes.
+-- 1.2.1 : Hack to shorten tuples, annoying URL length problem.
+-- 1.3   : breaking change to Config/RunResult types
+-- 1.3.1 : bugfix
+-- 1.3.2 : change policy for timeouts and errors
+-- 1.3.4 : Add ability to prune/select benchmarks with commmand line args
+-- 1.3.6 : bugfix productivity for timeouts
+-- 1.3.8 : Added --skipto and --runid
+-- 1.3.8 : Remove hydra-print dep by default.  Add 'hydra' flag.
+
+-- 1.4   : Richer Benchmark{} record type.
+-- 1.4.1 : add CI_BUILD_ID column
+-- 1.4.1.2 : add benchTimeOut field
+-- 1.4.1.3 : actually upload run flags, nix uname
+-- 1.4.1.5 : search for patterns in 'progname' as well
+-- 1.4.3   : switch to bulkImportRows for Fusion tables
+-- 1.5 : add new columns, formatting tweaks, robustness to schema evolution
+-- 1.5.1 : adapt to upstream change in process-1.2
+-- 1.5.1.3 : bugfix for .dat output
+-- 1.5.2   : remove aggressive cleaning in cabal method, change output dir
+-- 1.5.3   : minor: expose more info about the full command line usage info.
+-- 1.6     : Add new column, ALLJITTIMES
+-- 1.6.1.1 : Very aggressive default fusion table retry policy.
+-- 1.6.2   : Temp: hack to write to a csv file on disk as well.
+-- 1.6.3   : Change policy such that fusion table upload failure doesn't halt benchmarks.
+-- 1.6.3.1 : BenchmarkResult show instance
+-- 1.8     : Introduce backend plugins
+-- 1.8.0.3 : Most modules in .Internal, but Methods reexposed and moved.
+-- 1.8.0.7 : Joel added custom schema fields.
+-- 1.8.0.8 : Added "-l" command line arg.
+-- 1.8.1.0 : Added "-d" command line arg.
+-- 1.9.0.0 : bug fix and change of behavior for `getMyConf`
+-- 1.9.0.1 : no timeout for internal/compiler commands
+-- 1.9.0.2 : fix issue #40
+-- 1.10.0.0 : add addPlugin, remove defaultPlugConf
+-- 1.11.0.0 : remove toRunFlags, add RuntimeArg
+-- 1.12     : breaking change to `BuildMethod` type: expose `Config` to `compile`
+-- 1.12.1   : Update the format of "-l" printout, but its behavior is unchanged.
+-- 1.13     : Add RETRIES field to the core result schema
+-- 1.14     : remove terrible function with typo in name, add addBenchmarks
+-- 1.15     : Add systemCleaner field to Config
+-- 1.15.1   : Switch off lspci unless we ask for it.
+-- 1.15.2   : populate TOPOLOGY based on WHICHCORES or taskset
+-- 1.16     : Add CPUSet/CPUAffinity ParamSetting
+-- 1.17     : Add --param command line arg
+-- 1.17.1   : And --packed and --spreadout
+-- 1.17.2   : Add tupleToResult
+-- 1.18     : fix COMPILE_FLAGS upload and use 'unwords'
+-- 1.19     : Change the semantics of naked runtime args to conjunction, not disjunction.
+-- 1.19.1   : Additional change to allow filtering of benchmarks by BenchSpace as well.
+-- 1.20     : add --bindir
+-- 1.20.0.3 : bugfix, #71, runSL change
+-- 1.20.0.4 : Build time environmentVariables
+-- 1.20.0.5 : GHC 7.10 support
+
+-----------------------------------------------------------------------------------------
+
+synopsis:  Launch and gather data from Haskell and non-Haskell benchmarks.
+
+description: Benchmark frameworks are usually very specific to the
+  host language/environment.  Hence they are usually about as reusable
+  as compiler passes (that is, not).
+ .
+  Nevertheless, `hsbencher` is an attempt at a reusable benchmark
+  framework.  It knows fairly little about what the benchmarks do, and
+  is mostly concerned with defining and iterating through
+  configuration spaces (e.g. varying the number of threads), and
+  managing the data that results.
+ .
+  Benchmark data is stored in simple text files, and optionally
+  uploaded via pluggable backend packages such as `hsbencher-fusion`,
+  which uploads to Google Fusion Tables.
+  -- TODO: Describe clusterbench functionality when it's ready.
+ .
+  `hsbencher` attempts to stradle the divide between language-specific
+  and language-agnostic by having an extensible set of `BuildMethod`s.
+  As shipped, `hsbencher` knows a little about cabal, ghc, and less
+  about Make, but it can be taught more.
+ .
+  The general philosophy is to have benchmarks follow a simple
+  protocol, for example printing out a line "SELFTIMED: 3.3" if they
+  wish to report their own timing, in seconds.  The focus is on benchmarks that
+  run long enough to run in their own process.  This is typical of
+  parallelism benchmarks and different than the fine-grained
+  benchmarks that are well supported by "Criterion".
+ .
+ .
+ `hsbencher` is used by creating a script or executable that imports `HSBencher`
+  and provides a list of benchmarks, each of which is decorated with its
+  parameter space.  Below is a minimal example that creates a two-configuration
+  parameter space:
+ .
+ @
+ import HSBencher
+ main = defaultMainModifyConfig $ addBenchmarks
+ .      [ mkBenchmark \"bench1/bench1.cabal\" [\"1000\"] $
+ .        Or [ Set NoMeaning (RuntimeParam \"+RTS -qa -RTS\")
+ .            , Set NoMeaning (RuntimeEnv \"HELLO\" \"yes\") ] ]
+ @
+ .
+ The output would appear as in this gist:
+   <https://gist.github.com/rrnewton/5667800>
+ .
+ More examples can be found here:
+   <https://github.com/rrnewton/HSBencher/tree/master/hsbencher/example>
+ .
+ ChangeLog:
+ .
+ * (1.3.8) Added @--skipto@ and @--runid@ arguments
+ .
+ * (1.3.4) Added ability to prune benchmarks with patterns on command line.
+ .
+ * (1.4.2) Breaking changes, don't use Benchmark constructor directly.  Use mkBenchmark.
+ .
+ * (1.5) New columns in schema.
+ .
+ * (1.8) Backend plugins, hsbencher-fusion package factored out.
+ .
+ * (1.15) Add systemCleaner field to Config
+ .
+ * (1.17) Add cpu affinity control; lspci off by default
+ .
+ * (1.18) Fix COMPILE_FLAGS upload; upload "unwords" of COMPILE_FLAGS to avoid quotes in output.
+ .
+ * (1.19.1) Change the semantics of naked runtime args to conjunction, not disjunction.
+            Also allow filtering of benchmarks by BenchSpace as well.
+ .
+ * (1.20)   Add "--bindir" command line argument.
+
+ -- * (1.9)
+ -- .
+ -- * (1.10)
+ -- .
+ -- * (1.11)
+ -- .
+ -- * (1.12)
+ -- .
+ -- * (1.13)
+ -- .
+ -- * (1.14)
+
+
+
+license:             BSD3
+license-file:        LICENSE
+author:              Ryan Newton, Joel Svensson
+maintainer:          bo.joel.svensson@gmail.com
+copyright:           (c) Ryan Newton 2013
+category:            Development
+build-type:          Simple
+cabal-version:       >=1.10
+
+extra-source-files:  example/make_and_ghc/runit.sh
+                     example/make_and_ghc/benchmark.hs
+                     example/make_and_ghc/bench1/Makefile
+                     example/make_and_ghc/bench1/hello.c
+                     example/make_and_ghc/bench2/Hello.hs
+                     example/cabal/runit.sh
+                     example/cabal/benchmark.hs
+                     example/cabal/bench1/bench1.cabal
+                     example/cabal/bench1/Hello.hs
+
+Flag hydra
+  description:
+      Add support for (and dependency on) the hydra-print library.
+  default: False
+  manual: True
+
+Source-repository head
+  type:  git
+  location: https://github.com/rrnewton/HSBencher
+
+Library
+
+  -- First, modules for the end user:
+  exposed-modules: HSBencher
+                   HSBencher.Backend.Dribble
+  -- Second, internal modules:
+  exposed-modules:
+                   HSBencher.Types
+                   HSBencher.Harvesters
+                   HSBencher.Methods.Builtin
+                   HSBencher.Internal.App
+                   HSBencher.Internal.Config
+                   HSBencher.Internal.Logging
+                   HSBencher.Internal.Utils
+                   HSBencher.Internal.BenchSpace
+                   HSBencher.Internal.MeasureProcess
+  other-modules: Paths_hsbencher
+  build-depends:
+      base >= 4.5 && < 4.9, bytestring, process >= 1.2,
+      directory, filepath, random, unix, containers, time, mtl,
+      async >= 2.0,
+      io-streams >= 1.1,
+      data-default >= 0.5.3,
+      GenericPretty >= 1.2
+
+  if flag(hydra) {
+    build-depends: hydra-print >= 0.1.0.3
+    cpp-options: -DUSE_HYDRAPRINT
+  }
+
+  default-language:    Haskell2010
+
+-- [2013.05.28] This will come back later when the new ASCII benchmark file format is finished:
+-----------------------------------------------------------------------------------------------
+-- Executable hsbencher
+--   main-is: Main.hs
+--   -- other-modules:
+--   build-depends:
+--       -- <DUPLICATED from above>
+--       base >= 4.5, bytestring, process, directory, filepath, random, unix, containers, time, mtl, async,
+--       hydra-print >= 0.1.0.3, io-streams >= 1.0,
+--       GenericPretty >= 1.2
+--       -- </DUPLICATED>
+
+--   ghc-options: -threaded
+--   default-language:    Haskell2010
+
+
+Test-suite hsbencher-unit-tests
+  main-is: Test.hs
+  type: exitcode-stdio-1.0
+  hs-source-dirs: tests/
+  -- Self dependency:
+  build-depends: hsbencher
+  -- Standard stuff:
+  build-depends: base >= 4.5, containers >= 0.5, bytestring >= 0.10
+  -- Additional deps for testing:
+  build-depends: test-framework >= 0.8,
+                 test-framework-hunit >= 0.3,
+                 HUnit, time, text
+  ghc-options: -threaded
+  default-language:  Haskell2010
+  if flag(hydra) {
+     build-depends: hydra-print >= 0.1.0.3
+  }
+
+Test-suite hsbencher-test1
+  main-is: benchmark.hs
+  hs-source-dirs: example/cabal/
+  type: exitcode-stdio-1.0
+  -- Self dependency:
+  build-depends: hsbencher
+  -- Standard stuff:
+  build-depends: base >= 4.5, containers >= 0.5, bytestring >= 0.10, directory
+  ghc-options: -threaded
+  default-language:  Haskell2010
+  if flag(hydra) {
+     build-depends: hydra-print >= 0.1.0.3
+  }
+
+Test-suite hsbencher-test2
+  main-is: benchmark.hs
+  hs-source-dirs: example/make_and_ghc/
+  type: exitcode-stdio-1.0
+  -- Self dependency:
+  build-depends: hsbencher
+  -- Standard stuff:
+  build-depends: base >= 4.5, containers >= 0.5, bytestring >= 0.10, directory
+  ghc-options: -threaded
+  default-language:  Haskell2010
+  if flag(hydra) {
+     build-depends: hydra-print >= 0.1.0.3
+  }
+
+
+Test-suite hsbencher-test3
+  main-is: benchmark.hs
+  hs-source-dirs: example/compiletime_env/
+  type: exitcode-stdio-1.0
+  -- Self dependency:
+  build-depends: hsbencher
+  -- Standard stuff:
+  build-depends: base >= 4.5, containers >= 0.5, bytestring >= 0.10, directory
+  ghc-options: -threaded
+  default-language:  Haskell2010
+  if flag(hydra) {
+     build-depends: hydra-print >= 0.1.0.3
+  }
+
+
+package-hashes:
+    MD5:cf7fc17c1893e04fe0cbb49842065f29
+    SHA1:4d8411ba8e82b004b31f257e53ca71613128e408
+    SHA256:30f94d5d1fd68cfbe814571786dee348d3aa6607463973c78cd83603820517bb
+    SHA512:ed16251deaecf344d41b64a659c34b41bd5dc5bfc37e2f5bc7e363a27bb591d094d46f93485ed1d67aa91f328aa3d1c69d2b8e12e939b59b7c823c03213c3a0e
+    Skein512_512:6daf085a5c772eaabf1857a0ad804ca56b3c8f1ee71520e0b933ea5992a50ea04f52d91f55314511120a880474a6561069327684a128914b71400860abff4d22
+
+package-locations:
+    https://hackage.haskell.org/package/hsbencher-1.20.0.5/hsbencher-1.20.0.5.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hsbencher-1.20.0.5.tar.gz
+

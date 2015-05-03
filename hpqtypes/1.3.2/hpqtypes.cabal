@@ -1,0 +1,183 @@
+name:                hpqtypes
+version:             1.3.2
+synopsis:            Haskell bindings to libpqtypes
+
+description:         Efficient and easy-to-use bindings to (slightly modified)
+                     libpqtypes, lipq extension that adds support for binary
+                     transport format and composite types.
+                     .
+                     Since modified libpqtypes is used, its source code is bundled
+                     along with the bindings. The differences between verbatim
+                     libpqtypes and the one used by this package:
+                     .
+                     * per-thread global error structures were replaced by explicit
+                       passing of these structures around so that there is no need
+                       to use bound threads.
+                     .
+                     * handlers that take values to be put into the database were
+                       modified to always expect pointers to objects, as opposed
+                       to previous situation where primitives were being taken by
+                       value (which was convenient if the library was used directly
+                       from C, but created inconsistency problems while trying to
+                       define bindings in a sensible way).
+                     .
+                     Examples can be found in the <https://github.com/scrive/hpqtypes/tree/master/examples examples> directory.
+
+license:             BSD3
+license-file:        LICENSE
+author:              Scrive
+maintainer:          Andrzej Rybczak <andrzej@scrive.com>
+category:            Database
+build-type:          Custom
+cabal-version:       >= 1.8
+
+extra-source-files: examples/Catalog.hs
+                  , libpqtypes/AUTHORS
+                  , libpqtypes/Makefile.in
+                  , libpqtypes/config.guess
+                  , libpqtypes/groff2html
+                  , libpqtypes/win32.mak
+                  , libpqtypes/ChangeLog
+                  , libpqtypes/Makefile.win32
+                  , libpqtypes/config.sub
+                  , libpqtypes/install-sh
+                  , libpqtypes/INSTALL
+                  , libpqtypes/README
+                  , libpqtypes/configure
+                  , libpqtypes/ltmain.sh
+                  , libpqtypes/LICENSE
+                  , libpqtypes/acinclude.m4
+                  , libpqtypes/configure.ac
+                  , libpqtypes/missing
+                  , libpqtypes/Makefile.am
+                  , libpqtypes/aclocal.m4
+                  , libpqtypes/src/pqt_config.h.in
+                  , libpqtypes/src/libpqtypes-int.h
+                  , libpqtypes/src/libpqtypes.h
+
+Flag tests
+  description: Build test suite
+  default: False
+
+library
+  exposed-modules:     Data.Monoid.Space
+                     , Data.Monoid.Utils
+                     , Database.PostgreSQL.PQTypes
+                     , Database.PostgreSQL.PQTypes.Composite
+                     , Database.PostgreSQL.PQTypes.ToRow
+                     , Database.PostgreSQL.PQTypes.Utils
+                     , Database.PostgreSQL.PQTypes.FromSQL
+                     , Database.PostgreSQL.PQTypes.Array
+                     , Database.PostgreSQL.PQTypes.Fold
+                     , Database.PostgreSQL.PQTypes.FromRow
+                     , Database.PostgreSQL.PQTypes.ToSQL
+                     , Database.PostgreSQL.PQTypes.Transaction
+                     , Database.PostgreSQL.PQTypes.Class
+                     , Database.PostgreSQL.PQTypes.Class.Instances
+                     , Database.PostgreSQL.PQTypes.Class.Instances.Overlapping
+                     , Database.PostgreSQL.PQTypes.Format
+                     , Database.PostgreSQL.PQTypes.Binary
+                     , Database.PostgreSQL.PQTypes.Interval
+                     , Database.PostgreSQL.PQTypes.SQL
+                     , Database.PostgreSQL.PQTypes.Single
+                     , Database.PostgreSQL.PQTypes.SQL.Raw
+                     , Database.PostgreSQL.PQTypes.SQL.Class
+                     , Database.PostgreSQL.PQTypes.Transaction.Settings
+                     , Database.PostgreSQL.PQTypes.XML
+                     , Database.PostgreSQL.PQTypes.Internal.Error
+                     , Database.PostgreSQL.PQTypes.Internal.Error.Code
+                     , Database.PostgreSQL.PQTypes.Internal.Composite
+                     , Database.PostgreSQL.PQTypes.Internal.Utils
+                     , Database.PostgreSQL.PQTypes.Internal.Connection
+                     , Database.PostgreSQL.PQTypes.Internal.Exception
+                     , Database.PostgreSQL.PQTypes.Internal.Monad
+                     , Database.PostgreSQL.PQTypes.Internal.QueryResult
+                     , Database.PostgreSQL.PQTypes.Internal.Query
+                     , Database.PostgreSQL.PQTypes.Internal.State
+                     , Database.PostgreSQL.PQTypes.Internal.C.Put
+                     , Database.PostgreSQL.PQTypes.Internal.C.Types
+                     , Database.PostgreSQL.PQTypes.Internal.C.Interface
+                     , Database.PostgreSQL.PQTypes.Internal.C.Get
+
+  build-depends:       base >= 4.5 && < 5
+                     , text >= 0.11
+                     , bytestring >= 0.9
+                     , time >= 1.4
+                     , vector >= 0.10
+                     , transformers-base >= 0.4
+                     , monad-control >= 0.3
+                     , lifted-base >= 0.2
+                     , resource-pool >= 0.2
+                     , mtl >= 2.1
+                     , transformers >= 0.2.2
+                     , containers >= 0.4.0.0
+                     , exceptions >= 0.6
+
+  hs-source-dirs:    src
+
+  ghc-options:       -O2 -Wall -funbox-strict-fields
+
+  build-tools:       hsc2hs
+  include-dirs:      libpqtypes/src
+  extra-libraries:   pq
+
+  cc-options:        -DHAVE_CONFIG_H -D_GNU_SOURCE -D_REENTRANT -std=gnu99 -fsigned-char -fno-strict-aliasing -Wall -Wextra
+
+  c-sources:           libpqtypes/src/array.c
+                     , libpqtypes/src/datetime.c
+                     , libpqtypes/src/error.c
+                     , libpqtypes/src/events.c
+                     , libpqtypes/src/exec.c
+                     , libpqtypes/src/ffi.c
+                     , libpqtypes/src/geo.c
+                     , libpqtypes/src/handler.c
+                     , libpqtypes/src/misc.c
+                     , libpqtypes/src/network.c
+                     , libpqtypes/src/numerics.c
+                     , libpqtypes/src/param.c
+                     , libpqtypes/src/port.c
+                     , libpqtypes/src/record.c
+                     , libpqtypes/src/spec.c
+                     , libpqtypes/src/utils.c
+                     , libpqtypes/src/varlena.c
+
+Executable tests
+  if flag(tests)
+    buildable:       True
+  else
+    buildable:       False
+
+  ghc-options:       -O2 -Wall -funbox-strict-fields -threaded
+
+  hs-source-dirs:    test
+
+  build-depends:       hpqtypes
+                     , base >= 4.5
+                     , text >= 0.11
+                     , bytestring >= 0.9
+                     , time >= 1.4
+                     , transformers-base >= 0.4
+                     , monad-control >= 0.3
+                     , lifted-base >= 0.2
+                     , mtl >= 2.1
+                     , QuickCheck >= 2.5 && < 2.7
+                     , HUnit >= 1.2
+                     , test-framework >= 0.8
+                     , test-framework-hunit >= 0.3
+                     , random >= 1.0
+                     , exceptions >= 0.6
+
+  main-is:           Main.hs
+
+
+package-hashes:
+    MD5:080cd9d0867b8fcf8dc1c450c72bb5d5
+    SHA1:37b618d377ac708ccf20dede9f41511afb6a0271
+    SHA256:dd5c6cefd17dca132f436bd835659c26ae05326fec7b53fccb422b075b7e5d81
+    SHA512:18fe8bab8aa0bd7c18fae3269d5df2aff419df186734d337a67b270c8411c34144e4e14091668555168de8db2edb37ee70fb47f155334a2fb8969d654ecd5448
+    Skein512_512:4afa58c867c9866efb055e1878986280204312b4df3ccd7fc996dadcd5faf649fcf1c55b99e95467f84f1a3f826b6d60fd547811a4ffe9795ab69513161e16f2
+
+package-locations:
+    https://hackage.haskell.org/package/hpqtypes-1.3.2/hpqtypes-1.3.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hpqtypes-1.3.2.tar.gz
+

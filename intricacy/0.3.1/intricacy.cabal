@@ -1,0 +1,112 @@
+name:                intricacy
+version:             0.3.1
+synopsis:            A game of competitive puzzle-design
+homepage:            http://mbays.freeshell.org/intricacy
+license:             GPL-3
+license-file:        COPYING
+author:              Martin Bays
+maintainer:          mbays@sdf.org
+-- copyright:           
+category:            Game
+build-type:          Simple
+cabal-version:       >=1.8
+data-files: VeraMono.ttf tutorial/*.lock tutorial/*.text
+extra-doc-files: README NEWS tutorial-extra/*.lock tutorial-extra/README
+
+description:
+    A networked game with client-server architecture. The core game is a
+    lockpicking-themed turn-based puzzle game on a hex grid. Players design
+    puzzles (locks) and solve those designed by others. A metagame encourages
+    the design of maximally difficult puzzles, within tight size constraints.
+    The client supports Curses and SDL, with all graphics in SDL mode drawn by
+    code using SDL-gfx. The network protocol is based on the 'binary' package,
+    and is intended to be reasonably efficient. TVars are used to give
+    transparent local caching and background network operations. Also
+    incorporates an implementation of a graph 5-colouring algorithm (see
+    GraphColouring.hs).
+
+source-repository head
+   type:     git
+   location: http://mbays.freeshell.org/intricacy/.git
+
+Flag SDL 
+    Description: Enable SDL UI
+    Default: True
+Flag Curses 
+    Description: Enable Curses UI
+    Default: True
+Flag Game
+    Description: Build game
+    Default: True
+    Manual: True
+Flag Server
+    Description: Build server
+    Default: False
+    Manual: True
+
+executable intricacy
+  if flag(Game)
+      extensions: DoAndIfThenElse
+      build-depends: base >=4.3, base < 5
+        , mtl >=2.0, transformers >=0.2, stm >= 2.1
+        , directory >= 1.0, filepath >= 1.0, time >= 1.2
+        , bytestring >=0.10
+        , array >=0.3, containers >=0.4, vector >=0.9
+        , binary >=0.5, network-fancy >= 0.1.5
+        , cryptohash >= 0.8
+      if flag(SDL)
+          build-depends: SDL >=0.6.5, SDL-ttf >=0.6, SDL-gfx >=0.6
+          if os(windows)
+              Extra-Lib-Dirs:    winlibs
+              Extra-Libraries:   SDL_ttf SDL SDL_gfx freetype
+              ghc-options: -optl-mwindows
+  else
+      Buildable: False
+  if flag(Curses)
+      build-depends: hscurses >=1.4
+  if flag(SDL)
+      if flag(Curses)
+        main-is: MainBoth.hs
+      else
+        main-is: MainSDL.hs
+  else
+      if flag(Curses)
+        main-is: MainCurses.hs
+
+  other-modules: AsciiLock, BinaryInstances, BoardColouring, Cache, Command,
+      CursesRender, CursesUI, CursesUIMInstance, CVec, Database, Debug,
+      EditGameState, Frame, GameState, GameStateTypes, GraphColouring, Hex, Init,
+      InputMode, Interact, InteractUtil, KeyBindings, Lock, MainState,
+      Maxlocksize, Metagame, Mundanities, Physics, Protocol, SDLRender, SDLUI,
+      SDLUIMInstance, ServerAddr, Util
+
+executable intricacy-server
+  if flag(Server)
+      extensions: DoAndIfThenElse
+      build-depends: base >=4.3, base < 5
+        , mtl >=2.0, transformers >=0.2, stm >= 2.1
+        , directory >= 1.0, filepath >= 1.0, time >= 1.2
+        , bytestring >=0.10
+        , array >=0.3, containers >=0.4, vector >=0.9
+        , binary >=0.5, network-fancy >= 0.1.5
+        , cryptohash >= 0.8
+        , random >= 1.0, pipes >= 4
+  else
+    Buildable: False
+  main-is:  Server.hs
+  other-modules: AsciiLock, BinaryInstances, BoardColouring, CVec, Database,
+      Debug, Frame, GameState, GameStateTypes, GraphColouring, Hex, Lock,
+      Maxlocksize, Metagame, Mundanities, Physics, Protocol, Util
+
+
+package-hashes:
+    MD5:af8c8254f4a84b24f681759264d6f706
+    SHA1:a6f55ac30c456af8e6d2c594894d995d75126e95
+    SHA256:18e7efadc30c66fab09ffbdac46b8f9d59e9d2aec9ab9e4d903f2eba2774aa09
+    SHA512:3432ab0fac253e004090bce8785e60e4bfdfe3c527236d3a2e2b92f73bdf9b892996e74b6d96264257cafb2c6b0d23568865573c592834edd5d5f95f9497a765
+    Skein512_512:786734aa7b70794e6f684a6d17ac99a0295553274773064e6eaf8d72b07cba6074adc83daa86fd0cd253c8809c217188add44f06969da7fa77798ab498698290
+
+package-locations:
+    https://hackage.haskell.org/package/intricacy-0.3.1/intricacy-0.3.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/intricacy-0.3.1.tar.gz
+

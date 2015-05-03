@@ -1,0 +1,179 @@
+Name:               hmatrix
+Version:            0.9.3.0
+License:            GPL
+License-file:       LICENSE
+Author:             Alberto Ruiz
+Maintainer:         Alberto Ruiz <aruiz@um.es>
+Stability:          provisional
+Homepage:           http://code.haskell.org/hmatrix
+Synopsis:           Linear algebra and numerical computation
+Description:        Purely functional interface to basic linear algebra
+                    and other numerical computations, internally implemented using
+                    GSL, BLAS and LAPACK.
+                    .
+                    See also hmatrix-special and hmatrix-glpk.
+Category:           Math
+tested-with:        GHC ==6.10.4, GHC ==6.12.1
+
+cabal-version:      >=1.2
+
+build-type:         Custom
+
+extra-source-files: lib/Numeric/LinearAlgebra/Tests/quickCheckCompat.h
+                    configure configure.hs THANKS INSTALL CHANGES
+extra-tmp-files:    hmatrix.buildinfo
+
+extra-source-files: examples/tests.hs
+                    examples/deriv.hs
+                    examples/integrate.hs
+                    examples/minimize.hs
+                    examples/root.hs
+                    examples/ode.hs
+                    examples/pca1.hs
+                    examples/pca2.hs
+                    examples/pinv.hs
+                    examples/data.txt
+                    examples/lie.hs
+                    examples/kalman.hs
+                    examples/parallel.hs
+                    examples/plot.hs
+                    examples/inplace.hs
+                    examples/error.hs
+                    examples/devel/ej1/wrappers.hs
+                    examples/devel/ej1/functions.c
+                    examples/devel/ej2/wrappers.hs
+                    examples/devel/ej2/functions.c
+                    examples/Real.hs
+                    examples/vector.hs
+
+extra-source-files: lib/Numeric/LinearAlgebra/LAPACK/lapack-aux.h,
+                    lib/Numeric/LinearAlgebra/LAPACK/clapack.h
+
+flag tests
+    description:    Build tests
+    default:        True
+
+flag dd
+    description:    svd = zgesdd
+    default:        True
+
+flag mkl
+    description:    Link with Intel's MKL optimized libraries.
+    default:        False
+
+flag unsafe
+    description:    Compile the library with bound checking disabled.
+    default:        False
+
+flag vector
+    description:    Use Data.Vector.Storable type from "vector" package.
+    default:        False
+
+library
+
+    Build-Depends:      base >= 4 && < 5,
+                        array,
+                        storable-complex,
+                        process
+
+    Extensions:         ForeignFunctionInterface,
+                        CPP
+
+    hs-source-dirs:     lib
+    Exposed-modules:    Data.Packed,
+                        Data.Packed.Vector,
+                        Data.Packed.Matrix,
+                        Numeric.GSL.Differentiation,
+                        Numeric.GSL.Integration,
+                        Numeric.GSL.Fourier,
+                        Numeric.GSL.Polynomials,
+                        Numeric.GSL.Minimization,
+                        Numeric.GSL.Root,
+                        Numeric.GSL.Fitting,
+                        Numeric.GSL.ODE,
+                        Numeric.GSL.Vector,
+                        Numeric.GSL,
+                        Numeric.LinearAlgebra,
+                        Numeric.LinearAlgebra.LAPACK,
+                        Numeric.LinearAlgebra.Interface,
+                        Numeric.LinearAlgebra.Algorithms,
+                        Graphics.Plot,
+                     -- Data.Packed.Convert,
+                        Data.Packed.ST,
+                        Data.Packed.Development,
+                        Data.Packed.Random
+    other-modules:      Data.Packed.Internal,
+                        Data.Packed.Internal.Common,
+                        Data.Packed.Internal.Signatures,
+                        Data.Packed.Internal.Vector,
+                        Data.Packed.Internal.Matrix,
+                        Numeric.LinearAlgebra.Linear,
+                        Numeric.LinearAlgebra.Instances,
+                        Numeric.GSL.Internal
+
+    C-sources:          lib/Numeric/LinearAlgebra/LAPACK/lapack-aux.c,
+                        lib/Numeric/GSL/gsl-aux.c
+
+    if flag(vector)
+       Build-Depends:   vector
+       cpp-options:     -DVECTOR
+
+    if flag(tests)
+       Build-Depends:   QuickCheck, HUnit
+       exposed-modules: Numeric.LinearAlgebra.Tests
+       other-modules:   Numeric.LinearAlgebra.Tests.Instances,
+                        Numeric.LinearAlgebra.Tests.Properties
+
+ -- ghc-prof-options:   -auto
+
+    ghc-options:        -Wall -fno-warn-missing-signatures
+                              -fno-warn-orphans
+                              -fno-warn-unused-binds
+
+    if flag(unsafe)
+        cpp-options: -DUNSAFE
+
+    if !flag(dd)
+        cpp-options: -DNOZGESDD
+
+    if impl(ghc < 6.10.2)
+        cpp-options: -DFINIT
+
+    if flag(mkl)
+      if arch(x86_64)
+        extra-libraries:   gsl mkl_lapack mkl_intel_lp64 mkl_sequential mkl_core
+      else
+        extra-libraries:   gsl mkl_lapack mkl_intel mkl_sequential mkl_core
+
+    if os(OSX)
+        extra-lib-dirs: /opt/local/lib/
+        include-dirs: /opt/local/include
+        extra-libraries: gsl
+        frameworks: Accelerate
+
+    if os(windows)
+        extra-libraries: gsl-0 blas lapack
+
+-- The extra-libraries required for GSL and LAPACK
+-- should now be automatically detected by configure(.hs)
+
+    extra-libraries:
+    extra-lib-dirs:
+
+    source-repository head
+        type:     darcs
+        location: http://code.haskell.org/hmatrix
+
+
+
+package-hashes:
+    MD5:9fe0ffd10e1a86f78a6b187b3ac652dd
+    SHA1:b66305c11390420e26d9a84fb88f1b8c73443a12
+    SHA256:796676ab8b32daf37189197568287b5f72369238b6a3a3650cb8db24e4194cdc
+    SHA512:655b87a75724fa9ba6fdb6cca25d0fbcbe1179faa1f955d7daf8e4b29a05698b9d363b802917f54457c061651e6ea58d5448ae479e2b6936dc88d0e772cc2855
+    Skein512_512:448a3ba62c0ccc451e056e3913dc1c0ccb2ccfc9ed1fc5ff5bcb490bb690a6ffddae87f76bc6e34e0d994005d3fe387adbc3b93985dac94ed992f59a3ee1d9a5
+
+package-locations:
+    https://hackage.haskell.org/package/hmatrix-0.9.3.0/hmatrix-0.9.3.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hmatrix-0.9.3.0.tar.gz
+

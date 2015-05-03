@@ -1,0 +1,183 @@
+Name:               hmatrix
+Version:            0.8.1.1
+License:            GPL
+License-file:       LICENSE
+Author:             Alberto Ruiz
+Maintainer:         Alberto Ruiz <aruiz@um.es>
+Stability:          provisional
+Homepage:           http://www.hmatrix.googlepages.com
+Synopsis:           Linear algebra and numerical computations
+Description:        Purely functional interface to basic linear algebra
+                    and other numerical computations, internally implemented using
+                    GSL, BLAS and LAPACK.
+Category:           Math
+tested-with:        GHC ==6.10.4, GHC ==6.12.1
+
+cabal-version:      >=1.2
+build-type:         Custom
+extra-source-files: lib/Numeric/LinearAlgebra/Tests/quickCheckCompat.h
+
+extra-source-files: configure configure.hs README INSTALL CHANGES
+extra-tmp-files:    hmatrix.buildinfo
+
+extra-source-files: examples/tests.hs
+                    examples/deriv.hs
+                    examples/integrate.hs
+                    examples/minimize.hs
+                    examples/root.hs
+                    examples/pca1.hs
+                    examples/pca2.hs
+                    examples/pinv.hs
+                    examples/data.txt
+                    examples/lie.hs
+                    examples/kalman.hs
+                    examples/parallel.hs
+                    examples/plot.hs
+                    examples/latexmat.hs
+                    examples/inplace.hs
+                    examples/benchmarks.hs
+                    examples/error.hs
+                    examples/devel/wrappers.hs
+                    examples/devel/functions.c
+
+extra-source-files: lib/Numeric/LinearAlgebra/LAPACK/lapack-aux.h,
+                    lib/Numeric/LinearAlgebra/LAPACK/clapack.h
+
+extra-source-files: lib/Numeric/GSL/Special/auto.hs,
+                    lib/Numeric/GSL/Special/autoall.sh,
+                    lib/Numeric/GSL/Special/replace.hs
+
+flag splitBase
+    description:    Choose the new smaller, split-up base package.
+
+flag mkl
+    description:    Link with Intel's MKL optimized libraries.
+    default:        False
+
+flag accelerate
+    description:    Use the accelerate framework for LAPACK/BLAS on OS X
+    default:        False
+
+flag unsafe
+    description:    Compile the library with bound checking disabled.
+    default:        False
+
+library
+    if flag(splitBase)
+      build-depends:    base >= 3 && < 5, array < 0.3.0
+    else
+      build-depends:    base < 3
+
+    Build-Depends:      haskell98 < 1.0.1.1,
+                        QuickCheck, HUnit,
+                        storable-complex,
+                        process < 1.0.1.2
+
+    Extensions:         ForeignFunctionInterface,
+                        CPP
+
+    hs-source-dirs:     lib
+    Exposed-modules:    Data.Packed,
+                        Data.Packed.Vector,
+                        Data.Packed.Matrix,
+                        Numeric.GSL.Differentiation,
+                        Numeric.GSL.Integration,
+                        Numeric.GSL.Fourier,
+                        Numeric.GSL.Polynomials,
+                        Numeric.GSL.Minimization,
+                        Numeric.GSL.Root,
+                        Numeric.GSL.Vector,
+                        Numeric.GSL.Special,
+                        Numeric.GSL.Special.Gamma,
+                        Numeric.GSL.Special.Erf,
+                        Numeric.GSL.Special.Airy,
+                        Numeric.GSL.Special.Exp,
+                        Numeric.GSL.Special.Bessel,
+                        Numeric.GSL.Special.Clausen,
+                        Numeric.GSL.Special.Coulomb,
+                        Numeric.GSL.Special.Coupling,
+                        Numeric.GSL.Special.Dawson,
+                        Numeric.GSL.Special.Debye,
+                        Numeric.GSL.Special.Dilog,
+                        Numeric.GSL.Special.Elementary,
+                        Numeric.GSL.Special.Ellint,
+                        Numeric.GSL.Special.Elljac,
+                        Numeric.GSL.Special.Expint,
+                        Numeric.GSL.Special.Fermi_dirac,
+                        Numeric.GSL.Special.Gegenbauer,
+                        Numeric.GSL.Special.Hyperg,
+                        Numeric.GSL.Special.Laguerre,
+                        Numeric.GSL.Special.Lambert,
+                        Numeric.GSL.Special.Legendre,
+                        Numeric.GSL.Special.Log,
+                        Numeric.GSL.Special.Pow_int,
+                        Numeric.GSL.Special.Psi,
+                        Numeric.GSL.Special.Synchrotron,
+                        Numeric.GSL.Special.Transport,
+                        Numeric.GSL.Special.Trig,
+                        Numeric.GSL.Special.Zeta,
+                        Numeric.GSL,
+                        Numeric.LinearAlgebra,
+                        Numeric.LinearAlgebra.LAPACK,
+                        Numeric.LinearAlgebra.Linear,
+                        Numeric.LinearAlgebra.Instances,
+                        Numeric.LinearAlgebra.Interface,
+                        Numeric.LinearAlgebra.Algorithms,
+                        Graphics.Plot,
+                        Numeric.LinearAlgebra.Tests,
+                        Data.Packed.Convert,
+                        Data.Packed.ST,
+                        Data.Packed.Development
+                        Data.Packed.Random
+    other-modules:      Data.Packed.Internal,
+                        Data.Packed.Internal.Common,
+                        Data.Packed.Internal.Signatures,
+                        Data.Packed.Internal.Vector,
+                        Data.Packed.Internal.Matrix,
+                        Numeric.GSL.Internal,
+                        Numeric.GSL.Special.Internal,
+                        Numeric.LinearAlgebra.Tests.Instances,
+                        Numeric.LinearAlgebra.Tests.Properties
+    C-sources:          lib/Numeric/LinearAlgebra/LAPACK/lapack-aux.c,
+                        lib/Numeric/GSL/gsl-aux.c
+
+    ghc-prof-options:   -auto
+
+    ghc-options:        -Wall -fno-warn-missing-signatures
+                              -fno-warn-orphans
+                              -fno-warn-unused-binds
+
+    if flag(unsafe)
+        cpp-options: -DUNSAFE
+
+    if impl(ghc < 6.10.2)
+        cpp-options: -DFINIT
+
+    if flag(mkl)
+      if arch(x86_64)
+        extra-libraries:   gsl mkl_lapack mkl_intel_lp64 mkl_sequential mkl_core
+      else
+        extra-libraries:   gsl mkl_lapack mkl_intel mkl_sequential mkl_core
+
+    if flag(accelerate)
+        frameworks: Accelerate
+        extra-libraries: gsl
+
+-- The extra-libraries required for GSL and LAPACK
+-- should now be automatically detected by configure(.hs)
+
+    extra-libraries:
+    extra-lib-dirs:
+
+
+package-hashes:
+    MD5:968c0006136b4fdb3900a5b4f2ce7bb6
+    SHA1:430f90291e3ca765a466d44d414f7874e2ddf86e
+    SHA256:19c288e04ca3bf13c518a46cdf0f5aeedf8b4b2ad0e5d0b02ffe8d5184f1ea01
+    SHA512:a8a2279a559e9fa116eb1983902a0abb26b94eab7224449b9807b191573ba9cc4171fae39921a1dc328ea2ceae0dc2a7dd3da5dcb6c7a19eaf123f00131f2e19
+    Skein512_512:5c201b6af282b05fc79c265a55e9d022850d02eb804aed872bf0b9b2c53d0bfe55d5cb17e0e80e0e03a03e9df9398dffb9b13d124e95ccc20db8bba51a11d9c3
+
+package-locations:
+    https://hackage.haskell.org/package/hmatrix-0.8.1.1/hmatrix-0.8.1.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hmatrix-0.8.1.1.tar.gz
+

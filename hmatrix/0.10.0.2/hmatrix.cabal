@@ -1,0 +1,199 @@
+Name:               hmatrix
+Version:            0.10.0.2
+License:            GPL
+License-file:       LICENSE
+Author:             Alberto Ruiz
+Maintainer:         Alberto Ruiz <aruiz@um.es>
+Stability:          provisional
+Homepage:           http://code.haskell.org/hmatrix
+Synopsis:           Linear algebra and numerical computation
+Description:        Purely functional interface to basic linear algebra
+                    and other numerical computations, internally implemented using
+                    GSL, BLAS and LAPACK.
+                    .
+                    The Linear Algebra API is organized as follows:
+                    .
+                    - "Data.Packed": structure manipulation
+                    .
+                    - "Numeric.Container": simple numeric functions
+                    .
+                    - "Numeric.LinearAlgebra.Algorithms": matrix computations
+                    .
+                    - "Numeric.LinearAlgebra": everything + instances of standard Haskell numeric classes
+Category:           Math
+tested-with:        GHC ==6.10.4, GHC ==6.12.1, GHC ==6.12.3
+
+cabal-version:      >=1.6
+
+build-type:         Custom
+
+extra-source-files: lib/Numeric/LinearAlgebra/Tests/quickCheckCompat.h
+                    configure configure.hs THANKS INSTALL CHANGES
+extra-tmp-files:    hmatrix.buildinfo
+
+extra-source-files: examples/tests.hs
+                    examples/deriv.hs
+                    examples/integrate.hs
+                    examples/minimize.hs
+                    examples/root.hs
+                    examples/ode.hs
+                    examples/pca1.hs
+                    examples/pca2.hs
+                    examples/pinv.hs
+                    examples/data.txt
+                    examples/lie.hs
+                    examples/kalman.hs
+                    examples/parallel.hs
+                    examples/plot.hs
+                    examples/inplace.hs
+                    examples/error.hs
+                    examples/devel/ej1/wrappers.hs
+                    examples/devel/ej1/functions.c
+                    examples/devel/ej2/wrappers.hs
+                    examples/devel/ej2/functions.c
+                    examples/Real.hs
+                    examples/vector.hs
+                    examples/monadic.hs
+
+extra-source-files: lib/Numeric/LinearAlgebra/LAPACK/lapack-aux.h,
+                    lib/Numeric/LinearAlgebra/LAPACK/clapack.h
+
+flag tests
+    description:    Build tests
+    default:        True
+
+flag dd
+    description:    svd = zgesdd
+    default:        True
+
+flag mkl
+    description:    Link with Intel's MKL optimized libraries.
+    default:        False
+
+flag unsafe
+    description:    Compile the library with bound checking disabled.
+    default:        False
+
+flag vector
+    description:    Use Data.Vector.Storable type from "vector" package.
+    default:        False
+
+flag binary
+    description:    Define Binary instances
+    default:        True
+
+library
+
+    Build-Depends:      base >= 4 && < 5,
+                        array,
+                        storable-complex,
+                        process
+
+    Extensions:         ForeignFunctionInterface,
+                        CPP
+
+    hs-source-dirs:     lib
+    Exposed-modules:    Data.Packed,
+                        Data.Packed.Vector,
+                        Data.Packed.Matrix,
+                        Numeric.GSL.Differentiation,
+                        Numeric.GSL.Integration,
+                        Numeric.GSL.Fourier,
+                        Numeric.GSL.Polynomials,
+                        Numeric.GSL.Minimization,
+                        Numeric.GSL.Root,
+                        Numeric.GSL.Fitting,
+                        Numeric.GSL.ODE,
+                        Numeric.GSL,
+                        Numeric.Container,
+                        Numeric.LinearAlgebra,
+                        Numeric.LinearAlgebra.LAPACK,
+                        Numeric.LinearAlgebra.Algorithms,
+                        Graphics.Plot,
+                        Data.Packed.ST,
+                        Data.Packed.Development
+    other-modules:      Data.Packed.Internal,
+                        Data.Packed.Internal.Common,
+                        Data.Packed.Internal.Signatures,
+                        Data.Packed.Internal.Vector,
+                        Data.Packed.Internal.Matrix,
+                        Data.Packed.Random,
+                        Numeric.GSL.Internal,
+                        Numeric.GSL.Vector,
+                        Numeric.Conversion,
+                        Numeric.ContainerBoot,
+                        Numeric.IO,
+                        Numeric.Chain,
+                        Numeric.Vector,
+                        Numeric.Matrix
+
+    C-sources:          lib/Numeric/LinearAlgebra/LAPACK/lapack-aux.c,
+                        lib/Numeric/GSL/gsl-aux.c
+
+    if flag(vector)
+       Build-Depends:   vector >= 0.7
+       cpp-options:     -DVECTOR
+
+    if flag(binary)
+       Build-Depends:   binary
+       cpp-options:     -DBINARY
+
+    if flag(tests)
+       Build-Depends:   QuickCheck, HUnit, random
+       exposed-modules: Numeric.LinearAlgebra.Tests
+       other-modules:   Numeric.LinearAlgebra.Tests.Instances,
+                        Numeric.LinearAlgebra.Tests.Properties
+
+ -- ghc-prof-options:   -auto
+
+    ghc-options:        -Wall -fno-warn-missing-signatures
+                              -fno-warn-orphans
+                              -fno-warn-unused-binds
+
+    if flag(unsafe)
+        cpp-options: -DUNSAFE
+
+    if !flag(dd)
+        cpp-options: -DNOZGESDD
+
+    if impl(ghc < 6.10.2)
+        cpp-options: -DFINIT
+
+    if flag(mkl)
+      if arch(x86_64)
+        extra-libraries:   gsl mkl_lapack mkl_intel_lp64 mkl_sequential mkl_core
+      else
+        extra-libraries:   gsl mkl_lapack mkl_intel mkl_sequential mkl_core
+
+    if os(OSX)
+        extra-lib-dirs: /opt/local/lib/
+        include-dirs: /opt/local/include
+        extra-libraries: gsl
+        frameworks: Accelerate
+
+    if os(windows)
+        extra-libraries: gsl-0 blas lapack
+
+-- The extra-libraries required for GSL and LAPACK
+-- should now be automatically detected by configure(.hs)
+
+    extra-libraries:
+    extra-lib-dirs:
+
+source-repository head
+    type:     darcs
+    location: http://code.haskell.org/hmatrix
+
+
+
+package-hashes:
+    MD5:2044363d10312d7cf9584e5989461633
+    SHA1:f709db228cabb264ad40871ecb0cc9a5b17e2dc4
+    SHA256:94b1ceff9d036d6375696cec5ecf0b30060f72eaa1f497af2129adaa51707048
+    SHA512:ac825552f4b7560e81de1063c1e6edba280e790d49fd70d38769a66f289187208288a9592cbcd46c2a1980c2f7a473522450b722c6ebf49d79dab984d775bfbe
+    Skein512_512:bfa0d6b99ace57c6f100178ab06efe349e6831f54a413f38d1d6476a7a2d9dcbe4a6bc5c032182a41cd57c6e25f277229c084e479c41815e024cbb6f4d5044a2
+
+package-locations:
+    https://hackage.haskell.org/package/hmatrix-0.10.0.2/hmatrix-0.10.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hmatrix-0.10.0.2.tar.gz
+

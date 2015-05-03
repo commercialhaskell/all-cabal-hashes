@@ -1,0 +1,248 @@
+name:           hledger
+version: 0.25
+x-revision: 1
+stability:      stable
+category:       Finance, Console
+synopsis:       The main command-line interface for the hledger accounting tool.
+description:
+                hledger is a library and set of user tools for working
+                with financial data (or anything that can be tracked in a
+                double-entry accounting ledger.) It is a haskell port and
+                friendly fork of John Wiegley's Ledger. hledger provides
+                command-line, curses and web interfaces, and aims to be a
+                reliable, practical tool for daily use.
+
+license:        GPL
+license-file:   LICENSE
+author:         Simon Michael <simon@joyful.com>
+maintainer:     Simon Michael <simon@joyful.com>
+homepage:       http://hledger.org
+bug-reports:    http://hledger.org/bugs
+tested-with:    GHC==7.8.2, GHC==7.10.1
+cabal-version:  >= 1.10
+build-type:     Simple
+-- data-dir:       data
+-- data-files:
+extra-tmp-files:
+extra-source-files: 
+                    tests/suite.hs
+                    CHANGES
+
+-- Cabal-Version:  >= 1.9.2
+-- Test-Suite test-hledger
+--     type:       exitcode-stdio-1.0
+--     main-is:    test-hledger.hs
+--     build-depends: base
+
+source-repository head
+  type:     git
+  location: https://github.com/simonmichael/hledger
+
+flag threaded
+    Description:   Build with support for multithreaded execution
+    Default:       True
+
+flag curses
+    Description:   On POSIX systems, enable curses support for auto-detecting terminal width.
+    Default:       True
+
+flag old-locale
+  description: A compatibility flag, set automatically by cabal.
+               If false then depend on time >= 1.5, 
+               if true then depend on time < 1.5 together with old-locale.
+  default: False
+
+
+library
+  cpp-options: -DVERSION="0.25"
+  ghc-options: -Wall -fno-warn-unused-do-bind -fno-warn-name-shadowing -fno-warn-missing-signatures
+  ghc-options: -fno-warn-type-defaults -fno-warn-orphans
+  default-language: Haskell2010
+  exposed-modules:
+                  Hledger.Cli
+                  Hledger.Cli.Main
+                  Hledger.Cli.Options
+                  Hledger.Cli.Tests
+                  Hledger.Cli.Utils
+                  Hledger.Cli.Version
+                  Hledger.Cli.Add
+                  Hledger.Cli.Accounts
+                  Hledger.Cli.Balance
+                  Hledger.Cli.Balancesheet
+                  Hledger.Cli.Cashflow
+                  Hledger.Cli.Histogram
+                  Hledger.Cli.Incomestatement
+                  Hledger.Cli.Print
+                  Hledger.Cli.Register
+                  Hledger.Cli.Stats
+  build-depends:
+                  hledger-lib == 0.25
+                 ,base >= 4.3 && < 5
+                 ,base-compat >= 0.5.0 && < 0.8
+                 -- ,cabal-file-th
+                 ,containers
+                 ,cmdargs >= 0.10 && < 0.11
+                 ,csv
+                 -- ,data-pprint >= 0.2.1 && < 0.3
+                 ,directory
+                 ,filepath
+                 ,haskeline >= 0.6 && <= 0.8
+                 ,HUnit
+                 ,mtl
+                 ,mtl-compat
+                 ,old-time
+                 ,parsec >= 3
+                 ,process
+                 ,regex-tdfa
+                 ,regexpr >= 0.5.1
+                 ,safe >= 0.2
+                 ,split >= 0.1 && < 0.3
+                 ,text >= 0.11
+                 ,tabular >= 0.2 && < 0.3
+                 ,utf8-string >= 0.3.5 && < 1.1
+                 ,wizards == 1.0.*
+  if impl(ghc >= 7.10)
+    -- ghc 7.10 requires shakespeare 2.0.2.2+
+    build-depends: shakespeare      >= 2.0.2.2 && < 2.1
+  else
+    -- for older ghcs, allow shakespeare 2.x or 1.x (which also requires shakespeare-text)
+    -- http://www.yesodweb.com/blog/2014/04/consolidation-progress
+    build-depends:
+                  shakespeare      >= 1.0 && < 2.1
+                 ,shakespeare-text >= 1.0 && < 1.2
+  if flag(old-locale)
+    build-depends: time < 1.5, old-locale
+  else
+    build-depends: time >= 1.5
+  if impl(ghc >= 7.4)
+    build-depends: pretty-show >= 1.6.4
+  if !os(windows) && flag(curses)
+    build-depends: terminfo
+
+
+executable hledger
+  main-is:        hledger-cli.hs
+  hs-source-dirs: app
+  default-language: Haskell2010
+  cpp-options: -DVERSION="0.25"
+  ghc-options: -Wall -fno-warn-unused-do-bind -fno-warn-name-shadowing -fno-warn-missing-signatures
+  ghc-options: -fno-warn-type-defaults -fno-warn-orphans
+  if flag(threaded)
+       ghc-options:   -threaded
+  -- same as above:
+  build-depends:
+                  hledger-lib == 0.25
+                 ,hledger == 0.25
+                 ,base >= 4.3 && < 5
+                 ,base-compat >= 0.5.0 && < 0.8
+                 ,containers
+                 ,cmdargs >= 0.10 && < 0.11
+                 ,csv
+                 -- ,data-pprint >= 0.2.1 && < 0.3
+                 ,directory
+                 ,filepath
+                 ,haskeline >= 0.6 && <= 0.8
+                 ,HUnit
+                 ,mtl
+                 ,mtl-compat
+                 ,old-time
+                 ,parsec >= 3
+                 ,process
+                 ,regex-tdfa
+                 ,regexpr >= 0.5.1
+                 ,safe >= 0.2
+                 ,shakespeare-text >= 1.0 && < 1.2
+                 ,shakespeare      >= 1.0 && < 2.1
+                 ,split >= 0.1 && < 0.3
+                 ,tabular >= 0.2 && < 0.3
+                 ,text >= 0.11
+                 ,utf8-string >= 0.3.5 && < 1.1
+                 ,wizards == 1.0.*
+  if flag(old-locale)
+    build-depends: time < 1.5, old-locale
+  else
+    build-depends: time >= 1.5
+  if impl(ghc >= 7.4)
+    build-depends: pretty-show >= 1.6.4
+
+
+test-suite tests
+  type:     exitcode-stdio-1.0
+  main-is:  suite.hs
+  hs-source-dirs: tests
+  default-language: Haskell2010
+  ghc-options: -Wall -fno-warn-unused-do-bind -fno-warn-name-shadowing -fno-warn-missing-signatures
+  ghc-options: -fno-warn-type-defaults -fno-warn-orphans
+  -- same as above:
+  build-depends: hledger-lib
+               , hledger
+               , base >= 4.3 && < 5
+               , base-compat >= 0.5.0 && < 0.8
+               , cmdargs
+               , containers
+               , csv
+               -- , data-pprint >= 0.2.1 && < 0.3
+               , directory
+               , filepath
+               , haskeline
+               , HUnit
+               , mtl
+               , mtl-compat
+               , old-time
+               , parsec >= 3
+               , process
+               , regex-tdfa
+               , regexpr
+               , safe
+               , shakespeare-text >= 1.0 && < 1.2
+               , shakespeare      >= 1.0 && < 2.1
+               , split
+               ,tabular >= 0.2 && < 0.3
+               , test-framework
+               , test-framework-hunit
+               , text
+               , transformers
+               , wizards == 1.0.*
+  if impl(ghc >= 7.4)
+    build-depends: pretty-show >= 1.6.4
+  if flag(old-locale)
+    build-depends: time < 1.5, old-locale
+  else
+    build-depends: time >= 1.5
+
+
+-- not a standard cabal bench test, I think
+benchmark bench
+  type:             exitcode-stdio-1.0
+  -- hs-source-dirs:   
+  main-is:          ../tools/simplebench.hs
+  ghc-options: -Wall -fno-warn-unused-do-bind -fno-warn-name-shadowing -fno-warn-missing-signatures
+  ghc-options: -fno-warn-type-defaults -fno-warn-orphans
+  default-language: Haskell2010
+  build-depends:    hledger-lib,
+                    hledger,
+                    base >= 4.3 && < 5,
+                    base-compat >= 0.5.0 && < 0.8,
+                    html,
+                    tabular >= 0.2 && < 0.3,
+                    process,
+                    filepath,
+                    directory
+  if flag(old-locale)
+    build-depends: time < 1.5, old-locale
+  else
+    build-depends: time >= 1.5
+  
+
+
+package-hashes:
+    MD5:3cdfc6857ad1fdb6e9743472f7cd110f
+    SHA1:50b1a93d10e51caa511cdaed3d8f51df86a687ed
+    SHA256:bddb5ccf70a357810163a9ead30e90b4eda9e207b9dfa84618e73dd97aa6f03f
+    SHA512:8b26c3b3d9abcf73309f87e079f2a986b38100e7122c3a87b99d8b56d32c0a3c608fbc58956782e9cecf8b57caa669f9d56fffe26033d8187201d7affb91f475
+    Skein512_512:db2381dd0a3ede6a8a38e75fba11d2d04809d6f568f1c6bda83cbac8714c0ab2272e6d7002d4fcd7db1be8af1dd1ae107f25416bead1bc8be997fc71c9d7168d
+
+package-locations:
+    https://hackage.haskell.org/package/hledger-0.25/hledger-0.25.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hledger-0.25.tar.gz
+

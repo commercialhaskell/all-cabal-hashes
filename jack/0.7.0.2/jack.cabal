@@ -1,0 +1,187 @@
+Name:               jack
+Version:            0.7.0.2
+License:            GPL
+License-File:       LICENSE
+Author:             Henning Thielemann, Stefan Kersten, Soenke Hahn <soenkehahn@gmail.com>
+Maintainer:         Henning Thielemann <haskell@henning-thielemann.de>
+Synopsis:           Bindings for the JACK Audio Connection Kit
+Description:
+  Bindings for the JACK Audio Connection Kit.
+  It has support both for PCM audio and MIDI handling.
+  .
+  In order to adapt to your system,
+  you may have to disable pkgConfig or jackFree cabal flags.
+Homepage:           http://www.haskell.org/haskellwiki/JACK
+Category:           Sound
+Build-Type:         Simple
+Cabal-Version:      >=1.14
+Tested-With:        GHC==6.8.2, GHC==6.10.4, GHC==6.12.3
+Tested-With:        GHC==7.0.2, GHC==7.2.1, GHC==7.4.1, GHC==7.6.1
+Extra-Source-Files:
+  README
+  INSTALL
+  free/Sound/JACK/FFIFree.hs
+  jackfree/Sound/JACK/FFIFree.hs
+
+Source-Repository head
+  type:     darcs
+  location: http://code.haskell.org/jack/
+
+Source-Repository this
+  type:     darcs
+  location: http://code.haskell.org/jack/
+  tag:      0.7.0.2
+
+Flag pkgConfig
+  description: Use pkg-config tool for check version and presence of jack
+  default:     True
+
+Flag jackFree
+  description: Use jack_free instead of free
+  default:     True
+
+Flag buildExamples
+  description: Build example executables
+  default:     False
+
+Library
+  Build-Depends:
+    midi >=0.1.5.2 && <0.3,
+    event-list >=0.1 && <0.2,
+    non-negative >=0.1 && <0.2,
+    bytestring >=0.9.1.4 && <0.11,
+    explicit-exception >=0.1.7 && <0.2,
+    transformers >=0.2 && <0.4,
+    enumset >=0.0 && <0.1,
+    array >=0.4 && <0.6,
+    unix >=2.3 && <2.8,
+    base >=4.0 && <5.0
+  Exposed-Modules:
+    Sound.JACK
+    Sound.JACK.Audio
+    Sound.JACK.MIDI
+    Sound.JACK.Exception
+  Other-Modules:
+    Sound.JACK.Private
+    Sound.JACK.FFI
+    Sound.JACK.FFIFree
+    Sound.JACK.FFI.MIDI
+  Default-Language:   Haskell98
+  Build-Tools:        hsc2hs >=0.66 && <1.0
+  Hs-Source-Dirs:     src
+  GHC-Options:        -Wall -fwarn-tabs -fwarn-incomplete-record-updates
+  If impl(ghc >= 6.12)
+    GHC-Options:      -fwarn-unused-do-bind
+  If os(darwin)
+    CC-Options: -U__BLOCKS__
+
+  Other-Extensions:   ForeignFunctionInterface
+  Includes:           jack/jack.h, jack/midiport.h
+
+  If flag(jackFree)
+    Hs-Source-Dirs: jackfree
+  Else
+    Hs-Source-Dirs: free
+
+  If flag(pkgConfig)
+    -- There seem to be two lines of JACK:
+    --   JACK1 as used by Ubuntu, e.g. jack-0.118.0
+    --   JACK2 as used by Suse, e.g. jack-1.9.0
+    If flag(jackFree)
+      PkgConfig-depends: jack (>=0.118 && <1) || (>=1.9.8 && <2)
+    Else
+      PkgConfig-depends: jack (>=0.0 && <0.118) || (>=1.9.0 && <1.9.8)
+  Else
+    -- use extra-libraries, if pkg-config fails
+    --   http://hackage.haskell.org/trac/hackage/ticket/170
+    Extra-Libraries: jack
+
+Executable amplify
+  If flag(buildExamples)
+    Build-Depends:
+      jack,
+      base >=3.0 && <5
+  Else
+    Buildable: False
+  Default-Language:   Haskell98
+  GHC-Options:        -Wall -fwarn-tabs -fwarn-incomplete-record-updates -rtsopts
+  Hs-Source-Dirs:     examples
+  Main-Is:            Amplify.hs
+
+Executable capture
+  If flag(buildExamples)
+    Build-Depends:
+      jack,
+      explicit-exception >=0.1.7 && <0.2,
+      transformers >=0.2 && <0.4,
+      array,
+      base >=3.0 && <5
+  Else
+    Buildable: False
+  Default-Language:   Haskell98
+  GHC-Options:        -Wall -fwarn-tabs -fwarn-incomplete-record-updates
+  Hs-Source-Dirs:     examples
+  Main-Is:            Capture.hs
+
+Executable impulse-train
+  If flag(buildExamples)
+    Build-Depends:
+      jack,
+      explicit-exception >=0.1.7 && <0.2,
+      transformers >=0.2 && <0.4,
+      array,
+      base >=3.0 && <5
+  Else
+    Buildable: False
+  Default-Language:   Haskell98
+  GHC-Options:        -Wall -fwarn-tabs -fwarn-incomplete-record-updates -rtsopts
+  Hs-Source-Dirs:     examples
+  Main-Is:            ImpulseTrain.hs
+
+Executable midimon
+  If flag(buildExamples)
+    Build-Depends:
+      jack,
+      midi >=0.1.5.2 && <0.3,
+      base >=3.0 && <5
+  Else
+    Buildable: False
+  Default-Language:   Haskell98
+  GHC-Options:        -Wall -fwarn-tabs -fwarn-incomplete-record-updates -rtsopts
+  Hs-Source-Dirs:     examples
+  Main-Is:            Midimon.hs
+
+Executable synth
+  If flag(buildExamples)
+    Build-Depends:
+      jack,
+      midi >=0.1.5.2 && <0.3,
+      event-list >=0.1 && <0.2,
+      explicit-exception >=0.1.7 && <0.2,
+      transformers >=0.2 && <0.4,
+      containers >=0.2 && <0.6,
+      bytestring >=0.9.1 && <0.11,
+      storablevector >=0.2.7 && <0.3,
+      array,
+      base >=3.0 && <5
+  Else
+    Buildable: False
+  Default-Language:   Haskell98
+  GHC-Options:        -Wall -fwarn-tabs -fwarn-incomplete-record-updates
+  Hs-Source-Dirs:     examples
+  Main-Is:            Synthesizer.hs
+  Other-Modules:
+    Synthesizer.Render
+
+
+package-hashes:
+    MD5:d20f0b728f6fe5e7f9276d4f0d0cdaa2
+    SHA1:dd2999151d64799aae3c6f4804291e83461f95d5
+    SHA256:f291d99c6c7efb70c9ebbad2ffbb6db98151530aec6948da58015d1ab80eae1a
+    SHA512:8300a0a993cc1f7d41d70e25b32668ece2cfb4d12b11372380fa86bd370337b771b15bde589d33209de0ab68a360ae0def98a813e6262249713b86907ea77a30
+    Skein512_512:1efa98874356a0a8f841926255995a021d7fa0ea21f81d340663a053032f5223589ef2eba763b94c7ad68a9bf0342e6a953962709084c078e7bda683fdb361e0
+
+package-locations:
+    https://hackage.haskell.org/package/jack-0.7.0.2/jack-0.7.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/jack-0.7.0.2.tar.gz
+
