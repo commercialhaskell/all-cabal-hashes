@@ -1,0 +1,285 @@
+name:           FormalGrammars
+version:        0.2.0.0
+author:         Christian Hoener zu Siederdissen, 2013-2015
+copyright:      Christian Hoener zu Siederdissen, 2013-2015
+homepage:       http://www.bioinf.uni-leipzig.de/Software/gADP/
+maintainer:     choener@bioinf.uni-leipzig.de
+category:       Formal Languages, Bioinformatics
+license:        GPL-3
+license-file:   LICENSE
+build-type:     Simple
+stability:      experimental
+cabal-version:  >= 1.10.0
+tested-with:    GHC == 7.8.4, GHC == 7.10.1
+synopsis:       (Context-free) grammars in formal language theory
+description:
+                Context-free grammars in formal language theory are sets of
+                production rules, non-terminal and terminal symbols. This
+                library provides basic data types and functions to manipulate
+                such grammars.
+                .
+                Grammars can be defined in a small domain-specific language
+                that is very close to typical CFG notation. The DSL parser can
+                easily be extended. Grammar products, for example, are
+                implemented as a single additional sub-parser.
+                .
+                This library also provides the machinery that transforms an
+                Inside grammar into the corresponding Outside grammar.
+                .
+                In addition, TemplateHaskell and QuasiQuoting functionality
+                allow embedding thusly defined grammars in Haskell programs.
+                ADPfusion then turns such a grammar into an efficient dynamic
+                program. It is also possible to generate Haskell modules that
+                contain the resulting grammar, signature and algebra product.
+                .
+                Alternatives are ansi- or LaTeX-based pretty-printing for users
+                that want to implement their CFG in another language than
+                Haskell.
+                .
+                .
+                .
+                .
+                Formal background can be found in these papers:
+                .
+                @
+                Christian Hoener zu Siederdissen
+                Sneaking Around ConcatMap: Efficient Combinators for Dynamic Programming
+                2012. Proceedings of the 17th ACM SIGPLAN international conference on Functional programming
+                <http://doi.acm.org/10.1145/2364527.2364559> preprint: <http://www.tbi.univie.ac.at/newpapers/pdfs/TBI-p-2012-2.pdf>
+                @
+                .
+                @
+                Andrew Farmer, Christian Höner zu Siederdissen, and Andy Gill.
+                The HERMIT in the stream: fusing stream fusion’s concatMap.
+                2014. Proceedings of the ACM SIGPLAN 2014 workshop on Partial evaluation and program manipulation.
+                <http://dl.acm.org/citation.cfm?doid=2543728.2543736>
+                @
+                .
+                @
+                Christian Höner zu Siederdissen, Ivo L. Hofacker, and Peter F. Stadler.
+                Product Grammars for Alignment and Folding.
+                2014. IEEE/ACM Transactions on Computational Biology and Bioinformatics. 99.
+                <http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=6819790>
+                @
+                .
+                @
+                Christian Höner zu Siederdissen, Sonja J. Prohaska, and Peter F. Stadler.
+                Algebraic Dynamic Programming over General Data Structures.
+                2015. submitted.
+                @
+                .
+
+
+
+Extra-Source-Files:
+  README.md
+  changelog.md
+  tests/parsing.gra
+
+flag examples
+  description:  build the examples
+  default:      False
+  manual:       True
+
+flag llvm
+  description:  build using LLVM
+  default:      False
+  manual:       True
+
+flag debug
+  description:  dump intermediate Core files
+  default:      False
+  manual:       True
+
+-- TODO relax parsers dependency once https://github.com/ekmett/parsers/issues/37 is dealt with
+
+-- explicit dependency on PrimitiveArray to be able to load the examples
+
+library
+  build-depends: base                  >= 4.7     && < 4.9
+               , ADPfusion             == 0.4.0.*
+               , ansi-wl-pprint        == 0.6.7.*
+               , bytestring            == 0.10.*
+               , containers
+               , data-default          == 0.5.*
+               , HaTeX                 == 3.16.*
+               , lens                  == 4.*
+               , mtl                   == 2.*
+               , parsers               >= 0.12    && < 0.13
+               , PrimitiveArray        == 0.6.0.*
+               , semigroups            >= 0.16    && < 0.17
+               , template-haskell
+               , text                  == 1.*
+               , transformers          >= 0.3     && < 0.5
+               , trifecta              == 1.5.*
+               , unordered-containers  == 0.2.*
+               , vector                == 0.10.*
+  exposed-modules:
+    FormalLanguage
+    FormalLanguage.CFG
+    FormalLanguage.CFG.Grammar
+    FormalLanguage.CFG.Grammar.Types
+    FormalLanguage.CFG.Grammar.Util
+    FormalLanguage.CFG.Outside
+    FormalLanguage.CFG.Parser
+    FormalLanguage.CFG.PrettyPrint
+    FormalLanguage.CFG.PrettyPrint.ANSI
+    FormalLanguage.CFG.PrettyPrint.Haskell
+    FormalLanguage.CFG.PrettyPrint.LaTeX
+    FormalLanguage.CFG.QQ
+--    FormalLanguage.CFG.QuickCheck
+    FormalLanguage.CFG.TH
+  default-language:
+    Haskell2010
+  default-extensions: FlexibleContexts
+                    , FlexibleInstances
+                    , GeneralizedNewtypeDeriving
+                    , LambdaCase
+                    , MultiParamTypeClasses
+                    , NamedFieldPuns
+                    , NoMonomorphismRestriction
+                    , PatternGuards
+                    , RankNTypes
+                    , RecordWildCards
+                    , ScopedTypeVariables
+                    , StandaloneDeriving
+                    , TemplateHaskell
+                    , TupleSections
+                    , TypeFamilies
+                    , TypeOperators
+  ghc-options:
+    -O2 -funbox-strict-fields
+
+
+
+-- A Simple pretty-printer for formal grammars.
+
+executable GrammarPP
+  build-depends: base
+               , ansi-wl-pprint
+               , cmdargs          == 0.10.*
+               , FormalGrammars
+  hs-source-dirs:
+    src
+  default-language:
+    Haskell2010
+  default-extensions: DeriveDataTypeable
+                    , RecordWildCards
+  main-is:
+    GrammarPP.hs
+
+
+
+executable NussinovFG
+  if flag(examples)
+    buildable:
+      True
+    build-depends: base
+                 , ADPfusion
+                 , FormalGrammars
+                 , PrimitiveArray
+                 , template-haskell
+                 , vector
+  else
+    buildable:
+      False
+  hs-source-dirs:
+    src
+  main-is:
+    Nussinov.hs
+  default-language:
+    Haskell2010
+  default-extensions: BangPatterns
+                    , FlexibleContexts
+                    , FlexibleInstances
+                    , MultiParamTypeClasses
+                    , QuasiQuotes
+                    , TemplateHaskell
+                    , TypeFamilies
+                    , TypeOperators
+  ghc-options:
+    -O2
+    -fcpr-off
+    -funbox-strict-fields
+    -funfolding-use-threshold1000
+    -funfolding-keeness-factor1000
+  if flag(debug)
+    ghc-options:
+      -ddump-to-file
+      -ddump-simpl
+      -ddump-stg
+      -dsuppress-all
+  if flag(llvm)
+    ghc-options:
+      -fllvm
+      -optlo-O3 -optlo-std-compile-opts
+      -fllvm-tbaa
+
+
+executable NeedlemanWunschFG
+  if flag(examples)
+    buildable:
+      True
+    build-depends: base
+                 , ADPfusion
+                 , containers
+                 , FormalGrammars
+                 , PrimitiveArray
+                 , template-haskell
+                 , vector
+  else
+    buildable:
+      False
+  hs-source-dirs:
+    src
+  main-is:
+    NeedlemanWunsch.hs
+  default-language:
+    Haskell2010
+  default-extensions: BangPatterns
+                    , FlexibleContexts
+                    , FlexibleInstances
+                    , MultiParamTypeClasses
+                    , QuasiQuotes
+                    , TemplateHaskell
+                    , TypeFamilies
+                    , TypeOperators
+  ghc-options:
+    -O2
+    -fcpr-off
+    -funbox-strict-fields
+    -funfolding-use-threshold1000
+    -funfolding-keeness-factor1000
+    -rtsopts
+  if flag(debug)
+    ghc-options:
+      -ddump-to-file
+      -ddump-simpl
+      -ddump-stg
+      -dsuppress-all
+  if flag(llvm)
+    ghc-options:
+      -fllvm
+      -optlo-O3
+      -fllvm-tbaa
+
+
+
+source-repository head
+  type: git
+  location: git://github.com/choener/FormalGrammars
+
+
+
+package-hashes:
+    MD5:ca46626b5f13e0271416d6077698d49e
+    SHA1:ce9a4257af1f45dbd42c1626c415b00c2f25015a
+    SHA256:e55c58217659e43c87e7b7ebced971d313cdfde656e913e7d147d7b81fc9a263
+    SHA512:9765831b6124cc58b37482816f8475b5a0af3de1aabdd9805f35bf27c86054cc1be5fabb1271540fe703eca1d73d4945eea4293aabe6c5e58483b7ec00e52e46
+    Skein512_512:bfacbb6f06bf614be3e9fad2bc8fe88ffffa0fcb90b609bc313bc263e6a27314cb7e892ac87e80b48f51b165c50bdfe44de8cd00f40f0d0e3818728f3ff3b177
+
+package-locations:
+    https://hackage.haskell.org/package/FormalGrammars-0.2.0.0/FormalGrammars-0.2.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/FormalGrammars-0.2.0.0.tar.gz
+
+package-size: 43280
