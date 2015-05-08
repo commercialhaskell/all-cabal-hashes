@@ -15,7 +15,7 @@ then
     git push git@github.com:commercialhaskell/all-cabal-hashes.git HEAD:hackage
 
     git tag -f current-hackage -u D6CF60FD -m "Update from Hackage at $(date --utc --iso=sec)"
-    git push git@github.com:commercialhaskell/all-cabal-hashes.git --tags
+    git push git@github.com:commercialhaskell/all-cabal-hashes.git --tags --force
 else
     echo No changes present
 fi
