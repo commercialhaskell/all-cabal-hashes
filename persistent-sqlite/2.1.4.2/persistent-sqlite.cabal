@@ -1,0 +1,92 @@
+-- BEGIN Added by all-cabal-hashes-tool
+x-package-hashes:
+    MD5:170ddf4cde2adaa154979d4f0d67e17a
+    SHA1:2d402fde6b89d1afaedea198e0f6a3904b4ce9c4
+    SHA256:0ac7e708c06ae1b63bb068c248fb3ccba0beb99da52702efa6c0a4bca047123c
+    SHA512:9c959164135120f02464daee6d9012872d12212bcb94128010f05784cd11cd04d2fd2dcca5dafd9036d0bd4154a5262b26816b27d7a335f0404634471e3944c7
+    Skein512_512:d627da2b7b129623a16a63964244cd1f7f83cdd2a03ea690be55cb7f2ae6be62eedb11be441ec80b7eb7faaa0ebad2f01d318e3b38084308eb112bedd5f84e89
+
+x-package-locations:
+    https://hackage.haskell.org/package/persistent-sqlite-2.1.4.2/persistent-sqlite-2.1.4.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/persistent-sqlite-2.1.4.2.tar.gz
+
+x-package-size: 1460596
+-- END Added by all-cabal-hashes-tool
+
+name:            persistent-sqlite
+version:         2.1.4.2
+license:         MIT
+license-file:    LICENSE
+author:          Michael Snoyman <michael@snoyman.com>
+maintainer:      Michael Snoyman <michael@snoyman.com>
+synopsis:        Backend for the persistent library using sqlite3.
+description:     This package includes a thin sqlite3 wrapper based on the direct-sqlite package, as well as the entire C library, so there are no system dependencies.
+category:        Database, Yesod
+stability:       Stable
+cabal-version:   >= 1.8
+build-type:      Simple
+homepage:        http://www.yesodweb.com/book/persistent
+bug-reports:     https://github.com/yesodweb/persistent/issues
+extra-source-files: ChangeLog.md cbits/*.c cbits/*.h
+
+flag systemlib
+  description: Use the system-wide sqlite library
+  default: False
+flag build-sanity-exe
+  description: Build a sanity check test executable
+  default: False
+
+library
+    build-depends:   base                    >= 4.6         && < 5
+                   , bytestring              >= 0.9.1
+                   , transformers            >= 0.2.1
+                   , persistent              >= 2.1       && < 3
+                   , monad-control           >= 0.2
+                   , containers              >= 0.2
+                   , text                    >= 0.7
+                   , aeson                   >= 0.6.2
+                   , conduit                 >= 0.5.3
+                   , monad-logger            >= 0.2.4
+                   , resourcet               >= 1.1
+                   , time
+                   , old-locale
+    exposed-modules: Database.Sqlite
+                     Database.Persist.Sqlite
+    ghc-options:     -Wall
+    if flag(systemlib)
+        extra-libraries: sqlite3
+    else
+        c-sources:   cbits/sqlite3.c
+        include-dirs: cbits
+        cc-options:  -fPIC
+
+    c-sources: cbits/config.c
+
+    if !os(windows)
+        extra-libraries: pthread
+
+source-repository head
+  type:     git
+  location: git://github.com/yesodweb/persistent.git
+
+
+test-suite test
+  type:           exitcode-stdio-1.0
+  main-is:        Spec.hs
+  hs-source-dirs: test
+  build-depends:  base
+                , hspec
+                , persistent
+                , persistent-sqlite
+                , persistent-template
+                , time
+                , transformers
+
+executable sanity
+    if flag(build-sanity-exe)
+        buildable: True
+    else
+        buildable: False
+    main-is: sanity.hs
+    hs-source-dirs: test
+    build-depends: base, persistent-sqlite
