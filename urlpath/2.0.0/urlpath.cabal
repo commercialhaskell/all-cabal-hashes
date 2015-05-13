@@ -1,0 +1,132 @@
+-- BEGIN Added by all-cabal-hashes-tool
+x-package-hashes:
+    MD5:87da062b4af0949d3696b8d35d7c3276
+    SHA1:e3d7bdee8ad78e950e49e2eed850c25be2523cab
+    SHA256:79c17add515987c85793e23aafa093603fbce92f690f35c2d9b613bda8e80ba7
+    SHA512:da24c7996a2cb9d01a8ca3878f1ec1f755b850a6daad948fd8a9e336f09ba80fc68fdd7edd2a7cca9dce1c048c2363db23b1c4ef9330f30672aa4b71189c7b90
+    Skein512_512:da6434592ef00d992608027379c2c4a36d4785f0aecc2701379a7fae6ed22a3450fc6187cf23469a5f2fa8b7f8909b430fd7612161f5b7536c5c420391831e3d
+
+x-package-locations:
+    https://hackage.haskell.org/package/urlpath-2.0.0/urlpath-2.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/urlpath-2.0.0.tar.gz
+
+x-package-size: 5096
+-- END Added by all-cabal-hashes-tool
+
+Name:                   urlpath
+Version:                2.0.0
+Author:                 Athan Clark <athan.clark@gmail.com>
+Maintainer:             Athan Clark <athan.clark@gmail.com>
+License:                MIT
+License-File:           LICENSE
+Category:               Web, Data
+Synopsis:               Painfully simple URL writing combinators
+Description:
+  Simple URL DSL for Haskell.
+  .
+  This library tries to make it easier for people to write Url strings,
+  structurally. Packages like <https://hackage.haskell.org/package/yesod-routes Yesod Routes>
+  do a wonderful job at implementing string-free routing and
+  references, but sometimes we have to compromise. This tries to make that
+  compromise less painful.
+  .
+  Use bare combinators to render your strings (kinda useless):
+  .
+  >  expandRelative $ "foo.php" <?> ("key1","bar") <&> ("key2","baz")
+  >
+  >  ↪ "foo.php?key1=bar&key2=baz"
+  .
+  ... or use the MonadReader instance for a configurable host:
+  .
+  >  let path = runAbsoluteUrl $ url $ "foo.php" <?> ("key1","bar") <&> ("key2","baz")
+  >  path "example.com"
+  >
+  >  ↪ "example.com/foo.php?key1=bar&key2=baz"
+  .
+  @url@ puts the @UrlString@ in a MonadReader that we can use for applying our
+  host. We use different monads for different deployment schemes (currently we
+  have 3 - @RelativeUrl@, @GroundedUrl@, and @AbsoluteUrl@), which we can
+  integrate in different libraries, like Lucid:
+  .
+  >  (runAbsoluteUrl $ renderTextT $ do
+  >      foo <- lift $ url $ "foo" <?> ("bar","baz")
+  >      script_ [src_ foo] "" )
+  >  ) "example.com"
+  >
+  >  ↪ "<script src=\"example.com/foo?bar=baz\"></script>"
+  .
+  ... and in Scotty ...
+  .
+  >  main :: IO ()
+  >  main = scottyT 3000
+  >      rootConf
+  >      rootConf
+  >      run
+  >
+  >    where
+  >      rootConf = flip runAbsoluteT "http://example.com"
+  >
+  >      run :: ( MonadIO m
+  >             , MonadReader T.Text m
+  >             , Url T.Text m ) =>
+  >             ScottyT LT.Text m ()
+  >      run = get "/" $ do
+  >        path <- lift $ url $ "foo" <?> ("bar","baz")
+  >        text $ LT.fromStrict path
+  >
+  >  λ> curl localhost:3000/
+  >  ↪ "http://example.com/foo?bar=baz"
+  .
+  Note that in the scotty example, we don't use one of our deployment schemes -
+  this is because the @scottyT@ function expects it's underlying monad to be an
+  instance of @MonadIO@, which we can only instantiate in our monad transformers.
+  .
+  Please take mind - the string type underlying the Url rendering is generalized
+  to @Data.String.IsString@ for convenient use with @-XOverloadedStrings@. However,
+  due to that generality, we need to specify the monomorphic type (like
+  @Data.Text.Text@ above).
+
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall
+  Exposed-Modules:      Data.Url
+                        Data.Url.Types
+  Build-Depends:        base >= 4 && < 5
+                      , mtl
+                      , transformers
+                      , monoid-subclasses
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       src
+                      , test
+  Ghc-Options:          -Wall
+  Main-Is:              Spec.hs
+  Build-Depends:        base
+                      , hspec
+                      , QuickCheck
+                      , quickcheck-instances
+                      , mtl
+                      , text
+                      , transformers
+                      , monoid-subclasses
+
+benchmark bench
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       benchmarks
+  main-is:              Main.hs
+  build-depends:        base
+                      , deepseq
+                      , criterion
+                      , text
+                      , urlpath >= 0.2
+  ghc-options:          -O2
+
+Source-Repository head
+  Type:                 git
+  Location:             https://github.com/athanclark/urlpath.git
