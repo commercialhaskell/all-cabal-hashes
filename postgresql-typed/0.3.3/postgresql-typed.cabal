@@ -1,0 +1,121 @@
+-- BEGIN Added by all-cabal-hashes-tool
+x-package-hashes:
+    MD5:9dbc286a2aaf1f93ef9085f16b4a4bc7
+    SHA1:24b01e115e2d7b2e91ebd105aa1c3f107a017843
+    SHA256:5037d29c4a7742e979c573807db8bf8642eac4f91577717f7dedaeb4411340ba
+    SHA512:b33643a4e8787447b1ff51db028e39b42397da887137c018e4dc70058eb388b064684c4c6620e458494d62a6fc6d5a26a47d199a7c2850bdcca907b29ce89c3a
+    Skein512_512:a45b28726f715cdea4a8e2a896cf652c75ec63719da274da1eb35f85ced564314a9df43bbb2dabc343e326762cda6f15d144dc8fbb9c009156c1b8689df16e7a
+
+x-package-locations:
+    https://hackage.haskell.org/package/postgresql-typed-0.3.3/postgresql-typed-0.3.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/postgresql-typed-0.3.3.tar.gz
+
+x-package-size: 35598
+-- END Added by all-cabal-hashes-tool
+
+Name:          postgresql-typed
+Version:       0.3.3
+Cabal-Version: >= 1.8
+License:       BSD3
+License-File:  COPYING
+Copyright:     2010-2013 Chris Forno, 2014-2015 Dylan Simon
+Author:        Dylan Simon
+Maintainer:    Dylan Simon <dylan-pgtyped@dylex.net>
+Stability:     alpha
+Bug-Reports:   https://github.com/dylex/postgresql-typed/issues
+Homepage:      https://github.com/dylex/postgresql-typed
+Category:      Database
+Synopsis:      A PostgreSQL access library with compile-time SQL type inference
+Description:   Automatically type-check SQL statements at compile time.
+               Uses Template Haskell and the raw PostgreSQL protocol to describe SQL statements at compile time and provide appropriate type marshalling for both parameters and results.
+               Allows not only syntax verification of your SQL but also full type safety between your SQL and Haskell.
+               Supports many built-in PostgreSQL types already, including arrays and ranges, and can be easily extended in user code to support any other types.
+               Originally based on Chris Forno's templatepg library.
+Tested-With:   GHC == 7.8.4
+Build-Type:    Simple
+
+source-repository head
+  type:     git
+  location: git://github.com/dylex/postgresql-typed
+
+Flag md5
+  Description: Enable md5 password authentication method.
+  Default: True
+
+Flag binary
+  Description: Use binary protocol encoding via postgresql-binary. This may put additional restrictions on supported PostgreSQL server versions.
+  Default: True
+
+Flag text
+  Description: Support Text string values via text (implied by binary).
+  Default: True
+
+Flag uuid
+  Description: Support the UUID type via uuid (implied by binary).
+  Default: True
+
+Flag scientific
+  Description: Support decoding numeric via scientific (implied by binary).
+  Default: True
+
+Flag aeson
+  Description: Support decoding json via aeson.
+  Default: True
+
+Library
+  Build-Depends:
+    base >= 4.7 && < 5,
+    array,
+    binary,
+    containers < 0.5.6,
+    old-locale,
+    time < 1.5,
+    bytestring >= 0.10.2,
+    template-haskell,
+    haskell-src-meta,
+    network,
+    parsec,
+    utf8-string
+  Exposed-Modules:
+    Database.PostgreSQL.Typed
+    Database.PostgreSQL.Typed.Protocol
+    Database.PostgreSQL.Typed.Types
+    Database.PostgreSQL.Typed.TH
+    Database.PostgreSQL.Typed.Query
+    Database.PostgreSQL.Typed.Enum
+    Database.PostgreSQL.Typed.Array
+    Database.PostgreSQL.Typed.Range
+    Database.PostgreSQL.Typed.Inet
+    Database.PostgreSQL.Typed.Dynamic
+    Database.PostgreSQL.Typed.TemplatePG
+  Other-Modules:
+    Database.PostgreSQL.Typed.Internal
+  GHC-Options: -Wall
+  if flag(md5)
+    Build-Depends: cryptohash >= 0.5
+    CPP-options: -DUSE_MD5
+  if flag(binary)
+    Build-Depends: postgresql-binary >= 0.5.0, text >= 1, uuid >= 1.3, scientific >= 0.3
+    CPP-options: -DUSE_BINARY -DUSE_TEXT -DUSE_UUID -DUSE_SCIENTIFIC
+  else
+    if flag(text)
+      Build-Depends: text >= 1
+      CPP-options: -DUSE_TEXT
+    if flag(uuid)
+      Build-Depends: uuid >= 1.3
+      CPP-options: -DUSE_UUID
+    if flag(scientific)
+      Build-Depends: scientific >= 0.3
+      CPP-options: -DUSE_SCIENTIFIC
+  if flag(aeson)
+    Build-Depends: aeson >= 0.7, attoparsec >= 0.10
+    CPP-options: -DUSE_AESON
+
+test-suite test
+  build-depends: base, network, time, postgresql-typed
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  buildable: True
+  hs-source-dirs: test
+  Extensions: TemplateHaskell, QuasiQuotes
+  GHC-Options: -Wall
