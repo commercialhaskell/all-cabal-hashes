@@ -1,0 +1,180 @@
+-- BEGIN Added by all-cabal-hashes-tool
+x-package-hashes:
+    MD5:b9f375b916bd7f009cad3657e40de9f0
+    SHA1:5f17b37402365ab7fb7687ae99c12f26ec48e503
+    SHA256:d7dbf3e9149474dfa82c52241036119601a2738116b303f02b70d5dfdb52cd58
+    SHA512:2e2ce429a52582f534bf74668eb115cd56eaef4db9777ceed58b3b89efea1a1cbe073fa178c400815e34f0eef9c834ce82cf1b1592a5be7d3825ae8fa6cde206
+    Skein512_512:5f9fd3f6b8b8ef6b8a1a230a3a4a3cb583c04ee31d6c3da3a3e3ab0b3c4cfdddb68ffa2fceb20d01bce83883aa7b21a7c6d8e3ba065d53db036085271635d8ac
+
+x-package-locations:
+    https://hackage.haskell.org/package/nested-routes-2.1.0/nested-routes-2.1.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/nested-routes-2.1.0.tar.gz
+
+x-package-size: 10512
+-- END Added by all-cabal-hashes-tool
+
+Name:                   nested-routes
+Version:                2.1.0
+Author:                 Athan Clark <athan.clark@gmail.com>
+Maintainer:             Athan Clark <athan.clark@gmail.com>
+License:                BSD3
+License-File:           LICENSE
+Synopsis:               Declarative, compositional Wai responses
+Category:               Web
+Description:
+  A method to writing Wai responses
+  .
+  This library attempts to make it easier to write nice Wai response handlers
+  by giving us a Sinatra/
+  <https://hackage.haskell.org/package/scotty Scotty>-like syntax for declaring HTTP-verb oriented
+  routes, in addition to file-extension handling and rose-tree like composition.
+  Not only do we have literal route specification, like
+  <https://hackage.haskell.org/package/scotty Scotty> &
+  <https://hackage.haskell.org/package/spock Spock>, but we
+  can also embed
+  <https://hackage.haskell.org/package/attoparsec Attoparsec>
+  parsers and <https://hackage.haskell.org/package/regex-compat Regular Expressions>
+  /directly/ in our routes, with our handlers
+  reflecting their results. You can find more information on the <https://www.fpcomplete.com/user/AthanClark/nested-routes demo>.
+  .
+  As an example:
+  .
+  > router :: Application
+  > router = route handlers
+  >   where
+  >     handlers = do
+  >       handle o
+  >         (Just $ get $ text "home")
+  >         Nothing
+  >       handle ("foo" </> "bar")
+  >         (Just $ get $ text "foobar") $ Just $
+  >         handle (p ("baz", double) </> o)
+  >           (Just $ \d -> get $ text $ LT.pack (show d) <> " bazs")
+  >           Nothing
+  >       handle (p ("num",double) </> o)
+  >         (Just $ \d -> get $ text $ LT.pack $ show d) $ Just $ do
+  >         handle "bar"
+  >            (Just $ \d -> get $ do
+  >                     text $ (LT.pack $ show d) <> " bars")
+  >                     json $ (LT.pack $ show d) <> " bars!")
+  >            Nothing
+  >         handle (r ("email", mkRegex "(^[-a-zA-Z0-9_.]+@[-a-zA-Z0-9]+\\.[-a-zA-Z0-9.]+$)") </> o)
+  >            (Just $ \d e -> get $ textOnly $ (LT.pack $ show d) <> " " <> (LT.pack $ show e)
+  .
+  The route specification syntax is a little strange right now - @l@ specifies
+  a "literal chunk" of a handlable url (ie - @l \"foo\" \<\/\> l \"bar\" \<\/\> o@ would
+  represent the url @\/foo\/bar@), while @p@ represents a "parsable" url chunk,
+  which expects a pair - the left element being merely a reference name for the
+  parser during internal plumbing, and the right being the actual @Parser@. @o@ represents
+  the end of a url string, and can be used alone in a handler to capture requests
+  to the root path.
+  .
+  Each route being handled needs some kind of content. For every parsed url chunk,
+  the route expects a function
+  of arity matching 1-for-1 with the parsed contents. For example, @\d -> ...@ in the
+  demonstration above is such a function, where @d :: Double@.
+  .
+  Internally, we match against both the file extension and Accept headers in the
+  HTTP request - the Accept header may override the file extension.
+  .
+  When we test our application:
+  .
+  >  λ> curl localhost:3000/ -H "Accept: text/plain, */*"
+  >  ↪ "home"
+  .
+  requests may end with index
+  .
+  >  λ> curl localhost:3000/index -H "Accept: text/plain, */*"
+  >  ↪ "home"
+  .
+  and specify the file extension
+  .
+  >  λ> curl localhost:3000/index.txt -H "Accept: text/plain, */*"
+  >  ↪ "home"
+  .
+  each responding with the "closest" available file type
+  .
+  >  λ> curl localhost:3000/index.html -H "Accept: text/html, */*"
+  >  ↪ "home"
+  .
+  >  λ> curl localhost:3000/foo/bar -H "Accept: text/plain, */*"
+  >  ↪ "foobar"
+  .
+  >  λ> curl localhost:3000/foo/bar.txt -H "Accept: text/plain, */*"
+  >  ↪ "foobar"
+  .
+  >  λ> curl localhost:3000/foo/bar/5678.5678 -H "Accept: text/plain, */*"
+  >  ↪ "5678.5678 bazs"
+  .
+  >  λ> curl localhost:3000/1234.1234 -H "Accept: text/plain, */*"
+  >  ↪ "1234.1234"
+  .
+  >  λ> curl localhost:3000/2e5 -H "Accept: text/plain, */*"
+  >  ↪ "200000.0"
+  .
+  >  λ> curl localhost:3000/1234.1234/bar -H "Accept: text/plain, */*"
+  >  ↪ "1234.1234 bars"
+
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall
+  Exposed-Modules:      Web.Routes.Nested
+                        Web.Routes.Nested.Types
+                        Web.Routes.Nested.Types.UrlChunks
+                        Web.Routes.Nested.VerbListener
+                        Web.Routes.Nested.FileExtListener
+                        Web.Routes.Nested.FileExtListener.Types
+                        Web.Routes.Nested.FileExtListener.Text
+                        Web.Routes.Nested.FileExtListener.Json
+                        Web.Routes.Nested.FileExtListener.Builder
+                        Web.Routes.Nested.FileExtListener.Blaze
+                        Web.Routes.Nested.FileExtListener.ByteString
+                        Web.Routes.Nested.FileExtListener.Lucid
+                        Web.Routes.Nested.FileExtListener.Clay
+                        Web.Routes.Nested.FileExtListener.Julius
+                        Web.Routes.Nested.FileExtListener.Lucius
+                        Web.Routes.Nested.FileExtListener.Cassius
+  Build-Depends:        base >= 4.6 && < 5
+                      , wai
+                      , wai-extra
+                      , wai-util
+                      , http-types
+                      , http-media
+                      , mtl
+                      , transformers
+                      , witherable
+                      , composition
+                      , semigroups
+                      , constraints
+                      , containers
+                      , text
+                      , aeson
+                      , blaze-html
+                      , lucid
+                      , shakespeare
+                      , clay
+                      , bytestring
+                      , attoparsec
+                      , regex-compat
+                      , pred-trie >= 0.1
+                      , poly-arity >= 0.0.4
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       src
+                      , test
+  Ghc-Options:          -Wall
+  Main-Is:              Spec.hs
+  Build-Depends:        base
+                      , hspec
+                      , QuickCheck
+                      , quickcheck-instances
+
+Source-Repository head
+  Type:                 git
+  Location:             git://github.com/athanclark/nested-routes.git
