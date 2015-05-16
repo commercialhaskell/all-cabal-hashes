@@ -1,0 +1,99 @@
+-- BEGIN Added by all-cabal-hashes-tool
+x-package-hashes:
+    MD5:121b97d7c1c9f8b201f4b6ec8b1b108f
+    SHA1:83af80131d4440d20580a05632cf9451c8d18313
+    SHA256:97a72aff344c9328d0ced8f48d18adc9e87f18348c056c22a45ecf89bd4b40cc
+    SHA512:ab1b58f3e26a94d3c32dadad11d45f1f8f74de59dcebce42b5567f2be3eddb642289f64684765378429db509ef1fbba22d52e4d9b9791ca3c0832438ccb7485e
+    Skein512_512:27e6be1b4223cf5a4a0faceaaa35d8c3aba6e30479b5e040f47863468d5c11958b6f6ea3cfd40d7a71d96ae3227e83d2eb70bee225d06a389198136f5e22a1c9
+
+x-package-locations:
+    https://hackage.haskell.org/package/zlib-0.6.0.2/zlib-0.6.0.2.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/zlib-0.6.0.2.tar.gz
+
+x-package-size: 141172
+-- END Added by all-cabal-hashes-tool
+
+name:            zlib
+version:         0.6.0.2
+copyright:       (c) 2006-2015 Duncan Coutts
+license:         BSD3
+license-file:    LICENSE
+author:          Duncan Coutts <duncan@community.haskell.org>
+maintainer:      Duncan Coutts <duncan@community.haskell.org>
+category:        Codec
+synopsis:        Compression and decompression in the gzip and zlib formats
+description:     This package provides a pure interface for compressing and 
+                 decompressing streams of data represented as lazy 
+                 'ByteString's. It uses the zlib C library so it has high
+                 performance. It supports the \"zlib\", \"gzip\" and \"raw\"
+                 compression formats.
+                 .
+                 It provides a convenient high level API suitable for most
+                 tasks and for the few cases where more control is needed it
+                 provides access to the full zlib feature set.
+build-type:      Simple
+cabal-version:   >= 1.10
+extra-source-files: changelog
+                    -- zlib C sources (for Windows)
+                    cbits/crc32.h cbits/inffast.h cbits/inflate.h
+                    cbits/trees.h cbits/deflate.h cbits/inffixed.h
+                    cbits/inftrees.h cbits/zutil.h cbits/gzguts.h
+                    -- test data files
+                    test/data/bad-crc.gz test/data/custom-dict.zlib
+                    test/data/custom-dict.zlib-dict test/data/hello.gz
+                    test/data/not-gzip test/data/two-files.gz
+                    -- demo programs:
+                    examples/gzip.hs examples/gunzip.hs
+
+source-repository head
+  type: darcs
+  location: http://code.haskell.org/zlib/
+
+library
+  exposed-modules: Codec.Compression.GZip,
+                   Codec.Compression.Zlib,
+                   Codec.Compression.Zlib.Raw,
+                   Codec.Compression.Zlib.Internal
+  other-modules:   Codec.Compression.Zlib.Stream
+  if impl(ghc < 7)
+    default-language: Haskell98
+  else
+    default-language: Haskell2010
+  other-extensions: CPP, ForeignFunctionInterface, RankNTypes, BangPatterns,
+                    DeriveDataTypeable
+  if impl(ghc >= 7.2)
+    other-extensions: DeriveGeneric
+  build-depends:   base >= 4 && < 5,
+                   bytestring >= 0.9 && < 0.12
+  if impl(ghc >= 7.2 && < 7.6)
+    build-depends: ghc-prim
+  includes:        zlib.h
+  ghc-options:     -Wall -fwarn-tabs
+  if !os(windows)
+    -- Normally we use the the standard system zlib:
+    extra-libraries: z
+  else
+    -- However for the benefit of users of Windows (which does not have zlib
+    -- by default) we bundle a complete copy of the C sources of zlib-1.2.8
+    c-sources:     cbits/adler32.c cbits/compress.c cbits/crc32.c
+                   cbits/deflate.c cbits/infback.c
+                   cbits/inffast.c cbits/inflate.c cbits/inftrees.c
+                   cbits/trees.c cbits/uncompr.c cbits/zutil.c
+    include-dirs:  cbits
+    install-includes: zlib.h zconf.h
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is:         Test.hs
+  other-modules:   Utils,
+                   Test.Codec.Compression.Zlib.Internal,
+                   Test.Codec.Compression.Zlib.Stream
+  hs-source-dirs:  test
+  default-language: Haskell2010
+  build-depends:   base, bytestring, zlib,
+                   QuickCheck       == 2.*,
+                   HUnit            == 1.2.*,
+                   tasty            >= 0.8 && < 0.11,
+                   tasty-quickcheck == 0.8.*,
+                   tasty-hunit      == 0.8.*
+  ghc-options:     -Wall
