@@ -1,0 +1,116 @@
+-- BEGIN Added by all-cabal-hashes-tool
+x-package-hashes:
+    MD5:13a47bfa9f7620d41f627497b028f90a
+    SHA1:233c49b428931ad7b18ac1e3feb328a610ea6314
+    SHA256:39ba56c4b007bed7e1e065803111f2de5da294b77e02d872a3fb48ebbcf0b99d
+    SHA512:639c9b4fd7b5874006e4d16fd58adbecd22627ff330cda80fc39be1f736016788d6fdb43b003bf7cae020bae358011f7439c3c6178adda090daeb57f509ee306
+    Skein512_512:24285f11c894ecf9ac33b34b54772256af852e245f0537f0a5636adefbcd927f43c51b8158921dac367dd553075c471bf37c16aeae922cba1985f9e43e8b0078
+
+x-package-locations:
+    https://hackage.haskell.org/package/memory-0.3/memory-0.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/memory-0.3.tar.gz
+
+x-package-size: 28604
+-- END Added by all-cabal-hashes-tool
+
+Name:                memory
+Version:             0.3
+Synopsis:            memory and related abtraction stuff
+Description:
+    Chunk of memory, polymorphic byte array management and manipulation
+    .
+    * A polymorphic byte array abstraction and function similar to strict ByteString.
+    .
+    * Different type of byte array abstraction.
+    .
+    * Raw memory IO operations (memory set, memory copy, ..)
+    .
+    * Aliasing with endianness support.
+License:             BSD3
+License-file:        LICENSE
+Copyright:           Vincent Hanquez <vincent@snarc.org>
+Author:              Vincent Hanquez <vincent@snarc.org>
+Maintainer:          vincent@snarc.org
+Category:            memory
+Stability:           experimental
+Build-Type:          Simple
+Homepage:            https://github.com/vincenthz/hs-memory
+Bug-Reports:         https://github.com/vincenthz/hs-memory/issues
+Cabal-Version:       >=1.10
+extra-doc-files:     README.md CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/vincenthz/hs-memory
+
+Flag support_bytestring
+  Description:       add non-orphan bytearray support for bytestring
+  Default:           True
+  Manual:            True
+
+Flag support_deepseq
+  Description:       add deepseq instances for memory types
+  Default:           True
+  Manual:            True
+
+Library
+  Exposed-modules:   Data.ByteArray
+                     Data.ByteArray.Encoding
+                     Data.ByteArray.Mapping
+                     Data.ByteArray.Pack
+                     Data.ByteArray.Parse
+                     Data.ByteArray.Hash
+                     Data.Memory.Endian
+                     Data.Memory.PtrMethods
+                     Data.Memory.ExtendedWords
+                     Data.Memory.Encoding.Base16
+                     Data.Memory.Encoding.Base64
+  Other-modules:     Data.Memory.Internal.Compat
+                     Data.Memory.Internal.CompatPrim
+                     Data.Memory.Internal.DeepSeq
+                     Data.Memory.Internal.Imports
+                     Data.Memory.Hash.SipHash
+                     Data.Memory.Hash.FNV
+                     Data.ByteArray.Pack.Internal
+                     Data.ByteArray.Types
+                     Data.ByteArray.Bytes
+                     Data.ByteArray.ScrubbedBytes
+                     Data.ByteArray.Methods
+                     Data.ByteArray.MemView
+  Build-depends:     base >= 4 && < 5
+                   , ghc-prim
+  -- FIXME armel or mispel is also little endian.
+  -- might be a good idea to also add a runtime autodetect mode.
+  -- ARCH_ENDIAN_UNKNOWN
+  if (arch(i386) || arch(x86_64))
+    CPP-options:     -DARCH_IS_LITTLE_ENDIAN
+  if os(windows)
+    Other-modules:   Data.Memory.MemMap.Windows
+  else
+    Other-modules:   Data.Memory.MemMap.Posix
+
+  -- optional support bytearray instance for bytestring
+  if flag(support_bytestring)
+    CPP-options:     -DWITH_BYTESTRING_SUPPORT
+    Build-depends:   bytestring
+  if flag(support_deepseq)
+    CPP-options:     -DWITH_DEEPSEQ_SUPPORT
+    Build-depends:   deepseq
+
+  ghc-options:       -Wall -fwarn-tabs
+  default-language:  Haskell2010
+
+Test-Suite test-memory
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    tests
+  Main-is:           Tests.hs
+  Other-modules:     Imports
+                     SipHash
+                     Utils
+  Build-Depends:     base >= 3 && < 5
+                   , tasty
+                   , tasty-quickcheck
+                   , tasty-hunit
+                   , memory
+  ghc-options:       -Wall -fno-warn-orphans -fno-warn-missing-signatures -threaded
+  default-language:  Haskell2010
