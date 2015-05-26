@@ -1,0 +1,120 @@
+-- BEGIN Added by all-cabal-hashes-tool
+x-package-hashes:
+    MD5:4f8a70a58fd4e97f186c67389c10e31e
+    SHA1:17445039a688dd2aad3bffedcd41efc34cc30631
+    SHA256:1d60937f674a283a0fbc2531f73bb954c7208a10efd6fc8b8967e6fe5850efb7
+    SHA512:3cfebb8b1434c99dbc5df6999f10e84197bf1b449406d9839ac3bbb91dcdf101584ebec375dcf2d438619b31c8bee3bf23189ae9a3682e6abc65b838851f9000
+    Skein512_512:e65b47327983afcb9c27654f1d58eacf04b451f26418ec80a804098e3007f4f480184819ad2a7f51a01e2b7922d6ff59370255177a7a49e3b14e6a1888540214
+
+x-package-locations:
+    https://hackage.haskell.org/package/hsignal-0.2.7.1/hsignal-0.2.7.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/hsignal-0.2.7.1.tar.gz
+
+x-package-size: 18608
+-- END Added by all-cabal-hashes-tool
+
+Name:               hsignal
+Version:            0.2.7.1
+License:            BSD3
+License-file:       LICENSE
+Copyright:          (c) A.V.H. McPhail 2010, 2011, 2014, 2015
+Author:             Vivian McPhail
+Maintainer:         haskell.vivian.mcphail <at> gmail <dot> com
+Stability:          provisional
+Homepage:           http://code.haskell.org/hsignal
+Synopsis:           Signal processing and EEG data analysis
+Description:        
+     Purely functional interface to signal processing based on hmatrix
+     .                       
+     Provides data types for manipulating EEG data, including reading from BDF data format files
+     .
+     The vector type is Data.Vector.Storable from the 'vector' package.
+     .
+     Feature requests, suggestions, and bug fixes welcome.
+Category:           Math
+tested-with:        GHC ==7.10.1
+
+cabal-version:      >=1.8
+
+build-type:         Simple
+
+extra-source-files: README INSTALL CHANGES
+extra-tmp-files:    hsignal.buildinfo
+
+flag openblas
+    description:    Link with OpenBLAS (https://github.com/xianyi/OpenBLAS) optimized libraries.
+    default:        False
+
+flag onlygsl
+    description:    don't link gslcblas
+    default:        False
+
+library
+
+    Build-Depends:      base >= 4 && < 5,
+                        mtl > 2, 
+                        array,
+                        bytestring, storable-complex, binary,
+                        hmatrix >= 0.16.0.3,
+                        hmatrix-gsl >= 0.16,
+                        hmatrix-gsl-stats >= 0.2,
+                        hstatistics >= 0.2.5.1
+
+    Extensions:         ForeignFunctionInterface
+
+    hs-source-dirs:     lib
+    Exposed-modules:    Numeric.Signal
+                        Numeric.Signal.Multichannel
+                        Numeric.Signal.Noise
+                        Numeric.Signal.EEG
+    other-modules:      Numeric.Signal.Internal
+                        Numeric.Signal.EEG.BDF
+
+    C-sources:          lib/Numeric/Signal/signal-aux.c
+
+    ghc-prof-options:   -auto
+
+    ghc-options:        -Wall -fno-warn-missing-signatures
+                              -fno-warn-orphans
+                              -fno-warn-unused-binds
+
+    cc-options:         -O4 -msse2 -Wall
+
+    if flag(openblas)
+        extra-lib-dirs:     /usr/lib/openblas/lib    
+        extra-libraries:    openblas
+    else 
+        extra-libraries:    blas lapack 
+
+    if os(OSX)
+        extra-lib-dirs: /opt/local/lib/
+        include-dirs: /opt/local/include/
+        extra-lib-dirs: /usr/local/lib/
+        include-dirs: /usr/local/include/
+        extra-libraries: gsl
+        if arch(i386)
+            cc-options: -arch i386
+        frameworks: Accelerate
+
+    if os(freebsd)
+       extra-lib-dirs: /usr/local/lib
+       include-dirs: /usr/local/include
+       extra-libraries: blas lapack gfortran gsl
+
+    if os(windows)
+        extra-libraries: blas lapack gsl-0
+
+    if os(linux)
+        if arch(x86_64)
+            cc-options: -fPIC
+
+    if flag(onlygsl)
+      extra-libraries: gsl
+    else
+      pkgconfig-depends: gsl
+
+
+source-repository head
+    type:     git
+    location: https://github.com/amcphail/hsignal.git
+
