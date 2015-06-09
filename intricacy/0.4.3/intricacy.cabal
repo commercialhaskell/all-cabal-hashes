@@ -1,0 +1,129 @@
+-- BEGIN Added by all-cabal-hashes-tool
+x-package-hashes:
+    MD5:1dc11b30eac84083b3c0f292f354f267
+    SHA1:95b89231f0a93021107fd8679146d2d68e3f831c
+    SHA256:398029b88b54ff7add0ae9d28b6be54cbab4b8c9173873cef46e7f8ce83e0a1e
+    SHA512:3972cf5956360e01530b15892dab84bd6d1260249e3e5d4a67c4c78b59cc7b26fbbc9f5465dcb0c480c9e05880f9ff315c150a30abba8e3dab8ec65b3729d063
+    Skein512_512:8533f0c3c48830839dee3d981e85faeb66e418da1ed092f81e93fe6a7a6726fa508233319063716b06555f7178c2b44ef5f07b9791b833c90a81063e38bc6f45
+
+x-package-locations:
+    https://hackage.haskell.org/package/intricacy-0.4.3/intricacy-0.4.3.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/intricacy-0.4.3.tar.gz
+
+x-package-size: 328388
+-- END Added by all-cabal-hashes-tool
+
+name:                intricacy
+version:             0.4.3
+synopsis:            A game of competitive puzzle-design
+homepage:            http://mbays.freeshell.org/intricacy
+license:             GPL-3
+license-file:        COPYING
+author:              Martin Bays
+maintainer:          mbays@sdf.org
+-- copyright:           
+category:            Game
+build-type:          Simple
+cabal-version:       >=1.8
+data-files: VeraMoBd.ttf tutorial/*.lock tutorial/*.text sounds/*.ogg
+extra-doc-files: README BUILD NEWS tutorial-extra/*.lock tutorial-extra/README
+
+description:
+    A networked game with client-server architecture. The core game is a
+    lockpicking-themed turn-based puzzle game on a hex grid. Players design
+    puzzles (locks) and solve those designed by others. A metagame encourages
+    the design of maximally difficult puzzles, within tight size constraints.
+    The client supports Curses and SDL, with all graphics in SDL mode drawn by
+    code using SDL-gfx. The network protocol is based on the 'binary' package,
+    and is intended to be reasonably efficient. TVars are used to give
+    transparent local caching and background network operations. Also
+    incorporates an implementation of a graph 5-colouring algorithm (see
+    GraphColouring.hs).
+
+source-repository head
+   type:     git
+   location: http://mbays.freeshell.org/intricacy/.git
+
+Flag Game
+    Description: Build game
+    Default: True
+    Manual: True
+Flag SDL 
+    Description: Enable SDL UI
+    Default: True
+Flag Sound 
+    Description: Enable sound
+    Default: True
+Flag Curses 
+    Description: Enable Curses UI
+    Default: True
+Flag Server
+    Description: Build server
+    Default: False
+    Manual: True
+
+executable intricacy
+  if flag(Game)
+      extensions: DoAndIfThenElse
+      build-depends: base >=4.3, base < 5
+        , mtl >=2.0, transformers >=0.2, stm >= 2.1
+        , directory >= 1.0, filepath >= 1.0, time >= 1.2
+        , bytestring >=0.10
+        , array >=0.3, containers >=0.4, vector >=0.9
+        , binary >=0.5, network-fancy >= 0.1.5
+        , cryptohash >= 0.8
+        , safe >= 0.2
+      if flag(SDL)
+          build-depends: SDL >=0.6.5, SDL-ttf >=0.6, SDL-gfx >=0.6
+          if flag(Sound)
+              cpp-options: -DSOUND
+              build-depends: SDL-mixer >= 0.6, random >= 1.0
+          if os(windows)
+              Extra-Lib-Dirs:    winlibs
+              Extra-Libraries:   SDL_ttf SDL SDL_gfx freetype
+              if flag(Sound)
+                  Extra-Libraries: SDL_mixer
+              ghc-options: -optl-mwindows
+  else
+      Buildable: False
+  if flag(Curses)
+      build-depends: hscurses >=1.4
+  if flag(SDL)
+      if flag(Curses)
+        main-is: MainBoth.hs
+      else
+        main-is: MainSDL.hs
+  else
+      if flag(Curses)
+        main-is: MainCurses.hs
+      else
+        Buildable: False
+        -- XXX: there must be a neater way to prevent the cabal flag sat
+        -- solver from thinking it's acceptable to have both SDL and Curses be
+        -- False... but this will have to do for now:
+        build-depends: Unsatisfiable >= 1337
+
+  other-modules: AsciiLock, BinaryInstances, BoardColouring, Cache, Command,
+      CursesRender, CursesUI, CursesUIMInstance, CVec, Database, Debug,
+      EditGameState, Frame, GameState, GameStateTypes, GraphColouring, Hex, Init,
+      InputMode, Interact, InteractUtil, KeyBindings, Lock, MainState,
+      Maxlocksize, Metagame, Mundanities, Physics, Protocol, SDLRender, SDLUI,
+      SDLUIMInstance, ServerAddr, Util
+
+executable intricacy-server
+  if flag(Server)
+      extensions: DoAndIfThenElse
+      build-depends: base >=4.3, base < 5
+        , mtl >=2.0, transformers >=0.2, stm >= 2.1
+        , directory >= 1.0, filepath >= 1.0, time >= 1.2
+        , bytestring >=0.10
+        , array >=0.3, containers >=0.4, vector >=0.9
+        , binary >=0.5, network-fancy >= 0.1.5
+        , cryptohash >= 0.8
+        , random >= 1.0, pipes >= 4
+  else
+    Buildable: False
+  main-is:  Server.hs
+  other-modules: AsciiLock, BinaryInstances, BoardColouring, CVec, Database,
+      Debug, Frame, GameState, GameStateTypes, GraphColouring, Hex, Lock,
+      Maxlocksize, Metagame, Mundanities, Physics, Protocol, Util
