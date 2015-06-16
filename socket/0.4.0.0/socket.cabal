@@ -1,0 +1,199 @@
+-- BEGIN Added by all-cabal-hashes-tool
+x-package-hashes:
+    MD5:20a87ceb8e4753fe97fd7ba8593430be
+    SHA1:6847623f0d2ff0768c08f2f629f66cd252efb570
+    SHA256:e610b5ebd71eb4004b1c4cf4f76181bc86c1ed4e4aa70a6b89ed88d5bcf95dfe
+    SHA512:5f1a2b12a3f90ddfc2a7757d7c6ba2c811eff7e615045c3da86dad87300d5878f9b5a8f420aa5f56e635227b3f574691ed02157aabdaa08472b2b8f29f8ee7d1
+    Skein512_512:e5df0818f7b7baac2f5ba9909908117e68d6e2e76a0249c34a78a5531df60adccf7cf8b396386e655b8640d1739ee73ea86a3d70a9603c1de63ac790bd4f3863
+
+x-package-locations:
+    https://hackage.haskell.org/package/socket-0.4.0.0/socket-0.4.0.0.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/socket-0.4.0.0.tar.gz
+
+x-package-size: 25027
+-- END Added by all-cabal-hashes-tool
+
+name:                socket
+version:             0.4.0.0
+synopsis:            A portable and extensible sockets library.
+description:
+  /Motivation/
+  .
+  This library aims to expose a minimal and platform-independant interface for
+  POSIX compliant networking code.
+  .
+  /Implementation Philosophy/
+  .
+    - Every operation and every flag exposed should be supported with same
+      semantics on every platform. If this cannot be guaranteed it should
+      be supplied by another (extension) package.
+      Examples for things that have been ripped out of this library are:
+      Unix sockets, SCTP, vectored IO (for now).
+  .
+    - Absolutely no conditional export.
+  .
+    - No `#ifdef` madness in the Haskell sources. The Haskell binding code
+      uses the FFI to reference the platform's native networking functions.
+      If they are not Posix compliant (i.e. under Windows) an level of
+      indirection is introduced to write an Posix compliant equivalent in C
+      using whatever the plaform specific building blocks are.
+  .
+  /Platform Support/
+  .
+  /Linux/: Working.
+  .
+  /BSD/: Unknown. Should work. Please report if not.
+  .
+  /OS X/: Unknown. Please report if you have a Mac.
+  .
+  /Windows/: Fully supported on Windows7 (maybe Vista) or higher :-)
+  .
+  GHCs runtime system on Windows does not offer an event notification mechanism for sockets.
+  The original [network](https://hackage.haskell.org/package/network) library
+  suffers from this, too. For example, connection attempts are uninterruptible etc.
+  The approach taken to circumvent this in this library is to poll the
+  non-blocking sockets with increasing delay. This guarantees interruptability
+  and fairness between different threads. It allows for decent throughput
+  while also keeping CPU consumption on a moderate level if a socket has not seen
+  events for a longer period of time (maximum of 1 second delay after 20
+  polling iterations). The only drawback is potentially reduced response time
+  of your application. The good part: Heavy load (e.g. connection requests or
+  incoming traffic) will reduce this problem. Eventually your accepting thread
+  won't wait at all if there are several connection requests queued.
+  .
+  This workaround may be removed if someone is willing to sacrifice to improve
+  the IO manager on Windows.
+
+license:             MIT
+license-file:        LICENSE
+author:              Lars Petersen
+maintainer:          info@lars-petersen.net
+category:            System, Network
+build-type:          Simple
+cabal-version:       >=1.10
+homepage:            https://github.com/lpeterse/haskell-socket
+bug-reports:         https://github.com/lpeterse/haskell-socket/issues
+tested-with:         GHC==7.10.1, GHC==7.8.3
+extra-source-files:  README.md
+                     CHANGELOG.md
+
+library
+  exposed-modules:     System.Socket
+                     , System.Socket.Family
+                     , System.Socket.Family.INET
+                     , System.Socket.Family.INET6
+                     , System.Socket.Type
+                     , System.Socket.Type.RAW
+                     , System.Socket.Type.DGRAM
+                     , System.Socket.Type.STREAM
+                     , System.Socket.Type.SEQPACKET
+                     , System.Socket.Protocol
+                     , System.Socket.Protocol.UDP
+                     , System.Socket.Protocol.TCP
+                     , System.Socket.Unsafe
+  other-modules:       System.Socket.Internal.Socket
+                     , System.Socket.Internal.Exception
+                     , System.Socket.Internal.Msg
+                     , System.Socket.Internal.AddrInfo
+                     , System.Socket.Internal.Platform
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+  hs-source-dirs:      src
+  build-tools:         hsc2hs
+  default-language:    Haskell2010
+  install-includes:    hs_socket.h
+  ghc-options:         -Wall
+  if os(windows)
+    include-dirs:      platform/win32/include
+    hs-source-dirs:    platform/win32/src
+    c-sources:         platform/win32/cbits/hs_socket.c
+    extra-libraries:   ws2_32
+  else
+    include-dirs:      platform/linux/include
+    hs-source-dirs:    platform/linux/src
+    c-sources:         platform/linux/cbits/hs_socket.c
+
+
+test-suite UDP
+  hs-source-dirs:      tests
+  main-is:             UDP.hs
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+                     , async
+
+test-suite TCP
+  hs-source-dirs:      tests
+  main-is:             TCP.hs
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+                     , async
+
+test-suite TCP-sendAndRecvAll
+  hs-source-dirs:      tests
+  main-is:             TCP-sendAndRecvAll.hs
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+                     , async
+
+test-suite PingPong
+  hs-source-dirs:      tests
+  main-is:             PingPong.hs
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+                     , async
+
+test-suite AddrInfo
+  hs-source-dirs:      tests
+  main-is:             AddrInfo.hs
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+
+test-suite NonBlockingIO
+  hs-source-dirs:      tests
+  main-is:             NonBlockingIO.hs
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+                     , async
+
+test-suite NonBlockingIO-threaded
+  hs-source-dirs:      tests
+  main-is:             NonBlockingIO.hs
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  ghc-options:         -threaded
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+                     , async
+
+test-suite IPV6_V6ONLY
+  hs-source-dirs:      tests
+  main-is:             IPV6_V6ONLY.hs
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+                     , async
+
+source-repository head
+  type:     git
+  location: git://github.com/lpeterse/haskell-socket.git
