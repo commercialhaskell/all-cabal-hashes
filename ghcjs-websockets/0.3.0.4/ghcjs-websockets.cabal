@@ -1,0 +1,130 @@
+-- BEGIN Added by all-cabal-hashes-tool
+x-package-hashes:
+    MD5:ff2383c94c45274414439e538295883a
+    SHA1:eb55c6942127ba2801287d9de9540cc1aab1ab9b
+    SHA256:26348e2a49983754d990f373dd0492afc0d6889d553bebd78e119a72ee72cc0f
+    SHA512:3ad070062ea7009c439370ec5feedfb6bf35112ce9ce462dd7f2af8143b13cfdab220f4e30f8858848c42b208be694670b1f98b7452367b4c45e5b1e45c3dd5a
+    Skein512_512:59f1dce400732fcff8f3d738d9c67f8bbbf9e6e6be5053287a44d6b7384b3d54aead7327ef0d8c69c66414fe186f71d6483dabe8576c0b4fced9d5c353737476
+
+x-package-locations:
+    https://hackage.haskell.org/package/ghcjs-websockets-0.3.0.4/ghcjs-websockets-0.3.0.4.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/ghcjs-websockets-0.3.0.4.tar.gz
+
+x-package-size: 13724
+-- END Added by all-cabal-hashes-tool
+
+name:                ghcjs-websockets
+version:             0.3.0.4
+synopsis:            GHCJS interface for the Javascript Websocket API
+description:
+                     Documentation online at
+                     <http://mstksg.github.io/ghcjs-websockets/JavaScript-WebSockets.html>
+                     .
+                     'ghcjs-websockets' aims to provide a clean, idiomatic,
+                     efficient, low-level, out-of-your-way, bare bones,
+                     concurrency-aware interface with minimal abstractions
+                     over the Javascript Websockets API
+                     <http://www.w3.org/TR/websockets/>,
+                     inspired by common Haskell idioms found in libraries like
+                     'io-stream'
+                     <http://hackage.haskell.org/package/io-streams> and the
+                     server-side 'websockets'
+                     <http://hackage.haskell.org/package/websockets> library,
+                     targeting compilation to Javascript with 'ghcjs'.
+                     .
+                     The interface asbtracts websockets as simple IO/file
+                     handles, with additional access to the natively "typed"
+                     (text vs binary) nature of the Javascript Websockets API.
+                     There are also convenience functions to directly decode
+                     serialized data (serialized with 'binary'
+                     <http://hackage.haskell.org/package/binary>) sent through
+                     channels.
+                     .
+                     The library is mostly intended to be a low-level FFI
+                     library, with the hopes that other, more advanced
+                     libraries maybe build on the low-level FFI bindings in
+                     order to provide more advanced and powerful abstractions.
+                     Most design decisions were made with the intent of
+                     keeping things as simple as possible in order for future
+                     libraries to abstract over it.
+                     .
+                     Most of the necessary functionality is in hopefully in
+                     'JavaScript.WebSockets'; more of the low-level API is
+                     exposed in 'JavaScript.WebSockets.Internal' if you need
+                     it for library construction.
+                     .
+                     See the 'JavaScript.WebSockets' module for detailed usage
+                     instructions and examples.
+                     .
+                     Some examples:
+                     .
+                     > import Data.Text (unpack)
+                     >
+                     > -- A simple echo client, echoing all incoming text data
+                     > main :: IO ()
+                     > main = withUrl "ws://my-server.com" $ \conn ->
+                     >     forever $ do
+                     >         t <- receiveText conn
+                     >         putStrLn (unpack t)
+                     >         sendText conn t
+                     .
+                     > -- A simple client waiting for connections and outputting the running sum
+                     > main :: IO ()
+                     > main = withUrl "ws://my-server.com" (runningSum 0)
+                     >
+                     > runningSum :: Int -> Connection -> IO ()
+                     > runningSum n conn = do
+                     >     i <- receiveData conn
+                     >     print (n + i)
+                     >     runningSum (n + i) conn
+                     .
+                     > -- Act as a relay between two servers
+                     > main :: IO ()
+                     > main = do
+                     >     conn1 <- openConnection "ws://server-1.com"
+                     >     conn2 <- openConnection "ws://server-2.com"
+                     >     forever $ do
+                     >         msg <- receiveMessage conn1
+                     >         sendMessage conn2 msg
+                     >     closeConnection conn2
+                     >     closeConnection conn1
+
+homepage:            http://github.com/mstksg/ghcjs-websockets
+license:             MIT
+license-file:        LICENSE
+author:              Justin Le <justin@jle.im>
+maintainer:          Justin Le <justin@jle.im>
+copyright:           Copyright (c) Justin Le 2015
+category:            Web
+build-type:          Simple
+extra-source-files:  CHANGELOG.md
+                   , README.md
+cabal-version:       >=1.10
+
+source-repository head
+  type:     git
+  location: https://github.com/mstksg/ghcjs-websockets
+
+flag ghcjs
+  description: Tell cabal we are using ghcjs (work around until hackage supports impl(ghcjs))
+  default: True
+
+library
+  exposed-modules:     JavaScript.WebSockets
+                     , JavaScript.WebSockets.Internal
+  -- ghcjs-options: -O2
+  other-modules:       JavaScript.Blob
+                     , JavaScript.WebSockets.FFI
+                     , JavaScript.NoGHCJS
+  -- other-extensions:
+  ghc-options:         -Wall
+  build-depends:       base              >= 4.7      && < 5
+                     , base64-bytestring >= 1
+                     , binary            >= 0.7
+                     , bytestring        >= 0.10
+                     , text              >= 1
+  -- if impl(ghcjs)
+  if flag(ghcjs)
+    build-depends:     ghcjs-base        >= 0.1
+  hs-source-dirs:      src
+  default-language:    Haskell2010
