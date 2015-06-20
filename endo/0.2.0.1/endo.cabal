@@ -1,0 +1,132 @@
+-- BEGIN Added by all-cabal-hashes-tool
+x-package-hashes:
+    MD5:6e3f177e943aa0a6d0bec92005da8c2d
+    SHA1:6f0d2134e78a5c2aebc844dd0a99932104d67745
+    SHA256:312ea501116bddc01dd523948b80693ec6348a8f6beb5a1b9bcbeaa709d9eb6b
+    SHA512:444a79a40701560a7c09e5be00cb113d90397ba1657026779b1ca901b0f2b4045c77eca6f09d78c805f7a0e8c7a8339e626e7f3b148cd186fd9c2481f7fbd721
+    Skein512_512:38bafe19e45dcdd1c2979121665cdc25f3dac59432477b0138ae74d59ab50b85ad35ecb106f18ede425b28bc0ad271b77a3481ab6bcc0b5c303c2af01489623d
+
+x-package-locations:
+    https://hackage.haskell.org/package/endo-0.2.0.1/endo-0.2.0.1.tar.gz
+    https://s3.amazonaws.com/hackage.fpcomplete.com/package/endo-0.2.0.1.tar.gz
+
+x-package-size: 15456
+-- END Added by all-cabal-hashes-tool
+
+name:                   endo
+version:                0.2.0.1
+synopsis:               Endomorphism utilities.
+description:
+  Package defines extra functions for 'Data.Monoid.Endo' data type, and also
+  generic endomorphism folding machinery. Generic endomorphism folding can be
+  used for various purposes, including as a builder.
+  .
+  Here is an example how to use it with
+  <http://hackage.haskell.org/package/optparse-applicative optparse-applicative>
+  package:
+  .
+  > data Verbosity = Silent | Normal | Verbose | Annoying
+  >   deriving (Show)
+  .
+  > data Config = Config Verbosity FilePath
+  >   deriving (Show)
+  .
+  > options :: Parser Config
+  > options = runIdentityT $ runEndo defaultConfig <$> options'
+  >   where
+  >     -- All this IdentityT clutter is here to avoid orphan instances.
+  >     options' :: IdentityT Parser (Endo Config)
+  >     options' = foldEndo
+  >         <*> outputOption     -- :: IdentityT Parser (Maybe (E Config))
+  >         <*> verbosityOption  -- :: IdentityT Parser (Maybe (E Config))
+  >         <*> annoyingFlag     -- :: IdentityT Parser (E Config)
+  >         <*> silentFlag       -- :: IdentityT Parser (E Config)
+  >         <*> verboseFlag      -- :: IdentityT Parser (E Config)
+  >
+  >     defaultConfig :: Config
+  >     defaultConfig = Config Normal ""
+  .
+  > main :: IO ()
+  > main = execParser (info options fullDesc) >>= print
+  .
+  > ghci> :main -o an.out.put --annoying
+  > Config Annoying "an.out.put"
+  .
+  For details how individual option parsers look like see module
+  "Data.Monoid.Endo.Fold" which contains other examples as well as this one.
+
+homepage:               https://github.com/trskop/endo
+bug-reports:            https://github.com/trskop/endo/issues
+license:                BSD3
+license-file:           LICENSE
+author:                 Peter Trško
+maintainer:             peter.trsko@gmail.com
+copyright:              (c) 2013-2015, Peter Trško
+category:               Data
+build-type:             Simple
+cabal-version:          >=1.10
+
+-- Examples require lens and optparse-applicative packages in addition to this
+-- packackage's dependencies. When using sandbox it is possible to use "cabal
+-- repl" to test examples by using following command:
+--
+--     cabal repl                                         \
+--         --ghc-option="-iexample"                       \
+--         --ghc-options="-package lens"                  \
+--         --ghc-options="-package optparse-applicative"  \
+--         --ghc-options="-package transformers"
+extra-source-files:
+    ChangeLog.md
+  , README.md
+  , example/Example/Config/*.hs
+  , example/Example/*.hs
+  , example/*.hs
+
+flag pedantic
+  description:          Pass additional warning flags to GHC.
+  default:              False
+  manual:               True
+
+library
+  hs-source-dirs:       src
+  exposed-modules:
+      Data.Monoid.Endo
+    , Data.Monoid.Endo.Fold
+
+  default-language:     Haskell2010
+  other-extensions:
+      DeriveDataTypeable
+    , DeriveGeneric
+    , FlexibleInstances
+    , NoImplicitPrelude
+    , TypeFamilies
+
+  build-depends:
+    -- {{{ Distributed with GHC or Haskell Platform ---------------------------
+      base >=4.6 && <4.9
+    , transformers >=0.3 && <0.5
+    -- }}} Distributed with GHC or Haskell Platform ---------------------------
+
+    , between >=0.9 && <0.11
+
+  if impl(GHC >= 7.8)
+    cpp-options:        -DHAVE_MINIMAL_PRAGMA
+                        -DKIND_POLYMORPHIC_TYPEABLE
+  if impl(GHC >= 7.9)
+    cpp-options:        -DAPPLICATIVE_MONAD
+
+  ghc-options:          -Wall
+  if flag(pedantic)
+    ghc-options:
+      -fwarn-tabs
+      -fwarn-implicit-prelude
+--    -Werror
+
+source-repository head
+  type:                 git
+  location:             git://github.com/trskop/endo.git
+
+source-repository this
+  type:                 git
+  location:             git://github.com/trskop/endo.git
+  tag:                  0.2.0.1
