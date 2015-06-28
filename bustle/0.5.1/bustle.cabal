@@ -1,0 +1,206 @@
+Name:           bustle
+Category:       Network, Desktop
+Version:        0.5.1
+Cabal-Version:  >= 1.8
+Synopsis:       Draw sequence diagrams of D-Bus traffic
+Description:    Draw sequence diagrams of D-Bus traffic
+License:        OtherLicense
+License-file:   LICENSE
+Author:         Will Thompson <will@willthompson.co.uk>
+Maintainer:     Will Thompson <will@willthompson.co.uk>
+Data-files:     data/dfeet-method.png,
+                data/dfeet-signal.png,
+                data/bustle.ui,
+                data/OpenTwoDialog.ui,
+                LICENSE
+Build-type:     Custom
+Extra-source-files:
+                  -- C bits
+                    c-sources/bustle-pcap.c,
+                    c-sources/pcap-monitor.h,
+                    c-sources/config.h,
+                    Makefile,
+
+                  -- Stuff for nerds
+                    README.md,
+                    NEWS.md,
+                    HACKING.md,
+                    INSTALL.md,
+                    run-uninstalled.sh
+                  , Test/data/log-with-h.bustle
+
+                  -- Stuff for the stupid binary tarballs
+                  , bustle.sh
+                  , ldd-me-up.sh
+                  , LICENSE.bundled-libraries
+
+                  -- wow many translate
+                  , po/*.po
+                  , po/*.pot
+
+                  -- intl bits
+                  , data/bustle.appdata.xml.in
+                  , data/bustle.desktop.in
+
+                  -- icons
+                  , data/icons/16x16/bustle.png
+                  , data/icons/22x22/bustle.png
+                  , data/icons/32x32/bustle.png
+                  , data/icons/48x48/bustle.png
+                  , data/icons/256x256/bustle.png
+                  , data/icons/scalable/bustle.svg
+                  , data/icons/scalable/bustle-symbolic.svg
+
+x-gettext-po-files:     po/*.po
+x-gettext-domain-name:  bustle
+
+Source-Repository head
+  Type:           git
+  Location:       git://anongit.freedesktop.org/bustle
+
+Flag InteractiveTests
+  Description:    Build interactive test programs
+  Default:        False
+
+Flag threaded
+  Description:    Build with the multi-threaded runtime
+  Default:        True
+
+Executable bustle
+  Main-is:       Bustle.hs
+  Other-modules: Bustle.Application.Monad
+               , Bustle.Diagram
+               , Bustle.Gtk
+               , Bustle.Loader
+               , Bustle.Loader.OldSkool
+               , Bustle.Loader.Pcap
+               , Bustle.Marquee
+               , Bustle.Monitor
+               , Bustle.Noninteractive
+               , Bustle.Regions
+               , Bustle.Renderer
+               , Bustle.StatisticsPane
+               , Bustle.Stats
+               , Bustle.Translation
+               , Bustle.Types
+               , Bustle.UI
+               , Bustle.UI.AboutDialog
+               , Bustle.UI.Canvas
+               , Bustle.UI.DetailsView
+               , Bustle.UI.FilterDialog
+               , Bustle.UI.OpenTwoDialog
+               , Bustle.UI.Recorder
+               , Bustle.UI.Util
+               , Bustle.Upgrade
+               , Bustle.Util
+               , Bustle.VariantFormatter
+  Ghc-options: -Wall
+               -fno-warn-unused-do-bind
+  if flag(threaded)
+    ghc-options: -threaded
+  C-sources: c-sources/pcap-monitor.c
+  pkgconfig-depends: glib-2.0 >= 2.26
+
+  Build-Depends: base >= 4 && < 5
+               , bytestring
+               , cairo
+               , containers
+               , dbus >= 0.10
+               , directory
+               , filepath
+               , glib
+               , gio
+               , gtk3
+               , hgettext >= 0.1.5
+               , mtl
+               , pango
+               , parsec
+               , pcap
+               , process
+               , setlocale
+               , text
+               , time
+
+Executable test-monitor
+  if flag(InteractiveTests)
+    buildable: True
+  else
+    buildable: False
+
+  main-is: tests/Monitor.hs
+  other-modules: Bustle.Monitor
+  if flag(threaded)
+    Ghc-options: -threaded
+  C-sources: c-sources/pcap-monitor.c
+  pkgconfig-depends: glib-2.0
+  Build-Depends: base >= 4 && < 5
+               , bytestring
+               , cairo
+               , containers
+               , dbus
+               , directory
+               , filepath
+               -- 0.13.6 doesn't compile with GCC 5: https://github.com/gtk2hs/gtk2hs/issues/104
+               , gtk3 >= 0.13.7
+               , glib
+               , hgettext
+               , mtl
+               , pango
+               , parsec
+               , pcap
+               , setlocale
+               , text
+
+Executable dump-messages
+  if flag(InteractiveTests)
+    buildable: True
+  else
+    buildable: False
+
+  main-is: Test/DumpMessages.hs
+  Build-Depends: base
+               , bytestring
+               , containers
+               , dbus >= 0.10
+               , mtl
+               , pcap
+               , text
+
+Test-suite test-pcap-crash
+    type: exitcode-stdio-1.0
+    main-is: Test/PcapCrash.hs
+    other-modules: Bustle.Loader.Pcap
+    Build-Depends: base
+                 , bytestring
+                 , containers
+                 , dbus >= 0.10
+                 , mtl
+                 , pcap
+                 , text
+
+Test-suite test-regions
+    type: exitcode-stdio-1.0
+    main-is: Test/Regions.hs
+    other-modules: Bustle.Regions
+    Build-Depends: base
+                 , QuickCheck
+
+Test-suite test-renderer
+    type: exitcode-stdio-1.0
+    main-is: Test/Renderer.hs
+    other-modules: Bustle.Renderer
+    Build-Depends: base
+                 , cairo
+                 , containers
+                 , dbus >= 0.10
+                 , directory
+                 , filepath
+                 , gtk3
+                 , mtl
+                 , text
+                 , pango
+                 , hgettext
+                 , setlocale
+                 , test-framework
+                 , test-framework-hunit
+                 , HUnit
