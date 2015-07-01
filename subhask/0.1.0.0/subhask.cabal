@@ -1,0 +1,261 @@
+name:                subhask
+version:             0.1.0.0
+synopsis:            Type safe interface for programming in subcategories of Hask
+homepage:            http://github.com/mikeizbicki/subhask
+license:             BSD3
+license-file:        LICENSE
+author:              Mike Izbicki
+maintainer:          mike@izbicki.me
+category:            Control, Categories, Algebra
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+description:
+    SubHask is a radical rewrite of the Haskell [Prelude](https://www.haskell.org/onlinereport/standard-prelude.html).
+    The goal is to make numerical computing in Haskell *fun* and *fast*.
+    The main idea is to use a type safe interface for programming in arbitrary subcategories of [Hask](https://wiki.haskell.org/Hask).
+    For example, the category [Vect](http://ncatlab.org/nlab/show/Vect) of linear functions is a subcategory of Hask, and SubHask exploits this fact to give a nice interface for linear algebra.
+    To achieve this goal, almost every class hierarchy is redefined to be more general.
+
+    I recommend reading the <http://github.com/mikeizbicki/subhask/blob/master/README.md README> file and the <http://github.com/mikeizbicki/subhask/blob/master/examples> before looking at the documetation here.
+
+source-repository head
+    type: git
+    location: http://github.com/mikeizbicki/subhask
+
+--------------------------------------------------------------------------------
+
+library
+    exposed-modules:
+        SubHask
+
+        SubHask.Algebra
+        SubHask.Algebra.Array
+        SubHask.Algebra.Container
+        SubHask.Algebra.Group
+        SubHask.Algebra.Logic
+        SubHask.Algebra.Metric
+        SubHask.Algebra.Ord
+        SubHask.Algebra.Parallel
+--         SubHask.Algebra.Trans.Kernel
+        SubHask.Algebra.Vector
+
+        SubHask.Category
+        SubHask.Category.Finite
+        SubHask.Category.Product
+        SubHask.Category.Polynomial
+        SubHask.Category.Slice
+        SubHask.Category.Trans.Bijective
+--         SubHask.Category.Trans.Continuous
+        SubHask.Category.Trans.Constrained
+        SubHask.Category.Trans.Derivative
+--         SubHask.Category.Trans.Linear
+        SubHask.Category.Trans.Monotonic
+
+        SubHask.Compatibility.Base
+        SubHask.Compatibility.BloomFilter
+        SubHask.Compatibility.ByteString
+        SubHask.Compatibility.Cassava
+        SubHask.Compatibility.Containers
+        SubHask.Compatibility.HyperLogLog
+
+        SubHask.Monad
+        SubHask.Mutable
+        SubHask.SubType
+
+        SubHask.TemplateHaskell.Base
+        SubHask.TemplateHaskell.Deriving
+        SubHask.TemplateHaskell.Mutable
+        SubHask.TemplateHaskell.Test
+
+    other-modules:
+        SubHask.Internal.Prelude
+        SubHask.TemplateHaskell.Common
+
+    default-extensions:
+        TypeFamilies,
+        ConstraintKinds,
+        DataKinds,
+        GADTs,
+        MultiParamTypeClasses,
+        FlexibleInstances,
+        FlexibleContexts,
+        TypeOperators,
+        RankNTypes,
+        InstanceSigs,
+        ScopedTypeVariables,
+        UndecidableInstances,
+        PolyKinds,
+        StandaloneDeriving,
+        GeneralizedNewtypeDeriving,
+        TemplateHaskell,
+        BangPatterns,
+        FunctionalDependencies,
+        TupleSections,
+        MultiWayIf,
+
+        AutoDeriveTypeable,
+        RebindableSyntax
+--         OverloadedLists
+
+    hs-source-dirs:
+        src
+
+    c-sources:
+        cbits/Lebesgue.c
+
+    cc-options:
+--         -O3
+        -ffast-math
+        -msse3
+
+    ghc-options:
+--         -O2
+--         -O
+        -funbox-strict-fields
+
+    build-depends:
+        -- NOTE:
+        -- We specify the *exact* versions of all non-base libraries to ensure that we get reproducible builds.
+        -- This helps prevent performance regressions.
+        -- The downside of exact version dependencies is that the user probably doesn't have these versions installed.
+        -- This can result in significantly longer build times and build conflicts.
+        -- But since subhask is designed as an alternative to base, this is an acceptable tradeoff.
+
+        -- haskell language
+        base                        >= 4.8 && <4.9,
+        ghc-prim                    == 0.4.0.0,
+        template-haskell            == 2.10.0.0,
+
+        -- special functionality
+        parallel                    == 3.2.0.6,
+        deepseq                     == 1.4.1.1,
+        primitive                   == 0.6,
+        monad-primitive             == 0.1,
+        QuickCheck                  == 2.8.1,
+
+        -- math
+        erf                         == 2.0.0.0,
+        gamma                       == 0.9.0.2,
+        vector                      == 0.10.12.3,
+        hmatrix                     == 0.16.1.5,
+
+        -- compatibility control flow
+        mtl                         == 2.2.1,
+        MonadRandom                 == 0.1.13,
+        pipes                       == 4.1.3,
+
+        -- compatibility data structures
+        bytestring                  == 0.10.6.0,
+        bloomfilter                 == 2.0.1.0,
+        cassava                     == 0.4.2.3,
+        containers                  == 0.5.6.2,
+        hyperloglog                 == 0.3.1,
+
+        -- required for hyperloglog compatibility
+        semigroups                  == 0.16.2,
+        bytes                       == 0.15,
+        approximate                 == 0.2.1.1,
+        lens                        == 4.9.1
+
+    default-language:
+        Haskell2010
+
+--------------------------------------------------------------------------------
+
+Test-Suite TestSuite-Unoptimized
+    type:               exitcode-stdio-1.0
+    hs-source-dirs:     test
+    main-is:            TestSuite.hs
+
+    ghc-options:
+        -O0
+
+    build-depends:
+        subhask,
+        test-framework-quickcheck2  >= 0.3.0,
+        test-framework              >= 0.8.0
+
+-- FIXME:
+-- The test below takes a long time to compile.
+-- The slow builds are cosing travis tests to fail.
+--
+-- Test-Suite TestSuite-Optimized
+--     type:               exitcode-stdio-1.0
+--     hs-source-dirs:     test
+--     main-is:            TestSuite.hs
+--
+--     build-depends:
+--         subhask,
+--         test-framework-quickcheck2  >= 0.3.0,
+--         test-framework              >= 0.8.0
+--
+--     ghc-options:
+--         -O2
+--         -fllvm
+
+--------------------
+
+Test-Suite Example0001
+    type:               exitcode-stdio-1.0
+    hs-source-dirs:     examples
+    main-is:            example0001-polynomials.lhs
+    build-depends:      subhask, base
+
+Test-Suite Example0002
+    type:               exitcode-stdio-1.0
+    hs-source-dirs:     examples
+    main-is:            example0002-monad-instances-for-set.lhs
+    build-depends:      subhask, base
+
+Test-Suite Example0003
+    type:               exitcode-stdio-1.0
+    hs-source-dirs:     examples
+    main-is:            example0003-linear-algebra.lhs
+    build-depends:      subhask, base
+
+--------------------------------------------------------------------------------
+
+benchmark Vector
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   bench
+    main-is:          Vector.hs
+    build-depends:
+        base,
+        subhask,
+        criterion                   == 1.1.0.0,
+        MonadRandom
+
+    ghc-options:
+        -O2
+        -funbox-strict-fields
+        -fexcess-precision
+
+--         -fliberate-case-threshold=100000
+--         -fexpose-all-unfoldings
+--         -fmax-simplifier-iterations=10
+--         -fmax-worker-args=100
+--         -fsimplifier-phases=5
+--         -fspec-constr-count=50
+
+        -fllvm
+        -optlo-O3
+        -optlo-enable-fp-mad
+        -optlo-enable-no-infs-fp-math
+        -optlo-enable-no-nans-fp-math
+        -optlo-enable-unsafe-fp-math
+
+--         -ddump-to-file
+--         -ddump-rule-firings
+--         -ddump-rule-rewrites
+--         -ddump-rules
+--         -ddump-cmm
+--         -ddump-simpl
+--         -ddump-simpl-stats
+--         -dppr-debug
+--         -dsuppress-module-prefixes
+--         -dsuppress-uniques
+--         -dsuppress-idinfo
+--         -dsuppress-coercions
+--         -dsuppress-type-applications
