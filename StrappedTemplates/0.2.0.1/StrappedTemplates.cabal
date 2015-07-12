@@ -1,0 +1,97 @@
+name:                StrappedTemplates
+version:             0.2.0.1
+synopsis:            General purpose templates in haskell
+homepage:            https://github.com/hansonkd/StrappedTemplates
+license:             BSD3
+license-file:        LICENSE
+author:              Kyle Hanson
+maintainer:          me@khanson.io
+category:            Text
+build-type:          Simple
+cabal-version:       >=1.8
+
+description:
+  Easy templating in haskell.
+  .
+  >  import Control.Monad.IO.Class
+  >  import qualified Blaze.ByteString.Builder as B
+  >  import qualified Data.Text as T
+  >  import Data.Time
+  >  
+  >  import Text.Strapped
+  >  
+  >  makeBucket :: Integer -> InputBucket IO
+  >  makeBucket i = bucketFromList 
+  >        [ ("is", lit $ map (LitInteger) [1..i])
+  >        , ("is_truthy", lit i)
+  >        , ("ioTime", Func (\_ -> (liftIO $ getCurrentTime) >>= (\c -> return $ LitText $ T.pack $ show c)))
+  >        ]
+  >  
+  >  main :: IO ()
+  >  main = do
+  >    tmpls <- templateStoreFromDirectory defaultConfig "examples/templates" ".strp"
+  >    case tmpls of
+  >      Left err -> print err
+  >      Right store -> do
+  >        rendered <- render (putStore store defaultConfig) (makeBucket 2) "base_simple.strp"
+  >        either (print) (print . B.toByteString) rendered
+  .
+  @
+  &#160;&#x7b;$ inherits base.strp $&#x7d;
+  &#160;
+  &#160;&#x7b;$ isblock body $&#x7d;
+  &#160;
+  &#160;An IO function to find the current time: $&#x7b; ioTime &#x7d;
+  &#160;
+  &#160;&#x7b;$ if is_truthy $&#x7d;
+  &#160;    &#x7b;$ inherits base.strp $&#x7d;
+  &#160;    &#x7b;$ isblock body $&#x7d;
+  &#160;        Any block level can inherit from another template and override blocks.
+  &#160;    &#x7b;$ endisblock $&#x7d;
+  &#160;&#x7b;$ else $&#x7d;
+  &#160;    Don't show me.
+  &#160;&#x7b;$ endif $&#x7d;
+  &#160;
+  &#160;Taken from an includes:
+  &#160;&#x7b;$ include includes/includes.strp $&#x7d;
+  &#160;
+  &#160;Lets count...
+  &#160;&#x7b;$ for i in is $&#x7d;
+  &#160;    $&#x7b; i &#x7d;
+  &#160;&#x7b;$ endfor $&#x7d;
+  &#160;
+  &#160;&#x7b;$ endisblock $&#x7d;
+  @
+
+library
+  exposed-modules:     Text.Strapped, Text.Strapped.Parser, Text.Strapped.Render, Text.Strapped.Types, Text.Strapped.Utils
+  build-depends:       base >= 4.7 && < 4.9,
+                       bytestring >= 0.10 && < 0.11,
+                       containers >= 0.5 && < 0.6,
+                       text >= 1.0 && < 1.3,
+                       blaze-builder >=0.3 && < 0.4,
+                       parsec >=3.1 && < 3.2,
+                       mtl >=2.2.1 && < 2.3,
+                       transformers >= 0.4 && < 0.5,
+                       filemanip >=0.3.6 && < 0.3.7,
+                       filepath >=1.3 && < 1.5
+  hs-source-dirs:      src
+
+test-suite Main
+  type:            exitcode-stdio-1.0
+  build-depends:   StrappedTemplates >= 0.2 && < 0.3,
+                   base >= 4.7 && < 4.9,
+                   hspec >= 1.11 && < 1.12,
+                   text >= 1.0 && < 1.3,
+                   bytestring >= 0.10 && < 0.11,
+                   blaze-builder >=0.3 && < 0.4
+
+  ghc-options:     -Wall -rtsopts
+  hs-source-dirs:  tests
+  default-language: Haskell2010
+  hs-source-dirs:  tests
+  main-is:         StrappedTest.hs
+
+source-repository head
+  type:     git
+  location: git@github.com:hansonkd/StrappedTemplates.git
