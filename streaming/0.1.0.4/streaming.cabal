@@ -1,0 +1,69 @@
+name:                streaming
+version:             0.1.0.4
+cabal-version:       >=1.10
+build-type:          Simple
+synopsis:            A free monad transformer optimized for streaming applications.
+                     
+description:         `Stream` can be used wherever `FreeT` is used. The compiler
+                     is better able to optimize operations written in
+                     terms of `Stream`.
+                     .
+                     See the examples in @Streaming.Prelude@ for a sense of things.
+                     It closely follows 
+                     @Pipes.Prelude@, and focused on on employment with a base 
+                     functor like @((,) a)@ (here called @Of a@) which generates
+                     effectful sequences or producers - @Pipes.Producer@, 
+                     @Conduit.Source@, @IOStreams.InputStream@, @IOStreams.Generator@
+                     and the like.
+                     .
+                     Interoperation with @pipes@ is accomplished with this isomorphism, which
+                     uses @Pipes.Prelude.unfoldr@ from @HEAD@:
+                     .  
+                     > Pipes.unfoldr Streaming.next        :: Stream (Of a) m r   -> Producer a m r
+                     > Streaming.unfoldr Pipes.next        :: Producer a m r      -> Stream (Of a) m r                     
+                     .
+                     Interoperation with `iostreams` is thus:
+                     .
+                     > Streaming.reread IOStreams.read     :: InputStream a       -> Stream (Of a) IO ()
+                     > IOStreams.unfoldM Streaming.uncons  :: Stream (Of a) IO () -> IO (InputStream a)
+                     .
+                     for example. A simple exit to conduit would be, e.g.:
+                     .
+                     > Conduit.unfoldM Streaming.uncons    :: Stream (Of a) m ()  -> Source m a
+
+                     
+license:             BSD3
+license-file:        LICENSE
+author:              michaelt
+maintainer:          what_is_it_to_do_anything@yahoo.com
+stability:           Experimental
+homepage:            https://github.com/michaelt/streaming
+bug-reports:         https://github.com/michaelt/streaming/issues
+category:            Data, Pipes
+source-repository head
+    type: git
+    location: https://github.com/michaelt/streaming
+
+
+library
+  exposed-modules:     Streaming, 
+                       Streaming.Prelude,
+                       Streaming.Internal
+
+    -- other-modules:       
+  other-extensions:    LambdaCase, RankNTypes, EmptyCase, 
+                       StandaloneDeriving, FlexibleContexts, 
+                       DeriveDataTypeable, DeriveFoldable, 
+                       DeriveFunctor, DeriveTraversable, 
+                       UndecidableInstances
+  
+  build-depends:       base >=4.7 && <4.9
+                     , mtl >=2.1 && <2.3
+                     , mmorph >=1.0 && <1.2
+                     , transformers >=0.3 && <0.5
+                     , ghc-prim
+
+  default-language:  Haskell2010
+  
+
+
