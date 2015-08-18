@@ -1,0 +1,84 @@
+name:                hsqml-datamodel
+version:             0.2.0.2
+synopsis:            HsQML (Qt5) data model.
+description:         HsQML (Qt5) data model. Use any collection (actually, any (Int -> IO a) action) of single constructor data types as a model for use with QML views.
+license:             BSD3
+license-file:        LICENSE
+author:              Marcin Mrotek
+maintainer:          marcin.jan.mrotek@gmail.com
+-- copyright:           
+category:            Graphics
+build-type:          Custom
+Extra-source-files:
+    cbits/*.cpp cbits/*.h CHANGELOG
+cabal-version:       >=1.10
+homepage:        https://github.com/marcinmrotek/hsqml-datamodel
+source-repository head
+   type: git
+   location: https://github.com/marcinmrotek/hsqml-datamodel.git
+
+Flag UsePkgConfig
+    Description:
+        Use pkg-config for libraries instead of the platform default mechanism.
+    Default: False
+
+Flag devel
+    description: Development mode (-Werror).
+    default: False
+    manual:  True
+
+library
+   exposed-modules:     Graphics.QML.DataModel.Internal.FFI
+                        Graphics.QML.DataModel.Internal.FFI.Types
+                        Graphics.QML.DataModel.Internal.Generic
+                        Graphics.QML.DataModel.Internal.Generic.Get
+                        Graphics.QML.DataModel.Internal.Generic.Set
+                        Graphics.QML.DataModel.Internal.Generic.Count
+                        Graphics.QML.DataModel.Internal.Types
+                        Graphics.QML.DataModel.TH
+                        Graphics.QML.DataModel.Generic
+                        Graphics.QML.DataModel.FFI
+                        Graphics.QML.DataModel.Tutorial
+                        Graphics.QML.DataModel
+  build-depends:       base >=4.8 && <4.9
+                     , hsqml >= 0.3.3.0 && < 0.4
+                     , text >= 1.0 && < 1.3
+                     , template-haskell >= 2.10 && < 2.11
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  include-dirs: cbits
+  c-sources:
+        cbits/interface.cpp
+        cbits/HaskellModel.cpp
+  x-moc-headers:
+        cbits/HaskellModel.h
+  x-separate-cbits: True
+  build-tools: hsc2hs
+  if os(windows) && !flag(UsePkgConfig)
+        Include-dirs: /QT_ROOT/include
+        Extra-libraries:
+            Qt5Core, Qt5Gui, Qt5Widgets, Qt5Qml, Qt5Quick, stdc++
+        Extra-lib-dirs: /SYS_ROOT/bin /QT_ROOT/bin
+        if impl(ghc < 7.8)
+            -- Pre-7.8 GHCi can't load eh_frame sections
+            GHC-options: -optc-fno-asynchronous-unwind-tables
+  else
+        if os(darwin) && !flag(UsePkgConfig)
+            Frameworks: QtCore QtGui QtWidgets QtQml QtQuick
+            CC-options: -F /QT_ROOT/lib
+            GHC-options: -framework-path /QT_ROOT/lib
+            X-framework-dirs: /QT_ROOT/lib
+        else
+            Pkgconfig-depends:
+                Qt5Core    >= 5.0 && < 6.0,
+                Qt5Gui     >= 5.0 && < 6.0,
+                Qt5Widgets >= 5.0 && < 6.0,
+                Qt5Qml     >= 5.0 && < 6.0,
+                Qt5Quick   >= 5.0 && < 6.0
+        Extra-libraries: stdc++
+  ghc-options: -Wall -fno-warn-partial-type-signatures
+  if flag(devel)
+     ghc-options: -Werror
+
+
+
