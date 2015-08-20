@@ -1,0 +1,74 @@
+name:          DSA
+category:      Cryptography, Codec
+version:       1.0
+license:       BSD3
+license-file:  LICENSE
+author:        Adam Wick <awick@galois.com>
+maintainer:    Adam Wick <awick@galois.com>
+stability:     stable
+build-type:    Simple
+cabal-version: >= 1.8
+tested-with:   GHC ==7.8.0
+synopsis:      Implementation of DSA, based on the description of FIPS 186-4
+description:   This library implements the DSA encryption and signature
+               algorithms for arbitrarily-sized ByteStrings. While the
+               implementations work, they are not necessarily the fastest ones
+               on the planet. Particularly key generation. The algorithms
+               included are based of NIST's FIPS 186-4 document.
+
+flag gmp
+  description: Whether or not the library can assume integer-gmp
+
+flag better-tests
+  description: Use better (but much slower) tests in the test suite.
+  default:     False
+
+Library
+  hs-source-dirs:  src
+  build-depends:   base                >= 4.6     && < 7.0,
+                   binary              >  0.7     && < 1.0,
+                   bytestring          >  0.8     && < 0.12,
+                   crypto-api          >= 0.10    && < 0.14,
+                   crypto-pubkey-types >= 0.2     && < 0.6,
+                   SHA                 >= 1.6.4.1 && < 2.0,
+                   tagged              >= 0.8.0.1 && < 1.0
+  if flag(gmp)
+    build-depends: ghc-prim            >= 0.3.1.0 && < 0.7,
+                   integer-gmp         >= 0.5.1.0 && < 1.2
+    cpp-options:   -DUSE_GMP_HELPERS
+  exposed-modules: Codec.Crypto.DSA,
+                   Codec.Crypto.DSA.Pure,
+                   Codec.Crypto.DSA.Exceptions
+  GHC-Options:     -Wall -fno-warn-orphans
+  extensions:      BangPatterns, CPP, MagicHash, MultiWayIf
+
+test-suite test-dsa
+  type:           exitcode-stdio-1.0
+  Main-Is:        Test.hs
+  hs-source-dirs: src
+  build-depends:  base                       >= 4.6     && < 7.0,
+                  binary                     >  0.7     && < 1.0,
+                  bytestring                 >  0.8     && < 0.12,
+                  crypto-api                 >= 0.10    && < 0.14,
+                  crypto-pubkey-types        >= 0.4     && < 0.6,
+                  DRBG                       >= 0.5.2   && < 0.7,
+                  HUnit                      >= 1.2.5.2 && < 1.4,
+                  QuickCheck                 >= 2.5     && < 3,
+                  tagged                     >= 0.2     && < 0.9,
+                  test-framework             >= 0.8.0.3 && < 0.10,
+                  test-framework-hunit       >= 0.3     && < 0.5,
+                  test-framework-quickcheck2 >= 0.3.0.2 && < 0.5,
+                  SHA                        >= 1.6.4.1 && < 2.0
+  if flag(gmp)
+    build-depends: ghc-prim            >= 0.3.1.0 && < 0.7,
+                   integer-gmp         >= 0.5.1.0 && < 1.2
+    cpp-options:   -DUSE_GMP_HELPERS
+  if flag(better-tests)
+    cpp-options:   -DBETTER_TESTS
+  GHC-Options:    -Wall -fno-warn-orphans
+  extensions:     DeriveDataTypeable, MultiWayIf, ScopedTypeVariables
+
+source-repository head
+  type: git
+  location: git://github.com/acw/RSA.git
+
