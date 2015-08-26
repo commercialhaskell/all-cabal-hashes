@@ -1,0 +1,167 @@
+name:                streaming-bytestring
+version:             0.1.0.0
+synopsis:            Effectful sequences of bytes.
+description:         This is an implementation of effectful, monadic bytestrings,
+                     adequate for non-lazy-io. 
+                     .
+                     Interoperation with @pipes@ uses this isomorphism:
+                     . 
+                     > Streaming.unfoldrChunks Pipes.next :: Monad m => Producer ByteString m r -> ByteString m r
+                     > Pipes.unfoldr Streaming.nextChunk  :: Monad m => ByteString m r -> Producer ByteString m r
+                     .
+                     Interoperation with @io-streams@ is thus:
+                     .
+                     > IOStreams.unfoldM Streaming.unconsChunk :: ByteString IO () -> IO (InputStream ByteString)
+                     > Streaming.reread IOStreams.read         :: InputStream ByteString -> ByteString IO ()
+                     .
+                     and similarly for other streaming io libraries.
+                     .
+                     The implementation follows the
+                     details of @Data.ByteString.Lazy@ and @Data.ByteString.Lazy.Char8@
+                     as far as is possible, substituting the type
+                     .
+                     > data ByteString m r = Empty r 
+                     >                     | Chunk Strict.ByteString (ByteString m r) 
+                     >                     | Go (m (ByteString m r))
+                     .
+                     for the type
+                     . 
+                     > data ByteString = Empty 
+                     >                 | Chunk Strict.ByteString ByteString
+                     .
+                     found in @Data.ByteString.Lazy.Internal@. (Constructors are necessarily hidden in 
+                     internal modules in both cases.) As a lazy bytestring is implemented internally 
+                     by a sort of list of strict bytestring chunks, a streaming bytestring is 
+                     implemented as a /producer/ or /generator/ of strict bytestring chunks.
+                     .
+                     Something like this alteration of type is of course obvious and mechanical, once the idea of
+                     an effectful bytestring type is contemplated and lazy io is rejected.
+                     Indeed it seems that this is the proper expression of what was
+                     intended by lazy bytestrings to begin with. The documentation, after all,
+                     reads
+                     .
+                     * \"A key feature of lazy ByteStrings is the means to manipulate large or 
+                       unbounded streams of data without requiring the entire sequence to be 
+                       resident in memory. To take advantage of this you have to write your 
+                       functions in a lazy streaming style, e.g. classic pipeline composition. 
+                       The default I/O chunk size is 32k, which should be good in most circumstances.\"
+                     .
+                     ... which is very much the idea of this library: the default chunk size for
+                     'hGetContents' and the like follows @Data.ByteString.Lazy@ and operations
+                     like @lines@ and @append@ and so on are tailored not to increase chunk size. 
+                     .
+                     It is natural to think that 
+                     the direct, naive, monadic formulation of such a type 
+                     would necessarily make things much slower. This appears to be a prejudice. 
+                     For example, passing a large file of short lines through
+                     this benchmark transformation
+                     .
+                     > Lazy.unlines      . map    (\bs -> "!"       <> Lazy.drop 5 bs)       . Lazy.lines
+                     > Streaming.unlines . S.maps (\bs -> chunk "!" >> Streaming.drop 5 bs)  . Streaming.lines
+                     .
+                     gives pleasing results like these
+                     .
+                     > $  time ./benchlines lazy >> /dev/null
+                     > real	0m2.097s
+                     > ...
+                     > $  time ./benchlines streaming >> /dev/null
+                     > real	0m1.930s
+                     .
+                     More typical, perhaps, are the results for the more 
+                     sophisticated operation 
+                     .
+                     > Lazy.intercalate "!\n"      . Lazy.lines
+                     > Streaming.intercalate "!\n" . Streaming.lines
+                     .
+                     > time ./benchlines lazy >> /dev/null
+                     > real	0m1.250s
+                     > ...
+                     > time ./benchlines streaming >> /dev/null
+                     > real	0m1.531s
+                     . 
+                     The pipes environment (to which this library basically belongs) 
+                     would express the latter as 
+                     .
+                     > Pipes.intercalates (Pipes.yield "!\n") . view Pipes.lines 
+                     .
+                     meaning almost exactly what we mean above, but with results like this
+                     .
+                     >  time ./benchlines pipes >> /dev/null
+                     >  real	0m6.353s
+                     .
+                     The difference, I think, is mostly that this library depends 
+                     the @streaming@ library, which is used in place of @free@ to 
+                     express the splitting and division of byte streams. 
+                     .
+                     Indeed even if I unwrap and re-wrap with the above-mentioned isomorphism
+                     .
+                     > Pipes.unfoldr Streaming.nextChunk . Streaming.intercalate "!\n" . Streaming.lines . Streaming.unfoldrChunks Pipe.next
+                     .
+                     I get an excellent speed-up:
+                     .
+                     > $  time ./benchlines pipes_stream >> /dev/null
+                     > real	0m3.393s
+                     .
+                     Though we barely alter signatures in @Data.ByteString.Lazy@ 
+                     more than is required
+                     by the types, the point of view that emerges is very much that of
+                     @pipes-bytestring@ and @pipes-group@. In particular
+                     we have the correspondences
+                     .
+                     > Lazy.splitAt      :: Int -> ByteString              -> (ByteString, ByteString)
+                     > Streaming.splitAt :: Int -> ByteString m r          -> ByteString m (ByteString m r)
+                     > Pipes.splitAt     :: Int -> Producer ByteString m r -> Producer ByteString m (Producer ByteString m r)
+                     .
+                     and
+                     .
+                     > Lazy.lines      :: ByteString -> [ByteString]
+                     > Streaming.lines :: ByteString m r -> Stream (ByteString m) m r
+                     > Pipes.lines     :: Producer ByteString m r -> FreeT (Producer ByteString m) m r
+                     .
+                     where the @Stream@ type expresses the sequencing of @ByteString m _@ layers
+                     with the usual \'free monad\' sequencing. 
+                     .
+                     If you are unfamiliar with this
+                     way of structuring material you might take a look at the tutorial for 
+                     <http://hackage.haskell.org/package/pipes-group-1.0.2/docs/Pipes-Group-Tutorial.html pipes-group>
+                     and the examples in the documentation for the streaming library. See also
+                     <https://gist.github.com/michaelt/6c6843e6dd8030e95d58 these> 
+                     implementations of the shell-like examples from the @io-streams@ tutorial.
+                     .
+                    
+license:             BSD3
+license-file:        LICENSE
+author:              michaelt
+maintainer:          what_is_it_to_do_anything@yahoo.com
+-- copyright:           
+category:            Data
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     Data.ByteString.Streaming
+                       , Data.ByteString.Streaming.Char8
+                       , Data.ByteString.Streaming.Internal
+                 --      , Data.ByteString.Streaming.Aeson
+                       , Data.ByteString.Streaming.HTTP
+                       , Data.Attoparsec.ByteString.Streaming
+                       
+  -- other-modules:       
+  other-extensions:    CPP, BangPatterns, ForeignFunctionInterface, DeriveDataTypeable, Unsafe
+  build-depends:       base >=4.8 && <4.9
+                     , bytestring >=0.10 && <0.11
+                     , deepseq >=1.4 && <1.5
+                     , syb >=0.5 && <0.6
+                     , mtl >=2.2 && <2.3
+                     , mmorph >=1.0 && <1.1
+                     , attoparsec
+                     , transformers
+                     , foldl
+                  --   , aeson
+                     , streaming
+                     , http-client 
+                     , http-client-tls
+  -- hs-source-dirs:      
+  default-language:    Haskell2010
+  -- ghc-options: -Wall
