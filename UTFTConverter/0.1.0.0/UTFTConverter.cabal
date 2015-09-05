@@ -1,0 +1,167 @@
+name:                UTFTConverter
+category:            Graphics, Text
+version:             0.1.0.0
+license:             MIT
+cabal-version:       >=1.10
+license-file:        LICENSE
+author:              Alexander Isenko
+maintainer:          Alexander Isenko <alex.isenko@googlemail.com>
+homepage:            www.github.com/cirquit/UTFTConverter
+bug-reports:         www.github.com/cirquit/UTFTConverter/issues
+build-type:          Simple
+tested-with:         GHC == 7.8.3
+synopsis:            Processing popular picture formats into .c or .raw format in RGB565
+description:
+  __About:__
+  .
+  This package was created because I could not find a tool that can be used on UNIX systems to
+  parse a picture into an array of RGB565 values and save them to a @.c@ or @.raw@ file. Both formats
+  are used by the <http://www.rinkydinkelectronics.com/library.php?id=51 UTFT library> to display pictures on to a TFT display.
+  .
+  This package includes, but not limited to, an executable which is made to be as identical as possible
+  to the corresponding tool that is also downloaded with the <http://www.rinkydinkelectronics.com/library.php?id=51 UTFT library>.
+  .
+  __Usage:__
+  .
+  >./UTFTConverter <filespec> /c|r [/o <path>] [/t AVR|ARM|PIC32]
+  >
+  ><filespec>:  File(s) to convert
+  >parameters: /c            - Create output as .c array files
+  >            /r            - Create output as .raw files
+  >            /o <path>     - Set the output directory to <path>
+  >            /t <platform> - Select target plaform
+  >                            AVR   : Most Arduinos, Bobuion
+  >                            ARM   : Arduino Due, Teensy, TI CC3200 LaunchPad
+  >                            PIC32 : All chipKit boards
+  >
+  >You must specify either /c or /r. All other parameters are optional.
+  >If /o is ommited the current directory will be used for output.
+  >If /t is ommited the target platform will be set to AVR.'
+  .
+  .
+  __Supported formats:__
+  .
+  The exported library is using <http://hackage.haskell.org/package/JuicyPixels JuicyPixels> to convert incoming
+  .
+  * @.gif@
+  .
+  * @.png@
+  .
+  * @.jpg \/\ .jpe \/\ .jpeg@
+  .
+  * @.bmp@
+  .
+  * @.tga@
+  .
+  and translates every pixel to a @RGB565@ format, which is a 4 digit hex number.
+  .
+  __Library:__
+  .
+  The only really reusable library is the @Format.RGB565@.
+  It support the conversion from
+  .
+  * @RGB@ to @RGB565@ as @(Word8, Word8, Word8) -> Int@
+  * @Int@ to @Hex@ as @Int -> String@
+  .
+  __Example usage:__
+  .
+  >>> toRGB565 (0, 0, 255)
+  31
+
+  >>> toRGB565Hex (0, 0, 255)
+  "001F"
+
+  >>> toHex 100
+  64
+
+  >>> to4Hex 100
+  "0064"
+
+  >>> to6Hex 100
+  "000064"
+
+extra-source-files:
+  Makefile
+  README.md
+
+source-repository head
+  type: git
+  location: git://github.com/cirquit/UTFTConverter.git
+
+-- _______________________
+--|                       |
+--| Library configuration |
+--|_______________________|
+
+library
+  build-depends:
+      base        >=4.7  && <4.8  ,
+      filepath    >=1.3  && <1.4  ,
+      directory   >=1.2  && <1.3  ,
+      time        >=1.4  && <1.5  ,
+      bytestring  >=0.10 && <0.11 ,
+      JuicyPixels >=3.2  && <3.3
+
+  exposed-modules:
+      Format           ,
+      Format.C         ,
+      Format.Converter ,
+      Format.Raw       ,
+      Format.RGB565
+
+  other-extensions:
+      BangPatterns         ,
+      TypeSynonymInstances
+
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+-- __________________________
+--|                          |
+--| Executable configuration |
+--|__________________________|
+
+executable UTFTConverter
+  build-depends:
+    base             >=4.7  && <4.8  ,
+    filepath         >=1.3  && <1.4  ,
+    directory        >=1.2  && <1.3  ,
+    time             >=1.4  && <1.5  ,
+    bytestring       >=0.10 && <0.11 ,
+    JuicyPixels      >=3.2  && <3.3  ,
+    UTFTConverter    ==0.1.*
+
+  other-extensions:
+    BangPatterns         ,
+    TypeSynonymInstances
+
+  main-is:             Main.hs
+  hs-source-dirs:      main-src
+  default-language:    Haskell2010
+  ghc-options:         -Wall -O2
+
+-- __________________________
+--|                          |
+--| Test suite configuration |
+--|__________________________|
+
+test-suite lib-tests
+  build-depends:
+    base             >=4.7  && <4.8  ,
+    filepath         >=1.3  && <1.4  ,
+    directory        >=1.2  && <1.3  ,
+    time             >=1.4  && <1.5  ,
+    bytestring       >=0.10 && <0.11 ,
+    JuicyPixels      >=3.2  && <3.3  ,
+    hspec            ==2.1.*         ,
+    UTFTConverter    ==0.1.*
+
+  other-extensions:
+    BangPatterns         ,
+    TypeSynonymInstances
+
+  main-is:             Tests.hs
+  hs-source-dirs:      tests
+  default-language:    Haskell2010
+  ghc-options:         -Wall -O2
+  type:                exitcode-stdio-1.0
