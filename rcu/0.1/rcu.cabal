@@ -1,0 +1,122 @@
+name:          rcu
+category:      Data
+version:       0.1
+license:       BSD3
+cabal-version: >= 1.22
+license-file:  LICENSE
+author:        Ted Cooper and Edward A. Kmett
+maintainer:    Edward A. Kmett <ekmett@gmail.com>, Ted Cooper <anthezium@gmail.com>
+stability:     provisional
+homepage:      http://github.com/ekmett/rcu/
+bug-reports:   http://github.com/ekmett/rcu/issues
+copyright:     Copyright (C) 2015 Edward A. Kmett, Theodore Rhys Cooper
+build-type:    Custom
+tested-with:   GHC == 7.10.1, GHC == 7.10.2
+synopsis:      Read-Copy-Update for Haskell
+description:   Read-Copy-Update for Haskell
+
+extra-source-files:
+  examples/*.hs
+  CHANGELOG.markdown
+  README.markdown
+
+source-repository head
+  type: git
+  location: git://github.com/ekmett/rcu.git
+
+-- You can disable the doctests test suite with -f-test-doctests
+flag test-doctests
+  default: True
+  manual: True
+
+-- You can disable the doctests test suite with -f-test-doctests
+flag test-hlint
+  default: True
+  manual: True
+
+-- Include unstable and/or potentially incorrect implementations.
+flag unstable
+  default: False
+  manual: True
+
+library
+  build-depends:
+    atomic-primops,
+    base >= 4.8 && < 5,
+    parallel >= 3.2 && < 3.3,
+    primitive,
+    transformers >= 0.4 && < 0.5
+
+  exposed-modules:
+    Control.Concurrent.RCU.Class
+    Control.Concurrent.RCU.QSBR
+    Control.Concurrent.RCU.QSBR.Internal
+
+  ghc-options: -Wall -fwarn-tabs
+  hs-source-dirs: src
+  default-language: Haskell2010
+
+  if flag(unstable)
+    hs-source-dirs: unstable
+    build-depends: stm >= 2.4.4 && < 2.5
+    exposed-modules:
+      Control.Concurrent.RCU.STM
+      Control.Concurrent.RCU.STM.Internal
+
+executable MoveStringSTM
+  main-is: MoveStringSTM.hs
+  if !flag(unstable)
+    buildable: False
+  else
+    build-depends:
+      base >= 4.8 && < 5,
+      rcu,
+      stm >= 2.4.4 && < 2.5,
+      transformers >= 0.4 && < 0.5
+
+    hs-source-dirs: examples
+    ghc-options: -threaded -Wall -fwarn-tabs "-with-rtsopts=-N"
+    default-language: Haskell2010
+
+executable MoveStringQSBR
+  main-is: MoveStringQSBR.hs
+  build-depends:
+    base >= 4.8 && < 5,
+    rcu,
+    stm >= 2.4.4 && < 2.5,
+    transformers >= 0.4 && < 0.5
+
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -fwarn-tabs "-with-rtsopts=-N"
+  default-language: Haskell2010
+
+test-suite doctests
+  type:           exitcode-stdio-1.0
+  main-is:        doctests.hs
+  ghc-options:    -Wall -threaded
+  hs-source-dirs: tests
+  default-language: Haskell2010
+
+  if !flag(test-doctests)
+    buildable: False
+  else
+    build-depends:
+      base >= 4.8,
+      directory      >= 1.0,
+      doctest        >= 0.9.1,
+      filepath,
+      parallel
+
+test-suite hlint
+  type: exitcode-stdio-1.0
+  main-is: hlint.hs
+  ghc-options: -w -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs: tests
+  default-language: Haskell2010
+
+  if !flag(test-hlint)
+    buildable: False
+  else
+    build-depends:
+      base,
+      hlint >= 1.7
