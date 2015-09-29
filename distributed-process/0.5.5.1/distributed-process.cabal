@@ -1,0 +1,154 @@
+Name:          distributed-process
+Version:       0.5.5.1
+Cabal-Version: >=1.8
+Build-Type:    Simple
+License:       BSD3
+License-File:  LICENSE
+Copyright:     Well-Typed LLP, Tweag I/O Limited
+Author:        Duncan Coutts, Nicolas Wu, Edsko de Vries
+Maintainer:    Facundo Domínguez <facundo.dominguez@tweag.io>
+Stability:     experimental
+Homepage:      http://haskell-distributed.github.com/
+Bug-Reports:   https://github.com/haskell-distributed/distributed-process/issues
+Synopsis:      Cloud Haskell: Erlang-style concurrency in Haskell
+Description:   This is an implementation of Cloud Haskell, as described in
+               /Towards Haskell in the Cloud/ by Jeff Epstein, Andrew Black,
+               and Simon Peyton Jones
+               (<http://research.microsoft.com/en-us/um/people/simonpj/papers/parallel/>),
+               although some of the details are different. The precise message
+               passing semantics are based on /A unified semantics for future Erlang/
+               by Hans Svensson, Lars-&#xc5;ke Fredlund and Clara Benac Earle.
+
+               You will probably also want to install a Cloud Haskell backend such
+               as distributed-process-simplelocalnet.
+Tested-With:   GHC==7.4.2 GHC==7.6.3 GHC==7.8.4 GHC==7.10.1
+Category:      Control
+extra-source-files: ChangeLog
+
+Source-Repository head
+  Type:     git
+  Location: https://github.com/haskell-distributed/distributed-process
+  SubDir:   distributed-process
+
+flag th
+  description: Build with Template Haskell support
+  default: True
+
+flag old-locale
+ description: If false then depend on time >= 1.5.
+              .
+              If true then depend on time < 1.5 together with old-locale.
+ default: False
+
+Library
+  Build-Depends:     base >= 4.4 && < 5,
+                     binary >= 0.6.3 && < 0.8,
+                     hashable >= 1.2.0.5 && < 1.3,
+                     network-transport >= 0.4.1.0 && < 0.5,
+                     stm >= 2.4 && < 2.5,
+                     transformers >= 0.2 && < 0.5,
+                     mtl >= 2.0 && < 2.4,
+                     data-accessor >= 0.2 && < 0.3,
+                     bytestring >= 0.9 && < 0.11,
+                     random >= 1.0 && < 1.2,
+                     ghc-prim >= 0.2 && < 0.5,
+                     distributed-static >= 0.2 && < 0.4,
+                     rank1dynamic >= 0.1 && < 0.4,
+                     syb >= 0.3 && < 0.7
+  Exposed-modules:   Control.Distributed.Process,
+                     Control.Distributed.Process.Closure,
+                     Control.Distributed.Process.Debug,
+                     Control.Distributed.Process.Internal.Closure.BuiltIn,
+                     Control.Distributed.Process.Internal.Closure.Explicit,
+                     Control.Distributed.Process.Internal.CQueue,
+                     Control.Distributed.Process.Internal.Messaging,
+                     Control.Distributed.Process.Internal.Primitives,
+                     Control.Distributed.Process.Internal.Spawn,
+                     Control.Distributed.Process.Internal.StrictContainerAccessors,
+                     Control.Distributed.Process.Internal.StrictList,
+                     Control.Distributed.Process.Internal.StrictMVar,
+                     Control.Distributed.Process.Internal.Types,
+                     Control.Distributed.Process.Internal.WeakTQueue,
+                     Control.Distributed.Process.Management,
+                     Control.Distributed.Process.Node,
+                     Control.Distributed.Process.Serializable,
+                     Control.Distributed.Process.UnsafePrimitives
+                     Control.Distributed.Process.Management.Internal.Agent,
+                     Control.Distributed.Process.Management.Internal.Bus,
+                     Control.Distributed.Process.Management.Internal.Table,
+                     Control.Distributed.Process.Management.Internal.Types,
+                     Control.Distributed.Process.Management.Internal.Trace.Primitives,
+                     Control.Distributed.Process.Management.Internal.Trace.Remote,
+                     Control.Distributed.Process.Management.Internal.Trace.Types,
+                     Control.Distributed.Process.Management.Internal.Trace.Tracer
+  ghc-options:       -Wall
+  HS-Source-Dirs:    src
+  if impl(ghc <= 7.4.2)
+     Build-Depends:   containers >= 0.4 && < 0.5,
+                      deepseq == 1.3.0.0
+  else
+     Build-Depends:   containers >= 0.4 && < 0.6,
+                      deepseq >= 1.3.0.1 && < 1.6
+  if flag(old-locale)
+     Build-Depends:   time < 1.5, old-locale >= 1.0 && <1.1
+  else
+     Build-Depends:   time >= 1.5
+  if flag(th)
+     if impl(ghc <= 7.4.2)
+       Build-Depends: template-haskell >= 2.7 && < 2.8
+     else
+       Build-Depends: template-haskell >= 2.6 && < 2.11
+     Exposed-modules: Control.Distributed.Process.Internal.Closure.TH
+     CPP-Options:     -DTemplateHaskellSupport
+
+-- Tests are in distributed-process-test package, for convenience.
+
+benchmark distributed-process-throughput
+  Type:            exitcode-stdio-1.0        
+  Build-Depends:   base >= 4.4 && < 5,
+                   distributed-process,
+                   network-transport-tcp >= 0.3 && < 0.5,
+                   bytestring >= 0.9 && < 0.11,
+                   binary >= 0.6.3 && < 0.8
+  Main-Is:         benchmarks/Throughput.hs
+  ghc-options:     -Wall
+
+benchmark distributed-process-latency
+  Type:            exitcode-stdio-1.0
+  Build-Depends:   base >= 4.4 && < 5,
+                   distributed-process,
+                   network-transport-tcp >= 0.3 && < 0.5,
+                   bytestring >= 0.9 && < 0.11,
+                   binary >= 0.6.3 && < 0.8
+  Main-Is:         benchmarks/Latency.hs
+  ghc-options:     -Wall
+
+benchmark distributed-process-channels
+  Type:            exitcode-stdio-1.0
+  Build-Depends:   base >= 4.4 && < 5,
+                   distributed-process,
+                   network-transport-tcp >= 0.3 && < 0.5,
+                   bytestring >= 0.9 && < 0.11,
+                   binary >= 0.6.3 && < 0.8
+  Main-Is:         benchmarks/Channels.hs
+  ghc-options:     -Wall
+
+benchmark distributed-process-spawns
+  Type:            exitcode-stdio-1.0
+  Build-Depends:   base >= 4.4 && < 5,
+                   distributed-process,
+                   network-transport-tcp >= 0.3 && < 0.5,
+                   bytestring >= 0.9 && < 0.11,
+                   binary >= 0.6.3 && < 0.8
+  Main-Is:         benchmarks/Spawns.hs
+  ghc-options:     -Wall
+
+benchmark distributed-process-ring
+  Type:            exitcode-stdio-1.0
+  Build-Depends:   base >= 4.4 && < 5,
+                   distributed-process,
+                   network-transport-tcp >= 0.3 && < 0.5,
+                   bytestring >= 0.9 && < 0.11,
+                   binary >= 0.6.3 && < 0.8
+  Main-Is:         benchmarks/ProcessRing.hs
+  ghc-options:     -Wall -threaded -O2 -rtsopts
