@@ -1,0 +1,123 @@
+name: workflow-osx
+version: 0.0.1
+cabal-version: >=1.10
+build-type: Simple
+license: GPL-3
+license-file: LICENSE
+copyright: Copyright (C) 2015 Spiros M. Boosalis
+maintainer: samboosalis@gmail.com
+stability: experimental
+homepage: https://github.com/sboosali/workflow-osx#readme
+bug-reports: https://github.com/sboosali/workflow-osx/issues
+synopsis: a "Desktop Workflow" monad with Objective-C bindings 
+description:
+  a \"Desktop Workflow\" monad with Objective-C bindings. 
+  . 
+  includes bindings to: 
+  .
+  * press keys with modifiers
+  . 
+  * get/set the clipboard
+  . 
+  * launch/focus applications
+  . 
+  * get the name of the current application 
+  .
+  * open URLs 
+  .
+  for example: 
+  . 
+  > -- | cut the currently highlighted region
+  > cut :: (MonadWorkflow m) => m String
+  > cut = do
+  >  sendKeyChord [CommandModifier] XKey
+  >  delay 250
+  >  getClipboard
+  .
+  > -- | transform the currently highlighted region, via the clipboard
+  > transformClipboard :: (MonadWorkflow m) => (String -> String) -> m () 
+  > transformClipboard f = do
+  >  contents <- cut
+  >  setClipboard (f contents) 
+  >  sendKeyChord [CommandModifier] VKey
+  . 
+  see @Workflow.OSX@ for several more examples
+  .
+  (if hackage won't build the docs, see them at <http://sboosali.github.io/documentation/workflow-osx/index.html>)
+  . 
+  (this package is on hackage for convenience, but it's still a prerelease)
+  . 
+
+-- * get the name of the current window
+-- * click the mouse
+
+category: Accessibility, Apple, Automation, Bindings, Desktop, FFI 
+author: Spiros Boosalis
+tested-with: GHC ==7.10.1
+extra-source-files:
+    README.md
+    cbits/objc_workflow.h
+    cbits/Makefile
+
+source-repository head
+    type: git
+    location: https://github.com/sboosali/workflow-osx
+
+library
+    
+    -- if !os(osx)
+    --     buildable: False
+
+    exposed-modules:
+        Workflow.OSX
+        Workflow.OSX.Example
+        Workflow.OSX.Types
+        Workflow.OSX.Bindings
+        Workflow.OSX.Bindings.Raw
+        Workflow.OSX.Constants
+        Workflow.OSX.Marshall
+        Workflow.OSX.Execute
+        Workflow.OSX.DSL
+        Workflow.OSX.Extra 
+
+    build-depends:
+        http-types ==0.8.*, 
+        bv ==0.3.*, 
+        free ==4.12.*, 
+        filepath ==1.4.*, 
+        exceptions ==0.8.*, 
+
+--        time -any, 
+
+        mtl ==2.2.*, 
+        transformers ==0.4.2.*, 
+        bytestring ==0.10.*, 
+
+        base ==4.8.*
+
+    default-language: Haskell2010
+    hs-source-dirs: sources
+    ghc-options: -Wall
+    default-extensions: AutoDeriveTypeable
+
+-- the functionality I needed was found only in some deprecated APIs 
+    cc-options: -Wno-deprecated-declarations
+    ld-options: -ObjC
+    frameworks: Cocoa
+    c-sources:
+        cbits/objc_workflow.m
+    includes:
+        cbits/objc_workflow.h
+    install-includes:
+        cbits/objc_workflow.h
+    include-dirs: cbits
+
+executable example
+    main-is: Main.hs
+    build-depends:
+        workflow-osx ==0.0.1,
+        base ==4.8.*
+    default-language: Haskell2010
+    hs-source-dirs: .
+    ghc-options: -Wall
+
