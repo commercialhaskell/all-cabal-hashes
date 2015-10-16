@@ -1,0 +1,180 @@
+Name:                   accelerate-cuda
+Version:                0.15.1.0
+Cabal-version:          >= 1.8
+Tested-with:            GHC == 7.8.*
+Build-type:             Simple
+
+Synopsis:               Accelerate backend for NVIDIA GPUs
+Description:
+  This library implements a backend for the /Accelerate/ language instrumented
+  for parallel execution on CUDA-capable NVIDIA GPUs. For further information,
+  refer to the main /Accelerate/ package:
+  <http://hackage.haskell.org/package/accelerate>
+  .
+  To use this backend you will need:
+  .
+    1. A CUDA-enabled NVIDIA GPU with, for full functionality, compute
+       capability 1.3 or greater. See the table on Wikipedia for supported GPUs:
+       <http://en.wikipedia.org/wiki/CUDA#Supported_GPUs>
+  .
+    2. The CUDA SDK, available from the NVIDIA Developer Zone:
+       <http://developer.nvidia.com/cuda-downloads>
+  .
+  See the Haddock documentation for additional information related to using this
+  backend.
+  .
+  Compile modules that use the CUDA backend with the @-threaded@ flag.
+  .
+
+License:                BSD3
+License-file:           LICENSE
+Author:                 Manuel M T Chakravarty,
+                        Robert Clifton-Everest,
+                        Gabriele Keller,
+                        Sean Lee,
+                        Trevor L. McDonell
+Maintainer:             Trevor L. McDonell <tmcdonell@cse.unsw.edu.au>
+Bug-reports:            https://github.com/AccelerateHS/accelerate/issues
+Homepage:               https://github.com/AccelerateHS/accelerate-cuda/
+
+Category:               Compilers/Interpreters, Concurrency, Data, Parallelism
+Stability:              Experimental
+
+Data-files:             cubits/accelerate_cuda.h
+                        cubits/accelerate_cuda_assert.h
+                        cubits/accelerate_cuda_function.h
+                        cubits/accelerate_cuda_texture.h
+                        cubits/accelerate_cuda_type.h
+                        include/AccFFI.h
+
+Flag debug
+  Description:
+    Enable tracing message flags. These are read from the command-line
+    arguments, which is convenient but may cause problems interacting with the
+    user program, so is not enabled by default. The available options:
+    .
+    * -ddump-cc: print the generated code, kernel table management information,
+         nvcc compiler warnings, and thread & resource statistics
+    .
+    * -ddebug-cc: compile code with debugging symbols, suitable for 'cuda-gdb'
+    .
+    * -ddump-exec: print each kernel name as it is invoked
+    .
+    * -ddump-gc: print memory management information
+    .
+    * -dverbose: other, uncategorised messages
+    .
+    * -fflush-cache: delete the persistent kernel cache
+    .
+  Default:              False
+
+Flag bounds-checks
+  Description:          Enable bounds checking
+  Default:              True
+
+Flag unsafe-checks
+  Description:          Enable bounds checking in unsafe operations
+  Default:              False
+
+Flag internal-checks
+  Description:          Enable internal consistency checks
+  Default:              False
+
+Library
+  Build-depends:        accelerate              == 0.15.1.*,
+                        array                   >= 0.3,
+                        base                    >= 4.7 && < 4.9,
+                        binary                  >= 0.7,
+                        bytestring              >= 0.9,
+                        cryptohash              >= 0.7,
+                        cuda                    >= 0.6.0.2,
+                        directory               >= 1.0,
+                        fclabels                >= 2.0,
+                        filepath                >= 1.0,
+                        hashable                >= 1.1,
+                        hashtables              >= 1.0.1,
+                        language-c-quote        >= 0.4.4 && < 0.9 || > 0.10.1,
+                        mainland-pretty         >= 0.2,
+                        mtl                     >= 2.0,
+                        old-time                >= 1.0,
+                        pretty                  >= 1.0,
+                        process                 >= 1.0,
+                        SafeSemaphore           >= 0.9,
+                        srcloc                  >= 0.2,
+                        text                    >= 0.11,
+                        template-haskell        >= 2.2,
+                        transformers            >= 0.2,
+                        unordered-containers    >= 0.1.4
+
+  if os(windows)
+    cpp-options:        -DWIN32
+    build-depends:      Win32                   >= 2.2.1
+  else
+    cpp-options:        -DUNIX
+    build-depends:      unix                    >= 2.4
+
+  Exposed-modules:      Data.Array.Accelerate.CUDA
+                        Data.Array.Accelerate.CUDA.Foreign
+
+  Other-modules:        Data.Array.Accelerate.CUDA.AST
+                        Data.Array.Accelerate.CUDA.Analysis.Device
+                        Data.Array.Accelerate.CUDA.Analysis.Launch
+                        Data.Array.Accelerate.CUDA.Array.Data
+                        Data.Array.Accelerate.CUDA.Array.Nursery
+                        Data.Array.Accelerate.CUDA.Array.Prim
+                        Data.Array.Accelerate.CUDA.Array.Sugar
+                        Data.Array.Accelerate.CUDA.Array.Table
+                        Data.Array.Accelerate.CUDA.Async
+                        Data.Array.Accelerate.CUDA.CodeGen
+                        Data.Array.Accelerate.CUDA.CodeGen.Base
+                        Data.Array.Accelerate.CUDA.CodeGen.IndexSpace
+                        Data.Array.Accelerate.CUDA.CodeGen.Mapping
+                        Data.Array.Accelerate.CUDA.CodeGen.Monad
+                        Data.Array.Accelerate.CUDA.CodeGen.PrefixSum
+                        Data.Array.Accelerate.CUDA.CodeGen.Reduction
+                        Data.Array.Accelerate.CUDA.CodeGen.Stencil
+                        Data.Array.Accelerate.CUDA.CodeGen.Stencil.Extra
+                        Data.Array.Accelerate.CUDA.CodeGen.Type
+                        Data.Array.Accelerate.CUDA.Compile
+                        Data.Array.Accelerate.CUDA.Context
+                        Data.Array.Accelerate.CUDA.Debug
+                        Data.Array.Accelerate.CUDA.Execute
+                        Data.Array.Accelerate.CUDA.Execute.Event
+                        Data.Array.Accelerate.CUDA.Execute.Stream
+                        Data.Array.Accelerate.CUDA.Foreign.Export
+                        Data.Array.Accelerate.CUDA.Foreign.Import
+                        Data.Array.Accelerate.CUDA.FullList
+                        Data.Array.Accelerate.CUDA.Persistent
+                        Data.Array.Accelerate.CUDA.State
+                        Paths_accelerate_cuda
+
+  if flag(debug)
+    cpp-options:        -DACCELERATE_DEBUG
+
+  if flag(bounds-checks)
+    cpp-options:        -DACCELERATE_BOUNDS_CHECKS
+
+  if flag(unsafe-checks)
+    cpp-options:        -DACCELERATE_UNSAFE_CHECKS
+
+  if flag(internal-checks)
+    cpp-options:        -DACCELERATE_INTERNAL_CHECKS
+
+  ghc-options:          -O2
+                        -Wall
+                        -fwarn-tabs
+
+  ghc-prof-options:     -auto-all
+
+  -- Don't add the extensions list here. Instead, place individual LANGUAGE
+  -- pragmas in the files that require a specific extension. This means the
+  -- project loads in GHCi, and avoids extension clashes.
+  --
+  -- Extensions:
+
+source-repository this
+  type:                 git
+  location:             https://github.com/AccelerateHS/accelerate-cuda
+  branch:               release/0.15
+  tag:                  0.15.1.0
+
