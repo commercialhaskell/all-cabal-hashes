@@ -1,0 +1,86 @@
+name:                streaming
+version:             0.1.2.2
+cabal-version:       >=1.10
+build-type:          Simple
+synopsis:            an elementary streaming prelude and a general monad transformer for streaming applications.
+
+description:         @Streaming.Prelude@ exports an elementary streaming prelude; @Streaming@ exports a free monad transformer 
+                     optimized for streaming applications and replacing @FreeT@. See the 
+                     <https://hackage.haskell.org/package/streaming#readme readme> below
+                     for an explanation. Elementary usage can be divined from the ghci examples in 
+                     @Streaming.Prelude@ and from the remarks somewhat theoretical
+                     <https://hackage.haskell.org/package/streaming#readme readme>
+                     below, including the examples linked there. Note also the 
+                     <https://hackage.haskell.org/package/streaming-bytestring streaming bytestring> 
+                     and 
+                     <https://hackage.haskell.org/package/streaming-utils streaming utils> 
+                     packages.
+                     .
+                     The simplest form of interoperation with <http://hackage.haskell.org/package/pipes pipes>
+                     is accomplished with this isomorphism:
+                     .
+                     > Pipes.unfoldr Streaming.next        :: Stream (Of a) m r   -> Producer a m r
+                     > Streaming.unfoldr Pipes.next        :: Producer a m r      -> Stream (Of a) m r                     
+                     .
+                     Interoperation with <http://hackage.haskell.org/package/io-streams io-streams> is thus:
+                     .
+                     > Streaming.reread IOStreams.read     :: InputStream a       -> Stream (Of a) IO ()
+                     > IOStreams.unfoldM Streaming.uncons  :: Stream (Of a) IO () -> IO (InputStream a)
+                     .
+                     A simple exit to <http://hackage.haskell.org/package/conduit conduit> would be, e.g.:
+                     .
+                     > Conduit.unfoldM Streaming.uncons    :: Stream (Of a) m ()  -> Source m a
+                     .
+                     These conversions should never be more expensive than a single @>->@ or @=$=@. Further
+                     points of comparison are discussed in the 
+                     <https://hackage.haskell.org/package/streaming#readme readme>
+                     below.
+                     .
+                     Here are some results for an 
+                     <https://gist.github.com/michaelt/f19bef01423b17f29ffd expansion> 
+                     of the little 
+                     <https://github.com/ekmett/machines/blob/master/benchmarks/Benchmarks.hs benchmarks> 
+                     included in the machines package:
+                     .
+                     <<http://i.imgur.com/sSG5MvH.png>>
+                     .
+                     
+                     
+license:             BSD3
+license-file:        LICENSE
+author:              michaelt
+maintainer:          what_is_it_to_do_anything@yahoo.com
+stability:           Experimental
+homepage:            https://github.com/michaelt/streaming
+bug-reports:         https://github.com/michaelt/streaming/issues
+category:            Data, Pipes, Streaming
+extra-source-files:  README.md
+
+source-repository head
+    type: git
+    location: https://github.com/michaelt/streaming
+
+
+library
+  exposed-modules:     Streaming, 
+                       Streaming.Prelude,
+                       Streaming.Internal
+
+    -- other-modules:       
+  other-extensions:    RankNTypes, CPP,
+                       StandaloneDeriving, FlexibleContexts, 
+                       DeriveDataTypeable, DeriveFoldable, 
+                       DeriveFunctor, DeriveTraversable, 
+                       UndecidableInstances
+  
+  build-depends:       base >=4.6 && <5
+                     , mtl >=2.1 && <2.3
+                     , mmorph >=1.0 && <1.2
+                     , transformers >=0.4 && <0.5
+                     , bytestring
+                     , time
+
+  default-language:  Haskell2010
+  
+
+
