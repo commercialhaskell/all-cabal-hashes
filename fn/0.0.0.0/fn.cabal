@@ -1,0 +1,96 @@
+name:                fn
+version:             0.0.0.0
+synopsis:            A functional web framework.
+description:
+  A Haskell web framework where web handlers are functions with parameters
+  that are typed arguments.
+  .
+  >  &#123;-&#35; LANGUAGE OverloadedStrings &#35;-&#125;
+  >  .
+  >  import Data.Monoid ((<>))
+  >  import Network.Wai (Request, defaultRequest)
+  >  import Network.Wai.Handler.Warp (run)
+  >  import Web.Fn
+  >  .
+  >  data Ctxt = Ctxt { req :: Request }
+  >  instance RequestContext Ctxt where
+  >    getRequest = req
+  >    setRequest c r = c { req = r }
+  >  .
+  >  main :: IO ()
+  >  main = do
+  >  &#32;&#32;run 3000 $ toWAI (Ctxt defaultRequest) $ route
+  >  &#32;&#32;&#32;&#32;[ end                        ==> indexH
+  >  &#32;&#32;&#32;&#32;, path "echo" // param "msg" ==> echoH
+  >  &#32;&#32;&#32;&#32;, path "echo" // segment     ==> echoH
+  >  &#32;&#32;&#32;&#32;]
+  >  .
+  >  indexH :: Ctxt -> IO (Maybe Response)
+  >  indexH _ = okText "Try visiting /echo?msg='hello' or /echo/hello"
+  >  .
+  >  echoH :: Ctxt -> Text -> IO (Maybe Response)
+  >  echoH _ msg = okText $ "Echoing \"" <> msg <> "\"."
+  .
+  Fn is a simple way to write web applications in Haskell where the code
+  handling web requests looks just like any Haskell code.
+  .
+    * An application has some "context", which must contain a @Request@,
+      but can contain other data as well, like database connection pools, etc.
+  .
+    * Routes are declared, which allow you to capture parameters and parts
+      of the url and match them against handler functions of the appropriate
+      type.
+  .
+    * All handlers take the context and the specified number and type of
+      parameters.
+  .
+    * Is a thin wrapper around the WAI interface, so anything you can do
+      with WAI, you can do with Fn.
+  .
+  The name comes from the fact that Fn emphasizes functions, and has no Fn
+  monad (necessary context, as well as parameters, are passed as arguments,
+  and the return value, which is plain-old IO, specifies whether routing
+  should continue on).
+
+homepage:            http://github.com/dbp/fn#readme
+license:             ISC
+license-file:        LICENSE
+author:              Daniel Patterson <dbp@dbpmail.net>
+maintainer:          dbp@dbpmail.net
+copyright:           2015 Daniel Patterson
+category:            Web
+build-type:          Simple
+extra-source-files:  CHANGELOG.md
+                     README.md
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Web.Fn
+  build-depends:       base >= 4.7 && < 5
+                     , wai >= 3
+                     , wai-extra >= 3
+                     , http-types
+                     , text
+                     , blaze-builder
+                     , bytestring
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+test-suite fn-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , fn
+                     , hspec
+                     , text
+                     , http-types
+                     , wai
+                     , wai-extra
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/dbp/fn
