@@ -12,6 +12,7 @@ if [ -n "$(git status --porcelain)" ]
 then
     git add -A
     git commit -m "Update from Hackage at $(date --utc --iso=sec)" --gpg-sign=D6CF60FD
+    git pull --rebase
     git push git@github.com:commercialhaskell/all-cabal-hashes.git HEAD:hackage
 
     git tag current-hackage -u D6CF60FD -m "Update from Hackage at $(date --utc --iso=sec)" -f
