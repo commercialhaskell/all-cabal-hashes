@@ -1,0 +1,174 @@
+name:               pandoc-citeproc
+version:            0.8.1.3
+cabal-version:      >= 1.12
+synopsis:           Supports using pandoc with citeproc
+
+description:        The pandoc-citeproc library exports functions for
+                    using the citeproc system with pandoc.  It relies on
+                    citeproc-hs, a library for rendering
+                    bibliographic reference citations into a variety
+                    of styles using a macro language called Citation
+                    Style Language (CSL). More details on CSL can be
+                    found here: <http://citationstyles.org/>.
+                    .
+                    Currently this package includes a heavily revised
+                    copy of the citeproc-hs code. When citeproc-hs is
+                    updated to be compatible, this package will simply
+                    depend on citeproc-hs.
+                    .
+                    This package also contains an executable: pandoc-citeproc,
+                    which works as a pandoc filter, and
+                    also has a mode for converting bibliographic databases
+                    a YAML format suitable for inclusion in pandoc YAML
+                    metadata.
+
+category:           Text
+license:            BSD3
+license-file:       LICENSE
+author:             John MacFarlane, Andrea Rossato
+maintainer:         jgm@berkeley.edu
+build-type:         Custom
+data-files:         chicago-author-date.csl
+                    locales/*.xml
+                    -- documentation
+                    README.md
+                    man/man1/pandoc-citeproc.1
+                    changelog
+extra-source-files:
+                    -- tests
+                    tests/*.in.native
+                    tests/*.expected.native
+                    tests/*.csl
+                    tests/biblio.bib
+                    tests/biblio2yaml/*.bibtex
+                    tests/biblio2yaml/*.biblatex
+
+source-repository head
+  type:          git
+  location:      git://github.com/jgm/pandoc-citeproc.git
+
+flag bibutils
+  description: Use Chris Putnam's Bibutils.
+  default:     True
+
+flag embed_data_files
+  description: Embed locale files into the library (needed for windows packaging)
+  default:     False
+
+flag unicode_collation
+  description: Use Haskell bindings to the International Components for Unicode (ICU) libraries
+  default:     False
+
+flag test_citeproc
+  description: Build the test-citeproc program
+  default:     False
+
+flag debug
+  description: Turn on debug tracing.
+  default:     False
+
+library
+    hs-source-dirs:   src, prelude
+    exposed-modules:  Text.CSL.Pandoc
+                      Text.CSL
+                      Text.CSL.Reference
+                      Text.CSL.Style
+                      Text.CSL.Eval
+                      Text.CSL.Eval.Common
+                      Text.CSL.Eval.Date
+                      Text.CSL.Eval.Names
+                      Text.CSL.Eval.Output
+                      Text.CSL.Parser
+                      Text.CSL.Proc
+                      Text.CSL.Proc.Collapse
+                      Text.CSL.Proc.Disamb
+                      Text.CSL.Input.Bibutils
+                      Text.CSL.Input.Bibtex
+                      Text.CSL.Output.Pandoc
+                      Text.CSL.Output.Plain
+                      Text.CSL.Data
+    other-modules:    Text.CSL.Util
+                      Prelude
+                      Paths_pandoc_citeproc
+    ghc-options:      -funbox-strict-fields -Wall -fno-warn-unused-do-bind
+    ghc-prof-options: -fprof-auto-exported -rtsopts
+    build-depends:    containers, directory, mtl,
+                      bytestring, filepath, pandoc-types >= 1.12.3, tagsoup,
+                      aeson >= 0.7 && < 0.11, text, vector,
+                      xml-conduit >= 1.2 && < 1.4,
+                      unordered-containers >= 0.2 && < 0.3,
+                      data-default,
+                      setenv >= 0.1 && < 0.2,
+                      split, yaml >= 0.8.8.7, pandoc >= 1.13
+    if impl(ghc < 7.6)
+       build-depends: ghc-prim
+
+    if flag(debug)
+       build-depends:   pretty-show
+       default-extensions: CPP
+       cpp-options:     -DTRACE
+
+    if flag(bibutils)
+       build-depends:   hs-bibutils >= 0.3
+       default-extensions: CPP
+       cpp-options:     -DUSE_BIBUTILS
+
+    if flag(embed_data_files)
+       default-extensions:    CPP
+       Build-Tools:   hsb2hs >= 0.3.1
+       cpp-options:   -DEMBED_DATA_FILES
+       other-modules: Text.CSL.Data.Embedded
+
+    if flag(unicode_collation)
+       build-depends: text, text-icu
+       default-extensions:    CPP
+       cpp-options:   -DUNICODE_COLLATION
+    else
+       build-depends: rfc5051
+       default-extensions:    CPP
+
+    if impl(ghc >= 6.10)
+       build-depends: base >= 4, syb, parsec, old-locale, time
+    else
+       build-depends: base >= 3 && < 4
+
+    default-language: Haskell98
+
+executable pandoc-citeproc
+    main-is:          pandoc-citeproc.hs
+    hs-source-dirs:   ., prelude
+    ghc-options:      -funbox-strict-fields -Wall
+    ghc-prof-options: -fprof-auto-exported -rtsopts
+    build-depends:    base >= 4, pandoc-citeproc, pandoc-types >= 1.12.3, aeson,
+                      aeson-pretty, yaml, bytestring, syb, attoparsec, text,
+                      pandoc, filepath
+    other-modules:    Paths_pandoc_citeproc
+                      Prelude
+    default-language: Haskell98
+
+executable test-citeproc
+  Main-Is:        test-citeproc.hs
+  Other-Modules:  JSON
+                  Prelude
+  Hs-Source-Dirs: tests, prelude
+  if flag(test_citeproc)
+    Buildable:    True
+  else
+    Buildable:    False
+  build-depends:  base >= 4, aeson, directory, text,
+                  pandoc-types >= 1.12.3, pandoc >= 1.13, filepath,
+                  bytestring, pandoc-citeproc, process, temporary >= 1.1,
+                  yaml >= 0.8.8.7, containers >= 0.4, vector >= 0.10
+  default-language: Haskell98
+
+test-suite test-pandoc-citeproc
+  Type:           exitcode-stdio-1.0
+  Main-Is:        test-pandoc-citeproc.hs
+  Other-Modules:  JSON
+                  Prelude
+  Hs-Source-Dirs: tests, prelude
+  build-depends:  base >= 4, aeson, directory, text,
+                  pandoc-types >= 1.12.3, pandoc >= 1.13, filepath,
+                  bytestring, pandoc-citeproc, process, temporary >= 1.1,
+                  yaml >= 0.8.8.7
+  default-language: Haskell98
