@@ -1,0 +1,153 @@
+name:                haskell-tor
+version:             0.1.0.0
+synopsis:            A Haskell Tor Node
+description:         An implementation of the Tor anonymity system in Haskell.
+                     The core functionality is exported both as an application
+                     and as a high-level library exported by the 'Tor' module.
+                     Please see that module for common usage scenarios, and
+                     dip only into the other files for advanced / unplanned
+                     cases.
+homepage:            http://github.com/GaloisInc/haskell-tor
+license:             BSD3
+license-file:        LICENSE
+author:              Adam Wick
+maintainer:          awick@galois.com
+category:            Network
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+source-repository head
+  type:              git
+  location:          http://github.com/GaloisInc/haskell-tor
+
+Flag network
+  Description:        Use the base network library
+
+Flag hans
+  Description:        Use the Haskell Network Stack (HaNS)
+
+library
+  default-language:   Haskell2010
+  default-extensions: CPP
+  other-extensions:   DeriveDataTypeable, ExistentialQuantification,
+                      FlexibleInstances, MultiWayIf, OverloadedStrings,
+                      RecordWildCards
+  ghc-options:        -Wall
+  hs-source-dirs:     src
+
+  build-depends:
+                      array                      >= 0.5   && < 0.7,
+                      asn1-encoding              >= 0.9   && < 0.11,
+                      asn1-types                 >= 0.3   && < 0.5,
+                      async                      >= 2.0.2 && < 2.2,
+                      attoparsec                 >= 0.13  && < 0.15,
+                      base                       >= 4.7   && < 5.0,
+                      base64-bytestring          >= 1.0   && < 1.2,
+                      binary                     >= 0.7.1 && < 0.9,
+                      bytestring                 >= 0.10  && < 0.11,
+                      cereal                     >= 0.4   && < 0.6,
+                      containers                 >= 0.5   && < 0.7,
+                      cryptonite                 >= 0.6   && < 0.8,
+                      fingertree                 >= 0.1   && < 0.3,
+                      hourglass                  >= 0.2.9 && < 0.4,
+                      memory                     >= 0.7   && < 0.9,
+                      monadLib                   >= 3.7   && < 3.9,
+                      pretty-hex                 >= 1.0   && < 1.2,
+                      pure-zlib                  >= 0.4   && < 0.5,
+                      time                       >= 1.4   && < 1.6,
+                      tls                        >= 1.3.2 && < 1.5,
+                      x509                       >= 1.6   && < 1.8,
+                      x509-store                 >= 1.6   && < 1.8
+
+  other-modules:
+                      Crypto.Hash.Easy,
+                      Crypto.PubKey.RSA.KeyHash,
+                      Paths_haskell_tor
+
+  exposed-modules:
+                      Data.Hourglass.Now,
+                      Tor,
+                      Tor.Circuit,
+                      Tor.DataFormat.Consensus,
+                      Tor.DataFormat.DefaultDirectory,
+                      Tor.DataFormat.DirCertInfo,
+                      Tor.DataFormat.Helpers,
+                      Tor.DataFormat.RelayCell,
+                      Tor.DataFormat.RouterDesc,
+                      Tor.DataFormat.TorAddress,
+                      Tor.DataFormat.TorCell,
+                      Tor.HybridCrypto,
+                      Tor.Link,
+                      Tor.Link.DH,
+                      Tor.Link.CipherSuites,
+                      Tor.NetworkStack.Fetch,
+                      Tor.NetworkStack,
+                      Tor.Options,
+                      Tor.RNG,
+                      Tor.RouterDesc.Render,
+                      Tor.RouterDesc,
+                      Tor.State.CircuitManager,
+                      Tor.State.Credentials,
+                      Tor.State.Directories,
+                      Tor.State.LinkManager,
+                      Tor.State.Routers
+
+  if flag(network)
+    build-depends:    network                    >= 2.5   && < 2.7
+    exposed-modules:  Tor.NetworkStack.System
+  if flag(hans)
+    build-depends:    hans                       >= 2.6   && < 2.8
+    exposed-modules:  Tor.NetworkStack.Hans
+
+executable haskell-tor
+  main-is:            Main.hs
+  default-language:   Haskell2010
+  ghc-options:        -Wall
+  hs-source-dirs:     exe
+  build-depends:
+                      asn1-encoding              >= 0.8   && < 0.10,
+                      asn1-types                 >= 0.2   && < 0.4,
+                      base                       >= 4.7   && < 5.0,
+                      base64-bytestring          >= 1.0   && < 1.2,
+                      bytestring                 >= 0.10  && < 0.11,
+                      cryptonite                 >= 0.6   && < 0.8,
+                      haskell-tor                >= 0.1   && < 0.3,
+                      hourglass                  >= 0.2.9 && < 0.4,
+                      memory                     >= 0.7   && < 0.9,
+                      time                       >= 1.4   && < 1.6,
+                      tls                        >= 1.3.2 && < 1.5,
+                      x509                       >= 1.6   && < 1.8
+  if flag(hans)
+    build-depends:    hans                       >= 2.6   && < 2.8
+  if flag(network)
+    build-depends:    network                    >= 2.5   && < 2.7
+  if os(HaLVM)
+    build-depends:    HALVMCore                  >= 2.0   && < 2.4,
+                      XenDevice                  >= 2.0   && < 2.4
+
+test-suite test-tor
+  type:               exitcode-stdio-1.0
+  main-is:            Test.hs
+  ghc-options:        -Wall
+  hs-source-dirs:     test
+  default-language:   Haskell2010
+  other-extensions:   FlexibleInstances, TypeSynonymInstances
+  ghc-options:        -fno-warn-orphans
+  build-depends:
+                      asn1-types                 >= 0.2   && < 0.4,
+                      base                       >= 4.7   && < 5.0,
+                      binary                     >= 0.7   && < 0.9,
+                      bytestring                 >= 0.10  && < 0.11,
+                      cryptonite                 >= 0.6   && < 0.8,
+                      haskell-tor                >= 0.1   && < 0.3,
+                      hourglass                  >= 0.2.9 && < 0.4,
+                      HUnit                      >= 1.2   && < 1.4,
+                      QuickCheck                 >= 2.7   && < 2.9,
+                      memory                     >= 0.7   && < 0.9,
+                      pretty-hex                 >= 1.0   && < 1.4,
+                      test-framework             >= 0.8   && < 0.10,
+                      test-framework-hunit       >= 0.3   && < 0.5,
+                      test-framework-quickcheck2 >= 0.3   && < 0.5,
+                      time                       >= 1.4   && < 1.6,
+                      x509                       >= 1.6   && < 1.8
