@@ -1,0 +1,180 @@
+name:                packman
+version:             0.3.0
+synopsis:            Serialization library for GHC
+
+description:
+  This package provides Haskell data serialisation independent of evaluation,
+  by accessing the Haskell heap using foreign primitive operations.
+  Any Haskell data structure  apart from mutable data structures (@MVar@s
+  and @TVar@s) can be serialised and later deserialised during the same run,
+  or loaded into a new run, of the same program (the same executable file).
+  .
+  The library provides operations to @serialize@ Haskell heap data,
+  and to @deserialize@ it:
+  .
+  > trySerializeWith :: a -> Int -> IO (Serialized a) -- Int is maximum buffer size to use
+  > trySerialize :: a -> IO (Serialized a)            -- uses default (maximum) buffer size
+  > deserialize :: Serialized a -> IO a
+  .
+  The data type @Serialized a@ is an opaque representation of serialised
+  Haskell data (it contains a @ByteArray@).
+  A phantom type @a@ ensures type safety within the same program run.
+  Type @a@ can be polymorphic (at compile time, that is) when @Serialized a@
+  is not used apart from being argument to @deserialize@.
+  When data are externalised (written to disk or communicated over the
+  network) using the provided instances of @Binary@ or @Read@ and @Show@,
+  @a@ needs to be monomorphic because they require @Typeable@ context.
+  The instances for @Show@ and @Read@ satisfy @read . show == id@.
+  .
+  Packman serialisation is /orthogonal/ to evaluation, heap data are
+  serialised /in their current state of evaluation/, they might be entirely
+  unevaluated (a thunk) or only partially evaluated (containing thunks).
+  Therefore, there can be cases where a mutable data structure is captured by
+  a thunk, and lead to serialisation failures (typically related to lazy I/O).
+  .
+  The serialisation routine will throw a @PackException@ if an error occurs
+  inside the C code which accesses the Haskell heap, if a mutable data
+  structure is serialised, or if the serialised data is too large.
+  In presence of concurrent threads, another thread might be evaluating
+  data /referred to/ by the data to be serialised. In this case, the calling
+  thread will /block/ on the ongoing evaluation and continue when evaluated
+  data is available.
+  Internally, there is a @PackException@ @P_BLACKHOLE@ to signal the
+  condition, but it is hidden inside the core library
+
+category:            Serialization, Data, GHC
+license:             BSD3
+license-file:        LICENSE
+author:              Michael Budde, Ásbjørn V. Jøkladal, Jost Berthold
+maintainer:          jost.berthold@gmail.com
+build-type:          Simple
+cabal-version:       >= 1.18
+tested-with:         GHC==7.8.2, GHC==7.8.3, GHC==7.10.2
+extra-source-files:  cbits/Wrapper.cmm
+                     cbits/Pack.c
+                     cbits/Errors.h
+                     cbits/Types.h
+                     cbits/GHCFunctions.h
+                     pack.old
+
+flag debug
+  manual:            True
+  default:           False
+  description:       Enable debug support
+-- we abuse flags "prof(p)" and "sparks(r)" and use "sanity(S)"
+
+library
+  exposed-modules:   GHC.Packing
+                     GHC.Packing.PackException
+                     GHC.Packing.Type
+                     GHC.Packing.Core
+  build-depends:     base >= 4.7 && < 5,
+                     ghc-prim >= 0.3,
+                     array >= 0.5,
+                     binary >= 0.7,
+                     bytestring >= 0.10,
+                     primitive >= 0.5
+  if flag(debug)
+    ghc-options:     -debug -optc-DDEBUG -optc-g
+
+  c-sources:         cbits/Wrapper.cmm
+                     cbits/Pack.c
+  include-dirs:      cbits
+  includes:
+  default-language:  Haskell2010
+  if flag(debug)
+    cc-options:      -g -DDEBUG -DLIBRARY_CODE
+  else
+    cc-options:      -DLIBRARY_CODE
+
+test-suite simpletest
+  type:              exitcode-stdio-1.0
+  main-is:           TestSerialisation.hs
+  hs-source-dirs:    Test
+  build-depends:     base >= 4.7,
+                     directory >= 1.2,
+                     ghc-prim >= 0.3,
+                     array >= 0.5,
+                     binary >= 0.7,
+                     bytestring >= 0.10,
+                     primitive >= 0.5,
+                     packman
+  default-language:  Haskell2010
+  if flag(debug)
+    ghc-options:     -debug -optc-g -optc-DDEBUG
+
+test-suite testexceptions
+  type:              exitcode-stdio-1.0
+  main-is:           TestExceptions.hs
+  hs-source-dirs:    Test
+  build-depends:     base >= 4.7,
+                     directory >= 1.2,
+                     ghc-prim >= 0.3,
+                     array >= 0.5,
+                     binary >= 0.7,
+                     bytestring >= 0.10,
+                     primitive >= 0.5,
+                     Cabal >= 1.18,
+                     packman
+  default-language:  Haskell2010
+  if flag(debug)
+    ghc-options:     -debug -optc-g -optc-DDEBUG
+
+test-suite alltests
+  type:              detailed-0.9
+  test-module:       AllTests
+  hs-source-dirs:    Test
+  build-depends:     base >= 4.7,
+                     directory >= 1.2,
+                     ghc-prim >= 0.3,
+                     array >= 0.5,
+                     binary >= 0.7,
+                     bytestring >= 0.10,
+                     primitive >= 0.5,
+                     Cabal >= 1.20,
+                     packman
+  default-language:  Haskell2010
+  if flag(debug)
+    ghc-options:     -debug -optc-g -optc-DDEBUG
+
+test-suite testmthread
+  type:              exitcode-stdio-1.0
+  main-is:           TestMThread.hs
+  hs-source-dirs:    Test
+  build-depends:     base >= 4.7,
+                     directory >= 1.2,
+                     ghc-prim >= 0.3,
+                     array >= 0.5,
+                     binary >= 0.7,
+                     bytestring >= 0.10,
+                     primitive >= 0.5,
+                     Cabal >= 1.20,
+                     packman
+  default-language:  Haskell2010
+  if flag(debug)
+    ghc-options:     -with-rtsopts=-N4 -debug -threaded -optc-g -optc-DDEBUG
+  else
+    ghc-options:     -with-rtsopts=-N4 -threaded
+
+test-suite quickchecktest
+  type:              detailed-0.9
+  test-module:       QCTest
+  hs-source-dirs:    Test
+  build-depends:     base >= 4.7,
+                     directory >= 1.2,
+                     ghc-prim >= 0.3,
+                     array >= 0.5,
+                     binary >= 0.7,
+                     bytestring >= 0.10,
+                     primitive >= 0.5,
+                     Cabal >= 1.20,
+                     QuickCheck >= 2.6,
+                     packman
+  default-language:  Haskell2010
+  if flag(debug)
+    ghc-options:     -debug -optc-g -optc-DDEBUG
+
+
+source-repository head
+  type:     git
+  location: git://github.com/jberthold/packman.git
