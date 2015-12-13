@@ -1,0 +1,295 @@
+Name:                pathtype
+Version:             0.7
+Synopsis:            Type-safe replacement for System.FilePath etc
+Description:
+  This package provides type-safe access to filepath manipulations.
+  .
+  "System.Path" is designed to be used instead of "System.FilePath".
+  (It is intended to provide versions of functions from that
+  module which have equivalent functionality but are more
+  typesafe). "System.Path.Directory" is a companion module
+  providing a type-safe alternative to "System.Directory".
+  .
+  The heart of this module is the @'Path' ar fd@ abstract type which
+  represents file and directory paths. The idea is that there are
+  two type parameters - the first should be 'Abs' or 'Rel',
+  and the second 'File' or 'Dir'. A number of type synonyms are
+  provided for common types:
+  .
+  > type AbsFile     = Path Abs File
+  > type RelFile     = Path Rel File
+  > type AbsDir      = Path Abs Dir
+  > type RelDir      = Path Rel Dir
+  >
+  > type AbsPath  fd = Path Abs fd
+  > type RelPath  fd = Path Rel fd
+  > type FilePath ar = Path ar File
+  > type DirPath  ar = Path ar Dir
+  .
+  The type of the 'combine' (aka '</>') function gives the idea:
+  .
+  > (</>) :: DirPath ar -> RelPath fd -> Path ar fd
+  .
+  Together this enables us to give more meaningful types to
+  a lot of the functions, and (hopefully) catch a bunch more
+  errors at compile time.
+  .
+  You can use the construction functions as follows:
+  .
+  > f :: Path.RelFile
+  > f = relDir "tmp" </> relFile "someFile" <.> "ext"
+  .
+  or...
+  .
+  > f :: Path.RelFile
+  > f = dirPath "tmp" </> filePath "someFile" <.> "ext"
+  .
+  or...
+  .
+  > f :: Path.RelFile
+  > f = path "tmp" </> path "someFile" <.> "ext"
+  .
+  or just...
+  .
+  > f :: Path.RelFile
+  > f = relFile "tmp/someFile.ext"
+  .
+  The first and the last implementations force the most specific types
+  and thus should be prefered.
+  .
+  Overloaded string literals are no longer supported,
+  since this extension is intended for alternative text storage types.
+  It would also decrease the type safety
+  if you could omit the path type and let the compiler guess its type.
+  .
+  You will typically want to import as follows:
+  .
+  > import qualified System.Path.Directory as Dir
+  > import qualified System.Path.IO as PathIO
+  > import qualified System.Path as Path
+  > import System.Path ((</>))
+  .
+  "System.Path.Generic" provides all functions with the OS as type parameter.
+  "System.Path.Posix" and "System.Path.Windows"
+  offers only path constructors and destructors
+  fixed to the corresponding operating system.
+  "System.Path" exports either "System.Path.Posix" or "System.Path.Windows"
+  depending on the host system
+  and additionally the manipulation functions from "System.Path.Generic".
+  This mix should be appropriate for the average use
+  and should free the user from writing type annotations.
+  .
+  The basic API (and properties satisfied) are heavily influenced
+  by Neil Mitchell's "System.FilePath" module.
+  .
+  .
+  Some notes on how to choose proper type parameters:
+  .
+  The @ar@ and the @fd@ type parameters have quite different meaning.
+  The types @Abs@ and @Rel@ refer to a property of the path,
+  whereas the type @File@ and @Dir@ refers to a property of a disk object.
+  You can decide whether a path is absolute or relative
+  by just watching (the beginning of) the path string.
+  In contrast to that, you have to access the disk
+  in order to check the existence and type of an disk object.
+  Even more, the disk object might change at any time,
+  e.g. the user might delete a file and create a directory of the same name,
+  or the disk object might not exist,
+  and the purpose of the path is to create an according file or directory.
+  That's why even if you have a path of type @FilePath ar@,
+  every function accessing the file must check
+  that the refered object exists and is a file.
+  Conversely, there is not much sense in checking the disk object type
+  and then chosing the path accordingly.
+  Instead, you must choose the path type according
+  to what type of disk object your application needs.
+  The reality check must be performed
+  and is performed by the standard functions
+  for every access to the object.
+  If an disk object is not of the type required by the path type
+  then this is a runtime exception that must be handled at runtime
+  but it is not a programming error.
+  .
+  Sometimes you have to change the type of a path
+  as an intermediate step to construct a path for an object of different type.
+  E.g. you may convert the path \"pkg\" from @DirPath@ to @FilePath@
+  because in the next step you like to extend it to \"pkg.tar.gz\".
+  This is valid use of the @Path@ type.
+  E.g. the function @dropExtensions@
+  reduces the @FilePath@ \"pkg.tar.gz\" to the new @FilePath@ \"pkg\"
+  although no-one expects that there is or will be a file with name \"pkg\".
+  Thus, if a function has a @FilePath@ parameter
+  then there is no warranty that it accesses the according file
+  and does not touch related disk objects.
+  It may well be that the function derives other file and directory names
+  from the path and accesses them.
+  That is, a @FilePath@ or @DirPath@ parameter
+  is mainly for documentation purposes
+  but it cannot prevent you seriously from any damage.
+  .
+  How to cope with user input?
+  You may get a path from the user, e.g. as command-line argument.
+  It might be either absolute or relative
+  and it might refer to an actual file or directory or
+  to something yet non-existing.
+  In most cases it will not be important
+  whether the path is absolute or relative,
+  thus you should choose the @AbsOrRel@ type parameter.
+  If somewhere in the program an @Abs@ path is needed
+  then you can assert that the path is actually absolutized somewhere
+  e.g. by @dynamicMakeAbsolute@.
+  If you prevent usage of @genericMakeAbsolute@
+  then you avoid to absolutize a path that is already absolutized.
+  .
+  The choice of the @fd@ type parameter follows a different reasoning:
+  Often you have a clear idea of
+  whether the user must pass a file or directory path.
+  The rule is: Just give the path the type you expect
+  but do not perform any checking
+  (unless you want to warn the user earlier about imminent danger).
+  The disk object type must checked for every access to the object, anyway,
+  so there is no point in checking it immediately.
+  With your choice of the @fd@ parameter
+  you just document its intended use.
+  .
+  It might be that the path is only a base name
+  used to construct other directory and file names.
+  E.g. for an Audacity project named @music@
+  you have to create the directory @music_data@ and the file @music.aup@.
+  In this case we recommend to give @music@ the type @FilePath@.
+  This type warrants that there is at least one final path component
+  in contrast to a directory path that might be empty.
+  You can easily convert a file path to a directory path
+  using @Path.dirFromFile@.
+  The reverse conversion is partial.
+  .
+  .
+  Some notes on file system links:
+  .
+  This package does not explicitly handle file system links.
+  We treat a file path containing links like any other file path.
+  The same holds for directory paths.
+  A link is handled like any other path component.
+  .
+  .
+  Some notes on drive-relative paths on Windows:
+  .
+  We use the @Rel@ type for paths that can be relative to any directory.
+  We use the @Abs@ type for all other paths,
+  i.e. for paths with explicit locations or
+  with restrictions on the set of locations.
+  Windows has a notion of drives and
+  maintains a current directory for every drive.
+  E.g. the path @\"c:text.txt\"@ refers to the current directory of drive @C@.
+  Since it cannot be freely combined with other directories
+  we treat this path like an absolute path.
+  This is consistent with the behaviour of the @filepath@ package.
+  E.g. @filepath@ evaluates all of the expressions
+  @\"\\\\abs\" \<\/\> \"c:driverel\"@, @\"c:\\\\abs\" \<\/\> \"c:driverel\"@,
+  @\"d:\\\\abs\" \<\/\> \"c:driverel\"@ to @\"c:driverel\"@.
+  In our package you would have to use @genericMakeAbsolute@
+  but we recommend to avoid its use.
+  .
+  Related packages:
+  .
+  * @path@: Provides a wrapper type around 'FilePath'
+    and maps to functions from @filepath@ package.
+    This warrants consistency with @filepath@ functions.
+    Requires Template Haskell.
+  .
+  * @data-filepath@:
+    Requires 'Typeable' and Template Haskell.
+Stability:           experimental
+License:             BSD3
+Category:            System
+License-file:        LICENSE
+Author:              Ben Moseley, Ben Millwood, Henning Thielemann
+Maintainer:          haskell@henning-thielemann.de, ben@moseley.name
+HomePage:            http://hub.darcs.net/thielema/pathtype/
+Build-Type:          Simple
+Cabal-Version:       >=1.8
+Extra-Source-Files:
+  test/TestTemplate.hs
+  posix/System/Path/Host.hs
+  windows/System/Path/Host.hs
+  directory/pre-1.2/System/Path/ModificationTime.hs
+  directory/post-incl-1.2/System/Path/ModificationTime.hs
+
+Source-Repository head
+  Type:     darcs
+  Location: http://hub.darcs.net/thielema/pathtype/
+
+Source-Repository this
+  Tag:      0.7
+  Type:     darcs
+  Location: http://hub.darcs.net/thielema/pathtype/
+
+Flag old-time
+  Description: Build with directory < 1.2 and old-time
+  Default:     True
+
+Flag buildTools
+  Description: Build tool for updating test module
+  Default:     True
+
+Library
+  Build-Depends:
+    utility-ht >=0.0.11 && <0.1,
+    QuickCheck >= 2.1.0.1 && < 3,
+    deepseq >= 1.3 && <1.5,
+    time >= 1.0 && < 2,
+    transformers >=0.3 && <0.5,
+    tagged >=0.7 && <0.9,
+    base >= 4 && < 5
+
+  If flag(old-time)
+    Build-Depends: directory >= 1 && < 1.2, old-time >= 1.0 && < 2
+    Hs-Source-Dirs: directory/pre-1.2
+  Else
+    Build-Depends: directory >= 1.2 && < 2
+    Hs-Source-Dirs: directory/post-incl-1.2
+
+  Hs-Source-Dirs: src
+  If os(windows)
+    Hs-Source-Dirs: windows
+  Else
+    Hs-Source-Dirs: posix
+  Exposed-Modules:
+    System.Path
+    System.Path.Generic
+    System.Path.Directory
+    System.Path.IO
+    System.Path.Posix
+    System.Path.Windows
+  Other-Modules:
+    System.Path.Host
+    System.Path.Internal
+    System.Path.RegularExpression
+    System.Path.ModificationTime
+
+  GHC-Options: -Wall -fwarn-tabs -fwarn-incomplete-record-updates -fwarn-unused-do-bind
+
+Test-Suite test
+  Type: exitcode-stdio-1.0
+  Main-Is: Test.hs
+  Other-Modules: TestResult
+  Hs-Source-Dirs: test
+
+  Build-Depends:
+    pathtype,
+    random >=1.0 && <1.2,
+    base
+
+  GHC-Options: -Wall -fwarn-tabs -fwarn-incomplete-record-updates -fwarn-unused-do-bind
+
+Executable create-pathtype-test
+  If flag(buildTools)
+    Build-Depends:
+      utility-ht >=0.0.12 && <0.1,
+      base
+  Else
+    Buildable: False
+  Main-Is: CreateTest.hs
+  Hs-Source-Dirs: tool
+
+  GHC-Options: -Wall -fwarn-tabs -fwarn-incomplete-record-updates -fwarn-unused-do-bind
