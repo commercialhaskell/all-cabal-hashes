@@ -1,0 +1,128 @@
+name:          binary-typed
+version:       1.0
+synopsis:      Type-safe binary serialization
+Description:
+      `Binary` serialization tagged with type information, allowing for
+      typechecking and useful error messages at the receiving site.
+      .
+      This package serves the same purpose as tagged-binary, with a couple of
+      key differences:
+      .
+      * Support of different kinds of serialized type annotations, each with
+        specific strengths and weaknesses.
+      .
+      * Error messages can provide details on type errors at the cost of
+        longer message lengths to include the necessary information.
+      .
+      * Very small performance overhead compared to using standard `Binary` due
+        to caching when using hashed type information. Since shown and full
+        types are not cached, decoding them has a significant performance hit
+        (ballpark: factor of two).
+      .
+      * No depencency on @Internal@ modules of other libraries, and a very small
+        dependency footprint in general.
+      .
+      For information about usage, see the "Data.Binary.Typed.Tutorial" module.
+      .
+      Performance-wise, here is a value @Right (Left \<100 chars lipsum\>)@ of
+      type @Either (Char, Int) (Either String (Maybe Integer))@ benchmarked
+      using the @Hashed64@ type representation:
+      .
+      <<http://i.imgur.com/UMPUpp4.png>>
+      .
+      <doc/bench-overview.png (local copy)>
+homepage:           https://github.com/quchen/binary-typed
+bug-reports:        https://github.com/quchen/binary-typed/issues
+license:            BSD2
+license-file:       LICENSE
+author:             David Luposchainsky <dluposchainsky on googles email service>
+maintainer:         David Luposchainsky <dluposchainsky on googles email service>
+copyright:          David Luposchainsky <dluposchainsky on googles email service>
+category:           Data, Serialization
+build-type:         Simple
+cabal-version:      >= 1.10
+tested-with:        GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3
+extra-source-files: doc/*.png
+                  , changelog.md
+
+source-repository head
+      type:     git
+      location: https://github.com/quchen/binary-typed
+
+library
+      default-language:    Haskell2010
+      exposed-modules:     Data.Binary.Typed
+                           Data.Binary.Typed.Debug
+                           Data.Binary.Typed.Internal
+                           Data.Binary.Typed.Tutorial
+      ghc-options:         -Wall
+      hs-source-dirs:      src
+      other-extensions:    GADTs, DeriveGeneric
+      build-depends:       base             >= 4.7 && < 5
+                         , binary           >= 0.7
+                         , bytestring       >= 0.9
+                         , murmur-hash      >= 0.1
+
+
+test-suite tasty
+      default-language:    Haskell2010
+      ghc-options:         -Wall -fno-warn-orphans
+      hs-source-dirs:      tests
+      main-is:             Tests.hs
+      other-modules:       HUnit
+                         , QuickCheck
+                         , APIConsistency
+      other-extensions:    ScopedTypeVariables, NumDecimals
+      type:                exitcode-stdio-1.0
+      build-depends:       base
+                         , binary           >= 0.7
+                         , binary-typed
+                         , bytestring
+                         , tasty            >= 0.8
+                         , tasty-hunit      >= 0.8
+                         , tasty-quickcheck >= 0.8
+
+
+
+test-suite message-length
+      default-language:    Haskell2010
+      ghc-options:         -Wall
+      type:                exitcode-stdio-1.0
+      hs-source-dirs:      benchmark
+      main-is:             MessageLength.hs
+      build-depends:       base
+                         , binary
+                         , binary-typed
+                         , bytestring
+      ghc-options:         -Wall
+
+
+
+benchmark criterion
+      default-language:    Haskell2010
+      ghc-options:         -Wall
+      type:                exitcode-stdio-1.0
+      hs-source-dirs:      benchmark
+      main-is:             Criterion.hs
+      build-depends:       base
+                         , binary
+                         , binary-typed
+                         , criterion
+                         , deepseq
+      ghc-options:         -Wall
+
+
+
+benchmark criterion-overview
+      default-language:    Haskell2010
+      ghc-options:         -Wall
+      type:                exitcode-stdio-1.0
+      hs-source-dirs:      benchmark
+      main-is:             CriterionOverview.hs
+      build-depends:       base
+                         , binary
+                         , binary-typed
+                         , criterion
+                         , deepseq
+                         , bytestring
+      ghc-options:         -Wall
