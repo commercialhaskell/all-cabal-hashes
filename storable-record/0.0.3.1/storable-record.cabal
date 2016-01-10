@@ -1,0 +1,110 @@
+Name:         storable-record
+Version:      0.0.3.1
+Category:     Data, Foreign
+Synopsis:     Elegant definition of Storable instances for records
+Description:
+  With this package
+  you can build a Storable instance of a record type
+  from Storable instances of its elements in an elegant way.
+  It does not do any magic,
+  just a bit arithmetic to compute the right offsets,
+  that would be otherwise done manually
+  or by a preprocessor like C2HS.
+  I cannot promise that the generated memory layout
+  is compatible with that of a corresponding C struct.
+  However, the module generates the smallest layout
+  that is possible with respect to the alignment of the record elements.
+  If you encounter, that a record does not have a compatible layout,
+  we should fix that.
+  But also without C compatibility this package is useful
+  e.g. in connection with StorableVector.
+  .
+  We provide Storable instance support for several cases:
+  .
+  * If you wrap a type in a @newtype@,
+    then you can lift its 'Storable' instance to that @newtype@
+    with the module "Foreign.Storable.Newtype".
+    This way you do not need the @GeneralizedNewtypeDeriving@ feature of GHC.
+  .
+  * If you have a type that is an instance of 'Traversable',
+    you can use that feature for implementation of 'Storable' methods.
+    The module "Foreign.Storable.Traversable"
+    allows manipulation of the portion of your type,
+    that is accessible by 'Traversable' methods.
+    For instance with the type
+    @data T a = Cons Int [a]@
+    and an according 'Traversable' implementation,
+    you can load and store the elements of the contained list.
+    This may be part of a 'Storable' implementation of the whole type.
+  .
+  * If you have a record containing elements of various types,
+    then you need module "Foreign.Storable.Record".
+  .
+  Note however that the Storable instances
+  defined with this package are quite slow in (up to) GHC-6.12.1.
+  I'm afraid this is due to incomplete inlining,
+  but we have still to investigate the problem.
+  .
+  For examples see packages @storable-tuple@ and @sample-frame@.
+License:             BSD3
+License-file:        LICENSE
+Author:              Henning Thielemann <storable@henning-thielemann.de>
+Maintainer:          Henning Thielemann <storable@henning-thielemann.de>
+Homepage:            http://code.haskell.org/~thielema/storable-record/
+Stability:           Experimental
+Build-Type:          Simple
+Tested-With:         GHC==6.8.2, GHC==6.10.4, GHC==6.12.1, GHC==8.0.1
+Cabal-Version:       >=1.6
+
+Source-Repository head
+  Type:     darcs
+  Location: http://code.haskell.org/~thielema/storable-record/
+
+Source-Repository this
+  Type:     darcs
+  Location: http://code.haskell.org/~thielema/storable-record/
+  Tag:      0.0.3.1
+
+Flag splitBase
+  description: Choose the new smaller, split-up base package.
+
+Flag buildTests
+  description: Build speed test
+  default:     False
+
+Library
+  Build-Depends:
+    transformers >=0.2 && <0.6,
+    utility-ht >=0.0.1 && <0.1
+  If flag(splitBase)
+    Build-Depends:
+      base >= 3 && < 6
+  Else
+    Build-Depends:
+      special-functors >= 1.0 && <1.1,
+      base >= 1.0 && < 2
+
+  GHC-Options:         -Wall
+  Hs-Source-Dirs:      src
+
+  Exposed-Modules:
+    Foreign.Storable.Record
+    Foreign.Storable.Newtype
+    Foreign.Storable.Traversable
+    Foreign.Storable.FixedArray
+  Other-Modules:
+    Foreign.Storable.RecordMinimalSize
+    Foreign.Storable.RecordReaderPtr
+    Foreign.Storable.TraversableUnequalSizes
+
+Executable storable-record-speed
+  If flag(buildTests)
+    Build-Depends:
+      storablevector >=0.2.7 && <0.3,
+      timeit >=1.0 && <1.1
+  Else
+    Buildable: False
+
+  GHC-Options:         -Wall
+  Hs-Source-Dirs:      src
+  Main-Is:             SpeedTest.hs
