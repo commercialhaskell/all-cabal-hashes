@@ -1,0 +1,99 @@
+name:           speculation
+version:        1.5.0.3
+license:        BSD3
+license-file:   LICENSE
+author:         Edward A. Kmett
+maintainer:     Edward A. Kmett <ekmett@gmail.com>
+stability:      experimental
+homepage:       http://github.com/ekmett/speculation
+bug-reports:    http://github.com/ekmett/speculation/issues
+category:       Concurrency
+copyright:      (c) 2010-2015 Edward A. Kmett
+build-type:     Simple
+cabal-version:  >=1.6
+tested-with:    GHC==6.12.1, GHC==7.3.20111017, GHC==7.4.2, GHC==7.6.3, GHC==7.7, GHC==7.8.4, GHC==7.10.0.20150307
+synopsis:       A framework for safe, programmable, speculative parallelism
+description:
+ A framework for safe, programmable, speculative parallelism, loosely based on:
+ .
+ *  Prakash Prabhu, G. Ramalingam, and Kapil Vaswani, \"/Safe Programmable Speculative Parallelism/\",
+    In the proceedings of Programming Language Design and Implementation (PLDI) Vol 45, Issue 6 (June 2010) pp 50-61.
+    <http://research.microsoft.com/pubs/118795/pldi026-vaswani.pdf>
+ .
+ This package provides speculative function application and speculative folds. Speculative STM transactions take the place
+ of the transactional rollback machinery from the paper.
+ .
+ For example:
+ .
+ @'spec' g f a@ evaluates @f g@ while forcing @a@, if @g == a@ then @f g@ is returned, otherwise @f a@ is evaluated and returned. Furthermore, if the argument has already been evaluated, we skip the @f g@ computation entirely. If a good guess at the value of @a@ is available, this is one way to induce parallelism in an otherwise sequential task. However, if the guess isn\'t available more cheaply than the actual answer, then this saves no work and if the guess is wrong, you risk evaluating the function twice. Under high load, since 'f g' is computed via the spark queue, the speculation will be skipped and you will obtain the same answer as 'f $! a'.
+ .
+ The best-case timeline looks like:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]    (check g == a)
+ > spark:         [----- f g -----]
+ > overall:    [--- spec g f a ---]
+ .
+ The worst-case timeline looks like:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]               (check g == a)
+ > foreground:                 [---- f a ----]
+ > spark:         [----- f g -----]
+ > overall:    [-------- spec g f a ---------]
+ .
+ Note that, if @f g@ takes longer than a to compute, in the HEAD release of GHC, @f g@ will be collected and killed during garbage collection.
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]               (check g == a)
+ > foreground:                 [---- f a ----]
+ > spark:         [---- f g ----######         (#'s mark when this spark is collectable)
+ > overall:    [--------- spec g f a --------]
+ .
+ Under high load:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [-]               (check g == a)
+ > foreground:                 [---- f a ----]
+ > overall:    [-------- spec g f a ---------]
+ .
+ Compare these to the timeline of @f $! a@:
+ .
+ > foreground: [----- a -----]
+ > foreground:               [---- f a ----]
+ > orverall:   [---------- f $! a ---------]
+ .
+ 'specSTM' provides a similar time table for STM actions, but also rolls back side-effects. The one unfortunate operational distinction is that it is forced to compute 'a' in the background thread and therefore degrades slightly less gracefully under load, although we mitigate this effect by only enqueuing if the number of sparks for the current capability is lower than the total number of capabilities, to try to avoid wasting time when all computational resources are in use.
+
+extra-source-files: README.markdown CHANGELOG.markdown ISSUES.markdown .travis.yml HLint.hs
+
+source-repository head
+  type:     git
+  location: http://github.com/ekmett/speculation.git
+  branch:   master
+
+flag optimize
+  description: Enable optimizations for the library and benchmarks
+  default:     True
+
+library
+  ghc-options: -Wall
+  hs-source-dirs: src
+  if flag(optimize)
+    ghc-options: -funbox-strict-fields -O2 -fspec-constr -fdicts-cheap
+
+  build-depends: base >= 4.3 && < 6
+
+  build-depends:
+    ghc-prim,
+    stm >= 2.1 && < 2.5,
+    transformers >= 0.2.2.0 && < 0.6
+
+  exposed-modules:
+    Control.Concurrent.Speculation
+    Control.Concurrent.Speculation.Class
+    Control.Concurrent.Speculation.Foldable
+    Control.Concurrent.Speculation.Traversable
+    Control.Concurrent.Speculation.List
+  other-modules:
+    Control.Concurrent.Speculation.Internal
