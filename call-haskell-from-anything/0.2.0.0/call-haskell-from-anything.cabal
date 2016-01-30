@@ -1,0 +1,76 @@
+name:          call-haskell-from-anything
+version:       0.2.0.0
+license:       MIT
+author:        Niklas Hambüchen (mail@nh2.me)
+maintainer:    Niklas Hambüchen (mail@nh2.me)
+category:      Network
+-- We use Configure to determine the `extra-libraries: HSrts-ghc*.*.*` field.
+-- See the ./configure script.
+build-type:    Configure
+license:       MIT
+synopsis:      Call Haskell functions from other languages via serialization and dynamic libraries
+description:   FFI via serialisation. See https://github.com/nh2/call-haskell-from-anything for details.
+stability:     experimental
+tested-with:   GHC==7.10.3
+cabal-version: >= 1.10
+homepage:      https://github.com/nh2/call-haskell-from-anything
+bug-reports:   https://github.com/nh2/call-haskell-from-anything/issues
+
+
+extra-source-files:
+  configure
+  detect-ghc-buildinfo.py
+
+
+source-repository head
+  type: git
+  location: git://github.com/nh2/call-haskell-from-anything.git
+
+
+library
+  default-language: Haskell2010
+  hs-source-dirs:
+    src
+  exposed-modules:
+    FFI.Anything.TH
+    FFI.Anything.TypeUncurry
+    FFI.Anything.TypeUncurry.ReturnResult
+    FFI.Anything.TypeUncurry.Msgpack
+    FFI.Anything.TypeUncurry.DataKinds
+  build-depends:
+      base >= 4.8 && < 5
+    , bytestring >= 0.10.0.0
+    , msgpack >= 1.0.0
+    , template-haskell
+    , mtl >= 2.1.2
+    , vector
+  ghc-options:
+    -Wall -fwarn-unused-imports
+
+
+executable call-haskell-from-anything.so
+  default-language: Haskell2010
+  hs-source-dirs:
+    test
+  main-is:
+    Test1.hs
+  build-depends:
+      call-haskell-from-anything
+
+    -- Packages that already have version bounds in the library:
+    , base
+    , bytestring
+    , msgpack
+    , mtl
+  ghc-options:
+    -- For building TemplateHaskell with cabal and -dynamic, we have to disable -dynamic sometimes
+    -no-hs-main -fPIC -shared -dynamic
+
+  -- If we don't specify the Haskell RTS as extra-libraries, we get errors like
+  -- the following when calling from some other language:
+  --   /usr/lib/ghc/ghc-prim-0.3.0.0/libHSghc-prim-0.3.0.0-ghc7.6.3.so: undefined symbol: stg_forkOnzh
+  --
+  -- The `build-type: Configure` with the `./configure` script makes sure that
+  -- an `extra-libraries: HSrts-ghc*.*.*` field is added using cabal's .buildinfo infrastructure.
+  -- See http://stackoverflow.com/questions/6034526/how-can-configuration-tools-like-sdl-config-be-used-with-a-cabalized-project
+  -- and https://github.com/nh2/call-haskell-from-anything/pull/2#issuecomment-68638262.
