@@ -1,0 +1,100 @@
+name:                kazura-queue
+version:             0.1.0.0
+synopsis:            Fast concurrent queues much inspired by unagi-chan
+description:
+    "kazura-queue" provides an implementation of FIFO queue.
+    It is faster than Chan, TQueue or TChan by the benefit of fetch-and-add
+    instruction.
+    Main motivation of this package is to solve some difficulty of "unagi-chan".
+    - In "unagi-chan", the item in the queue/chan can be lost when async
+      exception is throwed to the read thread while waiting for read.
+      (Although it has handler to recover lost item,
+       it is difficult to keep FIFO in such case)
+    - In "unagi-chan", garbage items of the queue cannot be collected
+      immediately.
+      Since the buffer in the queue has the reference to the items until the
+      buffer is garbage-collected.
+    "kazura-queue" is slightly slower than "unagi-chan" instead of solving
+    these issues.
+    And "kazura-queue" lost broadcast function to improve the second issue.
+    It means that kazura-queue is not "Chan" but is just "Queue".
+homepage:            http://github.com/asakamirai/kazura-queue
+license:             BSD3
+license-file:        LICENSE
+author:              Asakamirai
+maintainer:          asakamirai_hackage@towanowa.net
+copyright:           2015 Asakamirai
+category:            Concurrency
+build-type:          Simple
+cabal-version:       >=1.10
+
+source-repository head
+  type:     git
+  location: https://github.com/asakamirai/kazura-queue
+  branch:   master
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Control.Concurrent.WVar
+                       Control.Concurrent.KazuraQueue
+  build-depends:       base           >= 4.7 && < 5
+                     , primitive      >= 0.5.3
+                     , atomic-primops >= 0.8
+                     , async          >= 2.0
+                     , containers     >= 0.5
+  ghc-options:         -Wall -O2
+  default-language:    Haskell2010
+
+benchmark kazura-queue-bench
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      bench
+  main-is:             Main.hs
+  ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N4
+  build-depends:       base
+                     , kazura-queue
+                     , async      >= 2.0
+                     , containers >= 0.5
+                     , stm        >= 2.4
+                     , criterion  >= 1.1
+                     -- , unagi-chan >= 0.4.0.0
+  default-language:    Haskell2010
+
+test-suite kazura-queue-doctest
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             doctest.hs
+  build-depends:       base
+                     , kazura-queue
+                     , doctest    >= 0.10
+                     , QuickCheck >= 2.8
+  ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+test-suite kazura-queue-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  other-modules:       Test.Concurrent
+                     , Test.Expectations
+                     , Test.KazuraQueue
+                     , Test.Util
+                     , Test.WVar
+                     , WVarSpec
+                     , WVarConcurrentSpec
+                     , KazuraQueueSpec
+                     , KazuraQueueConcurrentSpec
+  build-depends:       base
+                     , kazura-queue
+                     , HUnit              >= 1.2
+                     , hspec              >= 2.1
+                     , hspec-expectations >= 0.7
+                     , QuickCheck         >= 2.8
+                     , deepseq            >= 1.4
+                     , containers         >= 0.5
+                     , mtl                >= 2.2
+                     , transformers       >= 0.4
+                     , free               >= 4.12
+                     , exceptions         >= 0.8
+                     , async              >= 2.0
+  ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
