@@ -1,0 +1,146 @@
+name:                remote-json
+version:             0.2
+synopsis:            Remote Monad implementation of the JSON RPC protocol
+description:         JSON RPC, where you can using monads and applicative functors
+                     to bundle JSON RPC methods and notifications.
+ .
+ @
+    &#123;-&#35; LANGUAGE GADTs, OverloadedStrings, TypeOperators &#35;-&#125;
+    .
+    module Main where
+    .
+    import Control.Natural ((:~>), nat)
+    import Control.Remote.Monad.JSON
+    import Control.Remote.Monad.JSON.Router(transport,router,Call(..),methodNotFound)
+    import Data.Aeson
+    import Data.Text(Text)
+    .
+    &#45;&#45; Our small DSL
+    .
+    say :: Text -> RPC ()
+    say msg = notification &#34;say&#34; (List [String msg])
+    .
+    temperature :: RPC Int
+    temperature = method &#34;temperature&#34; None
+    .
+    &#45;&#45; Our remote program
+    .
+    main :: IO ()
+    main = do
+    &#32;&#32;let s = weakSession network
+    &#32;&#32;t <- send s $ do
+    &#32;&#32;&#32;&#32;say &#34;Hello, &#34;
+    &#32;&#32;&#32;&#32;say &#34;World!&#34;
+    &#32;&#32;&#32;&#32;temperature
+    &#32;&#32;print t
+    .
+    &#45;&#45; Simulate the JSON-RPC server
+    .
+    network :: SendAPI :~> IO 
+    network = transport $ router sequence $ nat remote
+    &#32;&#32;where
+    &#32;&#32;&#32;&#32;remote :: Call a -> IO a
+    &#32;&#32;&#32;&#32;remote (CallMethod &#34;temperature&#34; _)                 = return $ Number 42
+    &#32;&#32;&#32;&#32;remote (CallNotification &#34;say&#34; (List [String msg])) = print msg
+    &#32;&#32;&#32;&#32;remote _                                            = methodNotFound
+ @
+
+license:             BSD3
+license-file:        LICENSE
+author:              Justin Dawson and Andy Gill
+maintainer:          JDawson@ku.edu
+copyright:           (c) 2016 The University of Kansas
+category:            Network
+build-type:          Simple
+extra-source-files:  README.md
+tested-with:         GHC == 7.10.3
+cabal-version:       >=1.10
+
+source-repository head
+  type:                git
+  location:            git://github.com/ku-fpg/remote-json
+
+library
+  exposed-modules:     Control.Remote.Monad.JSON
+                     , Control.Remote.Monad.JSON.Router
+                     , Control.Remote.Monad.JSON.Trace
+
+  other-modules:
+                       Control.Remote.Monad.JSON.Types
+
+  build-depends:       aeson                  >= 0.8  && < 0.12
+                     , base                   >= 4    && < 5
+                     , exceptions             >= 0.8  && < 0.9
+                     , fail
+                     , transformers           >= 0.4  && < 0.6
+                     , natural-transformation >= 0.3.1 && < 0.4
+                     , remote-monad           == 0.2
+                     , text                   >= 1.2  && < 1.3
+                     , unordered-containers   >= 0.2.5 && < 0.2.7
+                     , vector                 >= 0.11 && < 0.12
+  hs-source-dirs:      .
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+
+Test-Suite test-spec
+  type:       exitcode-stdio-1.0
+  hs-source-dirs: tests/spec
+  main-is:    Spec.hs
+  build-depends:   aeson                  >= 0.8 && < 0.12
+                 , attoparsec             >= 0.13 && < 0.14
+                 , base                   >= 4 && < 5
+                 , bytestring             >= 0.10 && < 0.11
+                 , natural-transformation >= 0.3.1 && < 0.4
+                 , remote-json            == 0.2
+                 , text                   >= 1.2 && < 1.3
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+
+Test-Suite test-example
+  type:       exitcode-stdio-1.0
+  hs-source-dirs: remote-json-test
+  main-is:    Unit.hs
+  build-depends:    aeson                  >= 0.8 && < 0.12
+                  , base                   >= 4 && < 5
+                  , natural-transformation >= 0.3.1 && < 0.4
+                  , random                 >= 1.1 && < 1.2
+                  , remote-json            == 0.2
+                  , scientific             >= 0.3 && < 0.4
+                  , text                   >= 1.2 && < 1.3
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+Test-Suite front-example
+  type:       exitcode-stdio-1.0
+  hs-source-dirs: front
+  main-is:    Main.hs
+  build-depends:    aeson                  >= 0.8 && < 0.12
+                  , base                   >= 4 && < 5
+                  , natural-transformation >= 0.3.1 && < 0.4
+                  , remote-json            == 0.2
+                  , text                   >= 1.2 && < 1.3
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+
+test-suite remote-json-properties
+  type:                exitcode-stdio-1.0
+  main-is:             Test.hs
+  build-depends:       aeson                  >= 0.8 && < 0.12
+                     , base                   >= 4.7 && < 5
+                     , containers             >= 0.1 && < 0.6
+                     , natural-transformation >= 0.3.1 && < 0.4
+                     , remote-json            == 0.2
+                     , QuickCheck             == 2.8.*
+                     , quickcheck-instances   >= 0.1 && < 0.4
+                     , tasty                  >= 0.8 && < 0.12
+                     , tasty-quickcheck       >= 0.8 && < 0.9
+  hs-source-dirs:      tests/qc
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
