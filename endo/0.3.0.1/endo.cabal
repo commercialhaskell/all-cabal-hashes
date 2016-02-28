@@ -1,0 +1,152 @@
+name:                   endo
+version:                0.3.0.1
+synopsis:               Endomorphism utilities.
+description:
+  Package defines extra functions for 'Data.Monoid.Endo' data type, and also
+  generic endomorphism folding machinery. Generic endomorphism folding can be
+  used for various purposes, including as a builder.
+  .
+  Here is an example how to use it with
+  <http://hackage.haskell.org/package/optparse-applicative optparse-applicative>
+  package:
+  .
+  > data Verbosity = Silent | Normal | Verbose | Annoying
+  >   deriving (Show)
+  .
+  > data Config = Config Verbosity FilePath
+  >   deriving (Show)
+  .
+  > options :: Parser Config
+  > options = runIdentityT $ runEndo defaultConfig <$> options'
+  >   where
+  >     -- All this IdentityT clutter is here to avoid orphan instances.
+  >     options' :: IdentityT Parser (Endo Config)
+  >     options' = foldEndo
+  >         <*> outputOption     -- :: IdentityT Parser (Maybe (E Config))
+  >         <*> verbosityOption  -- :: IdentityT Parser (Maybe (E Config))
+  >         <*> annoyingFlag     -- :: IdentityT Parser (E Config)
+  >         <*> silentFlag       -- :: IdentityT Parser (E Config)
+  >         <*> verboseFlag      -- :: IdentityT Parser (E Config)
+  >
+  >     defaultConfig :: Config
+  >     defaultConfig = Config Normal ""
+  .
+  > main :: IO ()
+  > main = execParser (info options fullDesc) >>= print
+  .
+  > ghci> :main -o an.out.put --annoying
+  > Config Annoying "an.out.put"
+  .
+  For details how individual option parsers look like see module
+  "Data.Monoid.Endo.Fold" which contains other examples as well as this one.
+
+homepage:               https://github.com/trskop/endo
+bug-reports:            https://github.com/trskop/endo/issues
+license:                BSD3
+license-file:           LICENSE
+author:                 Peter Trško
+maintainer:             peter.trsko@gmail.com
+copyright:              (c) 2013-2016, Peter Trško
+category:               Data
+build-type:             Simple
+cabal-version:          >=1.10
+
+-- See https://github.com/trskop/endo/blob/master/.travis.yml for more details.
+tested-with:            GHC ==7.6.3, GHC ==7.8.4, GHC ==7.10.3, GHC ==8.0.1
+
+-- Examples require lens and optparse-applicative packages in addition to this
+-- packackage's dependencies. When using sandbox it is possible to use "cabal
+-- repl" to test examples by using following command:
+--
+--     cabal repl                                         \
+--         --ghc-option="-iexample"                       \
+--         --ghc-options="-package lens"                  \
+--         --ghc-options="-package optparse-applicative"  \
+--         --ghc-options="-package transformers"
+extra-source-files:
+    ChangeLog.md
+  , README.md
+  , example/Example/Config/*.hs
+  , example/Example/*.hs
+  , example/*.hs
+
+flag pedantic
+  description:          Pass additional warning flags to GHC.
+  default:              False
+  manual:               True
+
+library
+  hs-source-dirs:       src
+  exposed-modules:
+      Data.Monoid.Endo
+    , Data.Monoid.Endo.AnEndo
+    , Data.Monoid.Endo.Apply
+    , Data.Monoid.Endo.Fold
+    , Data.Monoid.Endo.FromEndo
+
+  default-language:     Haskell2010
+  other-extensions:
+      DeriveDataTypeable
+    , DeriveGeneric
+    , FlexibleInstances
+    , NoImplicitPrelude
+    , TypeFamilies
+
+  build-depends:
+    -- {{{ Distributed with GHC or Haskell Platform ---------------------------
+      base >=4.6 && <5
+    , transformers >=0.3 && <0.6
+    , mtl >=2.1 && <3
+    -- ^ Version 2.1 is the first that supported transformers ==0.3, which is
+    -- the lowest supported version by this package.
+
+    -- }}} Distributed with GHC or Haskell Platform ---------------------------
+
+    , between >=0.9 && <1
+    , data-default-class ==0.0.*
+
+  if impl(GHC >=7.8)
+    cpp-options:
+      -DHAVE_KIND_POLYMORPHIC_TYPEABLE
+      -DHAVE_MINIMAL_PRAGMA
+
+      -- Module Data.Proxy, that defines Proxy data type, was
+      -- introduced in base ==4.7.0.0, i.e. GHC 7.8.1.
+      -DHAVE_PROXY
+
+  if impl(GHC >=7.10)
+    cpp-options:
+      -- Applicative became supper class of Monad in base ==4.8 which was
+      -- bundled with GHC 7.10.1 release.
+      -DHAVE_APPLICATIVE_MONAD
+
+  if impl(GHC >=8.0)
+    cpp-options:
+      -- Definition of Const moved in to its own module Data.Functor.Const in
+      -- base 4.9.0.0, i.e. GHC 8.0.1.
+      -DHAVE_FUNCTOR_CONST_MODULE
+
+      -- Module Data.Functor.Classes has moved from transformers in to base
+      -- 4.9.0.0, but the definitions in that module are compatible
+      -- only with transformers >=0.5.
+      -DHAVE_FUNCTOR_CLASSES
+
+      -- Package base ==4.9.0.0 introduces Data.Semigroup, which was originally
+      -- defined in semigroups package.
+      -DHAVE_SEMIGROUPS
+
+  ghc-options:          -Wall
+  if flag(pedantic)
+    ghc-options:
+      -fwarn-tabs
+      -fwarn-implicit-prelude
+--    -Werror
+
+source-repository head
+  type:                 git
+  location:             git://github.com/trskop/endo.git
+
+source-repository this
+  type:                 git
+  location:             git://github.com/trskop/endo.git
+  tag:                  0.3.0.1
