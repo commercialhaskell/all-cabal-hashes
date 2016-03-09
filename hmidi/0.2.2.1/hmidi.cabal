@@ -1,0 +1,69 @@
+
+Name:                hmidi
+Version:             0.2.2.1
+Synopsis:            Binding to the OS level MIDI services
+Description:         Partial implementation of the MIDI 1.0 standard to communicate 
+                     with physical or virtual MIDI devices, eg. MIDI keyboards. 
+                     Supported operating systems are Mac OS X and Windows.
+                     See also the alsa-midi library for similar
+                     function under Linux. Please note that there was no effort made (yet) to
+                     be compatible with the other existing Haskell MIDI libraries. 
+License:             BSD3
+License-file:        LICENSE
+Author:              Balazs Komuves
+Copyright:           (c) 2008-2015 Balazs Komuves
+Maintainer:          bkomuves (plus) hackage (at) gmail (dot) com
+Homepage:            http://code.haskell.org/~bkomuves/
+Stability:           Experimental
+Category:            Sound, System
+Tested-With:         GHC == 7.8.3
+Cabal-Version:       >= 1.6
+Build-Type:          Simple
+
+extra-source-files:  examples/monitor.hs, 
+                     examples/chords.hs, 
+                     examples/playmidi.hs, 
+                     examples/SMF.hs, 
+                     examples/GM.hs  
+                     examples/osx_host.hs
+
+source-repository head
+  type:     darcs
+  location: http://code.haskell.org/~bkomuves/projects/hmidi/
+
+Flag noNoteOff
+  Description:         Translates NoteOff events to NoteOn events with velocity=0.
+  Default:             False
+
+Library
+  Build-depends:       base >= 3 && <= 5, stm
+  
+  Exposed-Modules:     System.MIDI.Base, 
+                       System.MIDI, 
+                       System.MIDI.Sync,
+                       System.MIDI.Utility
+
+  if os(darwin)
+    Frameworks:          CoreFoundation, CoreAudio, CoreMIDI
+    other-modules:       System.MIDI.MacOSX,
+                         System.MacOSX.CoreAudio,
+                         System.MacOSX.CoreMIDI,
+                         System.MacOSX.CoreFoundation
+      
+  if os(windows) 
+    Build-Depends:       Win32
+    Exposed-Modules:     System.Win32.MIDI
+    other-modules:       System.MIDI.Win32    
+    extra-libraries:     winmm
+
+  -- this is just to be able to produce a Haddock documentation on a Linux system
+  if !os(darwin) && !os(windows)
+    other-modules:       System.MIDI.Placeholder
+    
+  Extensions:          ForeignFunctionInterface, CPP, TypeSynonymInstances, FlexibleInstances, EmptyDataDecls
+
+  ghc-options:         -threaded 
+
+  if flag(noNoteOff)
+    cpp-options:         -DHMIDI_NO_NOTEOFF 
+
