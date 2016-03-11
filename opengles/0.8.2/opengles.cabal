@@ -1,0 +1,153 @@
+name:                opengles
+version:             0.8.2
+synopsis:            Functional interface for OpenGL 4.1+ and OpenGL ES 2.0+
+description:         A functional OpenGL [ES] wrapper library.
+                     Made complicated OpenGL APIs easy yet keep flexible enough.
+                     Resulting binary size is relatively small so that apps
+                     launches faster. Works on both desktop and mobile.
+homepage:            https://github.com/capsjac/opengles#readme
+license:             LGPL-3
+license-file:        LICENSE
+author:              capsjac <capsjac at gmail.com>
+maintainer:          capsjac <capsjac at gmail.com>
+copyright:           2014-2016 capsjac
+category:            Graphics
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+-- cabal-version:       >=1.24 -- for os(android) support
+
+flag UseEGL
+  description:
+    By default, EGL APIs are used to get OpenGL function pointers.
+    If Disabled, use native library instead of EGL. e.g. WGL, GLX or dlsym.
+  default: True
+
+flag StaticLinkES3
+  description:
+    By default, OpenGL ES 3.0 APIs are dynamic linked.
+    If Enabled, may cause runtime link error on unsupported environment.
+    OpenGL ES 2.0 APIs are always statically linked.
+  default: False
+
+flag StaticLinkEGL15
+  description:
+    By default, EGL 1.5 APIs are dynamic linked.
+    If Enabled, may cause runtime link error on unsupported environment.
+    EGL 1.4 APIs are always statically linked.
+  default: False
+  
+flag BuildExample
+  default: True
+
+library
+  hs-source-dirs:      src
+  exposed-modules:
+    Graphics.EGL,
+    Graphics.EGL.Base,
+    Graphics.OpenGL.CoreArb,
+    Graphics.OpenGL.Types,
+    Graphics.OpenGLES,
+    Graphics.OpenGLES.Base,
+    Graphics.OpenGLES.Base.Proc,
+    Graphics.OpenGLES.Buffer,
+    Graphics.OpenGLES.Caps,
+    Graphics.OpenGLES.Core,
+    Graphics.OpenGLES.Framebuffer,
+    Graphics.OpenGLES.Internal,
+    Graphics.OpenGLES.PixelFormat,
+    Graphics.OpenGLES.State,
+    Graphics.OpenGLES.Sync,
+    Graphics.OpenGLES.Texture,
+    Graphics.OpenGLES.Types,
+    Graphics.TextureContainer.KTX,
+    Graphics.TextureContainer.PKM,
+    Linear.Graphics
+  build-depends:       base >= 4.7 && < 5
+                     , ghc-prim >= 0.4 && < 0.5
+                     , bytestring
+                     , distributive
+                     , transformers
+                     , vector
+                     , linear
+                     , lens
+                     , half
+                     , fixed
+                     , future-resource == 0.4.0.0
+                     , packer >= 0.1.9 && < 0.2
+  default-language:    Haskell2010
+
+  --if os(android)
+  --  if flag(StaticLinkES3)
+  --    cpp-options: -DSTATIC_ES3
+  --  cpp-options: -DSTATIC_ES2 -DEGL_GETPROC
+  --  extra-libraries: EGL, GLESv2
+
+  if os(linux)
+    if flag(StaticLinkES3)
+      cpp-options: -DSTATIC_ES3
+    if flag(UseEGL)
+      cpp-options: -DSTATIC_ES2 -DEGL_GETPROC
+      extra-libraries: EGL, GLESv2
+    else
+      -- GLX 1.3 provides glXGetProcAddressARB
+      -- GLX 1.4 provides glXGetProcAddress
+      cpp-options: -DSTATIC_ES2 -DGLX_GETPROC
+      extra-libraries: GL
+  
+  if os(ios)
+    cpp-options: -DSTATIC_ES2 -DSTATIC_ES3 -DNOEGL -DDLSYM_GETPROC
+    frameworks: QuartzCore, OpenGLES
+  
+  if os(darwin)
+    cpp-options: -DSTATIC_ES2 -DSTATIC_ES3 -DNOEGL -DGLX_GETPROC
+    frameworks: OpenGL
+  
+  if os(windows)
+    if flag(UseEGL)
+      -- Static_ES{2,3} is needed because ANGLE does not provide these APIs 
+      -- via eglGetProcAddress except extensions.
+      cpp-options: -DEGL_GETPROC -DSTATIC_ES2 -DSTATIC_ES3
+      -- NOTE: make sure that ANGLE dlls are found in %Path%
+      extra-libraries: libEGL libGLESv2
+    else
+      cpp-options: -DNOEGL -DWGL_GETPROC
+      extra-libraries: opengl32
+  
+  if flag(StaticLinkEGL15)
+    cpp-options: -DSTATIC_EGL15
+
+executable windmill
+  hs-source-dirs:      examples
+  main-is:             windmill.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  if !flag(BuildExample)
+    buildable: False
+  build-depends:       base
+                     , opengles
+                     , random, GLFW-b, time, bytestring, future-resource
+  default-language:    Haskell2010
+
+executable glsl-sandbox-player
+  hs-source-dirs:      examples
+  main-is:             glsl-sandbox-player.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  if !flag(BuildExample)
+    buildable: False
+  build-depends:       base
+                     , opengles
+                     , GLFW-b, time, bytestring, future-resource
+  default-language:    Haskell2010
+
+test-suite opengles-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , opengles
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/capsjac/opengles
