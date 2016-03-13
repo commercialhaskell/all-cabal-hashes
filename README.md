@@ -4,9 +4,9 @@
 
 A repository containing all of the cabal files for all public Haskell packages
 
-The contents are stored on the `hackage` branch. This repository likely isn't
-going to be directly useful for you; instead, please check out the
-[stackage-update repo](https://github.com/fpco/stackage-update).
+The contents are stored on the `hackage` branch and are updated every 30 minutes.
+This repository likely isn't going to be directly useful for you;
+instead, please check out the [stackage-update repo](https://github.com/fpco/stackage-update).
 
 Note that this repository is almost identical to
 [all-cabal-files](https://github.com/commercialhaskell/all-cabal-hashes).
