@@ -1,0 +1,112 @@
+name:                effect-handlers
+version:             0.1.0.8
+synopsis:            A library for writing extensible algebraic effects and handlers. Similar to extensible-effects but with deep handlers.
+homepage:            https://github.com/edofic/effect-handlers
+bug-reports:         https://github.com/edofic/effect-handlers/issues
+license:             MIT
+license-file:        LICENSE
+author:              Andraz Bajt, Blaz Repas
+maintainer:          Andraz Bajt <andraz@bajt.me>
+category:            Control
+build-type:          Simple
+stability:           experimental
+extra-source-files:  README.md
+cabal-version:       >=1.10
+description:
+  This is an extensible effects library for Haskell taking inspiration from the Eff language <http://www.eff-lang.org/>.
+  .
+  See these papers for the ideas and theory behind the library:
+  .
+    - O. Kammar et al: Handlers in Action! <http://homepages.inf.ed.ac.uk/slindley/papers/handlers.pdf>
+    - A. Bauer, M. Pretnar: Programming with Algebraic Effects and Handlers <http://arxiv.org/abs/1203.1539>
+    - O Kiselyov, A Sabry, C Swords: Extensible Effects <http://dl.acm.org/citation.cfm?id=2503791>
+  .
+  Implementation wise it's most close to @extensible-effects@ <http://hackage.haskell.org/package/extensible-effects> (also see the Extensible Effects paper) but it implements deep handlers instead of shallow.
+  .
+  @
+    import Control.Effects.Cont.Eff
+    import Control.Effects.Cont.Reader
+    import Control.Effects.Cont.Exception
+    .
+    program = do
+    &#32;&#32;v <- ask
+    &#32;&#32;if v < 15
+    &#32;&#32;then throw $ show v
+    &#32;&#32;else return (v+1)
+    .
+    run n = runPure . handle exceptionHandler . handle (readerHandler n)
+    .
+    res :: Integer -> Either String Integer
+    res n = run n program
+  @
+
+
+library
+  exposed-modules:     Data.Union
+
+                     , Control.Effects.Eff
+                     , Control.Effects.Reader
+                     , Control.Effects.Writer
+                     , Control.Effects.State
+                     , Control.Effects.Exception
+                     , Control.Effects.IO
+                     , Control.Effects.Search
+
+  -- other-extensions:
+  build-depends:       base           >=4.7 && <5
+                     , free           >=4.9 && <5
+                     , mtl            >=2.1 && <3
+                     , kan-extensions >=4.1 && <6
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  default-extensions:  RankNTypes
+                     , KindSignatures
+                     , DataKinds
+                     , GADTs
+                     , TypeOperators
+                     , MultiParamTypeClasses
+                     , FlexibleInstances
+                     , FlexibleContexts
+                     , NoMonomorphismRestriction
+                     , DeriveFunctor
+                     , DeriveDataTypeable
+                     , GeneralizedNewtypeDeriving
+
+test-suite spec
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      test
+
+  main-is:             Main.hs
+
+  build-depends:       base >=4.7 && <5
+                     , effect-handlers
+                     , hspec >= 2.1 && <3
+                     , QuickCheck
+                     , HUnit
+                     , hspec-discover
+
+  other-modules:      Main
+                    , Spec
+
+
+  default-extensions:  DataKinds
+                     , FlexibleContexts
+                     , NoMonomorphismRestriction
+
+
+benchmark benchm
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      bench, test
+  main-is:             TestBench.hs
+  other-modules:       Examples.Combined
+                       Examples.Reader
+  build-depends:       base >=4.7 && <5
+                     , effect-handlers
+                     , criterion >= 1.0 && <2
+  ghc-options:         -O3
+  default-extensions:  DataKinds
+                     , FlexibleContexts
+                     , NoMonomorphismRestriction
+
