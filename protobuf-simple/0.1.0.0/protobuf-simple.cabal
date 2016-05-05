@@ -1,0 +1,323 @@
+name:                protobuf-simple
+synopsis:            Simple Protocol Buffers library (proto2)
+version:             0.1.0.0
+x-revision: 2
+homepage:            https://github.com/sru-systems/protobuf-simple
+license:             MIT
+license-file:        LICENSE
+copyright:           (c) 2015-2016 Martijn Rijkeboer <mrr@sru-systems.com>
+author:              Martijn Rijkeboer <mrr@sru-systems.com>
+maintainer:          Martijn Rijkeboer <mrr@sru-systems.com>
+category:            Data
+stability:           experimental
+tested-with:         GHC == 7.10.3
+build-type:          Simple
+cabal-version:       >= 1.10
+extra-source-files:  data/*.bin
+                   , data/Types.proto
+description:
+    .
+    __Protobuf-simple__
+    .
+    An Haskell implementation of Google's Protocol Buffers version 2 with an
+    emphasis on simplicity. The implementation consists of a library for
+    encoding and decoding of data and the `protoc` executable for generating
+    Haskell types from proto files. In fact, the types that are used in the
+    tests are generated with the following command:
+    .
+    > $ protoc data/Types.proto
+    .
+    In the example below, the `CustomType` is a Haskell type that was generated
+    with the `protoc` executable. The `encCustomType` function encodes a
+    CustomType into a ByteString. The `decCustomType` function decodes a
+    ByteString into either a CustomType or an error.
+    .
+    > module Codec where
+    >
+    > import Data.ByteString.Lazy (ByteString)
+    > import Data.ProtoBuf (decode, encode)
+    > import Types.CustomType (CustomType(..))
+    >
+    > encCustomType :: CustomType -> ByteString
+    > encCustomType = encode
+    >
+    > decCustomType :: ByteString -> Either String CustomType
+    > decCustomType = decode
+    .
+    The library exposes two modules, "Data.ProtoBuf", which is used for
+    encoding and decoding and "Data.ProtoBufInt", which is an internal module
+    that is used by the generated types.
+    .
+    .
+    __Supported Data Types__
+    .
+    The following Protocol Buffer types, with their Haskell counterparts, are
+    supported:
+    .
+    * bool: Bool
+    .
+    * bytes: ByteString (lazy)
+    .
+    * double: Double
+    .
+    * enum: Sum-type
+    .
+    * fixed32: Word32
+    .
+    * fixed64: Word64
+    .
+    * float: Float
+    .
+    * int32: Int32
+    .
+    * int64: Int64
+    .
+    * message: Product-type or newtype
+    .
+    * sfixed32: Int32
+    .
+    * sfixed64: Int64
+    .
+    * sint32: Int32
+    .
+    * sint64: Int64
+    .
+    * string: Text (lazy)
+    .
+    * uint32: Word32
+    .
+    * uint64: Word64
+    .
+    .
+    __Compatibility__
+    .
+    Besides testing that decoding inverses encoding, the compatibility with
+    other implementations is tested by decoding binary files that were created
+    with protobuf-net (C#).
+    .
+    .
+    __Other implementations__
+    .
+    There are currently multiple Protocol Buffers implementations available.
+    This library was created for the following reasons. Firstly, I wanted to
+    use Data.Text for the string type instead of Data.ByteString as the
+    protocol-buffers library does. Secondly, I wanted to use newtypes for
+    messages with only one field. Finally, I wanted to use simpler data types
+    than the protobuf library does.
+    .
+    For example, the protobuf library uses the following (example from the
+    manual):
+    .
+    @
+    data Foo = Foo
+    \ \ &#123; field1 :: Required 1 (Value Int64)
+    \ \ , field2 :: Optional 2 (Value Text)
+    \ \ , field3 :: Repeated 3 (Value Bool)
+    \ \ &#125; deriving (Generic, Show)
+    @
+    .
+    Whereas protobuf-simple would use the following:
+    .
+    @
+    data Foo = Foo
+    \ \ &#123; field1 :: Int64
+    \ \ , field2 :: Maybe Text
+    \ \ , field3 :: Seq Bool
+    \ \ &#125; deriving (Show, Eq, Ord)
+    @
+    .
+    .
+    __Not Implemented__
+    .
+    The following Protocol Buffers features are currently not implemented:
+    .
+    * Importing definitions
+    .
+    * Groups
+    .
+    * Declaring extensions in messages
+    .
+    * Declaring nested extensions in messages
+    .
+    * Oneof feature
+    .
+    * Associative maps
+    .
+    * Defining services
+    .
+    * Custom options
+
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Data.ProtoBuf
+                     , Data.ProtoBufInt
+  other-modules:       Data.ProtoBuf.Default
+                     , Data.ProtoBuf.FieldNumber
+                     , Data.ProtoBuf.Mergeable
+                     , Data.ProtoBuf.Required
+                     , Data.ProtoBuf.WireEnum
+                     , Data.ProtoBuf.WireFormat
+                     , Data.ProtoBuf.WireMessage
+                     , Data.ProtoBuf.WireTag
+                     , Data.ProtoBuf.WireType
+                     , Data.ProtoBuf.ZigZag
+  build-depends:       base                >= 4    && < 5
+                     , binary              >= 0.7
+                     , bytestring          >= 0.9
+                     , containers          >= 0.4
+                     , data-binary-ieee754 >= 0.4
+                     , mtl                 >= 2.0
+                     , text                >= 0.11
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+
+executable protoc
+  hs-source-dirs:      app, src
+  main-is:             Parser.hs
+  other-modules:       Parser.CaseUtils
+                     , Parser.CodeInfo
+                     , Parser.EnumDesc
+                     , Parser.EnumGenerator
+                     , Parser.EnumValueDesc
+                     , Parser.FieldDesc
+                     , Parser.FileDesc
+                     , Parser.FileWriter
+                     , Parser.Generator
+                     , Parser.GeneratorUtils
+                     , Parser.Label
+                     , Parser.MessageDesc
+                     , Parser.MessageGenerator
+                     , Parser.OptimizeMode
+                     , Parser.ProtoParser
+                     , Parser.Type
+  build-depends:       base
+                     , containers
+                     , directory
+                     , filepath
+                     , mtl
+                     , parsec
+                     , split
+                     , text
+  default-language:    Haskell2010
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+
+
+test-suite protobuf-simple-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test, src
+  main-is:             Spec.hs
+  other-modules:       Data.ProtoBuf
+                     , Data.ProtoBuf.Default
+                     , Data.ProtoBuf.FieldNumber
+                     , Data.ProtoBuf.Mergeable
+                     , Data.ProtoBuf.Required
+                     , Data.ProtoBuf.WireEnum
+                     , Data.ProtoBuf.WireFormat
+                     , Data.ProtoBuf.WireMessage
+                     , Data.ProtoBuf.WireTag
+                     , Data.ProtoBuf.WireType
+                     , Data.ProtoBuf.ZigZag
+                     , Data.ProtoBuf.ZigZagSpec
+                     , Data.ProtoBufInt
+                     , Data.ProtoBufSpec
+                     , Parser.CaseUtils
+                     , Parser.EnumDesc
+                     , Parser.EnumValueDesc
+                     , Parser.FieldDesc
+                     , Parser.FileDesc
+                     , Parser.Label
+                     , Parser.MessageDesc
+                     , Parser.OptimizeMode
+                     , Parser.ProtoParser
+                     , Parser.ProtoParserSpec
+                     , Parser.Type
+                     , Types.BoolList
+                     , Types.BoolListPacked
+                     , Types.BoolMsg
+                     , Types.BoolOptMsg
+                     , Types.BytesList
+                     , Types.BytesMsg
+                     , Types.BytesOptMsg
+                     , Types.DoubleList
+                     , Types.DoubleListPacked
+                     , Types.DoubleMsg
+                     , Types.DoubleOptMsg
+                     , Types.Enum
+                     , Types.EnumList
+                     , Types.EnumListPacked
+                     , Types.EnumMsg
+                     , Types.EnumOptMsg
+                     , Types.Fixed32List
+                     , Types.Fixed32ListPacked
+                     , Types.Fixed32Msg
+                     , Types.Fixed32OptMsg
+                     , Types.Fixed64List
+                     , Types.Fixed64ListPacked
+                     , Types.Fixed64Msg
+                     , Types.Fixed64OptMsg
+                     , Types.FloatList
+                     , Types.FloatListPacked
+                     , Types.FloatMsg
+                     , Types.FloatOptMsg
+                     , Types.Int32List
+                     , Types.Int32ListPacked
+                     , Types.Int32Msg
+                     , Types.Int32OptMsg
+                     , Types.Int64List
+                     , Types.Int64ListPacked
+                     , Types.Int64Msg
+                     , Types.Int64OptMsg
+                     , Types.Message
+                     , Types.MessageList
+                     , Types.MessageMsg
+                     , Types.MessageOptMsg
+                     , Types.SFixed32List
+                     , Types.SFixed32ListPacked
+                     , Types.SFixed32Msg
+                     , Types.SFixed32OptMsg
+                     , Types.SFixed64List
+                     , Types.SFixed64ListPacked
+                     , Types.SFixed64Msg
+                     , Types.SFixed64OptMsg
+                     , Types.SInt32List
+                     , Types.SInt32ListPacked
+                     , Types.SInt32Msg
+                     , Types.SInt32OptMsg
+                     , Types.SInt64List
+                     , Types.SInt64ListPacked
+                     , Types.SInt64Msg
+                     , Types.SInt64OptMsg
+                     , Types.StringList
+                     , Types.StringMsg
+                     , Types.StringOptMsg
+                     , Types.UInt32List
+                     , Types.UInt32ListPacked
+                     , Types.UInt32Msg
+                     , Types.UInt32OptMsg
+                     , Types.UInt64List
+                     , Types.UInt64ListPacked
+                     , Types.UInt64Msg
+                     , Types.UInt64OptMsg
+  build-depends:       QuickCheck
+                     , base
+                     , binary
+                     , bytestring
+                     , containers
+                     , data-binary-ieee754
+                     , filepath
+                     , hspec
+                     , parsec
+                     , protobuf-simple
+                     , quickcheck-instances
+                     , split
+                     , text
+  default-language:    Haskell2010
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+
+
+source-repository head
+  type:                git
+  location:            https://github.com/sru-systems/protobuf-simple
+
