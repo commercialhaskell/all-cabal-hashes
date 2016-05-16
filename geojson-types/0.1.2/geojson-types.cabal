@@ -1,0 +1,89 @@
+name:                geojson-types
+version:             0.1.2
+synopsis:            GeoJSON data types including JSON/BSON conversion.
+homepage:            https://github.com/alios/geojson-types/
+bug-reports:         https://github.com/alios/geojson-types/issues
+license:             BSD3
+license-file:        LICENSE
+author:              Markus Barenhoff
+maintainer:          Markus Barenhoff <mbarenh@alios.org>
+copyright:           Copyright (c) 2016 Markus Barenhoff
+category:            Data
+build-type:          Simple
+stability:           provisional
+tested-with:         GHC == 7.10.3                     
+cabal-version:       >=1.10
+
+description:
+            Provides data types, lens operators and (de)serialization
+            of GeoJSON data to/from JSON and BSON using aeson and bson.
+            .
+            This library uses a the lens library a lot. It provides
+            'Iso' / 'Prism' to convert from and to GeoJSON objects.
+            .
+            /e.g./ to convert a latitude/longitude given as a pair of
+            'Double' to a 'Position', use the '_Position' 'Iso' as a
+            'Getter' on that pair:
+            .
+            > _Position :: BaseType t => Iso' (t, t) (Position t)
+            >
+            > pos :: Position Double
+            > pos = (57.324, 7.2342) ^. _Position
+            .
+            to then convert it to a 'Point' object use '_Point':
+            .
+            > _Point :: Iso' (Position t) (GeoJSON Point t)
+            >
+            > p :: GeoJSON Point Double
+            > p = pos ^. _Point
+            >            
+            > ps :: GeoJSON MultiPoint Double
+            > ps = [p,p,p,p] ^. _MultiPoint
+            .                                               
+            The library also provides type classes for working polymorphic
+            over user defined data types.
+            .
+            /e.g./ for a data type:
+            .
+            > data Location =
+            >   Location {
+            >     locationName :: String,
+            >     locationLat :: Double,
+            >     locationLon :: Double
+            >   }
+            .
+            one can implement the type class 'HasGeoJSON' to provide a
+            'Getter' to a any GeoJSON object. In this example a 'Point'.
+            .
+            > instance HasGeoJSON Point Double Location where
+            >  geoJSON = to $ \loc ->
+            >    (locationLat loc, locationLon loc) ^. _Position . _Point
+            
+            
+            
+
+library
+  exposed-modules:     Data.GeoJSON,
+                       Data.GeoJSON.Objects,
+                       Data.GeoJSON.Features,
+                       Data.GeoJSON.Classes
+  other-modules:       Data.GeoJSON.Intern
+  other-extensions:    FlexibleInstances,
+                       TypeSynonymInstances,
+                       GADTs, 
+                       OverloadedStrings, 
+                       FunctionalDependencies, 
+                       MultiParamTypeClasses, 
+                       FlexibleContexts, 
+                       ConstraintKinds, 
+                       RankNTypes, 
+                       TypeFamilies
+  build-depends:       aeson >=0.11,
+                       base >=4.8 && <4.9,
+                       bson >=0.3,
+                       bytestring >= 0.10,
+                       lens >=4.14,
+                       text >=1.2
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
