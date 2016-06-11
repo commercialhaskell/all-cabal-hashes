@@ -1,0 +1,149 @@
+name:                   connection-pool
+version:                0.2.1
+synopsis:
+  Connection pool built on top of resource-pool and streaming-commons.
+description:
+  Connection poll is a family specialised resource pools. Currently package
+  provides two variants:
+  .
+  1. pool for TCP client connections,
+  .
+  2. and pool for UNIX Sockets client connections.
+  .
+  In addition it can be used to build your own connection pool using provided
+  primitives.
+  .
+  This package is built on top of
+  <http://hackage.haskell.org/package/resource-pool resource-pool> and
+  <http://hackage.haskell.org/package/streaming-commons streaming-commons>.
+  The later allows us to use
+  <http://hackage.haskell.org/package/conduit-extra conduit-extra> package
+  for implementation of TCP or UNIX Sockets clients.
+  .
+  For examples and other details see documentation in "Data.ConnectionPool"
+  module.
+
+homepage:               https://github.com/trskop/connection-pool
+bug-reports:            https://github.com/trskop/connection-pool/issues
+license:                BSD3
+license-file:           LICENSE
+author:                 Peter Trško
+maintainer:             peter.trsko@gmail.com
+copyright:              (c) 2014-2016 Peter Trško
+category:               Data, Network
+build-type:             Simple
+cabal-version:          >=1.10
+
+extra-source-files:
+    README.md
+  , ChangeLog.md
+  , example/*.hs
+
+flag pedantic
+  description:          Pass additional warning flags to GHC during compilation.
+  default:              False
+  manual:               True
+
+library
+  hs-source-dirs:       src
+  exposed-modules:
+      Data.ConnectionPool
+    , Data.ConnectionPool.Class
+    , Data.ConnectionPool.Family
+    , Data.ConnectionPool.Internal.ConnectionPool
+    , Data.ConnectionPool.Internal.HandlerParams
+    , Data.ConnectionPool.Internal.ResourcePoolParams
+    , Data.ConnectionPool.Internal.Streaming
+    , Data.ConnectionPool.Internal.TCP
+
+  if !os(windows)
+    exposed-modules:    Data.ConnectionPool.Internal.Unix
+
+  default-language:     Haskell2010
+  other-extensions:
+      CPP
+    , DeriveDataTypeable
+    , DeriveGeneric
+    , FlexibleContexts
+    , NamedFieldPuns
+    , NoImplicitPrelude
+    , OverloadedStrings
+    , RecordWildCards
+    , StandaloneDeriving
+    , TupleSections
+    , TypeFamilies
+
+  build-depends:
+      base >=4.6 && <5
+
+    , network >=2.2.3
+      -- Version 2.2.3 introduced module "Network.Socket.ByteString".
+    , time >=1.0
+      -- Version 1.0 is the oldest available version of time on Hackage and it
+      -- defines NominalDiffTime. Package resource-pool doesn't define any
+      -- version boundaries on this package.
+    , between >=0.10.0.0
+      -- This package uses strict API which was introduced in version 0.10.0.0.
+    , data-default-class ==0.0.* || ==0.1.*
+      -- API between 0.0.1 and 0.1.0 versions hadn't changed, it just gained
+      -- the possibility to define instances using GHC Generics.
+    , monad-control >=0.3
+      -- Package resource-pool depends on monad-control >=0.2.0.1 since
+      -- resource-pool version 0.2.0.0, but this package doesn't make the
+      -- effort to handle changes in monad-control API and therefore it limits
+      -- its dependencies to >=0.3.
+    , resource-pool >=0.2.0.0 && <1
+      -- Version 0.2.0.0 of resource-pool was the first that used monad-control
+      -- package. At the time of writing (version 0.2.3.0) used subset of API
+      -- is stable.
+    , streaming-commons >=0.1.3 && <0.2
+      -- First version that had getSocketFamilyTCP function and also Earlier
+      -- versions have different definition of ClientSettings. Those two things
+      -- are actually related.
+      --
+      -- Changes in streaming-commons that broke this package:
+      --
+      -- * Version 0.1.6 introduced appCloseConnection' field of AppData.
+      -- * Version 0.1.12 introduced appRawSocket' field of AppData.
+      -- * Version 0.1.13 extended ClientSettings with clientReadBufferSize
+      --   field and ClientSettingsUnix with clientReadBufferSizeUnix field.
+      --   See https://github.com/fpco/streaming-commons/pull/23 for details.
+      -- * Version 0.1.14 exports HasReadBufferSize type class and it also has
+      --   instance for ClientSettingsUnix. See
+      --   https://github.com/fpco/streaming-commons/pull/24 for details.
+    , transformers-base >=0.4.2 && <0.5
+      -- Version bounds taken from latest monad-control package (at the moment
+      -- 0.3.3.0), which is a dependency of resource-pool package.
+
+  if os(windows)
+    cpp-options:        -DWINDOWS
+
+  if impl(ghc >= 7.8.1)
+    cpp-options:        -DKIND_POLYMORPHIC_TYPEABLE
+
+  if impl(ghc >= 7.10)
+    -- To be able to use poly-kinded ConnectionPool data family we need two
+    -- things (i) poly-kinded Typeable class and (ii) compiler that is capable
+    -- of deriving Typeable instance for poly-kinded data family. Otherwise we
+    -- would break backward compatibility by not providing Typeable instance.
+    -- Both of these work on GHC only since version 7.10.
+    cpp-options:        -DKIND_POLYMORPHIC_TYPEABLE_POLYKINDED_DATA_FAMILIES
+
+  ghc-options:          -Wall
+  if impl(ghc >= 6.8)
+    -- Newer GHC versions include -fwarn-tabs in -Wall.
+    ghc-options:        -fwarn-tabs
+  if flag(pedantic)
+    ghc-options:
+      -fwarn-implicit-prelude
+      -fwarn-missing-import-lists
+--    -Werror
+
+source-repository head
+  type:                 git
+  location:             git://github.com/trskop/connection-pool.git
+
+source-repository this
+  type:                 git
+  location:             git://github.com/trskop/connection-pool.git
+  tag:                  v0.2.1
