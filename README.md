@@ -9,7 +9,7 @@ This repository likely isn't going to be directly useful for you;
 instead, please check out the [stackage-update repo](https://github.com/fpco/stackage-update).
 
 Note that this repository is almost identical to
-[all-cabal-files](https://github.com/commercialhaskell/all-cabal-hashes).
+[all-cabal-files](https://github.com/commercialhaskell/all-cabal-files).
 However, this repository modifies all of the cabal files downloaded from
 Hackage to have a number of extra metadata fields useful for verifying
 authenticity of packages, namely:
