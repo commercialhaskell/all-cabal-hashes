@@ -3,28 +3,24 @@
 
 name:                interruptible
 version:             0.1.1.1
-x-revision: 1
+x-revision: 2
 synopsis:            Monad transformers that can be run and resumed later, conserving their context.
 description:
     Given an inner monad @M@ and a transformer @T@, if T is an interruptible transformer,
     it becomes possible to intercalate functions over its context with functions over the
     inner monad. That is, code like this:
     .
-    @
-    runT (f 1 >>= g)
-    where
-        f :: Int -> T M a
-        g :: a -> T M b
-    @
+    > runT (f 1 >>= g)
+    > where
+    >     f :: Int -> T M a
+    >     g :: a -> T M b
     .
     Can be broken up like this:
     .
-    @
-    do
-    let c0 = inTCtx 1
-    c1 <- resume f c0
-    _ <- resume g c2
-    @
+    > do
+    > let c0 = inTCtx 1
+    > c1 <- resume f c0
+    > _ <- resume g c2
     .
     That makes it possible to intercalate the execution of different contexts, and
     treat contexts like data, for iterating or returning them.
@@ -38,15 +34,13 @@ description:
     composition of @resume@ calls, and their contexts must be created and peeled on the inverse
     order that they appear on the stack. Like:
     .
-    @
-    do
-    let c0 = inT2Ctx . inT1Ctx $ 1
-    c1 <- (resume . resume) f c0
-    _ <- (resume . resume) g c1
-    where
-        f :: Monad m => Int -> T1 T2 M a
-        g :: Monad m => a -> T1 T2 M b
-    @
+    > do
+    > let c0 = inT2Ctx . inT1Ctx $ 1
+    > c1 <- (resume . resume) f c0
+    > _ <- (resume . resume) g c1
+    > where
+    >     f :: Monad m => Int -> T1 T2 M a
+    >     g :: Monad m => a -> T1 T2 M b
     .
     For convenience, the @Interruptible@ module exports the @resume2@ to @resume5@
     functions as composotions of resume. They can be composed further as in
