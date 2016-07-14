@@ -1,0 +1,105 @@
+-- vim: ts=2 sw=2 et :
+
+name:               ghci-history-parser
+version:            0.1.0.2
+synopsis:           parse output of ghci ":history" command
+description:
+  I couldn't see a simple parser for the output of the ghci @:history@
+  command, with few dependencies, so here is one.
+  .
+  If Parsec is installed, this parser will use it, but if not, it will fall
+  back on the parsers in "Text.ParserCombinators.ReadP", found in @base@.
+  .
+  For an example of use, see "GHCi.History.Parse".
+
+license:            PublicDomain
+license-file:       LICENSE
+author:             phlummox
+maintainer:         phlummox2 at gmail dot com
+category:           GHC, Debug, Development   
+build-type:         Simple
+cabal-version:      >=1.10
+tested-with:        GHC == 7.10.3, GHC == 7.6.3
+
+extra-doc-files:
+  ChangeLog.md, README.md
+extra-source-files:
+  stack.yaml        
+
+Flag use_parsec 
+  description: Use the Parsec parser library
+  default:     True
+
+source-repository head
+  type:     git
+  location: https://github.com/phlummox/ghci-history-parser.git
+
+library
+  exposed-modules:     
+      GHCi.History
+    , GHCi.History.Parse.Common
+    , GHCi.History.Parse
+  other-extensions:    CPP 
+  if flag(use_parsec)
+    other-modules:
+        Parsing
+      , Parsing.ReadP
+      , Parsing.Parsec
+    build-depends:       
+        base >=4.6 && <5.0
+      , parsec
+    cpp-options:   -DUSE_PARSEC
+  else
+    other-modules:
+        Parsing
+      , Parsing.ReadP
+    build-depends:       
+        base >=4.6 && <5.0
+  hs-source-dirs:      src
+  default-language:    Haskell98
+
+
+test-suite ghci-history-parser-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  other-modules:       GHCi.History.ParseSpec
+  if flag(use_parsec)
+    build-depends:       
+        base 
+      , hspec
+      , ghci-history-parser
+      , parsec
+  else
+    build-depends:       
+        base 
+      , hspec
+      , ghci-history-parser
+  ghc-options:         
+    -threaded -rtsopts -with-rtsopts=-N
+  default-language:    
+    Haskell98
+
+test-suite ghci-history-parser-doctest
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             DoctestMain.hs
+  if flag(use_parsec)
+    build-depends:       
+        base 
+      , hspec
+      , ghci-history-parser
+      , parsec
+      , doctest
+  else
+    build-depends:       
+        base 
+      , hspec
+      , ghci-history-parser
+      , doctest
+  ghc-options:         
+    -threaded 
+  default-language:    
+    Haskell98
+
+
