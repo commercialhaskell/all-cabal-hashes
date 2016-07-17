@@ -1,0 +1,121 @@
+name:                   verbosity
+version:                0.2.2.0
+synopsis:               Simple enum that encodes application verbosity.
+description:
+  Simple enum that encodes application verbosity with various useful instances.
+
+homepage:               https://github.com/trskop/verbosity
+bug-reports:            https://github.com/trskop/verbosity/issues
+license:                BSD3
+license-file:           LICENSE
+author:                 Peter Trško
+maintainer:             peter.trsko@gmail.com
+copyright:              (c) 2015-2016 Peter Trško
+category:               Data
+build-type:             Simple
+cabal-version:          >=1.10
+
+-- Examples require lens package in addition to this packackage's dependencies.
+-- When using sandbox it is possible to use "cabal repl" to test examples by
+-- using following command:
+--
+--     cabal repl --ghc-options="-iexample -package lens"
+extra-source-files:
+    ChangeLog.md
+  , README.md
+  , example/Example/Config.hs
+  , example/Example/ConfigTH.hs
+
+flag pedantic
+  description:          Pass additional warning flags to GHC.
+  default:              False
+  manual:               True
+
+flag data-typeable
+  description:          Derive instances for Data and Typeable type classes.
+  default:              True
+
+flag ghc-generics
+  description:          Derive instances for Generic type class.
+  default:              True
+
+flag binary
+  description:          Derive instances for Binary type class.
+  default:              True
+
+flag data-default
+  description:          Derive instances for Default type class.
+  default:              True
+
+flag deepseq
+  description:          Define instance for NFData type class.
+  default:              True
+
+flag cereal
+  description:          Define instance for Serialize type class.
+  default:              False
+
+library
+  hs-source-dirs:       src
+  exposed-modules:      Data.Verbosity, Data.Verbosity.Class
+
+  default-language:     Haskell2010
+  other-extensions:
+      BangPatterns
+    -- ^ With -fdeepseq
+    , CPP
+    , NoImplicitPrelude
+    , DeriveDataTypeable
+    -- ^ With -fdata-typeable
+    , DeriveGeneric
+    -- ^ With -fghc-generics
+
+  build-depends:        base >=4 && <5
+  ghc-options:          -Wall -fwarn-tabs
+
+  -- Package base bundled with GHC <7.10 (i.e. base <4.8) doesn't include
+  -- Data.Functor.Identity module.
+  if impl(ghc <7.10)
+    -- Versions of transformers <0.2 doesn't include Data.Functor.Identity,
+    -- which is used by this package, and version 0.4.0.0 of transformers is
+    -- deprecated.
+    build-depends:      transformers >=0.2 && <0.4 || >=0.4.1 && <0.6
+
+  if flag(pedantic)
+    ghc-options:        -fwarn-implicit-prelude
+
+  if flag(ghc-generics)
+    cpp-options:        -DDERIVE_GHC_GENERICS
+
+    -- GHC.Generics moved from ghc-prim to base with GHC 7.6 release.
+    if impl(ghc >=7.2 && <7.6)
+      build-depends:    ghc-prim
+
+  if flag(data-typeable)
+    cpp-options:        -DDERIVE_DATA_TYPEABLE
+
+  if flag(binary)
+    build-depends:      binary >=0.5 && <0.9
+    cpp-options:        -DDECLARE_BINARY_INSTANCE
+
+  if flag(data-default)
+    build-depends:      data-default-class ==0.0.* || ==0.1.*
+    cpp-options:        -DDECLARE_DEFAULT_INSTANCE
+
+  if flag(deepseq)
+    cpp-options:        -DDECLARE_NFDATA_INSTANCE
+    build-depends:      deepseq >=1.1.0.0 && <2
+    -- Prior to version 1.1.0.0 there was DeepSeq class instead of NFData.
+
+  if flag(cereal)
+    cpp-options:        -DDECLARE_SERIALIZE_INSTANCE
+    build-depends:      cereal >=0.1 && <0.6
+
+source-repository head
+  type:                 git
+  location:             git://github.com/trskop/verbosity
+
+source-repository this
+  type:                 git
+  location:             git://github.com/trskop/verbosity.git
+  tag:                  0.2.2.0
