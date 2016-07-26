@@ -1,0 +1,131 @@
+name:          blake2
+version:       0.2.0
+synopsis:      A library providing BLAKE2
+license:       PublicDomain
+license-file:  LICENSE
+author:        John Galt
+maintainer:    jgalt@centromere.net
+homepage:      https://github.com/centromere/blake2
+bug-reports:   https://github.com/centromere/blake2/issues
+category:      Cryptography
+build-type:    Simple
+cabal-version: >=1.10
+tested-with:   GHC == 7.10.3, GHC == 8.0.2
+description:
+  This library provides the <https://blake2.net/ BLAKE2> hash algorithms.
+
+extra-source-files:
+  .travis.yml
+  README.md
+  changelog.md
+  LICENSE
+  include/ref/*.h
+  include/sse/*.h
+
+source-repository head
+  type: git
+  location: https://github.com/centromere/blake2.git
+
+--------------------------------------------------------------------------------
+-- FLAGS
+
+flag hlint
+
+flag doctest
+
+flag llvm
+  default: False
+  manual: True
+
+flag support_blake2_sse
+  description: Use SSE optimized version of BLAKE2
+  default: False
+  manual: True
+
+--------------------------------------------------------------------------------
+-- LIBRARY
+
+library
+  build-depends:
+    base >=4.8 && <5,
+    bytestring
+  hs-source-dirs:   src
+  default-language: Haskell2010
+  exposed-modules:
+    Crypto.Hash.BLAKE2.BLAKE2b
+    Crypto.Hash.BLAKE2.BLAKE2bp
+    Crypto.Hash.BLAKE2.BLAKE2s
+    Crypto.Hash.BLAKE2.BLAKE2sp
+    Crypto.Hash.BLAKE2.Internal
+  ghc-options:      -Wall -fwarn-tabs
+  cc-options:       -std=c99
+
+  if arch(x86_64) || flag(support_blake2_sse)
+    c-sources:
+      cbits/sse/blake2b.c
+      cbits/sse/blake2bp.c
+      cbits/sse/blake2s.c
+      cbits/sse/blake2sp.c
+    include-dirs: include/sse
+  else
+    c-sources:
+      cbits/ref/blake2b.c
+      cbits/ref/blake2bp.c
+      cbits/ref/blake2s.c
+      cbits/ref/blake2sp.c
+    include-dirs: include/ref
+
+  if flag(llvm)
+    ghc-options: -fllvm
+
+--------------------------------------------------------------------------------
+-- TESTS
+
+test-suite properties
+  type:             exitcode-stdio-1.0
+  main-is:          properties.hs
+  ghc-options:      -Wall -fwarn-tabs
+  hs-source-dirs:   tests
+  default-language: Haskell2010
+
+  build-depends:
+    base >=4.8 && <5,
+    base16-bytestring,
+    bytestring,
+    blake2,
+    QuickCheck,
+    tasty,
+    tasty-quickcheck
+
+  other-modules:
+    Imports
+
+test-suite hlint
+  type:             exitcode-stdio-1.0
+  main-is:          hlint.hs
+  ghc-options:      -Wall -fwarn-tabs
+  hs-source-dirs:   tests
+  default-language: Haskell2010
+
+  if !flag(hlint)
+    buildable: False
+  else
+    build-depends:
+      base  >=4.8 && <5,
+      hlint
+
+--------------------------------------------------------------------------------
+-- BENCHMARKS
+
+benchmark bench
+  type:             exitcode-stdio-1.0
+  main-is:          bench.hs
+  ghc-options:      -Wall -fwarn-tabs
+  hs-source-dirs:   benchmarks
+  default-language: Haskell2010
+
+  build-depends:
+    base >=4.8 && <5,
+    blake2,
+    bytestring,
+    criterion
