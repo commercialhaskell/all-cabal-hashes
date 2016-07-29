@@ -1,0 +1,221 @@
+name:    raaz
+version: 0.0.2
+
+synopsis: The raaz cryptographic library.
+
+description: Raaz is a cryptographic network library for Haskell
+  designed to use strong typing to eliminate some common errors that
+  occur in cryptographic settings like side channel attacks. This
+  package implements basic types and cryptographic primitives like
+  hashes, macs etc. Actual network protocols are expected to use this
+  library. Common abstractions like for example packet parsing should
+  be part of this library.
+
+homepage: http://github.com/raaz-crypto/raaz
+
+license:      BSD3
+license-file: LICENSE
+author:       Piyush P Kurur
+maintainer:   ppk@cse.iitk.ac.in
+
+category:      Codec, Raaz
+build-type:    Simple
+cabal-version: >=1.9.2
+
+bug-reports: https://github.com/raaz-crypto/raaz/issues
+
+source-repository head
+  type: git
+  location: https://github.com/raaz-crypto/raaz
+
+library
+
+  ghc-options: -Wall
+  -- Conditional compilation using CPP
+
+  -- 1. Configuring system PRG.
+  --
+  --    * HAVE_SYSTEM_PRG: If a system prg is exposed.
+  --
+  --    * HAVE_DEV_URANDON: If the device /dev/urandom exists.
+  --
+  if os(linux) || os(freebsd) || os(openbsd) || os(netbsd) || os(osx)
+     cpp-options: -DHAVE_SYSTEM_PRG
+                  -DHAVE_DEV_URANDOM
+  -- 2. Memory Locking
+  --    System supports mlock/munlock calls.
+  -- configurations for memory locking
+  if !os(windows)
+     cpp-options: -DHAVE_MLOCK
+
+  -- 3. Platform macros for endian conversion functions
+  --
+  if os(linux)
+     cc-options: -DPLATFORM_LINUX
+  if os(freebsd) || os(netbsd)
+     cc-options: -DPLATFORM_BSD
+  if os(openbsd)
+     cc-options: -DPLATFORM_OPENBSD
+
+
+  exposed-modules: Raaz
+                 , Raaz.Core
+                 , Raaz.Core.ByteSource
+                 , Raaz.Core.DH
+                 , Raaz.Core.Encode
+                 , Raaz.Core.Memory
+                 , Raaz.Core.MonoidalAction
+                 , Raaz.Core.Parse.Applicative
+                 , Raaz.Core.Primitives
+                 , Raaz.Core.Random
+                 , Raaz.Core.Types
+                 , Raaz.Core.Util
+                 , Raaz.Core.Write
+                 --
+                 -- Cryptographic hashes
+                 --
+                 , Raaz.Hash
+                 , Raaz.Hash.Internal
+
+                 -- , Raaz.Hash.Blake256
+                 -- , Raaz.Hash.Blake256.Internal
+                 , Raaz.Hash.Sha1
+                 , Raaz.Hash.Sha1.Implementation.CPortable
+                 , Raaz.Hash.Sha224
+                 , Raaz.Hash.Sha224.Implementation.CPortable
+                 , Raaz.Hash.Sha256
+                 , Raaz.Hash.Sha256.Implementation.CPortable
+                 , Raaz.Hash.Sha384
+                 , Raaz.Hash.Sha384.Implementation.CPortable
+                 , Raaz.Hash.Sha512
+                 , Raaz.Hash.Sha512.Implementation.CPortable
+                 --
+                 -- Ciphers
+                 --
+                 , Raaz.Cipher
+                 , Raaz.Cipher.Internal
+                 , Raaz.Cipher.AES
+                 -- Exposed Implementations of AES.
+                 , Raaz.Cipher.AES.CBC.Implementation.CPortable
+                 -- , Raaz.Cipher.AES.CTR
+                 -- , Raaz.Cipher.Salsa20
+                 -- , Raaz.Cipher.Salsa20.Internal
+  other-modules: Raaz.Core.Constants
+               , Raaz.Core.Encode.Internal
+               , Raaz.Core.Encode.Base16
+               , Raaz.Core.Encode.Base64
+               , Raaz.Core.Util.ByteString
+               , Raaz.Core.Types.Pointer
+               , Raaz.Core.Types.Tuple
+               , Raaz.Core.Types.Equality
+               , Raaz.Core.Types.Endian
+               , Raaz.Core.Types.Describe
+	       --
+	       -- Hashes
+	       --
+               , Raaz.Hash.Internal.HMAC
+               , Raaz.Hash.Sha.Util
+               , Raaz.Hash.Sha1.Internal
+               , Raaz.Hash.Sha1.Recommendation
+               , Raaz.Hash.Sha256.Recommendation
+               , Raaz.Hash.Sha256.Internal
+               , Raaz.Hash.Sha224.Recommendation
+               , Raaz.Hash.Sha224.Internal
+               , Raaz.Hash.Sha384.Recommendation
+               , Raaz.Hash.Sha384.Internal
+               , Raaz.Hash.Sha512.Recommendation
+               , Raaz.Hash.Sha512.Internal
+               -- , Raaz.Hash.Blake256.Instance
+               -- , Raaz.Hash.Blake256.Ref
+               -- , Raaz.Hash.Blake256.CPortable
+               -- , Raaz.Hash.Blake256.Type
+               -- , Raaz.Hash.Blake.Util
+
+               --
+               -- Internal modules from cipher
+               --
+               , Raaz.Cipher.AES.Internal
+               , Raaz.Cipher.AES.Recommendation
+
+               -- , Raaz.Cipher.AES.CTR.CPortable
+               -- , Raaz.Cipher.AES.CTR.Instance
+               -- , Raaz.Cipher.AES.CTR.Ref
+               -- , Raaz.Cipher.AES.CTR.Type
+               -- , Raaz.Cipher.Salsa20.Block.Internal
+               -- , Raaz.Cipher.Salsa20.Block.Type
+               -- , Raaz.Cipher.Salsa20.Instances
+               -- , Raaz.Cipher.AES.Block.Internal
+               , Paths_raaz
+  build-depends: base                           >= 4.5  && < 5.0
+               , bytestring                     >= 0.9
+               , deepseq
+               , mtl                            >= 2.1
+               , transformers
+               , vector
+
+  c-sources: cbits/raaz/core/endian.c
+           -- hash implementations
+           , cbits/raaz/hash/sha1/portable.c
+           , cbits/raaz/hash/blake256/portable.c
+           , cbits/raaz/hash/sha256/portable.c
+           , cbits/raaz/hash/sha512/portable.c
+	   -- ciphers
+           , cbits/raaz/cipher/aes/common.c
+           , cbits/raaz/cipher/aes/cportable.c
+  include-dirs: cbits
+  includes: raaz/core/endian.h
+          -- ciphers
+          , raaz/cipher/aes/common.h
+          , raaz/cipher/aes/cportable.h
+  install-includes: raaz/core/endian.h
+                  , raaz/cipher/aes/common.h
+                  , raaz/cipher/aes/cportable.h
+executable checksum
+  hs-source-dirs: bin
+  main-is: checksum.lhs
+  build-depends: base     >= 4.5 && < 5.0
+               , raaz     == 0.0.2
+
+test-Suite spec
+  type: exitcode-stdio-1.0
+  hs-source-dirs: spec
+  main-is: Spec.hs
+  ghc-options: -Wall
+  other-modules: Common
+               , Common.Cipher
+               , Common.Hash
+               , Common.Imports
+               , Common.Instances
+               , Common.Utils
+               , Raaz.Cipher.AESSpec
+               , Raaz.Core.EncodeSpec
+               , Raaz.Core.MemorySpec
+               , Raaz.Core.SystemPRGSpec
+               , Raaz.Core.Types.WordSpec
+               , Raaz.Core.Util.ByteStringSpec
+               , Raaz.Hash.Sha1Spec
+               , Raaz.Hash.Sha224Spec
+               , Raaz.Hash.Sha256Spec
+               , Raaz.Hash.Sha384Spec
+               , Raaz.Hash.Sha512Spec
+               , Raaz.Hash.Blake256Spec
+
+
+  build-depends: base                           >= 4.5 && < 5.0
+               , bytestring                     >= 0.9
+               , HUnit                          >= 1.2
+               , QuickCheck                     >= 2.4
+               , hspec
+               , transformers
+               , raaz                           == 0.0.2
+               , vector
+
+benchmark blaze-vs-write
+  hs-source-dirs: benchmarks
+  main-is: BlazeVsWrite.hs
+  type: exitcode-stdio-1.0
+  build-depends: base
+               , blaze-builder
+               , bytestring
+               , criterion
+               , raaz
