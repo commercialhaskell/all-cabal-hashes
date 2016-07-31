@@ -1,0 +1,128 @@
+name:                intricacy
+version:             0.6.2
+synopsis:            A game of competitive puzzle-design
+homepage:            http://mbays.freeshell.org/intricacy
+license:             GPL-3
+license-file:        COPYING
+author:              Martin Bays
+maintainer:          mbays@sdf.org
+-- copyright:           
+category:            Game
+build-type:          Simple
+cabal-version:       >=1.8
+data-files: VeraMoBd.ttf tutorial/*.lock tutorial/*.text sounds/*.ogg
+extra-doc-files: README BUILD NEWS tutorial-extra/*.lock tutorial-extra/README
+extra-source-files: Main_stub.h
+
+description:
+    A networked game with client-server architecture. The core game is a
+    lockpicking-themed turn-based puzzle game on a hex grid. Players design
+    puzzles (locks) and solve those designed by others. A metagame encourages
+    the design of maximally difficult puzzles, within tight size constraints.
+    The client supports Curses and SDL, with all graphics in SDL mode drawn by
+    code using SDL-gfx. The network protocol is based on the 'binary' package,
+    and is intended to be reasonably efficient. TVars are used to give
+    transparent local caching and background network operations. Also
+    incorporates an implementation of a graph 5-colouring algorithm (see
+    GraphColouring.hs).
+
+source-repository head
+   type:     git
+   location: http://mbays.freeshell.org/intricacy/.git
+
+Flag Game
+    Description: Build game
+    Default: True
+    Manual: True
+Flag SDL 
+    Description: Enable SDL UI
+    Default: True
+Flag Sound 
+    Description: Enable sound
+    Default: True
+Flag Curses 
+    Description: Enable Curses UI
+    Default: True
+Flag Server
+    Description: Build server
+    Default: False
+    Manual: True
+
+executable intricacy
+  if flag(Game)
+      extensions: DoAndIfThenElse
+      build-depends: base >=4.3, base < 5
+        , mtl >=2.2, transformers >=0.4, stm >= 2.1
+        , directory >= 1.0, filepath >= 1.0, time >= 1.2
+        , bytestring >=0.10
+        , array >=0.3, containers >=0.4, vector >=0.9
+        , binary >=0.5, network-fancy >= 0.1.5
+        , cryptohash >= 0.8
+        , safe >= 0.2
+      if flag(SDL)
+          build-depends: SDL >=0.6.5, SDL-ttf >=0.6, SDL-gfx >=0.6
+          if flag(Sound)
+              cpp-options: -DSOUND
+              build-depends: SDL-mixer >= 0.6, random >= 1.0
+          if os(windows)
+              Extra-Lib-Dirs:    winlibs
+              Extra-Libraries:   SDL_ttf SDL SDL_gfx freetype
+              if flag(Sound)
+                  Extra-Libraries: SDL_mixer
+              ghc-options: -optl-mwindows
+          if os(darwin)
+              -- network-fancy-0.2.1+ causes a ___xpg_strerror_r link error
+              build-depends: network-fancy < 0.2.1
+              -- workaround for SDL on OS X, borrowed from TimePiece-0.0.5
+              cpp-options: -DAPPLE
+              ghc-options: -no-hs-main
+              include-dirs: /usr/include/SDL /usr/local/include/SDL
+              c-sources: c_main.c
+      if flag(Curses)
+          build-depends: hscurses >=1.4
+      if flag(SDL)
+          if flag(Curses)
+            main-is: MainBoth.hs
+          else
+            main-is: MainSDL.hs
+      else
+          if flag(Curses)
+            main-is: MainCurses.hs
+          else
+            Buildable: False
+            -- XXX: there must be a neater way to prevent the cabal flag sat
+            -- solver from thinking it's acceptable to have both SDL and Curses be
+            -- False... but this will have to do for now:
+            build-depends: Unsatisfiable >= 1337
+  else
+      main-is: MainBoth.hs
+      Buildable: False
+
+  ghc-options: -fno-warn-tabs
+  other-modules: AsciiLock, BinaryInstances, BoardColouring, Cache, Command,
+      CursesRender, CursesUI, CursesUIMInstance, CVec, Database, Debug,
+      EditGameState, Frame, GameState, GameStateTypes, GraphColouring, Hex, Init,
+      InputMode, Interact, InteractUtil, KeyBindings, Lock, MainState,
+      Maxlocksize, Metagame, Mundanities, Physics, Protocol, SDLRender, SDLUI,
+      SDLUIMInstance, ServerAddr, Util, Version
+
+executable intricacy-server
+  if flag(Server)
+      extensions: DoAndIfThenElse
+      build-depends: base >=4.3, base < 5
+        , mtl >=2.2, transformers >=0.4, stm >= 2.1
+        , directory >= 1.0, filepath >= 1.0, time >= 1.5
+        , bytestring >=0.10
+        , array >=0.3, containers >=0.4, vector >=0.9
+        , binary >=0.5, network-fancy >= 0.1.5
+        , cryptohash >= 0.8
+        , random >= 1.0, pipes >= 4
+        , feed >= 0.3.1, xml >= 1.2.6
+        , email-validate >= 1.0.0, text, smtp-mail >= 0.1.4.1
+  else
+    Buildable: False
+  main-is:  Server.hs
+  ghc-options: -fno-warn-tabs
+  other-modules: AsciiLock, BinaryInstances, BoardColouring, CVec, Database,
+      Debug, Frame, GameState, GameStateTypes, GraphColouring, Hex, Lock,
+      Maxlocksize, Metagame, Mundanities, Physics, Protocol, Util, Version
