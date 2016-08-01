@@ -1,0 +1,157 @@
+name:                tpar
+version:             0.1.0.0
+synopsis:            simple, parallel job scheduling
+description:
+    @tpar@ is a simple job scheduling and dispatch service for distributing and
+    monitoring tasks across machines. It was written to serve as a simple and
+    easy-to-administer substitute for systems like Grid Engine.
+    .
+    Configuring a @tpar@ instance is simply a matter of running @tpar server@ on
+    a designated server machine,
+    .
+    @
+    $ # We'll need to know the hostname of the server
+    $ hostname
+    my-server
+    $ # Start a server also running 8 local workers
+    $ tpar server -Hmy-server -N8
+    @
+    .
+    Submitting a job is then similarly easy,
+    .
+    @
+    $ tpar enqueue -H`hostname` -- long-process arg1 arg2
+    @
+    .
+    One can then enqueue jobs easily
+    .
+    @
+    $ tpar enqueue -Hmy-server -- bash -c "primes 10000000000  | head -n1"
+    $ tpar status -v
+    0     unnamed-job                                        finished
+        priority:       0
+        queued:         1 seconds ago
+        command:        bash
+        arguments:      -c primes 10000000000  | head -n1
+        logging:        stdout: none
+                        stderr: none
+        status:         finished with 0 (at 1 seconds ago)
+                        started at 1 seconds ago
+                        ran on nid://localhost:5757:0
+    @
+    .
+    One can add more workers to help churn through the work queue using the
+    @tpar worker@ command,
+    .
+    @
+    $ # Add 16 more workers running on another machine
+    $ ssh my-workers -- tpar worker -Hmy-server -N16
+    @
+    .
+    Finally, the output of running jobs can be monitored using the @tpar watch@
+    command,
+    .
+    @ 
+    $ tpar watch id=0
+    @
+
+homepage:            http://github.com/bgamari/tpar
+license:             BSD3
+license-file:        LICENSE
+author:              Ben Gamari
+maintainer:          bgamari@gmail.com
+copyright:           (c) 2014-2016 Ben Gamari <bgamari@gmail.com>
+category:            System
+build-type:          Simple
+homepage:            http://github.com/bgamari/tpar/
+bug-reports:         http://github.com/bgamari/tpar/issues
+cabal-version:       >=1.10
+extra-source-files:
+    README.mkd
+
+source-repository head
+  location:            git://github.com/bgamari/tpar
+  type:                git
+
+executable tpar
+  main-is:             Main.hs
+  other-modules:       TPar.Server
+                       TPar.Server.Types
+                       TPar.JobMatch
+                       TPar.ProcessPipe
+                       TPar.SubPubStream
+                       TPar.Rpc
+                       TPar.Types
+                       TPar.Utils
+  other-extensions:    DeriveGeneric
+  build-depends:       base >=4.5 && <4.10,
+                       ghc-prim,
+                       binary >=0.7 && <0.9,
+                       bytestring >=0.10 && <0.11,
+                       containers >= 0.5 && < 0.6,
+                       errors >=2.0 && <2.2,
+                       transformers >=0.3 && <0.6,
+                       exceptions >= 0.8 && < 0.9,
+                       async >=2.0 && <2.2,
+                       stm >=2.4 && <2.5,
+                       time >=1.6 && <1.7,
+                       friendly-time >=0.4 && <0.5,
+                       process >=1.1 && <1.5,
+                       pipes >=4.0 && <4.3,
+                       pipes-bytestring >=2.0 && <2.2,
+                       pipes-safe >= 2.2 && < 2.3,
+                       pipes-concurrency,
+                       optparse-applicative >= 0.10 && <0.13,
+                       distributed-process >= 0.6 && <0.7,
+                       network-transport-tcp >= 0.4,
+                       network >= 2.4 && < 2.7,
+                       heaps >= 0.3 && < 0.4,
+                       ansi-wl-pprint >= 0.6 && < 0.7,
+                       trifecta >= 1.5 && < 1.7,
+                       parsers >= 0.12 && < 0.13,
+                       aeson >= 0.11 && < 0.12
+  default-language:    Haskell2010
+  ghc-options:         -threaded -rtsopts -Wall
+
+test-suite test
+  type:                exitcode-stdio-1.0
+  main-is:             Test.hs
+  other-modules:       TPar.SubPubStream.Test
+  default-language:    Haskell2010
+  build-depends:       base >=4.5 && <4.10,
+                       binary,
+                       stm,
+                       containers,
+                       transformers,
+                       distributed-process,
+                       network-transport-inmemory,
+                       exceptions,
+                       pipes,
+                       QuickCheck
+
+benchmark bench
+  type:                exitcode-stdio-1.0
+  main-is:             Benchmark.hs
+  build-depends:       base >=4.5 && <4.10,
+                       ghc-prim,
+                       binary,
+                       bytestring,
+                       containers,
+                       errors,
+                       transformers,
+                       exceptions,
+                       async,
+                       stm,
+                       process,
+                       pipes,
+                       pipes-bytestring,
+                       pipes-safe,
+                       pipes-concurrency,
+                       optparse-applicative,
+                       distributed-process,
+                       network-transport-tcp,
+                       network,
+                       heaps,
+                       trifecta
+  default-language:    Haskell2010
+  ghc-options:         -threaded -eventlog -rtsopts
