@@ -1,0 +1,128 @@
+name:                wai-routing
+version:             0.13.0
+synopsis:            Declarative routing for WAI.
+license:             MPL-2.0
+license-file:        LICENSE
+author:              Toralf Wittner
+maintainer:          Toralf Wittner <tw@dtex.org>
+copyright:           (C) 2014-2016 Toralf Wittner
+homepage:            https://gitlab.com/twittner/wai-routing/
+bug-reports:         https://gitlab.com/twittner/wai-routing/issues
+stability:           experimental
+category:            Web
+build-type:          Simple
+cabal-version:       >= 1.10
+
+extra-source-files:
+    README.md
+    CHANGELOG.md
+    examples/*.hs
+
+description:
+    Enables the declaration of \"routes\" which handle requests to a
+    specific URL.
+    .
+    The set of possible handlers can be restricted by \"predicates\",
+    which operate on WAI requests and have to be true or else the
+    handler will not be called.
+    .
+    Example:
+    .
+    >import Data.ByteString (ByteString)
+    >import Data.Text (Text)
+    >import Network.Wai
+    >import Network.Wai.Predicate
+    >import Network.Wai.Routing
+    >import Network.Wai.Handler.Warp
+    >
+    >main :: IO ()
+    >main = run 8080 (route (prepare start))
+    >
+    >start :: Monad m => Routes a m ()
+    >start = do
+    >    get "/user/:name" (continue fetchUser) $
+    >        capture "name"
+    >
+    >    get "/user/find" (continue findUser) $
+    >        query "byName" ||| query "byId"
+    >
+    >    delete "/user/:name" rmUser $
+    >        capture "name" .&. opt (cookie "foo")
+    >
+    >fetchUser :: Monad m => Text -> m Response
+    >fetchUser name = ...
+    >
+    >findUser :: Monad m => Either ByteString Word64 -> m Response
+    >findUser (Left  name)  = ...
+    >findUser (Right ident) = ...
+    >
+    >rmUser :: Monad m => Text ::: Maybe Int -> Continue m -> m ResponseReceived
+    >rmUser (name ::: foo) k = k $ ...
+
+source-repository head
+    type:             git
+    location:         git@gitlab.com:twittner/wai-routing.git
+
+library
+    default-language: Haskell2010
+    hs-source-dirs:   src
+    ghc-options:      -Wall -O2 -fwarn-tabs -funbox-strict-fields
+
+    exposed-modules:
+        Network.Wai.Routing
+        Network.Wai.Routing.Request
+        Network.Wai.Routing.Route
+        Network.Wai.Routing.Predicate
+
+    build-depends:
+        attoparsec            >= 0.10
+      , base                  >= 4.6  && < 5.0
+      , bytestring            >= 0.10
+      , bytestring-conversion >= 0.2
+      , cookie                >= 0.4
+      , case-insensitive      >= 1.1
+      , http-types            >= 0.8
+      , transformers          >= 0.3
+      , wai                   >= 3.0
+      , wai-predicates        >= 0.8
+      , wai-route             >= 0.3
+
+test-suite wai-routing-tests
+    type:             exitcode-stdio-1.0
+    default-language: Haskell2010
+    hs-source-dirs:   test
+    main-is:          TestSuite.hs
+    ghc-options:      -Wall -O2 -fwarn-tabs
+
+    other-modules:
+        Tests.Wai.Route
+        Tests.Wai.Util
+
+    build-depends:
+        base
+      , blaze-builder         >= 0.3
+      , bytestring
+      , bytestring-conversion
+      , case-insensitive
+      , containers
+      , http-types
+      , tasty                 >= 0.8
+      , tasty-hunit           >= 0.9
+      , tasty-quickcheck      >= 0.8
+      , wai
+      , wai-predicates
+      , wai-routing
+
+benchmark wai-routing-bench
+    type:             exitcode-stdio-1.0
+    default-language: Haskell2010
+    main-is:          Bench.hs
+    hs-source-dirs:   bench
+    ghc-options:      -Wall -O2 -fwarn-tabs
+    build-depends:
+        base
+      , criterion     >= 1.0.0.2
+      , http-types
+      , wai
+      , wai-predicates
+      , wai-routing
