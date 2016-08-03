@@ -1,0 +1,158 @@
+name:           hans
+version:        3.0.0.1
+cabal-version:  >= 1.18
+license:        BSD3
+license-file:   LICENSE
+author:         Galois Inc.
+maintainer:     halvm-devel@community.galois.com
+category:       Networking
+synopsis:       Network Stack
+build-type:     Simple
+tested-with:    GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
+description:
+  HaNS is a lightweight, pure Haskell network stack that can be used for Haskell
+  networking in the context of the HaLVM, or with a Linux tap device.
+
+source-repository head
+        type:           git
+        location:       git://github.com/GaloisInc/HaNS.git
+
+flag examples
+        description:    Build example programs
+        default:        False
+
+library
+        if os(HALVM)
+                cpp-options:            -DHANS_TARGET_XEN
+                build-depends:          XenDevice >= 2.0.0 && < 3,
+                                        HALVMCore >= 2.0.0 && < 3
+                other-modules:          Hans.Device.Xen
+
+        if os(darwin) || os(linux)
+                cpp-options:            -DHANS_TARGET_UNIX
+                build-depends:          unix
+                other-modules:          Hans.Device.Tap
+                include-dirs:           cbits
+                c-sources:              cbits/tapdevice.c
+
+        -- XXX: Tap devices are supported on windows, someone should add support
+
+        default-language:       Haskell2010
+
+        ghc-options:            -Wall -O2
+        hs-source-dirs:         src
+        build-depends:          base       >= 4.0.0.0 && < 5,
+                                cereal     >= 0.5.0.0,
+                                heaps,
+                                psqueues,
+                                bytestring,
+                                containers,
+                                array,
+                                time,
+                                hashable,
+                                array,
+                                BoundedChan,
+                                random,
+                                monadLib,
+                                cryptonite,
+                                memory
+
+        -- XXX: which of these should be exposed?
+        exposed-modules:        Hans
+                                Hans.Addr
+                                Hans.Addr.Types
+                                Hans.Checksum
+                                Hans.Config
+                                Hans.Device
+                                Hans.Device.Loopback
+                                Hans.Device.Types
+                                Hans.Dns
+                                Hans.Dns.Packet
+                                Hans.Ethernet
+                                Hans.Ethernet.Types
+                                Hans.HashTable
+                                Hans.IP4
+                                Hans.IP4.ArpTable
+                                Hans.IP4.Dhcp.Client
+                                Hans.IP4.Dhcp.Codec
+                                Hans.IP4.Dhcp.Packet
+                                Hans.IP4.Dhcp.Options
+                                Hans.IP4.Fragments
+                                Hans.IP4.Icmp4
+                                Hans.IP4.Input
+                                Hans.IP4.Output
+                                Hans.IP4.Packet
+                                Hans.IP4.RoutingTable
+                                Hans.IP4.State
+                                Hans.Input
+                                Hans.Lens
+                                Hans.Monad
+                                Hans.Nat
+                                Hans.Network
+                                Hans.Network.Types
+                                Hans.Serialize
+                                Hans.Socket
+                                Hans.Tcp.Input
+                                Hans.Tcp.Message
+                                Hans.Tcp.Output
+                                Hans.Tcp.Packet
+                                Hans.Tcp.RecvWindow
+                                Hans.Tcp.SendWindow
+                                Hans.Tcp.State
+                                Hans.Tcp.Tcb
+                                Hans.Tcp.Timers
+                                Hans.Time
+                                Hans.Types
+                                Hans.Udp.Input
+                                Hans.Udp.Output
+                                Hans.Udp.Packet
+                                Hans.Udp.State
+
+        other-modules:          Hans.Buffer.Datagram
+                                Hans.Buffer.Signal
+                                Hans.Buffer.Stream
+                                Hans.Nat.Forward
+                                Hans.Nat.State
+                                Hans.Socket.Tcp
+                                Hans.Socket.Types
+                                Hans.Socket.Udp
+                                Hans.Threads
+
+executable echo-server
+        if flag(examples)
+                build-depends:  base >= 4.0.0.0 && < 5,
+                                bytestring,
+                                hans
+
+        else
+                buildable:      False
+
+        default-language:       Haskell2010
+        main-is:                Main.hs
+        hs-source-dirs:         examples/echo-server
+        ghc-options:            -Wall -threaded -O2
+
+
+test-suite hans-tests
+        default-language:       Haskell2010
+        type:                   exitcode-stdio-1.0
+        build-depends:          base >= 4.4 && < 5,
+                                bytestring,
+                                tasty >= 0.11,
+                                tasty-quickcheck,
+                                tasty-ant-xml,
+                                QuickCheck,
+                                cereal,
+                                hans
+
+        ghc-options:            -Wall -threaded
+
+        hs-source-dirs:         tests
+        main-is:                Main.hs
+        other-modules:          Tests.Checksum
+                                Tests.Ethernet
+                                Tests.IP4
+                                Tests.IP4.Fragmentation
+                                Tests.IP4.Icmp4
+                                Tests.IP4.Packet
+                                Tests.Utils
