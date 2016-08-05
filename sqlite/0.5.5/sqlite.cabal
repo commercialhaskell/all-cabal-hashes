@@ -1,0 +1,65 @@
+Name:            sqlite
+Version:         0.5.5
+Synopsis:        Haskell binding to sqlite3
+Description:
+    Haskell binding to sqlite3 <http://sqlite.org/>.
+    .
+License:         BSD3
+License-file:    LICENSE
+Author:          Galois Inc
+Maintainer:      Adam Wick <awick@uhsure.com>
+Copyright:
+  Copyright (c) 2007-8, Galois Inc
+Homepage:        http://github.com/GaloisInc/sqlite
+Category:        Database
+cabal-version: >= 1.8
+build-type:      Configure
+
+-- Cheating here, including the tests/ .cabal +
+-- files in the parent (so as to dist them as one.)
+extra-source-files:
+  README configure
+  include/sqlite3-local.h include/sqlite3.h
+  sqlite.buildinfo.unix sqlite.buildinfo.win32
+extra-tmp-files:
+  sqlite.buildinfo
+
+flag builtin-sqlite3
+  default: False
+  description: Compile sqlite3 as a part of the library.
+
+library
+  Build-depends:   base >= 3 && < 5, pretty, utf8-string, bytestring, time,
+                   directory
+  Extensions:      ForeignFunctionInterface, GeneralizedNewtypeDeriving,
+                   TypeSynonymInstances, ScopedTypeVariables,
+                   FlexibleInstances, UndecidableInstances, IncoherentInstances
+  Ghc-options:     -Wall
+  Cc-options:      -Wall -DSQLITE_ENABLE_FTS3=1 -DNDEBUG=1
+  Include-dirs:    include
+  Includes:        sqlite3-local.h
+  C-Sources:       cbits/sqlite3-local.c
+
+  if flag(builtin-sqlite3)
+    Include-dirs:    sqlite3.6
+    Includes:        sqlite3.h
+    C-Sources:       sqlite3.6/sqlite3.c
+  else
+    Extra-Libraries: sqlite3
+
+  Exposed-modules:
+    Database.SQLite,
+    Database.SQLite.Base,
+    Database.SQLite.Types,
+    Database.SQL
+    Database.SQL.Types
+
+test-suite sqlite-tests
+  Type:            exitcode-stdio-1.0
+  Build-depends:   base, sqlite
+  Main-is:         Main.hs
+  hs-source-dirs:  tests/
+
+source-repository head
+  type:     git
+  location: git://github.com/GaloisInc/sqlite.git
