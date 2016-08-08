@@ -1,0 +1,67 @@
+name:                htestu
+version:             0.1.1.2
+synopsis:            A library for testing correctness of pseudo random number generators in Haskell.
+description:
+  HTestU is a library for testing correctness of presudo random number generators (PRNGs) written in Haskell.
+  HTestU uses a library TestU01 based on a paper "TestU01: A C Library for Empirical Testing of Random Number Generators" by P. L'Ecuyer and R. Simard.
+  Basically HTestU performs a wrapping of a member of the RandomGen typeclass (any reasonable PRNG can be made a member of it) and
+  feeds a wrapped generator into a C library which calls the wrapped generator to fill the buffer with pseudo random numbers and then
+  perform tests on the generated numbers.
+
+  HTestU offers three batteries: smallCrush, crush and bigCrush (as they were specified in TestU01 paper) and a number of
+  streaming functions which allow one to wrap the PRNG differently for the purpose of testing different patterns of PRNG usage.
+
+homepage:            https://github.com/nkartashov/htestu
+license:             MIT
+license-file:        LICENSE
+author:              Nikita Kartashov
+maintainer:          snailandmail@gmail.com
+category:            System
+build-type:          Simple
+cabal-version:       >=1.10
+
+source-repository head
+    type:     git
+    location: https://github.com/idontgetoutmuch/htestu
+
+flag testKnownRNGs
+  description: build an exe to test selected Haskell RNGs
+  default: False
+
+library
+  exposed-modules:     Test.HTestU,
+                       Test.HTestU.Streaming,
+                       Test.HTestU.BatteryResult,
+                       Test.HTestU.Wrapping
+  other-extensions:    ForeignFunctionInterface, CPP
+  build-depends:       base >=4.7 && < 4.10,
+                       random
+
+  hs-source-dirs:      src
+  build-tools:         gcc, hsc2hs
+  default-language:    Haskell2010
+  include-dirs: cbits/testu/include cbits/testu/src
+  includes:
+  install-includes: addstr.h ftab.h sspectral.h uknuth.h bbattery.h fvaria.h sstring.h ulcg.h bitset.h fwalk.h ulec.h chrono.h gdef.h umarsa.h config.h gdefconf.h statcoll.h umrg.h fbar.h gofs.h svaria.h unif01.h fcho.h gofw.h swalk.h unumrec.h fcong.h mystr.h swrite.h uquad.h fdist.h num.h tables.h usoft.h ffam.h num2.h tu01_sha1.h utaus.h ffsr.h rijndael-alg-fst.h uautomata.h utezuka.h finv.h scatter.h ubrent.h util.h fknuth.h scomp.h ucarry.h utouzin.h fmarsa.h sentrop.h ucrypto.h uvaria.h fmass.h sknuth.h ucubic.h uweyl.h fmultin.h smarsa.h udeng.h uwu.h fnpair.h smultin.h ufile.h uxorshift.h fres.h snpair.h ugfsr.h vectorsF2.h fspectral.h sres.h ugranger.h wdist.h fstring.h sspacings.h uinv.h fftc.c
+  c-sources: cbits/testu/src/util.c cbits/testu/src/chrono.c cbits/testu/src/bitset.c cbits/testu/src/num.c cbits/testu/src/num2.c cbits/testu/src/mystr.c cbits/testu/src/tables.c cbits/testu/src/statcoll.c cbits/testu/src/gofs.c cbits/testu/src/gofw.c cbits/testu/src/gdef.c cbits/testu/src/vectorsF2.c cbits/testu/src/swrite.c cbits/testu/src/wdist.c cbits/testu/src/smultin.c cbits/testu/src/svaria.c cbits/testu/src/swalk.c cbits/testu/src/sstring.c cbits/testu/src/sspectral.c cbits/testu/src/sres.c cbits/testu/src/snpair.c cbits/testu/src/smarsa.c cbits/testu/src/sknuth.c cbits/testu/src/scomp.c cbits/testu/src/ftab.c cbits/testu/src/fres.c cbits/testu/src/fmass.c cbits/testu/src/fdist.c cbits/testu/src/fcho.c cbits/testu/src/fbar.c cbits/testu/src/fmarsa.c  cbits/testu/src/ufile.c cbits/testu/src/unif01.c cbits/testu/src/bbattery.c
+
+executable runTestu
+    if flag(testKnownRNGs)
+        hs-source-dirs:      app
+        main-is:             TestGen.hs
+        ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N -O2
+        build-depends:       base
+                           , htestu
+                           , random
+                           -- , pcg-random
+                           , tf-random
+                           , mwc-random
+                           , mersenne-random-pure64
+                           , primitive
+        default-language:    Haskell2010
+    else
+        hs-source-dirs:      app
+        main-is:             Dummy.hs
+        ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+        build-depends:       base
+        default-language:    Haskell2010
