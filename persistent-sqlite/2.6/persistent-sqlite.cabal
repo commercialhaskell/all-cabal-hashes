@@ -1,0 +1,80 @@
+name:            persistent-sqlite
+version:         2.6
+license:         MIT
+license-file:    LICENSE
+author:          Michael Snoyman <michael@snoyman.com>
+maintainer:      Michael Snoyman <michael@snoyman.com>
+synopsis:        Backend for the persistent library using sqlite3.
+description:     This package includes a thin sqlite3 wrapper based on the direct-sqlite package, as well as the entire C library, so there are no system dependencies.
+category:        Database, Yesod
+stability:       Stable
+cabal-version:   >= 1.8
+build-type:      Simple
+homepage:        http://www.yesodweb.com/book/persistent
+bug-reports:     https://github.com/yesodweb/persistent/issues
+extra-source-files: ChangeLog.md cbits/*.c cbits/*.h
+
+flag systemlib
+  description: Use the system-wide sqlite library
+  default: False
+flag build-sanity-exe
+  description: Build a sanity check test executable
+  default: False
+
+library
+    build-depends:   base                    >= 4.6         && < 5
+                   , bytestring              >= 0.9.1
+                   , transformers            >= 0.2.1
+                   , persistent              >= 2.6         && < 3
+                   , monad-control           >= 0.2
+                   , containers              >= 0.2
+                   , text                    >= 0.7
+                   , aeson                   >= 0.6.2
+                   , conduit                 >= 0.5.3
+                   , monad-logger            >= 0.2.4
+                   , resourcet               >= 1.1
+                   , time
+                   , old-locale
+                   , resource-pool
+    exposed-modules: Database.Sqlite
+                     Database.Persist.Sqlite
+    ghc-options:     -Wall
+    if flag(systemlib)
+        extra-libraries: sqlite3
+    else
+        c-sources:   cbits/sqlite3.c
+        include-dirs: cbits
+        cc-options:  -fPIC -std=c99
+
+    c-sources: cbits/config.c
+
+    if !os(windows)
+        extra-libraries: pthread
+
+source-repository head
+  type:     git
+  location: git://github.com/yesodweb/persistent.git
+
+
+test-suite test
+  type:           exitcode-stdio-1.0
+  main-is:        Spec.hs
+  hs-source-dirs: test
+  build-depends:  base
+                , hspec
+                , persistent
+                , persistent-sqlite
+                , persistent-template
+                , temporary
+                , text
+                , time
+                , transformers
+
+executable sanity
+    if flag(build-sanity-exe)
+        buildable: True
+    else
+        buildable: False
+    main-is: sanity.hs
+    hs-source-dirs: test
+    build-depends: base, persistent-sqlite, monad-logger
