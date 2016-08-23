@@ -1,0 +1,212 @@
+name:                hashabler
+version:             1.3.0
+synopsis:            Principled, portable & extensible hashing of data and types, including an implementation of the FNV-1a and SipHash algorithms.
+description:         
+    This package is a rewrite of the @hashable@ library by Milan Straka and
+    Johan Tibell, having the following goals:
+    .
+    - Extensibility; it should be easy to implement a new hashing algorithm on
+      any @Hashable@ type; in this package we provide SipHash and FNV-1a.
+    .
+    - Honest hashing of values, and principled hashing of algebraic data types
+      (see e.g. hashable issues #74 and #30)
+    .
+    - Cross-platform consistent hash values, with a versioning guarantee. Where
+      possible we ensure morally identical data hashes to indentical values
+      regardless of processor word size and endianness.
+    .
+    - Make implementing identical hash routines in other languages as painless
+      as possible. In addition to SipHash, we provide an implementation of a
+      simple hashing algorithm (FNV-1a) and make an effort to define Hashable
+      instances in a way that is well-documented and sensible, so that e.g. one
+      can easily implement a string hashing routine in JavaScript that will
+      match the way we hash strings here.
+    .
+    /Versioning/: Except for instances where we specifically note that we make
+    no promise of consistency, changes to hash values (and consequently changes
+    to @StableHashable@ values, where applicable) entail a major version number
+    bump.
+
+
+homepage:            https://github.com/jberryman/hashabler
+license:             BSD3
+license-file:        LICENSE
+author:              Brandon Simmons
+maintainer:          brandon.m.simmons@gmail.com
+-- copyright:           
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.18
+
+-- For tests:
+extra-source-files:  tests/Vectors/generated/*.in
+                   , tests/Vectors/generated/*.out.FNV32
+                   -- cabal's wildcards are strange and sucky:
+                   , tests/Vectors/generated/*.ByteString.out.FNV32
+                   , tests/Vectors/generated/P.ByteArray.out.FNV32
+                   , tests/Vectors/generated/*.Text.out.FNV32
+                   , CHANGELOG.markdown
+
+source-repository head
+  type:     git
+  location: https://github.com/jberryman/hashabler.git
+
+-- I guess we depend on impl(ghc) at this point, but maybe we can fix that
+Flag integer-gmp
+  Description: Are we using integer-gmp to provide fast Integer instances?
+  Default: True
+
+Flag dev
+  Description: To build tests, executables and benchmarks do `configure -fdev --enable-tests` and run the built executables by hand (i.e. not with `cabal test` etc.; we put all our different executables in test-suite sections in order to hide their dependencies from hackage)
+  Default: False
+  -- TODO did this solve our issues with having executable sections and hackage deps?:
+  Manual: True
+
+Flag instrumented
+  Description: Enables assertions in library code. When --enable-library-profiling and --enable-executable-profiling is turned on, you can get stacktraces as well
+  Default: False
+  Manual: True
+
+library
+  if flag(dev)
+      CPP-Options:     -DEXPORT_INTERNALS
+  if flag(instrumented)
+      ghc-options:     -fno-ignore-asserts
+      ghc-prof-options: -fprof-auto -auto-all -caf-all
+
+  exposed-modules:     Data.Hashabler
+  other-modules:       MachDeps, Data.Hashabler.Internal, Data.Hashabler.SipHash
+  -- other-extensions:    
+                       -- GHC 7.2.1:
+  build-depends:       base >=4.4 && <5
+                     , array
+                     , bytestring
+                     , text >= 1.1.1.3
+                     , primitive
+                     , ghc-prim
+                     -- For endianness test:
+                     , template-haskell
+  if impl(ghc < 7.9)
+    -- for Data.Functor.Identity
+    build-depends:     transformers
+
+  if flag(integer-gmp)
+      Build-depends:   integer-gmp >= 0.2
+
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options: -Wall -fwarn-tabs -O2 -funbox-strict-fields
+
+
+-- I'm not sure how to make this test-suite and still be able to get
+-- conditional export list in library:
+test-suite tests
+  type: exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      tests
+  main-is:             Main.hs
+  other-modules:       Consistency
+                     , Vectors.FNV
+                     , Vectors.SipHash
+
+  ghc-options:         -Wall -O2 -threaded -funbox-strict-fields -fno-ignore-asserts
+  if flag(instrumented)
+      CPP-Options:     -DASSERTIONS_ON
+  if flag(dev)
+      buildable: True
+      build-depends:       base
+                         , hashabler
+                         , directory
+                         , bytestring
+                         , text
+                         , primitive
+                         , random
+                         , QuickCheck
+      if flag(integer-gmp)
+          Build-depends:   integer-gmp >= 0.2
+  else 
+      buildable: False
+
+
+benchmark bench
+  type: exitcode-stdio-1.0
+  default-language:    Haskell2010
+  main-is:             Main.hs
+  ghc-options:         -Wall -O2 -threaded -funbox-strict-fields
+  hs-source-dirs:      benchmarks
+  if flag(instrumented)
+      CPP-Options:     -DASSERTIONS_ON
+  if flag(dev)
+      buildable: True
+      build-depends:   base
+                     , array
+                     , bytestring
+                     , text
+                     , primitive
+
+                     , hashabler
+                     , hashable
+                     , criterion
+                     , deepseq
+  else 
+      buildable: False
+
+
+-- Some code to visualize distributions of hashes.
+benchmark viz
+  type: exitcode-stdio-1.0
+  default-language:    Haskell2010
+  main-is:             Main.hs
+  ghc-options:         -O2 -threaded -funbox-strict-fields
+  hs-source-dirs:      viz
+  if flag(dev)
+      buildable: True
+      build-depends:   base
+                     , array
+                     , bytestring
+                     , text
+                     , primitive
+                     , JuicyPixels
+                     , mwc-random
+                     , vector
+                     
+                     , hashabler
+                     , hashable
+  else 
+      buildable: False
+
+
+-- For dumping core
+benchmark core
+  type: exitcode-stdio-1.0
+ -- find dist/build/core/core-tmp -name '*dump-simpl'
+  if flag(dev)
+      buildable: True
+      build-depends:       
+           base
+         , hashabler
+         , bytestring
+  else 
+      buildable: False
+
+  if flag(dev)
+      ghc-options: -ddump-to-file -ddump-simpl -dsuppress-module-prefixes -dsuppress-uniques -ddump-core-stats -ddump-inlinings
+      ghc-options: -O2  -rtsopts -funbox-strict-fields
+ 
+  -- Either do threaded for eventlogging and simple timing...
+  --ghc-options: -threaded -eventlog
+  -- and run e.g. with +RTS -N -l
+
+  -- ...or do non-threaded runtime
+  --ghc-prof-options: -fprof-auto
+  --Relevant profiling RTS settings:  -xt
+  -- TODO also check out +RTS -A10m, and look at output of -sstderr
+
+  -- hs-source-dirs: core-example
+  main-is: core.hs
+  default-language:    Haskell2010
+
+
+-- Testing bit-independence and avalanche properties of straight FNV-1a, as
+-- well as experiments to validate the idea of using multiple parallel running
+-- hashes to get more hash bits.

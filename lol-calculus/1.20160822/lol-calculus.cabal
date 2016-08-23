@@ -1,0 +1,169 @@
+author: Julien Moutinho <julm+lol@autogeree.net>
+-- bug-reports: http://bug.autogeree.net/lol
+build-type: Simple
+cabal-version: >= 1.8
+category: Language
+-- data-dir: .
+-- data-files:
+description:
+ WARNING: this is a research program
+ written as I learn and explore /lambda calculii/:
+ please understand well by yourself whatever you may take from it;
+ any question or contribution being welcome :-)
+ .
+ This package implements an /explicitely typed/
+ (aka. /à la Church/) /lambda calculus/
+ with: /simples types/, /parametric polymorphism/,
+ /higher-rank polymorphism/ and /constructors of types/
+ (I have no need for /dependent types/ so far,
+ but it should be straightforward to add them
+ to allow the full /Calculus of constructions/ (CoC)).
+ .
+ This is mainly done by means of:
+ a common /Algebraic Data Type/ (ADT) for terms and types
+ to build a /Pure Type System/ (PTS),
+ <https://www.schoolofhaskell.com/user/edwardk/bound generalized DeBruijn indices>
+ to implement /capture-avoiding substitution/ of variables,
+ and 'Typeable' axioms to embed Haskell types and terms
+ (the most experimental and tricky part).
+ .
+ The inspiring programs I studied
+ which explore similar problems:
+ Simon Peyton Jones and Erik Meijer's
+ <https://research.microsoft.com/en-us/um/people/simonpj/papers/henk.ps.gz Henk>,
+ Dan Doel's <http://hub.darcs.net/dolio/pts pts>,
+ Gabriel Gonzalez's <https://hackage.haskell.org/package/morte morte>,
+ Richard Eisenberg's <https://hackage.haskell.org/package/glambda glambda>,
+ Edward Kmett's <https://hackage.haskell.org/package/bound bound>.
+
+ .
+ See also: the <https://hackage.haskell.org/package/lol-typing lol-typing> package
+ studying the /type inferencing/.
+ .
+ NOTE: if you are just interested in building
+ an /Embedded Domain Specific Language/ (EDSL)
+ you may as well study Oleg Kiselyov, Jacques Carette and Chung-chieh Shan's
+ <http://okmij.org/ftp/tagless-final Typed Tagless Final Interpreters>,
+ which you may find being a much more simple, efficient and robust approach.
+extra-source-files:
+  stack.yaml
+  Language/LOL/Calculus/lib.lol
+  Language/LOL/Calculus/lib/Bool.lol
+  Language/LOL/Calculus/lib/Either.lol
+  Language/LOL/Calculus/lib/Eq.lol
+  Language/LOL/Calculus/lib/Function.lol
+  Language/LOL/Calculus/lib/Functor.lol
+  Language/LOL/Calculus/lib/IO.lol
+  Language/LOL/Calculus/lib/List.lol
+  Language/LOL/Calculus/lib/Maybe.lol
+  Language/LOL/Calculus/lib/Monad.lol
+  Language/LOL/Calculus/lib/Monoid.lol
+  Language/LOL/Calculus/lib/Nat.lol
+  Language/LOL/Calculus/lib/Ord.lol
+  Language/LOL/Calculus/lib/Pair.lol
+extra-tmp-files:
+-- homepage: http://pad.autogeree.net/informatique/lol/
+license: GPL-3
+license-file: COPYING
+maintainer: Julien Moutinho <julm+lol@autogeree.net>
+name: lol-calculus
+stability: experimental
+synopsis: Calculus for LOL (λω language).
+tested-with: GHC==7.10.3
+version: 1.20160822
+
+source-repository head
+  location: git://git.autogeree.net/lol
+  type:     git
+
+Flag dev
+  Default:     False
+  Description: Turn on development settings.
+  Manual:      True
+
+Flag dump
+  Default:     False
+  Description: Dump some intermediate files.
+  Manual:      True
+
+Flag exe
+  Description: Build executable.
+  Default:     True
+
+Flag lib
+  Description: Build library.
+  Default:     True
+
+Flag prof
+  Default:     False
+  Description: Turn on profiling settings.
+  Manual:      True
+
+Flag threaded
+  Default:     False
+  Description: Enable threads.
+  Manual:      True
+
+Library
+  extensions: NoImplicitPrelude
+  ghc-options: -Wall -fno-warn-tabs
+  if flag(dev)
+    cpp-options: -DDEVELOPMENT
+    ghc-options:
+  if flag(dump)
+    ghc-options: -ddump-simpl -ddump-stg -ddump-to-file
+  if flag(exe)
+    Buildable: True
+  else
+    Buildable: False
+  if flag(prof)
+    cpp-options: -DPROFILING
+    ghc-options: -fprof-auto
+  -- default-language: Haskell2010
+  exposed-modules:
+    Language.LOL.Calculus
+    Language.LOL.Calculus.Abstraction
+    Language.LOL.Calculus.Axiom
+    Language.LOL.Calculus.Form
+    Language.LOL.Calculus.Read
+    Language.LOL.Calculus.Term
+    Language.LOL.Calculus.Type
+  build-depends:
+    base >= 4.6 && < 5
+    , containers >= 0.5 && < 0.6
+    , parsec >= 3.1.2 && < 4
+    , text
+    , text-format
+    , transformers >= 0.4 && < 0.5
+
+Executable lol-calculus
+  extensions: NoImplicitPrelude
+  ghc-options: -Wall -fno-warn-tabs
+               -main-is Language.LOL.Calculus.REPL
+  if flag(threaded)
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  if flag(dev)
+    cpp-options: -DDEVELOPMENT
+    ghc-options:
+  if flag(prof)
+    cpp-options: -DPROFILING
+    ghc-options: -fprof-auto
+  if flag(lib)
+    Buildable: True
+  else
+    Buildable: False
+  hs-source-dirs: Language/LOL/Calculus
+  main-is: REPL.hs
+  other-modules:
+  build-depends:
+    base >= 4.6 && < 5
+    , containers >= 0.5 && < 0.6
+    , directory
+    , filepath
+    , haskeline >= 0.7 && < 0.8
+    , lol-calculus
+    , mtl >= 2.0
+    , parsec
+    , text
+    , text-format
+    , transformers >= 0.4 && < 0.5

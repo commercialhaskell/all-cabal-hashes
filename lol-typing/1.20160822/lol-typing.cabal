@@ -1,0 +1,204 @@
+author: Julien Moutinho <julm+lol@autogeree.net>
+-- bug-reports: http://bug.autogeree.net/lol
+build-type: Custom
+cabal-version: >= 1.24
+category: Language
+-- data-dir: .
+-- data-files:
+description:
+ WARNING: this is a research program
+ written as I learn and explore /type inferencing/:
+ please understand well by yourself whatever you may take from it;
+ any question or contribution being welcome :-)
+ .
+ This package implements /type inferencing/
+ by manipulating /type constraints/
+ through 3 successive phases:
+ 1. the 'Collect' phase collects them from some expression,
+ 2. the 'Order' phase modifies the order in which they will be solved,
+ 3. the 'Solver' phase solves them according to the logic
+    of some /type inference rules/.
+ .
+ So far, the principles within these phases
+ are mainly a rewrite of Bastiaan Heeren's
+ <https://hackage.haskell.org/package/Top Top>,
+ using my own code conventions and ideals of simplicity.
+ The most notable change being the use of Roman Cheplyaka's
+ <https://hackage.haskell.org/package/monad-classes monad-classes>
+ (a little bit augmented):
+ to handle the 'Monad' stack building a 'Solver'
+ (instead of a homegrown machinery I could not understand well).
+ At this point, only a /bottom-up/ 'Collect', a no-op 'Order'
+ and a 'Greedy' 'Solver' are implemented, supporting:
+ /monomorphic types/ ('Monotype'),
+ /parametric polymorphism/ ('Polytype'),
+ /type class polymorphism/ ('Class'),
+ and /type synonyms/ ('Synotype').
+ The quite understandable thesis of Bastiaan Heeren
+ explains a lot of this in details:
+ <http://www.open.ou.nl/bhr/TopQuality.pdf Top Quality Type Error Messages>.
+ .
+ The <https://hackage.haskell.org/package/uuagc Attribute Grammar System of Universiteit Utrecht>
+ is used to demonstrate how to collect /type constraints/ from an expression ('Expr'),
+ and then how to transform this /implicitely typed/ expression into an /explicitely typed/
+ <https://hackage.haskell.org/package/lol-calculus lol-calculus> expression
+ .
+ See also: the <https://hackage.haskell.org/package/helium helium> compiler.
+extra-source-files:
+  stack.yaml,
+  uuagc_options,
+  Language/LOL/Typing/Collect/Grammar.ag,
+  Language/LOL/Typing/Expr/Calculus.ag,
+  Language/LOL/Typing/Expr/Grammar.ag
+extra-tmp-files:
+homepage: http://pad.autogeree.net/informatique/lol/
+license: GPL-3
+license-file: COPYING
+maintainer: Julien Moutinho <julm+lol@autogeree.net>
+name: lol-typing
+stability: experimental
+synopsis: Type inferencer for LOL (λω language)
+tested-with: GHC==7.10.3
+version: 1.20160822
+
+source-repository head
+  location: git://git.autogeree.net/lol
+  type:     git
+
+Flag dev
+  Default:     False
+  Description: Turn on development settings.
+  Manual:      True
+
+Flag dump
+  Default:     False
+  Description: Dump some intermediate files.
+  Manual:      True
+
+Flag exe
+  Default:     False
+  Description: Turn on executables.
+  Manual:      True
+
+Flag prof
+  Default:     False
+  Description: Turn on profiling settings.
+  Manual:      True
+
+Flag threaded
+  Default:     True
+  Description: Enable threads.
+  Manual:      True
+
+Custom-Setup
+  setup-depends:
+    base >= 4.6 && < 5
+    , Cabal >= 1.24
+    , uuagc >= 0.9
+    , uuagc-cabal >= 1.0.6.0
+
+Library
+  default-extensions: NoImplicitPrelude
+  default-language: Haskell2010
+  ghc-options: -Wall -fno-warn-tabs
+  if flag(dev)
+    cpp-options: -DDEVELOPMENT
+    ghc-options:
+  if flag(dump)
+    ghc-options: -ddump-simpl -ddump-stg -ddump-to-file
+  if flag(prof)
+    cpp-options: -DPROFILING
+    ghc-options: -fprof-auto
+  exposed-modules:
+    Language.LOL.Typing
+    Language.LOL.Typing.Collect
+    Language.LOL.Typing.Collect.Constraint
+    Language.LOL.Typing.Collect.Grammar
+    Language.LOL.Typing.Constraint
+    Language.LOL.Typing.Constraint.Either
+    Language.LOL.Typing.Constraint.Extra
+    Language.LOL.Typing.Constraint.Monotype
+    Language.LOL.Typing.Constraint.Polytype
+    Language.LOL.Typing.Expr
+    Language.LOL.Typing.Expr.Calculus
+    Language.LOL.Typing.Expr.Common
+    Language.LOL.Typing.Expr.Grammar
+    Language.LOL.Typing.Expr.Utils
+    Language.LOL.Typing.Expr.Write
+    Language.LOL.Typing.Lib.Control.Monad.Classes.EffectsFix
+    Language.LOL.Typing.Lib.Control.Monad.Classes.Instance
+    Language.LOL.Typing.Lib.Control.Monad.Classes.StateFix
+    Language.LOL.Typing.Lib.Control.Monad.Classes.StateInstance
+    Language.LOL.Typing.Lib.Data.Default
+    Language.LOL.Typing.Lib.Data.Empty
+    Language.LOL.Typing.Lib.Data.Text.Buildable
+    Language.LOL.Typing.Solver
+    Language.LOL.Typing.Solver.Class
+    Language.LOL.Typing.Solver.Common
+    Language.LOL.Typing.Solver.Constraint
+    Language.LOL.Typing.Solver.Greedy
+    Language.LOL.Typing.Solver.Monad
+    Language.LOL.Typing.Solver.Monotype
+    Language.LOL.Typing.Solver.Polytype
+    Language.LOL.Typing.Type
+    Language.LOL.Typing.Type.Class
+    Language.LOL.Typing.Type.Kind
+    Language.LOL.Typing.Type.Monotype
+    Language.LOL.Typing.Type.Polytype
+    Language.LOL.Typing.Type.Qualification
+    Language.LOL.Typing.Type.Quantification
+    Language.LOL.Typing.Type.Substitution
+    Language.LOL.Typing.Type.Synotype
+    Language.LOL.Typing.Type.Unification
+  build-depends:
+    base >= 4.6 && < 5
+    , containers >= 0.5 && < 0.6
+    , ghc-prim
+    , lol-calculus
+    , monad-classes >= 0.3.1.1
+    -- , monad-control
+    , parsec >= 3.1.2 && < 4
+    -- , peano
+    -- , reflection
+    , text
+    , text-format
+    , transformers >= 0.4 && < 0.5
+    -- , transformers-base
+    , uuagc >= 0.9
+    , uuagc-cabal >= 1.0.6.0
+
+
+test-suite lol-typing-test
+  type: exitcode-stdio-1.0
+  default-extensions: NoImplicitPrelude
+  default-language: Haskell2010
+  ghc-options: -Wall -fno-warn-tabs
+               -main-is Test
+  hs-source-dirs: Language/LOL/Typing
+  main-is: Test.hs
+  other-modules:
+    Expr.Test
+    Solver.Test
+    Type.Test
+  if flag(threaded)
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  if flag(dev)
+    cpp-options: -DDEVELOPMENT
+    ghc-options:
+  if flag(prof)
+    cpp-options: -DPROFILING
+    ghc-options: -fprof-auto
+  build-depends:
+    base >= 4.6 && < 5
+    , containers >= 0.5 && < 0.6
+    , directory
+    , filepath
+    , ghc-prim
+    , lol-calculus
+    , lol-typing
+    , monad-classes >= 0.3.1.1
+    , tasty >= 0.11
+    , tasty-hunit
+    , text
+    , text-format
+    , transformers >= 0.4 && < 0.5
