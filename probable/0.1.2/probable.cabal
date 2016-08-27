@@ -1,0 +1,106 @@
+name:                probable
+version:             0.1.2
+synopsis:            Easy and reasonably efficient probabilistic programming and random generation
+description:         Easy and reasonably efficient probabilistic programming and random generation
+                     .
+                     This library gives a common language to speak about
+                     probability distributions and
+                     random generation, by wrapping both, when necessary,
+                     in a 'RandT' monad defined in @Math.Probable.Random@.
+                     This module also provides a lot of useful little
+                     combinators for easily describing how random values for your
+                     types should be generated.
+                     .
+                     In @Math.Probable.Distribution@, you'll find functions for generating
+                     random values that follow any distribution supported by
+                     <http://hackage.haskell.org/package/mwc-random mwc-random>.
+                     .
+                     In @Math.Probable.Distribution.Finite@, you'll find an adaptation
+                     of Eric Kidd's work on probability monads (from
+                     <http://www.randomhacks.net/probability-monads/ here>).
+                     .
+                     You may want to check the examples bundled with this package,
+                     viewable online at <https://github.com/alpmestan/probable/tree/master/examples>.
+                     One of these examples is simple enough to be worth reproducing here.
+                     .
+                     > module Main where
+                     >
+                     > import Control.Applicative
+                     > import Control.Monad
+                     > import Math.Probable
+                     >
+                     > import qualified Data.Vector.Unboxed as VU
+                     >
+                     > data Person = Person Int    -- ^ age
+                     >                      Double -- ^ weight (kgs)
+                     >                      Double -- ^ salary (e.g euros)
+                     >     deriving (Eq, Show)
+                     >
+                     > person :: RandT IO Person
+                     > person =
+                     >     Person <$> uniformIn (1, 100)
+                     >            <*> uniformIn (2, 130)
+                     >            <*> uniformIn (500, 10000)
+                     >
+                     > randomPersons :: Int -> IO [Person]
+                     > randomPersons n = mwc $ listOf n person
+                     >
+                     > randomDoubles :: Int -> IO (VU.Vector Double)
+                     > randomDoubles n = mwc $ vectorOf n double
+                     >
+                     > main :: IO ()
+                     > main = do
+                     >     randomPersons 10 >>= mapM_ print
+                     >     randomDoubles 10 >>= VU.mapM_ print
+                     .
+                     Please report any feature request or problem, either by email
+                     or through github's issues/feature requests.
+homepage:            http://github.com/alpmestan/probable
+bug-reports:         http://github.com/alpmestan/probable/issues
+license:             BSD3
+license-file:        LICENSE
+author:              Alp Mestanogullari
+maintainer:          alpmestan@gmail.com
+copyright:           2014-2016 Alp Mestanogullari
+category:            Math, Statistics
+build-type:          Simple
+cabal-version:       >=1.10
+tested-with:         GHC == 7.6.3, GHC == 7.8.2, GHC == 7.10.1
+extra-source-files:  bench/*.hs,
+                     examples/*.hs,
+                     README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/alpmestan/probable.git
+
+library
+  exposed-modules:     Math.Probable,
+                       Math.Probable.Distribution,
+                       Math.Probable.Distribution.Finite,
+                       Math.Probable.Random
+  other-modules:
+  build-depends:       base >=4.5 && <4.10,
+                       statistics >= 0.10,
+                       vector >= 0.10,
+                       mwc-random >= 0.10,
+                       primitive,
+                       mtl,
+                       transformers >= 0.3
+
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -O2 -funbox-strict-fields -Wall
+
+benchmark random
+  main-is:           random.hs
+  hs-source-dirs:    bench
+  ghc-options:       -O2 -funbox-strict-fields
+  type:              exitcode-stdio-1.0
+  build-depends:     base >= 4 && < 5,
+                     vector >= 0.7,
+                     criterion,
+                     probable,
+                     mwc-random,
+                     mwc-random-monad
+  default-language:  Haskell2010
