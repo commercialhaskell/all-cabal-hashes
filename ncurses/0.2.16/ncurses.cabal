@@ -1,0 +1,120 @@
+name: ncurses
+version: 0.2.16
+license: GPL-3
+license-file: license.txt
+author: John Millikin <jmillikin@gmail.com>
+maintainer: John Millikin <jmillikin@gmail.com>
+build-type: Simple
+cabal-version: >= 1.6
+category: User Interfaces, Foreign
+stability: experimental
+homepage: https://john-millikin.com/software/haskell-ncurses/
+bug-reports: mailto:jmillikin@gmail.com
+
+synopsis: Modernised bindings to GNU ncurses
+description:
+  GNU ncurses is a library for creating command-line application with
+  pseudo-graphical interfaces. This package is a nice, modern binding
+  to GNU ncurses.
+  .
+  The following example is a program that displays the message
+  \"Hello world!\" until the user hits Q:
+  .
+  @
+  import UI.NCurses
+  .
+  main :: IO ()
+  main = runCurses $ do
+  &#x20;   setEcho False
+  &#x20;   w <- defaultWindow
+  &#x20;   updateWindow w $ do
+  &#x20;       moveCursor 1 10
+  &#x20;       drawString \"Hello world!\"
+  &#x20;       moveCursor 3 10
+  &#x20;       drawString \"(press q to quit)\"
+  &#x20;       moveCursor 0 0
+  &#x20;   render
+  &#x20;   waitFor w (\\ev -> ev == EventCharacter \'q\' || ev == EventCharacter \'Q\')
+  .
+  waitFor :: Window -> (Event -> Bool) -> Curses ()
+  waitFor w p = loop where
+  &#x20;   loop = do
+  &#x20;       ev <- getEvent w Nothing
+  &#x20;       case ev of
+  &#x20;           Nothing -> loop
+  &#x20;           Just ev' -> if p ev' then return () else loop
+  @
+
+extra-source-files:
+  cbits/hsncurses-shim.c
+  cbits/hsncurses-shim.h
+  cbits/mavericks-c2hs-workaround.h
+
+source-repository head
+  type: git
+  location: https://john-millikin.com/code/haskell-ncurses/
+
+source-repository this
+  type: git
+  location: https://john-millikin.com/code/haskell-ncurses/
+  tag: haskell-ncurses_0.2.16
+
+-- Do not use default to using pkg-config to find ncurses libraries, because
+-- the .pc files are missing or broken in many installations.
+flag use-pkgconfig
+  default: False
+  manual: True
+  description:
+    Use pkg-config to set linker and include flags.
+
+flag force-narrow-library
+  default: False
+  manual: True
+  description:
+    Force including and linking against ncurses instead of ncursesw. This is
+    only useful on systems that have the ncursesw package installed
+    incorrectly. On most systems this will cause compile- or run-time errors.
+
+library
+  hs-source-dirs: lib
+  ghc-options: -Wall -O2
+  include-dirs: .
+
+  build-depends:
+      base >= 4.0 && < 5.0
+    , containers >= 0.2
+    , text >= 0.7
+    , transformers >= 0.2
+
+  build-tools:
+    c2hs >= 0.15
+
+  if flag(use-pkgconfig)
+    if flag(force-narrow-library)
+      cc-options: -DHSNCURSES_NARROW_HEADER
+      pkgconfig-depends: ncurses, panel
+    else
+      pkgconfig-depends: ncursesw, panelw
+  else
+    -- MacOS has a version of ncurses where the narrow- and wide-character
+    -- builds have been merged into a single header/dylib.
+    --
+    -- Explicitly linking against libpthread.so fixes a build problem on
+    -- platforms where the linker doesn't automatically follow dependencies.
+    if os(darwin) || os(freebsd) || flag(force-narrow-library)
+      cc-options: -DHSNCURSES_NARROW_HEADER
+    if os(darwin) || flag(force-narrow-library)
+      extra-libraries: panel ncurses pthread
+    else
+      extra-libraries: panelw ncursesw pthread
+
+  c-sources: cbits/hsncurses-shim.c
+
+  exposed-modules:
+    UI.NCurses
+    UI.NCurses.Panel
+
+  other-modules:
+    UI.NCurses.Enums
+    UI.NCurses.Compat
+    UI.NCurses.Types
