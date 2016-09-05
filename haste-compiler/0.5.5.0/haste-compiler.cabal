@@ -1,0 +1,314 @@
+Name:           haste-compiler
+Version:        0.5.5.0
+License:        BSD3
+License-File:   LICENSE
+Synopsis:       Haskell To ECMAScript compiler
+Description:    This package provides a featureful compiler from Haskell to
+                JavaScript based on GHC. It generates small, fast code, makes
+                use of standard Haskell libraries, integrates with Cabal,
+                supports most GHC extensions and works on Windows, Linux and
+                OSX.
+
+                Non-Linux users are strongly recommended to download pre-built
+                binary packages from haste-lang.org instead of building
+                from source.
+Category:       JavaScript, Compiler, Web
+Cabal-Version:  >= 1.10
+Build-Type:     Custom
+Author:         Anton Ekblad <anton@ekblad.cc>
+Maintainer:     anton@ekblad.cc
+Homepage:       http://haste-lang.org/
+Bug-reports:    http://github.com/valderman/haste-compiler/issues
+Stability:      Experimental
+
+Data-Dir:
+    lib
+
+Data-Files:
+    bn.js
+    rts.js
+    stdlib.js
+    MVar.js
+    StableName.js
+    Integer.js
+    long.js
+    md5.js
+    array.js
+    pointers.js
+    unicode.js
+    cheap-unicode.js
+    debug.js
+    Handle.js
+    Weak.js
+    endian.js
+    floatdecode.js
+    jsflow.js
+    Foreign.js
+
+extra-source-files:
+    include/primop-info-710.hs,
+    include/primop-stricts-710.hs
+    
+Flag portable
+    Description:
+        Install Haste into a self-contained directory. Package databases are
+        still local to each user. Primarily useful for global installs.
+    Default: False
+
+Flag static
+    Description:
+        Build a statically linked binary. Only really useful together with
+        portable.
+    Default: False
+
+Flag only-library
+    Description:
+        Only install the Haste server-side libraries; no binaries.
+        This is useful if you installed pre-built binaries but still want
+        to use Haste with vanilla GHC, for Haste.App for instance.
+    Default: False
+
+source-repository head
+    type:       git
+    location:   https://github.com/valderman/haste-compiler.git
+
+Executable haste-boot
+    if flag(only-library)
+        buildable: False
+    Main-Is: haste-boot.hs
+    Other-Modules:
+        Haste.Version
+        Haste.Environment
+        Haste.GHCPaths
+    Hs-Source-Dirs: src
+    if flag(portable)
+        CPP-Options: -DPORTABLE
+    Build-Depends:
+        ghc,
+        base < 5,
+        bytestring,
+        tar,
+        bzlib,
+        transformers,
+        network,
+        network-uri,
+        HTTP,
+        shellmate >= 0.2.3 && <0.3,
+        ghc-paths,
+        ghc,
+        directory,
+        filepath
+    Default-Language: Haskell98
+
+Executable hastec
+    if flag(only-library)
+        buildable: False
+    Hs-Source-Dirs: src
+    Include-Dirs: include
+    GHC-Options: -Wall -threaded
+    if flag(portable)
+        CPP-Options: -DPORTABLE
+    if flag(static)
+        if os(windows)
+          GHC-Options: -static -optl-static
+        else
+          if os(linux)
+            GHC-Options: -static -optl-static -optl-pthread
+    Build-Depends:
+        base < 5,
+        ghc-prim,
+        ghc >= 7.8 && < 7.11,
+        mtl,
+        binary,
+        containers,
+        bytestring >= 0.10.4,
+        utf8-string,
+        array,
+        ghc-paths,
+        random,
+        system-fileio,
+        shellmate >= 0.2.3 && <0.3,
+        either,
+        filepath,
+        directory,
+        ghc-simple >= 0.3 && < 0.4
+    Main-Is:
+        hastec.hs
+    Other-Modules:
+        Haste.Args
+        Haste.AST
+        Haste.AST.Syntax
+        Haste.AST.Binary
+        Haste.AST.Constructors
+        Haste.AST.FlowAnalysis
+        Haste.AST.Op
+        Haste.AST.Optimize
+        Haste.AST.PP
+        Haste.AST.PP.Opts
+        Haste.AST.Print
+        Haste.AST.Traversal
+        Haste.Opts
+        Haste.Version
+        Haste.Environment
+        Haste.GHCPaths
+        Haste.Config
+        Haste.Monad
+        Haste.PrimOps
+        Haste.Module
+        Haste.Linker
+        Haste.Builtins
+        Haste.Errors
+        Haste.CodeGen
+        Haste.JSLib
+    default-language: Haskell98
+
+Executable haste-pkg
+    Default-Language: Haskell2010
+    Main-Is: haste-pkg.hs
+    Other-Extensions: CPP
+    Other-Modules:
+      HastePkg710
+      HastePkg708
+    Hs-Source-Dirs:
+      src
+      utils/haste-pkg
+
+    if flag(only-library)
+        buildable: False
+
+    if flag(portable)
+        CPP-Options: -DPORTABLE
+
+    if flag(static)
+        if os(windows)
+          GHC-Options: -static -optl-static
+        else
+          if os(linux)
+            GHC-Options: -static -optl-static -optl-pthread
+
+    Build-Depends: base       >= 4    && < 5,
+                   directory  >= 1    && < 1.3,
+                   process    >= 1    && < 1.3,
+                   Cabal      >= 1.22 && < 1.24,
+                   containers,
+                   filepath,
+                   binary,
+                   bin-package-db,
+                   bytestring,
+                   shellmate  >= 0.2.3 && <0.3,
+                   ghc
+    if !os(windows)
+        Build-Depends: unix,
+                       terminfo
+    if os(windows)
+        c-sources: utils/haste-pkg/CRT_noglob.c
+
+Executable haste-cat
+    if flag(only-library)
+        buildable: False
+    Main-Is: haste-cat.hs
+    Other-Modules:
+        Haste.Environment
+        Haste.GHCPaths
+    Hs-Source-Dirs: src
+    if flag(portable)
+        CPP-Options: -DPORTABLE
+    if flag(static)
+        if os(windows)
+          GHC-Options: -static -optl-static
+        else
+          if os(linux)
+            GHC-Options: -static -optl-static -optl-pthread
+    Build-Depends:
+        base < 5,
+        shellmate >= 0.2.2 && <0.3,
+        ghc-paths,
+        ghc,
+        binary,
+        containers,
+        blaze-builder,
+        bytestring,
+        array,
+        random,
+        mtl,
+        directory,
+        utf8-string
+    default-language: Haskell98
+
+Library
+    Hs-Source-Dirs: libraries/haste-lib/src, libraries/haste-prim/src, src
+    GHC-Options: -Wall -O2
+    Exposed-Modules:
+        Haste
+        Haste.Ajax
+        Haste.App
+        Haste.App.Concurrent
+        Haste.Audio
+        Haste.Binary
+        Haste.Compiler
+        Haste.Concurrent
+        Haste.DOM
+        Haste.DOM.JSString
+        Haste.Events
+        Haste.Foreign
+        Haste.Graphics.AnimationFrame
+        Haste.Graphics.Canvas
+        Haste.JSON
+        Haste.JSString
+        Haste.LocalStorage
+        Haste.Object
+        Haste.Parsing
+        Haste.Performance
+        Haste.Prim
+        Haste.Serialize
+        Haste.WebSockets
+    Other-Modules:
+        Haste.App.Client
+        Haste.App.Monad
+        Haste.App.Protocol
+        Haste.Audio.Events
+        Haste.Binary.Get
+        Haste.Binary.Put
+        Haste.Binary.Types
+        Haste.Compiler.Flags
+        Haste.Concurrent.Monad
+        Haste.Concurrent.Ajax
+        Haste.DOM.Core
+        Haste.Environment
+        Haste.Events.BasicEvents
+        Haste.Events.Core
+        Haste.Events.KeyEvents
+        Haste.Events.MouseEvents
+        Haste.Events.TouchEvents
+        Haste.GHCPaths
+        Haste.Hash
+        Haste.Prim.Any
+        Haste.Prim.Foreign
+        Haste.Prim.JSType
+        Haste.Random
+        Haste.Timer
+        Haste.Version
+        Paths_haste_compiler
+    Build-Depends:
+        transformers,
+        monads-tf,
+        containers,
+        base < 5,
+        ghc-prim,
+        random,
+        binary,
+        data-binary-ieee754,
+        bytestring,
+        utf8-string,
+        -- For Haste.Compiler
+        shellmate >= 0.2.2 && <0.3,
+        directory,
+        filepath,
+        process,
+        ghc-paths,
+        ghc,
+        directory,
+        websockets >= 0.9.1.0,
+        network >= 2.6,
+        network-uri >= 2.6
+    Default-Language: Haskell98
