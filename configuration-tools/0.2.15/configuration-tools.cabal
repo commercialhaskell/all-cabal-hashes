@@ -1,0 +1,201 @@
+-- ------------------------------------------------------ --
+-- Copyright © 2015-2016 Lars Kuhtz <lakuhtz@gmail.com>
+-- Copyright © 2014-2015 AlephCloud Systems, Inc.
+-- ------------------------------------------------------ --
+
+Name: configuration-tools
+Version: 0.2.15
+Synopsis: Tools for specifying and parsing configurations
+description:
+    Tools for specifying and parsing configurations
+    .
+    This package provides a collection of utils on top of the packages
+    <http://hackage.haskell.org/package/optparse-applicative optparse-applicative>,
+    <http://hackage.haskell.org/package/aeson aeson>, and
+    <http://hackage.haskell.org/package/yaml yaml> for configuring libraries and
+    applications in a convenient and composable way.
+    .
+    The main features are
+    .
+    1. configuration management through integration of command line option
+       parsing and configuration files and
+    .
+    2. a @Setup.hs@ file that generates a @PkgInfo@ module for each component
+       of a package that provides information about the package and the build.
+    .
+    Documentation on how to use this package can be found in the
+    <https://github.com/alephcloud/hs-configuration-tools/blob/master/README.md README>
+    and in the API documentation of the modules "Configuration.Utils" and
+    "Configuration.Utils.Setup".
+
+Homepage: https://github.com/alephcloud/hs-configuration-tools
+Bug-reports: https://github.com/alephcloud/hs-configuration-tools/issues
+License: MIT
+License-file: LICENSE
+Author: Lars Kuhtz <lakuhtz@gmail.com>
+Maintainer: Lars Kuhtz <lakuhtz@gmail.com>
+Copyright:
+    (c) 2015-2016 Lars Kuhtz <lakuhtz@gmail.com>,
+    (c) 2014-2015 AlephCloud, Inc.
+Category: Configuration, Console
+Build-type: Custom
+
+cabal-version:  >= 1.18
+
+extra-doc-files:
+    README.md,
+    CHANGELOG.md
+    INSTALL_ON_WINDOWS.md
+
+extra-source-files:
+    constraints
+
+source-repository head
+    type: git
+    location: https://github.com/alephcloud/hs-configuration-tools.git
+    branch: master
+
+source-repository this
+    type: git
+    location: https://github.com/alephcloud/hs-configuration-tools.git
+    tag: 0.2.15
+
+flag remote-configs
+    Description: enable loading of configuration files from HTTP URLs
+    Default: True
+    Manual: True
+
+flag old-transformers
+    Description: use old transformers
+    Default: False
+    Manual: False
+
+Library
+    hs-source-dirs: src
+    default-language: Haskell2010
+
+    exposed-modules:
+        Configuration.Utils
+        Configuration.Utils.CommandLine
+        Configuration.Utils.ConfigFile
+        Configuration.Utils.Http
+        Configuration.Utils.Internal
+        Configuration.Utils.Internal.ConfigFileReader
+        Configuration.Utils.Maybe
+        Configuration.Utils.Monoid
+        Configuration.Utils.Operators
+        Configuration.Utils.Setup
+        Configuration.Utils.Validation
+    if flag(remote-configs)
+        exposed-modules:
+            Configuration.Utils.Internal.HttpsCertPolicy
+
+    build-depends:
+        Cabal >= 1.18,
+        aeson >= 0.7.0.6,
+        ansi-wl-pprint >= 0.6,
+        attoparsec >= 0.11.3.4,
+        base >= 4.6 && < 5.0,
+        base-unicode-symbols >= 0.2.2.4,
+        bytestring >= 0.10.0.2,
+        case-insensitive >= 1.2,
+        deepseq >= 1.3,
+        directory >= 1.2.1.0,
+        dlist >= 0.7.1,
+        filepath >= 1.3.0.1,
+        network-uri >= 2.6.0.1,
+        optparse-applicative >= 0.11.0.2,
+        process >= 1.2.0.0,
+        text >= 1.0,
+        unordered-containers >= 0.2.4.0,
+        yaml >= 0.8.8.3,
+        profunctors >= 4.0.4
+
+    if flag(old-transformers)
+        build-depends:
+            mtl >= 2.1,
+            mtl-compat >= 0.2,
+            transformers >= 0.3 && < 0.4,
+            transformers-compat >= 0.4
+    else
+        build-depends:
+            mtl >= 2.2,
+            transformers >= 0.4
+
+    if flag(remote-configs)
+        build-depends:
+            base64-bytestring >= 1.0,
+            connection >= 0.2,
+            data-default >= 0.5,
+            enclosed-exceptions >= 1.0,
+            http-client >= 0.4,
+            http-client-tls >= 0.2,
+            http-types >= 0.8,
+            monad-control >= 1.0,
+            tls >= 1.2,
+            x509 >= 1.5,
+            x509-system >= 1.5,
+            x509-validation >= 1.5.1
+
+    if flag(remote-configs)
+        cpp-options: -DREMOTE_CONFIGS
+
+    ghc-options: -Wall
+
+Test-Suite url-example-test
+    type: exitcode-stdio-1.0
+    default-language: Haskell2010
+    main-is: TestExample.hs
+    hs-source-dirs: examples, test
+
+    other-modules:
+        Example
+        TestTools
+        Tests.BoolOption
+        Tests.MonoidConfig
+
+    build-depends:
+        base >= 4.6 && < 5.0,
+        base-unicode-symbols >= 0.2.2.4,
+        bytestring >= 0.10,
+        Cabal >= 1.18,
+        configuration-tools,
+        text >= 1.0,
+        unordered-containers >= 0.2.4.0,
+        yaml >= 0.8.8.3
+
+    if flag(old-transformers)
+        build-depends:
+            mtl >= 2.1,
+            mtl-compat >= 0.2,
+            transformers-compat >= 0.4
+    else
+        build-depends:
+            mtl >= 2.2,
+            transformers >= 0.4
+
+    if flag(remote-configs)
+        build-depends:
+            enclosed-exceptions >= 1.0,
+            http-types >= 0.8,
+            monad-control >= 1.0,
+            wai >= 3.0,
+            warp >= 3.0,
+            warp-tls >= 3.0
+
+        cpp-options: -DREMOTE_CONFIGS
+
+    ghc-options: -Wall
+
+Test-Suite trivial
+    type: exitcode-stdio-1.0
+    default-language: Haskell2010
+    main-is: Trivial.hs
+    hs-source-dirs: examples
+
+    build-depends:
+        base >= 4.6 && < 5.0,
+        base-unicode-symbols >= 0.2.2.4,
+        configuration-tools
+
+    ghc-options: -Wall
