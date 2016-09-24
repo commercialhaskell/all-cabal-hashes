@@ -1,0 +1,223 @@
+Name:                   mellon-web
+Version:                0.7.0.3
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+Author:                 Drew Hess <src@drewhess.com>
+Maintainer:             Drew Hess <src@drewhess.com>
+Homepage:               https://github.com/dhess/mellon/
+Bug-Reports:            https://github.com/dhess/mellon/issues/
+Stability:              experimental
+License:                BSD3
+License-File:           LICENSE
+Copyright:              Copyright (c) 2016, Drew Hess
+Tested-With:            GHC == 7.10.3, GHC == 8.0.1
+Category:               Web
+Synopsis:               A REST web service for Mellon controllers
+Description:
+  The @mellon-web@ package wraps a @mellon-core@ controller in a REST
+  web service, making it possible to control physical access devices
+  from an HTTP client. The package includes both a WAI application
+  server, and native Haskell client bindings for the service.
+  .
+  Like the @mellon-core@ controller interface, the @mellon-web@ REST API
+  is quite simple. There are only 3 methods:
+  .
+  * @GET /time@ returns the system time on the server. This is made
+    available for diagnostic purposes, primarily to ensure the server
+    has an accurate clock.
+  .
+  * @GET /state@ returns the controller's current state (either @Locked@
+    or @Unlocked date@ where @date@ is the UTC time at which the
+    controller will automatically lock again).
+  .
+  * @PUT /state@ sets the controller's current state. Use this method to
+    lock and unlock the controller.
+  .
+  See the included <API.md API.md> document for detailed documentation
+  on the REST service.
+  .
+  Note that the @mellon-web@ server does not provide an authentication
+  mechanism! You should proxy it behind a secure, authenticating HTTPS
+  server such as Nginx.
+Extra-Doc-Files:        API.md
+                      , README.md
+Extra-Source-Files:     changelog.md
+                      , examples/*.hs
+                      , mellon-web.paw
+
+-- Build hlint test
+Flag test-hlint
+  Default: True
+  Manual: True
+
+-- Build the mock server example
+Flag mock-example
+  Default: True
+  Manual: True
+
+-- Build the GPIO server example
+Flag gpio-example
+  Default: True
+  Manual: True
+
+-- Build the unlock client example
+Flag client-unlock-example
+  Default: True
+  Manual: True
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints
+  Exposed-Modules:      Mellon.Web.Client
+                      , Mellon.Web.Server
+                      , Mellon.Web.Server.API
+                      , Mellon.Web.Server.DocsAPI
+  Other-Extensions:     DataKinds
+                      , DeriveGeneric
+                      , MultiParamTypeClasses
+                      , OverloadedStrings
+                      , TypeOperators
+  Build-Depends:        base           >= 4.8    && < 5
+                      , aeson          == 0.11.*
+                      , bytestring     == 0.10.*
+                      , http-client    == 0.4.*
+                      , http-types     == 0.9.*
+                      , lucid          == 2.9.*
+                      , mellon-core    == 0.7.*
+                      , servant        >= 0.7.1 && < 0.10
+                      , servant-client >= 0.7.1 && < 0.10
+                      , servant-docs   >= 0.7.1 && < 0.10
+                      , servant-lucid  >= 0.7.1 && < 0.10
+                      , servant-server >= 0.7.1 && < 0.10
+                      , text           == 1.2.*
+                      , time           >= 1.5   && < 2
+                      , transformers   >= 0.4.2 && < 0.6
+                      , wai            == 3.2.*
+                      , warp           == 3.2.*
+
+Executable mock-mellon-server
+  Main-Is:              MockServer.hs
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       examples
+  GHC-Options:          -Wall -threaded -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints
+  If !flag(mock-example)
+    Buildable:         False
+  Else                        
+    Build-Depends:      base
+                      , mellon-core
+                      , mellon-web
+                      , warp
+
+Executable gpio-mellon-server
+  Main-Is:              GpioServer.hs
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       examples
+  GHC-Options:          -Wall -threaded -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints
+  Other-Extensions:     OverloadedStrings
+  If !flag(gpio-example)
+    Buildable:         False
+  Else                        
+    Build-Depends:      base
+                      , exceptions           >= 0.8.0  && < 1
+                      , hpio                 >= 0.8    && < 1
+                      , mellon-core
+                      , mellon-gpio          == 0.7.*
+                      , mellon-web
+                      , mtl
+                      , network              == 2.6.*
+                      , optparse-applicative >= 0.11.0 && < 0.13
+                      , time
+                      , transformers
+                      , warp
+
+Executable mellon-schedule-unlock
+  Main-Is:              ScheduleUnlock.hs
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       examples
+  GHC-Options:          -Wall -threaded -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints
+  Other-Extensions:     LambdaCase
+                      , OverloadedStrings
+  If !flag(client-unlock-example)
+    Buildable:         False
+  Else                        
+    Build-Depends:      base
+                      , bytestring
+                      , exceptions
+                      , http-client
+                      , http-client-tls
+                      , http-types
+                      , mellon-core
+                      , mellon-web
+                      , mtl
+                      , network
+                      , optparse-applicative
+                      , servant-client
+                      , time
+                      , transformers
+                        
+Test-Suite hlint
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       test
+  Ghc-Options:          -w -threaded -rtsopts -with-rtsopts=-N
+  Main-Is:              hlint.hs
+  If !flag(test-hlint)
+    Buildable:          False
+  Else
+    Build-Depends:      base
+                      , hlint == 1.9.*
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       src
+                      , test
+  Ghc-Options:          -w -threaded -rtsopts -with-rtsopts=-N
+  Main-Is:              Main.hs
+  Other-Extensions:     ScopedTypeVariables
+  Build-Depends:        base
+                      , aeson
+                      , bytestring
+                      , hspec          == 2.2.*
+                      , hspec-wai      >= 0.6.6 && < 0.7
+                      , http-client
+                      , http-types
+                      , lucid
+                      , mellon-core
+                      , network
+                      , servant
+                      , servant-client
+                      , servant-docs
+                      , servant-lucid
+                      , servant-server
+                      , text
+                      , time
+                      , transformers
+                      , wai
+                      , wai-extra      == 3.0.*
+                      , warp
+  Other-Modules:        Mellon.Web.Client
+                      , Mellon.Web.Server
+                      , Mellon.Web.Server.API
+                      , Mellon.Web.Server.DocsAPI
+                      , Spec
+                      , Mellon.Web.ClientSpec
+                      , Mellon.Web.ServerSpec
+
+Source-Repository head
+  Type:                 git
+  Location:             git://github.com/dhess/mellon.git
+
+Source-Repository this
+  Type:                 git
+  Location:             git://github.com/dhess/mellon.git
+  Tag:                  v0.7.0.3

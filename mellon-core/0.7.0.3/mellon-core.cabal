@@ -1,0 +1,207 @@
+Name:                   mellon-core
+Version:                0.7.0.3
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+Author:                 Drew Hess <src@drewhess.com>
+Maintainer:             Drew Hess <src@drewhess.com>
+Homepage:               https://github.com/dhess/mellon/
+Bug-Reports:            https://github.com/dhess/mellon/issues/
+Stability:              experimental
+License:                BSD3
+License-File:           LICENSE
+Copyright:              Copyright (c) 2016, Drew Hess
+Tested-With:            GHC == 7.10.3, GHC == 8.0.1
+Category:               System
+Synopsis:               Control physical access devices
+Description:
+  /Speak, friend, and enter./
+  .
+  @mellon-core@ is a Haskell package for controlling physical access
+  devices designed for human factors, e.g., electric strikes. The
+  access control protocol is quite simple: a device is either locked,
+  or it is unlocked until a particular date and time (an
+  /expiration date/). Once the expiration date passes, the device is
+  automatically locked again. In the meantime, the device can be
+  locked immediately, overriding the unlocked state; or the unlock
+  period can be extended.
+  .
+  User programs incorporate @mellon-core@ functionality via a
+  /controller/, which is responsible for handling user lock and unlock
+  commands, and for scheduling and canceling unlock expirations.
+  .
+  User programs must also adapt their physical access devices to the
+  interface expected by the controller. For this purpose,
+  @mellon-core@ defines a /device/ type with 2 simple 'IO' actions for
+  locking and unlocking the device. (@mellon-core@ does not provide
+  any useful device implementations; see the companion @mellon-gpio@
+  package for a GPIO-driven implementation.)
+  .
+  Note that @mellon-core@ does not provide authentication mechanisms
+  or network services for interacting with controllers; that is the
+  domain of higher-level packages which use the base @mellon-core@
+  package (e.g., @mellon-web@).
+  .
+  /On the use of UTC dates for timers/
+  .
+  @mellon-core@ uses UTC dates for unlock expiration, rather than a
+  time delta or a monotonic clock. You might disagree with this
+  decision based on the common wisdom that it's a bad idea to use
+  \"wall clock time\" (of which UTC is one flavor) for timers. In
+  general, the common wisdom is correct. Wall clocks have lots of
+  problems: they may not be accurate, they may disagree from one
+  system to the next, they may \"jump around\" if the system is running
+  a time daemon such as NTP, and they occasionally do something
+  unexpected like adding a leap second.
+  .
+  If your timers must be high-precision (i.e., this timer must run for
+  exactly /n/ microseconds, for some definition of \"exactly\"), then
+  there's no argument: using a wall clock is a bad idea. However, as
+  @mellon-core@ is designed for use with physical access devices,
+  which themselves are typically designed for human factors, accuracy
+  to within a second or two is acceptable in most cases. (If you have
+  higher-precision needs, especially for extreme safety- or
+  security-related scenarios, you should probably be using a real-time
+  system anyway, not a Haskell program.)
+  .
+  Once the need for high precision is eliminated, and assuming that
+  the system(s) controlling your physical access devices use a
+  synchronized time source such as that provided by
+  <https://en.wikipedia.org/wiki/Network_Time_Protocol NTP>, the
+  advantages of using UTC over most of the alternatives become
+  apparent:
+  .
+  * Absolute time deltas without a common reference do not work well
+    in networked environments, where network problems may appreciably
+    delay the delivery of commands from client to server. If a user
+    wants to unlock a device for 7 seconds, does that mean 7 seconds
+    from the clock time @T@ when the user presses \"send,\" or does it
+    mean 7 seconds from opening to close, regardless of when the
+    server receives the command? Without a common reference, there is
+    no way for the user to communicate her intent.
+  .
+  * Monotonic clocks never go backwards, which is a nice invariant and
+    eliminates a problem that occurs in some NTP implementations.
+    However, monotonic clocks are a) non-portable, and not even
+    supported on all systems; b) usually system-dependent, which
+    renders them useless when attempting to communicate time across
+    two systems; c) sometimes even process-dependent, in which case
+    they're not even useful for communicating time between two
+    processes on the same system; and d) often idle while the system
+    is suspending or sleeping, in which case the clock does not move
+    forward while the system is suspended, rendering the clock useless
+    for absolute timers if there's any possibility that the system
+    will be suspended or otherwise go into a low-power mode.
+  .
+  Using the TAI coordinate system rather than UTC has the advantage of
+  guaranteeing that every (TAI) day is exactly 86400 (TAI) seconds,
+  unlike UTC and all of the time systems based on it, where very
+  rarely a day may have 86401 seconds, i.e., one standard day plus 1
+  leap second. If TAI were well-supported and generally available,
+  @mellon-core@ would probably use it, but circa 2016 it is not.
+  Anyway, at worst, a @mellon-core@ unlock command which spans a time
+  period in which a leap second is added will expire approximately 1
+  second too soon / too early, depending on whether the user accounted
+  for the leap second when she issued the command. As this error is
+  more or less within the expected accuracy of a @mellon-core@ system
+  under normal operation (due to the vagaries of thread scheduling,
+  and not even accounting for clock drift and other real-world
+  factors), it doesn't really seem worth the effort just to avoid the
+  minor inconvenience of leap seconds.
+  .
+  In short, synchronizing time (and timers) across multiple systems is
+  a very difficult problem, and one which the universally-supported
+  Network Time Protocol attempts to address, mostly successfully.
+  Given its intended application to controlling physical access for
+  human beings, most likely in a networked environment, @mellon-core@
+  makes the choice of relying on a working, accurate NTP (or other
+  wall-clock synchronization) deployment for coordinating and
+  synchronizing time across devices. If you cannot guarantee accurate
+  wall clock time in your system, @mellon-core@ will not work
+  properly, and you should look for an alternative solution.
+
+Extra-Doc-Files:        README.md
+Extra-Source-Files:     changelog.md
+
+-- Build doctests
+Flag test-doctests
+  Default: True
+  Manual: True
+
+-- Build hlint test
+Flag test-hlint
+  Default: True
+  Manual: True
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints
+  Exposed-Modules:      Mellon.Controller
+                      , Mellon.Controller.Async
+                      , Mellon.Device
+                      , Mellon.StateMachine
+  Other-Extensions:     DeriveDataTypeable
+                      , DeriveGeneric
+                      , Safe
+  Build-Depends:        base         >= 4.8   && < 5
+                      , async        == 2.1.*
+                      , mtl          == 2.2.*
+                      , time         >= 1.5   && < 2
+                      , transformers >= 0.4.2 && < 0.6
+
+Test-Suite hlint
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       test
+  Ghc-Options:          -w -threaded -rtsopts -with-rtsopts=-N
+  Main-Is:              hlint.hs
+  If !flag(test-hlint)
+    Buildable:          False
+  Else
+    Build-Depends:      base
+                      , hlint == 1.9.*
+
+Test-Suite doctest
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       test
+  Ghc-Options:          -Wall -threaded
+  Main-Is:              doctest.hs
+  If !flag(test-doctests)
+    Buildable:          False
+  Else
+    Build-Depends:      base
+                      , QuickCheck           == 2.8.*
+                      , quickcheck-instances == 0.3.*
+                      , doctest              == 0.11.*
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       src
+                      , test
+  Ghc-Options:          -w -threaded -rtsopts -with-rtsopts=-N
+  Main-Is:              Main.hs
+  Build-Depends:        base
+                      , async
+                      , hspec        == 2.2.*
+                      , mtl
+                      , time
+                      , transformers
+  Other-Modules:        Mellon.Controller
+                      , Mellon.Controller.Async
+                      , Mellon.Device
+                      , Mellon.StateMachine
+                      , Spec
+                      , Mellon.Controller.AsyncSpec
+
+Source-Repository head
+  Type:                 git
+  Location:             git://github.com/dhess/mellon.git
+
+Source-Repository this
+  Type:                 git
+  Location:             git://github.com/dhess/mellon.git
+  Tag:                  v0.7.0.3
