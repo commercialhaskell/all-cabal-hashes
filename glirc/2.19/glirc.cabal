@@ -1,0 +1,164 @@
+name:                glirc
+version:             2.19
+synopsis:            Console IRC client
+description:         Console IRC client
+                     .
+                     glirc is a console IRC client with an emphasis on providing
+                     dynamic views into the model of your IRC connections.
+                     .
+                     <https://github.com/glguy/irc-core/wiki Documentation Wiki>
+license:             ISC
+license-file:        LICENSE
+author:              Eric Mertens
+maintainer:          emertens@gmail.com
+copyright:           2016 Eric Mertens
+category:            Network
+build-type:          Custom
+extra-source-files:  ChangeLog.md README.md
+                     exec/linux_exported_symbols.txt
+                     exec/macos_exported_symbols.txt
+cabal-version:       >=1.23
+homepage:            https://github.com/glguy/irc-core
+bug-reports:         https://github.com/glguy/irc-core/issues
+tested-with:         GHC==8.0.1
+
+custom-setup
+  setup-depends: base  >=4.9  && <4.10,
+                 filepath >1.4 && <1.5,
+                 Cabal >=1.24 && <1.25
+
+source-repository head
+  type: git
+  location: git://github.com/glguy/irc-core.git
+  branch: v2
+
+flag ExportCApi
+  description: Export C functions used by the extension API (incompatible with GHCi)
+  default: True
+  manual: True
+
+executable glirc2
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts
+
+  hs-source-dirs:      exec
+  default-language:    Haskell2010
+
+  if flag(ExportCApi)
+    if os(Linux)
+      ld-options: -Wl,--dynamic-list=exec/linux_exported_symbols.txt
+    if os(Darwin)
+      ld-options: -Wl,-exported_symbols_list,exec/macos_exported_symbols.txt
+
+  -- Constraints can be found on the library itself
+  build-depends:       base, glirc, data-default-class, lens, text, vty
+
+library
+  hs-source-dirs:      src
+  include-dirs:        include
+  includes:            include/glirc-api.h
+  install-includes:    glirc-api.h
+  default-language:    Haskell2010
+  build-tools:         hsc2hs
+
+  exposed-modules:     Client.Authentication.Ecdsa
+                       Client.CApi
+                       Client.CApi.Exports
+                       Client.CApi.Types
+                       Client.Commands
+                       Client.Commands.Arguments
+                       Client.Commands.Exec
+                       Client.Commands.Interpolation
+                       Client.Commands.Recognizer
+                       Client.Commands.WordCompletion
+                       Client.Configuration
+                       Client.Configuration.Colors
+                       Client.Configuration.ServerSettings
+                       Client.EventLoop
+                       Client.EventLoop.Errors
+                       Client.Hook
+                       Client.Hook.Znc.Buffextras
+                       Client.Hooks
+                       Client.Image
+                       Client.Image.Arguments
+                       Client.Image.Message
+                       Client.Image.MircFormatting
+                       Client.Image.PackedImage
+                       Client.Image.Palette
+                       Client.Image.StatusLine
+                       Client.Image.Textbox
+                       Client.Log
+                       Client.Message
+                       Client.Network.Async
+                       Client.Network.Connect
+                       Client.Options
+                       Client.State
+                       Client.State.Channel
+                       Client.State.EditBox
+                       Client.State.EditBox.Content
+                       Client.State.Focus
+                       Client.State.Network
+                       Client.State.Window
+                       Client.View
+                       Client.View.ChannelInfo
+                       Client.View.Digraphs
+                       Client.View.Help
+                       Client.View.MaskList
+                       Client.View.Mentions
+                       Client.View.Messages
+                       Client.View.Palette
+                       Client.View.UrlSelection
+                       Client.View.UserList
+                       Client.View.Windows
+                       Config.FromConfig
+
+  other-modules:       LensUtils
+                       StrictUnit
+                       Digraphs
+                       Paths_glirc
+                       Build_glirc
+
+  build-depends:       base                 >=4.9    && <4.10,
+                       async                >=2.1    && <2.2,
+                       attoparsec           >=0.13   && <0.14,
+                       bytestring           >=0.10.8 && <0.11,
+                       config-value         >=0.5    && <0.6,
+                       connection           >=0.2.6  && <0.3,
+                       containers           >=0.5.7  && <0.6,
+                       data-default-class   >=0.1.2  && <0.2,
+                       directory            >=1.2.6  && <1.3,
+                       filepath             >=1.4.1  && <1.5,
+                       gitrev               >=1.2    && <1.3,
+                       hashable             >=1.2.4  && <1.3,
+                       irc-core             >=2.2    && <2.3,
+                       lens                 >=4.14   && <4.15,
+                       kan-extensions       >=5.0    && <5.1,
+                       memory               >=0.13   && <0.14,
+                       network              >=2.6.2  && <2.7,
+                       process              >=1.4.2  && <1.5,
+                       regex-tdfa           >=1.2    && <1.3,
+                       socks                >=0.5.5  && <0.6,
+                       split                >=0.2    && <0.3,
+                       stm                  >=2.4    && <2.5,
+                       text                 >=1.2.2  && <1.3,
+                       time                 >=1.6    && <1.7,
+                       tls                  >=1.3.8  && <1.4,
+                       transformers         >=0.5.2  && <0.6,
+                       unix                 >=2.7    && <2.8,
+                       unordered-containers >=0.2.7  && <0.3,
+                       vector               >=0.11   && <0.12,
+                       vty                  >=5.10   && <5.12,
+                       x509                 >=1.6.3  && <1.7,
+                       x509-store           >=1.6.1  && <1.7,
+                       x509-system          >=1.6.3  && <1.7
+
+  if flag(ExportCApi)
+    cpp-options: -DEXPORT_GLIRC_CAPI
+
+test-suite test
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  hs-source-dirs:      test
+  build-depends:       base, glirc,
+                       HUnit                >=1.3 && <1.4
+  default-language:    Haskell2010
