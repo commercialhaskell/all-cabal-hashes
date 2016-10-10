@@ -1,0 +1,129 @@
+-- This file is part of FishFood.
+--
+-- FishFood is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- FishFood is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with FishFood.  If not, see <http://www.gnu.org/licenses/>.
+
+Name:		fishfood
+Version:	0.0.1.6
+Cabal-version:	>= 1.10
+Copyright:	(C) 2013-2015 Dr. Alistair Ward
+License:	GPL
+License-file:	LICENSE
+Author:		Dr. Alistair Ward
+Stability:	stable
+Synopsis:	Calculates file-size frequency-distribution.
+Build-type:	Simple
+Description:	Counts the number of files in a set of bins, each of which holds only those files which fall within a specific size-interval.
+Category:	Utils
+Tested-with:	GHC == 7.4, GHC == 7.6, GHC == 7.8, GHC == 7.10.1, GHC == 8.0.1
+Homepage:	http://functionalley.eu
+Maintainer:	mailto:fishfood@functionalley.eu
+Bug-reports:	mailto:fishfood@functionalley.eu
+
+-- None of these files are needed at run-time.
+Extra-source-files:
+    .ghci
+    changelog.markdown
+    changelog.Debian
+    copyright
+    debian/DEBIAN/control
+    fishfood.spec
+    man/man1/fishfood.1
+    README.markdown
+
+source-repository head
+    type:	git
+    location:	https://github.com/functionalley/FishFood
+
+-- Enable using: 'cabal configure -f llvm'.
+flag llvm
+    Description:	Whether the 'llvm' compiler-backend has been installed and is required for code-generation.
+    Manual:		True
+    Default:		False
+
+Library
+    Default-language:	Haskell2010
+    GHC-options:	-Wall -fno-warn-tabs
+    Hs-source-dirs:	src-lib
+
+    Exposed-modules:
+        FishFood.Data.CommandOptions
+        FishFood.Data.File
+        FishFood.Data.Verbosity
+        FishFood.Profiler
+
+    Build-depends:
+        base == 4.*,
+        Cabal >= 1.10,
+        containers,
+        data-default,
+        directory,
+        factory >= 0.2.0.5,
+        mtl,
+        toolshed >= 0.17
+
+    if impl(ghc >= 7.4.1)
+        GHC-prof-options:	-fprof-auto -fprof-cafs
+    else
+        GHC-prof-options:	-auto-all -caf-all
+
+    if impl(ghc >= 7.0) && flag(llvm)
+        GHC-options:	-fllvm
+
+Executable fishfood
+    Default-language:	Haskell2010
+    GHC-options:	-Wall -fno-warn-tabs
+    Hs-source-dirs:	src-exe
+    Main-is:		Main.hs
+
+    Build-depends:
+        base == 4.*,
+        Cabal >= 1.10,
+        data-default,
+        fishfood,
+        mtl,
+        toolshed >= 0.17
+
+    if impl(ghc >= 7.4.1)
+        GHC-prof-options:	-fprof-auto -fprof-cafs
+    else
+        GHC-prof-options:	-auto-all -caf-all
+
+    if impl(ghc >= 7.0)
+        GHC-options:	-rtsopts
+
+        if flag(llvm)
+            GHC-options:	-fllvm
+
+Test-Suite test
+    Default-language:	Haskell2010
+    GHC-options:	-Wall -fno-warn-tabs
+    Hs-source-dirs:	src-test
+    Main-is:		Main.hs
+    Type:		exitcode-stdio-1.0
+
+-- Required for 'cabal sdist'.
+    Other-modules:
+        FishFood.Test.QuickCheck.Data.CommandOptions
+        FishFood.Test.QuickCheck.Data.Verbosity
+        FishFood.Test.QuickCheck.Profiler
+
+    Build-depends:
+        base == 4.*,
+        Cabal >= 1.10,
+        containers,
+        fishfood,
+        mtl,
+        QuickCheck,
+        toolshed >= 0.17
+
