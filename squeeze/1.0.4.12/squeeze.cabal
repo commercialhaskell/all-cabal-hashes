@@ -1,0 +1,147 @@
+-- This file is part of Squeeze.
+--
+-- Squeeze is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- Squeeze is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with Squeeze.  If not, see <http://www.gnu.org/licenses/>.
+
+Name:		squeeze
+Version:	1.0.4.12
+Cabal-version:	>= 1.10
+Copyright:	(C) 2010-2015 Dr. Alistair Ward
+License:	GPL
+License-file:	LICENSE
+Author:		Dr. Alistair Ward
+Stability:	stable
+Synopsis:	A file-packing application.
+Build-type:	Simple
+Description:	Returns progressively better subsets of the specified files, selected to fit into a limited space, without wasting more than the specific ratio.
+Category:	Application, Utils
+Tested-with:	GHC == 7.4, GHC == 7.6, GHC == 7.8, GHC == 7.10.1, GHC == 8.0.1
+Homepage:	http://functionalley.eu/Squeeze/squeeze.html
+Maintainer:	mailto:squeeze@functionalley.eu
+Bug-reports:	mailto:squeeze@functionalley.eu
+
+-- None of these files are needed at run-time.
+Extra-source-files:
+    .ghci
+    changelog.markdown
+    changelog.Debian
+    copyright
+    debian/DEBIAN/control
+    man/man1/squeeze.1
+    README.markdown
+    squeeze.spec
+
+source-repository head
+    type:	git
+    location:	https://github.com/functionalley/Squeeze
+
+-- Enable using: 'cabal configure -f llvm'.
+flag llvm
+    Description:	Whether the 'llvm' compiler-backend has been installed and is required for code-generation.
+    Manual:		True
+    Default:		False
+
+flag threaded
+    Description:	Build for parallel runtime.
+    Manual:		True
+    Default:		True
+
+Library
+    Default-language:	Haskell2010
+    GHC-options:	-O2 -Wall -fno-warn-tabs
+    Hs-source-dirs:	src-lib
+
+    Exposed-modules:
+        Squeeze.Data.CommandOptions
+        Squeeze.Data.File
+        Squeeze.Data.FileCombination
+        Squeeze.Squeeze
+
+-- Required for 'cabal sdist'.
+    Exposed-modules:
+        Squeeze.Control.Concurrent.DivideAndConquer
+
+    Build-depends:
+        base == 4.*,
+        data-default,
+        Cabal >= 1.10,
+        directory,
+        factory >= 0.2.1.0,
+        filepath,
+        mtl,
+        toolshed >= 0.17
+
+    if impl(ghc >= 7.4.1)
+        GHC-prof-options:	-fprof-auto -fprof-cafs
+    else
+        GHC-prof-options:	-auto-all -caf-all
+
+    if impl(ghc >= 7.0) && flag(llvm)
+        GHC-options:	-fllvm
+
+Executable squeeze
+    Default-language:	Haskell2010
+    GHC-options:	-O2 -Wall -fno-warn-tabs
+    Hs-source-dirs:	src-exe
+    Main-is:		Main.hs
+
+-- Required for 'cabal sdist'.
+    Other-modules:
+        Squeeze.Test.Performance
+
+    Build-depends:
+        base == 4.*,
+        Cabal >= 1.10,
+        data-default,
+        factory >= 0.2.1.0,
+        filepath,
+        mtl,
+        random,
+        squeeze,
+        toolshed >= 0.17
+
+    if impl(ghc >= 7.4.1)
+        GHC-prof-options:	-fprof-auto -fprof-cafs
+    else
+        GHC-prof-options:	-auto-all -caf-all
+
+    if flag(threaded)
+        GHC-options:	-threaded
+
+    if impl(ghc >= 7.0)
+        GHC-options:	-rtsopts
+
+        if flag(llvm)
+            GHC-options:	-fllvm
+
+Test-Suite test
+    Default-language:	Haskell2010
+    GHC-options:	-Wall -fno-warn-tabs
+    Hs-source-dirs:	src-test
+    Main-is:		Main.hs
+    Type:		exitcode-stdio-1.0
+
+-- Required for 'cabal sdist'.
+    Other-modules:
+        Squeeze.Test.QuickCheck.Data.CommandOptions
+        Squeeze.Test.QuickCheck.Data.FileCombinations
+        Squeeze.Test.QuickCheck.Data.Verbosity
+        Squeeze.Test.QuickCheck.Squeeze
+
+    Build-depends:
+        base == 4.*,
+        factory >= 0.2.1.0,
+        QuickCheck >= 2.4,
+        squeeze,
+        toolshed >= 0.17
+
