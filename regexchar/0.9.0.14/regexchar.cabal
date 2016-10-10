@@ -1,0 +1,151 @@
+-- This file is part of RegExChar.
+--
+-- RegExChar is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- RegExChar is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with RegExChar.  If not, see <http://www.gnu.org/licenses/>.
+
+Name:		regexchar
+Version:	0.9.0.14
+Cabal-version:	>= 1.10
+Copyright:	(C) 2010-2015 Dr. Alistair Ward
+License:	GPL
+License-file:	LICENSE
+Author:		Dr. Alistair Ward
+Stability:	stable
+Synopsis:	A POSIX, extended regex-engine.
+Build-type:	Simple
+Description:	Provides a POSIX, extended regex-engine, specialised from the underlying /polymorphic/ package /regexdot/, to merely process the traditional character-lists.
+Category:	Regex, Text
+Tested-with:	GHC == 7.4, GHC == 7.6, GHC == 7.8, GHC == 7.10.1, GHC == 8.0.1
+Homepage:	http://functionalley.eu/RegExChar/regExChar.html
+Maintainer:	mailto:regexchar@functionalley.eu
+Bug-reports:	mailto:regexchar@functionalley.eu
+
+-- These files can be read by the application from 'Paths_weekdaze.datadir'.
+Data-files:
+    data/*.txt
+
+-- None of these files are needed at run-time.
+Extra-source-files:
+    .ghci
+    changelog.Debian
+    changelog.markdown
+    copyright
+    debian/DEBIAN/control
+    man/man1/grecce.1
+    README.markdown
+    regexchar.spec
+
+source-repository head
+    type:	git
+    location:	https://github.com/functionalley/RegExChar
+
+-- Enable using: 'cabal configure -f llvm'.
+flag llvm
+    Description:	Whether the 'llvm' compiler-backend has been installed and is required for code-generation.
+    Manual:		True
+    Default:		False
+
+flag threaded
+    Description:	Link with the threaded runtime.
+    Manual:		True
+    Default:		True
+
+Library
+    Default-language:	Haskell2010
+    GHC-options:	-O2 -Wall -fno-warn-tabs
+    Hs-source-dirs:	src-lib
+
+    Exposed-modules:
+        RegExChar.ExtendedRegExChar
+        RegExChar.MetaChar
+        RegExChar.RegExOptsChar
+
+    Build-depends:
+        array,
+        base == 4.*,
+        containers,
+        data-default,
+        parsec == 3.*,
+        regex-base,
+        regexdot >= 0.12,
+        toolshed >= 0.17
+
+    if impl(ghc >= 7.4.1)
+        GHC-prof-options:	-fprof-auto -fprof-cafs
+    else
+        GHC-prof-options:	-auto-all -caf-all
+
+    if impl(ghc >= 7.0) && flag(llvm)
+        GHC-options:	-fllvm
+
+Executable grecce
+    Default-language:	Haskell2010
+    GHC-options:	-O2 -Wall -fno-warn-tabs
+    Hs-source-dirs:	src-exe
+    Main-is:		Main.hs
+
+    if impl(ghc >= 7.4.1)
+        GHC-prof-options:	-fprof-auto -fprof-cafs
+    else
+        GHC-prof-options:	-auto-all -caf-all
+
+-- Required for 'cabal sdist'.
+    Other-modules:
+        Grecce.CommandOptions
+        Grecce.Grep
+        Grecce.Test.Assert.RegExOptsChar
+        Grecce.Test.Performance.ExtendedRegEx
+        Grecce.Test.Performance.ExtendedRegExTest
+        Grecce.Test.Performance.ExtendedRegExTestsNegative
+        Grecce.Test.Performance.ExtendedRegExTestsPositive
+
+    Build-depends:
+        base == 4.*,
+        Cabal >= 1.10,
+        data-default,
+        parallel >= 3.0,
+        regexchar,
+        regex-base,
+        regex-posix,
+        regexdot >= 0.12,
+        toolshed >= 0.17
+
+    if flag(threaded)
+        GHC-options:	-threaded
+
+    if impl(ghc >= 7.0)
+        GHC-options:	-rtsopts
+
+        if flag(llvm)
+            GHC-options:	-fllvm
+
+Test-Suite test
+    Default-language:	Haskell2010
+    GHC-options:	-Wall -fno-warn-tabs
+    Hs-source-dirs:	src-test
+    Main-is:		Main.hs
+    Type:		exitcode-stdio-1.0
+
+-- Required for 'cabal sdist'.
+    Other-modules:
+        Grecce.Test.QuickCheck.ExtendedRegExChar
+        Grecce.Test.QuickCheck.MetaChar
+        Grecce.Test.QuickCheck.RepeatableMetaChar
+
+    Build-depends:
+        base == 4.*,
+        QuickCheck >= 2.4,
+        regexchar,
+        regexdot >= 0.12,
+        toolshed >= 0.17
+
