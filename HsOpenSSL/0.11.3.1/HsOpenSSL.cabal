@@ -1,0 +1,205 @@
+Name:         HsOpenSSL
+Synopsis:     Partial OpenSSL binding for Haskell
+Description:
+    .
+    HsOpenSSL is an OpenSSL binding for Haskell. It can generate RSA
+    and DSA keys, read and write PEM files, generate message digests,
+    sign and verify messages, encrypt and decrypt messages. It has
+    also some capabilities of creating SSL clients and servers.
+    .
+    This package is in production use by a number of Haskell based
+    systems and stable. You may also be interested in the @tls@ package,
+    <http://hackage.haskell.org/package/tls>, which is a pure Haskell
+    implementation of SSL.
+    .
+Version:       0.11.3.1
+License:       PublicDomain
+License-File:  COPYING
+Author:        Adam Langley, Mikhail Vorozhtsov, PHO, Taru Karttunen
+Maintainer:    Vladimir Shabanov <vshabanoff@gmail.com>
+Stability:     stable
+Homepage:      https://github.com/vshabanov/HsOpenSSL
+Bug-Reports:   https://github.com/vshabanov/HsOpenSSL/issues
+Category:      Cryptography
+Cabal-Version: >= 1.12
+Tested-With:
+    GHC==8.0.2, GHC==7.10.3, GHC==7.8.4, GHC==7.6.3, GHC==7.4.2, GHC==7.2.2
+Build-Type:    Custom
+Extra-Source-Files:
+    AUTHORS
+    ChangeLog
+    README.md
+    cbits/HsOpenSSL.h
+    cbits/mutex.h
+    examples/Makefile
+    examples/GenRSAKey.hs
+    examples/HelloWorld.hs
+    examples/PKCS7.hs
+    examples/Server.hs
+    examples/server.crt
+    examples/server.pem
+
+Source-Repository head
+    Type: git
+    Location: git://github.com/vshabanov/HsOpenSSL.git
+
+Flag fast-bignum
+    Description:
+        Enable fast moving of bignums between OpenSSL and GMP (GHC only).
+    Default:
+        True
+
+Flag homebrew-openssl
+    Description:
+        Use Homebrew version of OpenSSL (macOS only).
+    Default:
+        False
+
+Flag macports-openssl
+    Description:
+        Use MacPorts version of OpenSSL (macOS only).
+    Default:
+        False
+
+Library
+    Build-Depends:
+        base       >= 4.4 && < 5,
+        bytestring >= 0.9   && < 0.11,
+        network    >= 2.1   && < 2.7,
+        time       >= 1.5   && < 1.7
+
+    if flag(fast-bignum)
+        CPP-Options: -DFAST_BIGNUM
+        if impl(ghc >= 6.11)
+            -- TODO: integer-gmp >= 1 is not supported yet.
+            -- https://github.com/phonohawk/HsOpenSSL/issues/36
+            Build-Depends: integer-gmp >= 0.2 && < 1
+            -- Doesn't work since GHC 7.10.1 (integer-gmp-1.0.0.0)
+        else
+            Build-Depends: ghc-prim, integer
+
+    if os(darwin) && flag(homebrew-openssl)
+        Include-Dirs: /usr/local/opt/openssl/include
+        Extra-Lib-Dirs: /usr/local/opt/openssl/lib
+
+    if os(darwin) && flag(macports-openssl)
+        Include-Dirs: /opt/local/include
+        Extra-Lib-Dirs: /opt/local/lib
+
+    if os(mingw32)
+        Extra-Libraries: eay32 ssl32
+        C-Sources:       cbits/mutex-win.c
+        CC-Options:      -D MINGW32
+        CPP-Options:     -DCALLCONV=stdcall
+    else
+        Extra-Libraries: crypto ssl
+        C-Sources:       cbits/mutex-pthread.c
+        CC-Options:      -D PTHREAD
+        CPP-Options:     -DCALLCONV=ccall
+
+    Exposed-Modules:
+        OpenSSL
+        OpenSSL.BN
+        OpenSSL.DER
+        OpenSSL.EVP.Base64
+        OpenSSL.EVP.Cipher
+        OpenSSL.EVP.Digest
+        OpenSSL.EVP.Internal
+        OpenSSL.EVP.Open
+        OpenSSL.EVP.PKey
+        OpenSSL.EVP.Seal
+        OpenSSL.EVP.Sign
+        OpenSSL.EVP.Verify
+        OpenSSL.Cipher
+        OpenSSL.PEM
+        OpenSSL.PKCS7
+        OpenSSL.Random
+        OpenSSL.DSA
+        OpenSSL.RSA
+        OpenSSL.X509
+        OpenSSL.X509.Revocation
+        OpenSSL.X509.Request
+        OpenSSL.X509.Store
+        OpenSSL.Session
+        OpenSSL.DH
+    Other-Modules:
+        OpenSSL.ASN1
+        OpenSSL.BIO
+        OpenSSL.ERR
+        OpenSSL.Objects
+        OpenSSL.SSL
+        OpenSSL.SSL.Option
+        OpenSSL.Stack
+        OpenSSL.Utils
+        OpenSSL.X509.Name
+        OpenSSL.DH.Internal
+    Default-Language:
+        Haskell2010
+    GHC-Options:
+        -Wall
+    C-Sources:
+        cbits/HsOpenSSL.c
+    Include-Dirs:
+        cbits
+    Includes:
+        openssl/asn1.h
+
+Test-Suite test-cipher
+    Type:    exitcode-stdio-1.0
+    Main-Is: Test/OpenSSL/Cipher.hs
+    Build-Depends:
+        HsOpenSSL,
+        HUnit                >= 1.0 && < 1.5,
+        base                 >= 4.4 && < 5,
+        bytestring           >= 0.9 && < 0.11,
+        test-framework       >= 0.8 && < 0.9,
+        test-framework-hunit >= 0.3 && < 0.4
+    Default-Language:
+        Haskell2010
+    GHC-Options:
+        -Wall
+
+Test-Suite test-dsa
+    Type:    exitcode-stdio-1.0
+    Main-Is: Test/OpenSSL/DSA.hs
+    Build-Depends:
+        HsOpenSSL,
+        HUnit                >= 1.0 && < 1.5,
+        base                 >= 4.4 && < 5,
+        bytestring           >= 0.9 && < 0.11,
+        test-framework       >= 0.8 && < 0.9,
+        test-framework-hunit >= 0.3 && < 0.4
+    Default-Language:
+        Haskell2010
+    GHC-Options:
+        -Wall
+
+Test-Suite test-der
+    Type:    exitcode-stdio-1.0
+    Main-Is: Test/OpenSSL/DER.hs
+    Build-Depends:
+        HsOpenSSL,
+        HUnit                >= 1.0 && < 1.5,
+        base                 >= 4.4 && < 5,
+        bytestring           >= 0.9 && < 0.11,
+        test-framework       >= 0.8 && < 0.9,
+        test-framework-hunit >= 0.3 && < 0.4
+    Default-Language:
+        Haskell2010
+    GHC-Options:
+        -Wall
+
+Test-Suite test-evp-base64
+    Type:    exitcode-stdio-1.0
+    Main-Is: Test/OpenSSL/EVP/Base64.hs
+    Build-Depends:
+        HsOpenSSL,
+        HUnit                >= 1.0 && < 1.5,
+        base                 >= 4.4 && < 5,
+        bytestring           >= 0.9 && < 0.11,
+        test-framework       >= 0.8 && < 0.9,
+        test-framework-hunit >= 0.3 && < 0.4
+    Default-Language:
+        Haskell2010
+    GHC-Options:
+        -Wall
