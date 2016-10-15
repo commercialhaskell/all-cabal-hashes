@@ -1,0 +1,150 @@
+name:            rdf4h
+version:         3.0.1
+synopsis:        A library for RDF processing in Haskell
+description:
+  'RDF for Haskell' is a library for working with RDF in Haskell.
+  At present it includes parsers and serializers for RDF in the N-Triples
+  and Turtle, and parsing support for RDF/XML. It provides abilities such as querying
+  for triples  containing a particular subject, predicate, or object, or
+  selecting triples that satisfy an arbitrary predicate function.
+
+author:          Calvin Smith, Rob Stewart, Slava Kravchenko
+copyright:       (c) Calvin Smith, Rob Stewart, Slava Kravchenko
+maintainer:      Rob Stewart <robstewart@gmail.com>, Slava Kravchenko
+homepage:        https://github.com/robstewart57/rdf4h
+bug-reports:     https://github.com/robstewart57/rdf4h/issues
+license:         BSD3
+license-file:    LICENSE.txt
+cabal-version:   >= 1.8
+build-type:      Simple
+category:        RDF
+stability:       Experimental
+tested-with:     GHC==7.10.2, GHC==8.0.2
+extra-tmp-files: test
+extra-source-files: examples/ParseURLs.hs
+                  , examples/ESWC.hs
+
+flag network-uri
+   description: Get Network.URI from the network-uri package
+   default: True
+
+library
+  exposed-modules: Data.RDF
+                 , Data.RDF.Namespace
+                 , Data.RDF.Types
+                 , Data.RDF.Query
+                 , Data.RDF.Graph.AdjHashMap
+                 -- , Data.RDF.Graph.HashMapSP
+                 -- , Data.RDF.Graph.MapSP
+                 -- this is very slow
+                 -- , Data.RDF.Graph.TPatriciaTree
+                 , Data.RDF.Graph.TList
+                 , Text.RDF.RDF4H.TurtleParser
+                 , Text.RDF.RDF4H.TurtleSerializer
+                 , Text.RDF.RDF4H.NTriplesParser
+                 , Text.RDF.RDF4H.NTriplesSerializer
+                 , Text.RDF.RDF4H.XmlParser
+  build-depends:   base >= 3
+                 , bytestring
+                 , directory
+                 , containers
+                 , parsec >= 3
+                 -- was needed for the patricia tree RDF implementation,
+                 -- which was too slow.
+                 -- , fgl >= 5.5.2.0
+                 , HTTP >= 4000.0.0
+                 , hxt >= 9.3.1.2
+                 , text >= 1.2.1.0
+                 , unordered-containers
+                 , hashable
+                 , deepseq
+                 , binary
+                 , text-binary
+                 , utf8-string
+                 , hgal
+  if impl(ghc < 7.6)
+    build-depends: ghc-prim
+
+  if flag(network-uri)
+    build-depends: network-uri >= 2.6, network >= 2.6
+  else
+    build-depends: network-uri < 2.6, network < 2.6
+
+  other-modules:   Text.RDF.RDF4H.ParserUtils
+                 , Text.RDF.RDF4H.Interact
+  hs-source-dirs:  src
+  extensions:      BangPatterns RankNTypes MultiParamTypeClasses Arrows FlexibleContexts OverloadedStrings DoAndIfThenElse
+  ghc-options:     -Wall -fno-warn-unused-do-bind -funbox-strict-fields
+
+executable rdf4h
+  main-is:         src/Rdf4hParseMain.hs
+  build-depends:   base >= 4 && < 6
+                 , rdf4h
+                 , containers
+                 , text >= 1.2.1.0
+
+  if impl(ghc < 7.6)
+    build-depends: ghc-prim
+
+  if flag(network-uri)
+    build-depends: network-uri >= 2.6, network >= 2.6
+  else
+    build-depends: network-uri < 2.6, network < 2.6
+
+  extensions:      BangPatterns RankNTypes ScopedTypeVariables MultiParamTypeClasses OverloadedStrings
+  ghc-options:     -Wall -fno-warn-unused-do-bind -funbox-strict-fields
+
+test-suite test-rdf4h
+  type:          exitcode-stdio-1.0
+  main-is:       Test.hs
+  other-modules: Data.RDF.GraphTestUtils
+                 Data.RDF.Graph.AdjHashMap_Test
+                 -- Data.RDF.Graph.HashSP_Test
+                 -- Data.RDF.Graph.SP_Test
+                 -- Data.RDF.Graph.TriplesPatriciaTree_Test
+                 Data.RDF.Graph.TList_Test
+                 Text.RDF.RDF4H.TurtleParser_ConformanceTest
+                 Text.RDF.RDF4H.XmlParser_Test
+                 W3C.Manifest
+                 W3C.NTripleTest
+                 W3C.RdfXmlTest
+                 W3C.W3CAssertions
+  ghc-options:   -Wall -fno-warn-unused-do-bind -fno-warn-orphans -fno-warn-name-shadowing -funbox-strict-fields
+  extensions:    RankNTypes MultiParamTypeClasses Arrows FlexibleContexts OverloadedStrings
+  build-depends: base >= 4 && < 6
+               , rdf4h
+               , tasty
+               , tasty-hunit
+               , tasty-quickcheck
+               , QuickCheck >= 1.2.0.0
+               , HUnit >= 1.2.2.1
+               , bytestring
+               , containers
+               , text >= 1.2.1.0
+               , directory
+               , safe
+
+  if impl(ghc < 7.6)
+    build-depends: ghc-prim
+
+  if flag(network-uri)
+    build-depends: network-uri >= 2.6, network >= 2.6
+  else
+    build-depends: network-uri < 2.6, network < 2.6
+
+  other-modules: W3C.TurtleTest
+  hs-source-dirs: testsuite/tests
+
+benchmark rdf4h-bench
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          MainCriterion.hs
+  build-depends:    base,
+                    criterion,
+                    rdf4h,
+                    text >= 1.2.1.0
+  ghc-options:      -Wall
+
+source-repository head
+  type:     git
+  location: https://github.com/robstewart57/rdf4h.git
