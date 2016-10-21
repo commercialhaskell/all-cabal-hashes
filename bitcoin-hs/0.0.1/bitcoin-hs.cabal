@@ -1,0 +1,196 @@
+
+name:                bitcoin-hs
+version:             0.0.1
+synopsis:            Partial implementation of the Bitcoin protocol (as of 2013)
+description:         Partial but self-contained implementation of the Bitcoin protocol (as of 2013). Use at your own risk!
+license:             BSD3
+license-file:        LICENSE
+author:              Balazs Komuves
+maintainer:          bkomuves (plus) hackage (at) gmail (dot) com
+copyright:           (c) 2013, 2016 Balazs Komuves
+Homepage:            http://code.haskell.org/~bkomuves/
+category:            Bitcoin, Cryptography
+stability:           Experimental
+build-type:          Custom
+tested-with:         GHC == 7.10.3
+cabal-version:       >= 1.8
+
+--------------------------------------------------------------------------------
+
+extra-source-files:  Bitcoin/Crypto/Hash/RipEmd/rmd160.c
+                     Bitcoin/Crypto/Hash/RipEmd/rmd160.h
+                     Bitcoin/Crypto/Hash/SHA2/sha2.c
+                     Bitcoin/Crypto/Hash/SHA2/sha2.h
+                     Bitcoin/Crypto/Hash/SHA1/sha1.c
+                     Bitcoin/Crypto/Hash/SHA1/sha1.h
+                     Bitcoin/Crypto/Hash/MD5/md5.c
+                     Bitcoin/Crypto/Hash/MD5/md5.h
+                     Bitcoin/Crypto/cbits/c_word256.c
+                     Bitcoin/Crypto/cbits/c_word256.h
+                     Bitcoin/Crypto/cbits/c_modp.c
+                     Bitcoin/Crypto/cbits/c_modp.h
+                     Bitcoin/Crypto/cbits/c_ec.c
+                     Bitcoin/Crypto/cbits/c_ec.h
+                     Bitcoin/Crypto/cbits/asm_modp_x86.asm
+                     Bitcoin/Crypto/cbits/asm_modp_x64.asm
+
+--------------------------------------------------------------------------------
+
+flag TestNet   
+  Description:       Use the Bitcoin Testnet conventions
+  Default:           False
+
+-- This is disabled by default because I guess most users won't have nasm installed.
+flag X86ASM
+  Description:       Hand-written x86 / x86_64 assembly routines for modular arithmetic
+  Default:           False
+
+flag network-uri
+  description: Get Network.URI from the network-uri package
+  default: True
+
+--------------------------------------------------------------------------------
+
+source-repository head
+  type:     git
+  location: http://code.haskell.org/~bkomuves/projects/bitcoin-hs/
+
+--------------------------------------------------------------------------------
+
+library
+
+  hs-source-dirs:    .
+  exposed:           True
+
+  build-depends:     base >= 4 && < 5, array, containers, bytestring, 
+                     transformers, mtl, random, 
+                     deepseq, ghc-prim,
+                     directory, filepath, time, old-locale, 
+                     HTTP,
+                     binary >= 0.7, json >= 0.7
+
+  exposed-modules:   Bitcoin.BlockChain
+                     Bitcoin.BlockChain.Base
+                     Bitcoin.BlockChain.Tx
+                     Bitcoin.BlockChain.Parser
+                     Bitcoin.BlockChain.Load
+                     Bitcoin.BlockChain.Chain
+                     Bitcoin.BlockChain.Checkpoint
+                     Bitcoin.BlockChain.TxLookup
+                     Bitcoin.BlockChain.Cache
+                     Bitcoin.BlockChain.Unspent
+                     Bitcoin.Script.Base
+                     Bitcoin.Script.Integer
+                     Bitcoin.Script.Run
+                     Bitcoin.Script.Serialize
+                     Bitcoin.Script.Standard
+                     Bitcoin.Crypto.Hash.RipEmd160
+                     Bitcoin.Crypto.Hash.SHA1
+                     Bitcoin.Crypto.Hash.SHA256
+                     Bitcoin.Crypto.Hash.SHA512
+                     Bitcoin.Crypto.Hash.MD5
+                     Bitcoin.Crypto.Hash.HMAC
+                     Bitcoin.Crypto.Hash.KDF
+                     Bitcoin.Crypto.EC
+                     Bitcoin.Crypto.EC.Curve
+                     Bitcoin.Crypto.EC.Projective
+                     Bitcoin.Crypto.EC.Key
+                     Bitcoin.Crypto.EC.DSA
+                     Bitcoin.Crypto.EC.DiffieHellman
+                     Bitcoin.Crypto.Word256
+                     Bitcoin.Crypto.FiniteField.Naive.Fp
+                     Bitcoin.Crypto.FiniteField.Naive.Fn
+                     Bitcoin.Crypto.FiniteField.Fast.Fp
+                     Bitcoin.Protocol
+                     Bitcoin.Protocol.Address
+                     Bitcoin.Protocol.Amount
+                     Bitcoin.Protocol.Base58
+                     Bitcoin.Protocol.Base64
+                     Bitcoin.Protocol.Hash
+                     Bitcoin.Protocol.Key
+                     Bitcoin.Protocol.Signature
+                     Bitcoin.Protocol.MerkleTree
+                     Bitcoin.Protocol.Difficulty
+                     Bitcoin.Protocol.Tx
+                     Bitcoin.Misc
+                     Bitcoin.Misc.Bifunctor
+                     Bitcoin.Misc.BigInt
+                     Bitcoin.Misc.BiMap
+                     Bitcoin.Misc.Endian
+                     Bitcoin.Misc.HexString
+                     Bitcoin.Misc.Monad
+                     Bitcoin.Misc.OctetStream
+                     Bitcoin.Misc.Strict
+                     Bitcoin.Misc.Tuple
+                     Bitcoin.Misc.Unique
+                     Bitcoin.Misc.UnixTime                 
+                     Bitcoin.Misc.Zipper
+                     Bitcoin.RPC.API
+                     Bitcoin.RPC.JSON
+                     Bitcoin.RPC.HTTP
+                     Bitcoin.RPC.Call
+
+  if flag(network-uri)
+    build-depends: network-uri >= 2.6, network >= 2.6
+  else
+    build-depends: network-uri <  2.6, network <  2.6
+
+  c-sources:         Bitcoin/Crypto/Hash/RipEmd/rmd160.c
+                     Bitcoin/Crypto/Hash/SHA2/sha2.c
+                     Bitcoin/Crypto/Hash/SHA1/sha1.c
+                     Bitcoin/Crypto/Hash/MD5/md5.c
+                     Bitcoin/Crypto/cbits/c_word256.c
+                     Bitcoin/Crypto/cbits/c_modp.c
+                     Bitcoin/Crypto/cbits/c_ec.c
+
+  if arch(i386)
+    cpp-options:     -DARCH_X86
+    cc-options:      -DARCH_X86 -m32
+  if arch(x86_64)
+    cpp-options:     -DARCH_X64
+    cc-options:      -DARCH_X64 -m64
+
+  cc-options:        -std=c99 -DSHA2_USE_INTTYPES_H -DBYTE_ORDER=LITTLE_ENDIAN
+
+  if flag(x86asm)
+    cpp-options:     -DWITH_X86ASM 
+    cc-options:      -DWITH_X86ASM
+
+  if flag(testnet)
+    cpp-options:     -DWITH_TESTNET
+
+  extensions:        PackageImports, PatternGuards, CPP, EmptyDataDecls, FlexibleInstances, TypeSynonymInstances
+
+--------------------------------------------------------------------------------
+
+test-suite bitcoin-hs-tests
+                      
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      .
+  main-is:             Bitcoin/TestSuite.hs
+  
+  other-modules:       Bitcoin.Test.Crypto.Word256 
+                       Bitcoin.Test.Crypto.FiniteField.NaiveFp
+                       Bitcoin.Test.Crypto.FiniteField.FastFp
+                       Bitcoin.Test.Crypto.Curve
+                       Bitcoin.Test.Crypto.Projective
+                       Bitcoin.Test.Crypto.Key
+                       Bitcoin.Test.Crypto.RFC6979
+                       Bitcoin.Test.Protocol.Hash
+                       Bitcoin.Test.Script.Valid
+                       Bitcoin.Test.Script.Invalid
+                       Bitcoin.Test.Script.Parser
+                       Bitcoin.Test.Script.RunTests
+                       Bitcoin.Test.TxCheck
+                       Bitcoin.Test.TxCheck.MainNet
+                       Bitcoin.Test.TxCheck.TestNet3
+                       Bitcoin.Test.Misc.QuickCheck
+
+  build-depends:       base >= 4 && < 5, array, containers, bytestring, 
+                       transformers, mtl, random, binary, time, old-locale,
+                       bitcoin-hs,
+                       QuickCheck >= 2, tasty, tasty-quickcheck, tasty-hunit
+
+  default-language:    Haskell2010
+  default-extensions:  CPP, BangPatterns
+
