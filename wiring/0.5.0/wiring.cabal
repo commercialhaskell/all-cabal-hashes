@@ -1,0 +1,98 @@
+name:                  wiring
+version:               0.5.0
+author:                Sean Parsons
+category:              Data
+license:               BSD3
+license-file:          LICENSE
+maintainer:            git@futurenotfound.com
+stability:             provisional
+homepage:              http://github.com/seanparsons/wiring/
+bug-reports:           http://github.com/seanparsons/wiring/issues
+build-type:            Simple
+cabal-version:         >=1.10
+synopsis:              Wiring, promotion and demotion of types.
+description:
+  This package provides the ability to join up or wire instances of types (such as ReaderT, WriterT and RWST) with some semi-automatic conversions.
+  .
+  /ReaderT Example/
+  .
+  With ReaderT there might be two functions already written that we wish to compose:
+  .
+  > userLookup :: Int -> ReaderT (Resource1, Database1) IO User
+  > ordersLookup :: Int -> ReaderT (Database2, Resource1) IO [String]
+  .
+  Ordinarily these could not be used together because their environment type differs,
+  which reduces the utility of ReaderT as a method of <http://en.wikipedia.org/wiki/Dependency_injection dependency injection>.
+  .
+  However with use of the @wire@ method from the @Wirable@ typeclass it becomes possible to use these two together with little pain.
+  .
+  > composedLookup :: Int -> ReaderT (Resource1, Database1, Database2) IO String
+  > composedLookup userId = do
+  >   user    <- wire $ userLookup userId
+  >   orders  <- wire $ ordersLookup userId
+  >   return $ describeOrders user orders
+  .
+  /Tuples/
+  .
+  Built in are instances of @Wirable@ for transforming tuples to their individual fields, like taking @a@ from a tuple @(a, b, c)@.
+  .
+  As well as producing new tuples from existing tuples, starting with a tuple of @(a, b, c)@ and returning a tuple of @(c, a)@.
+  .
+  /Other Types/
+  .
+  WriterT and RWST are similarly well supported, including the ability to promote from ReaderT\/WriterT up to RWST.
+  .
+  Some existing functionality is extended like for instance with the @wiredAsk@ and @wiredTell@ functions.
+
+source-repository head
+  type:                git
+  location:            git://github.com/seanparsons/wiring.git
+
+library
+  build-depends:       base >=4.7 && <4.10,
+                       template-haskell >= 2.7 && < 2.12,
+                       transformers,
+                       mtl
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  default-extensions:  CPP
+  ghc-options:         -Wall
+                       -fno-warn-orphans
+                       -fno-warn-unused-imports
+  exposed-modules:     Control.Monad.Wiring,
+                       Control.Monad.Trans.Reader.Wiring,
+                       Control.Monad.Trans.State.Lazy.Wiring,
+                       Control.Monad.Trans.State.Strict.Wiring,
+                       Control.Monad.Trans.Writer.Lazy.Wiring,
+                       Control.Monad.Trans.Writer.Strict.Wiring,
+                       Control.Monad.Trans.RWS.Lazy.Wiring,
+                       Control.Monad.Trans.RWS.Strict.Wiring,
+                       Control.Monad.Reader.Wiring,
+                       Control.Monad.Reader.Class.Wiring,
+                       Control.Monad.State.Lazy.Wiring,
+                       Control.Monad.State.Strict.Wiring,
+                       Control.Monad.Writer.Lazy.Wiring,
+                       Control.Monad.Writer.Strict.Wiring,
+                       Control.Monad.RWS.Lazy.Wiring,
+                       Control.Monad.RWS.Strict.Wiring
+  other-modules:       Control.Monad.Wiring.Types,
+                       Control.Monad.Wiring.TH
+
+test-suite tests
+  build-depends:       base >=4.7 && <4.10,
+                       template-haskell >= 2.7 && < 2.12,
+                       transformers,
+                       mtl,
+                       QuickCheck -any,
+                       hspec -any
+  type:                exitcode-stdio-1.0
+  main-is:             Spec.hs
+  buildable:           True
+  default-language:    Haskell2010
+  default-extensions:  CPP
+  ghc-options:         -rtsopts
+                       -Wall
+                       -fno-warn-orphans
+                       -fno-warn-unused-imports
+  hs-source-dirs:      test,
+                       src
