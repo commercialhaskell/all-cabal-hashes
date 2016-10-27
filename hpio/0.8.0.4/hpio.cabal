@@ -1,0 +1,260 @@
+Name:                   hpio
+Version:                0.8.0.4
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+Author:                 Drew Hess <src@drewhess.com>
+Maintainer:             Drew Hess <src@drewhess.com>
+Homepage:               https://github.com/dhess/hpio
+Bug-Reports:            https://github.com/dhess/hpio/issues/
+Stability:              experimental
+License:                BSD3
+License-File:           LICENSE
+Copyright:              Copyright (c) 2016, Drew Hess
+Tested-With:            GHC == 7.8.4, GHC == 7.10.2, GHC == 7.10.3, GHC == 8.0.1
+Category:               System
+Synopsis:               Monads for GPIO in Haskell
+Description:
+  This package provides an embedded DSL for writing cross-platform
+  GPIO programs in Haskell. Currently only Linux is supported (via the
+  @sysfs@ filesystem), but other Unix GPIO platforms will be supported
+  in the future.
+  .
+  Monads and low-level actions are also provided for each supported
+  platform's native GPIO API, if you want to program directly to
+  the platform API.
+  .
+  Example programs are provided in the 'examples' directory of the
+  source code distribution. There is also a "System.GPIO.Tutorial"
+  module, which explains how to use the cross-platform DSL.
+Extra-Doc-Files:        README.md
+Extra-Source-Files:     .travis.yml
+                      , Hlint.hs
+                      , changelog.md
+                      , default.nix
+                      , shell.nix
+                      , stack.yaml
+                      , stack-lts-2.yaml
+
+-- Enable Linux BeagleBone-specific tests. See
+-- test/System/GPIO/Linux/Sysfs/BeagleBoneSpec.hs for requirements.
+--
+-- > cabal test -flinux-bbone-tests
+Flag linux-bbone-tests
+  Default: False
+  Manual: True
+
+-- Build doctests
+Flag test-doctests
+  Default: True
+  Manual: True
+
+-- Build hlint test
+Flag test-hlint
+  Default: True
+  Manual: True
+
+-- Build the example programs
+Flag examples
+  Default: True
+  Manual: True
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints
+  Exposed-Modules:      System.GPIO
+                      , System.GPIO.Linux
+                      , System.GPIO.Linux.Sysfs
+                      , System.GPIO.Linux.Sysfs.IO
+                      , System.GPIO.Linux.Sysfs.Monad
+                      , System.GPIO.Linux.Sysfs.Mock
+                      , System.GPIO.Linux.Sysfs.Types
+                      , System.GPIO.Linux.Sysfs.Util
+                      , System.GPIO.Monad
+                      , System.GPIO.Tutorial
+                      , System.GPIO.Types
+  Other-Modules:        System.GPIO.Linux.Sysfs.Mock.Internal
+  Other-Extensions:     CPP
+                      , DeriveDataTypeable
+                      , DeriveGeneric
+                      , ExistentialQuantification
+                      , FlexibleContexts
+                      , FlexibleInstances
+                      , FunctionalDependencies
+                      , GADTs
+                      , GeneralizedNewtypeDeriving
+                      , InterruptibleFFI
+                      , KindSignatures
+                      , LambdaCase
+                      , MultiParamTypeClasses
+                      , OverloadedStrings
+                      , PackageImports
+                      , QuasiQuotes
+                      , Safe
+                      , TemplateHaskell
+                      , Trustworthy
+                      , TypeSynonymInstances
+                      , UndecidableInstances
+  Build-Depends:        QuickCheck          >= 2.7.6  && < 2.10
+                      , base                >= 4.7.0  && < 5
+                      , base-compat         >= 0.6.0  && < 1
+                      , bytestring          >= 0.10.4 && < 0.11
+                      , containers          >= 0.5.5  && < 0.6
+                      , directory           >= 1.2.1  && < 1.3
+                      , exceptions          >= 0.8.0  && < 1
+                      , filepath            >= 1.3.0  && < 1.5
+                      , mtl                 >= 2.1.3  && < 2.3
+                      , mtl-compat          >= 0.2.1  && < 0.3
+                      , text                >= 1.2.0  && < 1.3
+                      , transformers        >= 0.3.0  && < 0.6
+                      , transformers-compat >= 0.4.0  && < 1
+                      , unix                >= 2.7.0  && < 2.8
+                      , unix-bytestring     >= 0.3.7  && < 0.4
+  C-Sources:            src/System/GPIO/Linux/Sysfs/pollSysfs.c
+  CC-Options:           -Wall
+
+Executable hpio-sysfs-example
+  Main-Is:              Sysfs.hs
+  HS-Source-Dirs:       examples
+  If !flag(examples)
+    Buildable: False
+  Else
+    Build-Depends:      base
+                      , async                >= 2.0.2  && < 2.2
+                      , base-compat
+                      , hpio
+                      , mtl
+                      , mtl-compat
+                      , optparse-applicative >= 0.11.0 && < 0.14
+                      , transformers
+                      , transformers-compat
+  Default-Language:     Haskell2010
+  Ghc-Options:          -Wall -threaded
+
+Executable hpio-example
+  Main-Is:              Gpio.hs
+  HS-Source-Dirs:       examples
+  If !flag(examples)
+    Buildable: False
+  Else
+    Build-Depends:      base
+                      , async
+                      , base-compat
+                      , exceptions
+                      , hpio
+                      , mtl
+                      , mtl-compat
+                      , optparse-applicative
+                      , transformers
+                      , transformers-compat
+  Default-Language:     Haskell2010
+  Ghc-Options:          -Wall -threaded
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints -fno-warn-redundant-constraints
+
+Executable hpio-reader-example
+  Main-Is:              GpioReader.hs
+  HS-Source-Dirs:       examples
+  If !flag(examples)
+    Buildable: False
+  Else
+    Build-Depends:      base
+                      , async
+                      , base-compat
+                      , exceptions
+                      , hpio
+                      , mtl
+                      , mtl-compat
+                      , optparse-applicative
+                      , transformers
+                      , transformers-compat
+
+  Default-Language:     Haskell2010
+  Ghc-Options:          -Wall -threaded
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints -fno-warn-redundant-constraints
+
+Test-Suite hlint
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       test
+  Ghc-Options:          -w -threaded
+  Main-Is:              hlint.hs
+  If !flag(test-hlint)
+    Buildable: False
+  Else
+    Build-Depends:      base
+                      , hlint
+
+Test-Suite doctest
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       test
+  Ghc-Options:          -Wall -threaded
+  Main-Is:              doctest.hs
+  -- Disabled on GHC 7.8.x and earlier due to missing Data.Bits bits.
+  If !flag(test-doctests) || impl(ghc < 7.10)
+    Buildable: False
+  Else
+    Build-Depends:      base
+                      , doctest
+                      , filepath
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       src
+                      , test
+  Ghc-Options:          -Wall -threaded
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints -fno-warn-redundant-constraints
+  Main-Is:              Main.hs
+  Build-Depends:        QuickCheck
+                      , base
+                      , async
+                      , base-compat
+                      , bytestring
+                      , containers
+                      , directory
+                      , exceptions
+                      , filepath
+                      , hspec               >= 2.1.7 && < 2.4
+                      , mtl
+                      , mtl-compat
+                      , text
+                      , transformers
+                      , transformers-compat
+                      , unix
+                      , unix-bytestring
+  Other-modules:        System.GPIO
+                      , System.GPIO.Linux
+                      , System.GPIO.Linux.Sysfs
+                      , System.GPIO.Linux.Sysfs.IO
+                      , System.GPIO.Linux.Sysfs.Monad
+                      , System.GPIO.Linux.Sysfs.Mock
+                      , System.GPIO.Linux.Sysfs.Mock.Internal
+                      , System.GPIO.Linux.Sysfs.Types
+                      , System.GPIO.Linux.Sysfs.Util
+                      , System.GPIO.Monad
+                      , System.GPIO.Tutorial
+                      , System.GPIO.Types
+                      , Spec
+                      , System.GPIO.TypesSpec
+                      , System.GPIO.Linux.Sysfs.LinuxBboneSpec
+                      , System.GPIO.Linux.Sysfs.MockInternalSpec
+                      , System.GPIO.Linux.Sysfs.MockSpec
+                      , System.GPIO.Linux.Sysfs.SysfsGpioMockSpec
+  C-Sources:            src/System/GPIO/Linux/Sysfs/pollSysfs.c
+  If flag(linux-bbone-tests)
+    cpp-options: -DRUN_LINUX_BBONE_TESTS=1
+
+Source-Repository head
+  Type:                 git
+  Location:             git://github.com/dhess/hpio.git
+
+Source-Repository this
+  Type:                 git
+  Location:             git://github.com/dhess/hpio.git
+  Tag:                  v0.8.0.4
