@@ -1,0 +1,84 @@
+name:            download
+version:         0.3.2.5
+homepage:        https://github.com/psibi/download
+synopsis:        High-level file download based on URLs
+description:     High-level file download based on URLs
+extra-source-files: ChangeLog.md README.md
+bug-reports:     https://github.com/psibi/download/issues
+category:        Network
+license:         BSD3
+license-file:    LICENSE
+copyright:       (c) 2008-2011, Don Stewart <dons00@gmail.com>
+author:          Don Stewart
+maintainer:      Sibi Prabakaran <sibi@psibi.in>
+cabal-version:   >= 1.8
+build-type:      Simple
+tested-with:     GHC ==7.10.3
+
+-- flag external
+--  description: Build with an external libdownload
+--  default:     False
+
+Source-Repository head
+    Type: git
+    Location: https://github.com/psibi/download
+
+library
+    exposed-modules: Network.Download
+    extensions:      CPP,
+                     ForeignFunctionInterface,
+                     EmptyDataDecls,
+                     GeneralizedNewtypeDeriving
+
+    ghc-options:     -Wall
+
+    build-depends:   base >= 3 && < 5, bytestring,
+                     tagsoup >= 0.8, feed, xml
+
+    ------------------------------------------------------------------------
+    -- Building libdownload
+    --
+    -- We can build against either an external libdownload, or an internal one.
+
+--    if flag(external)
+--        extra-libraries:    download
+--        c-sources:          cbits/hs_download_utils.c
+--        include-dirs:       cbits
+--        includes:           hs_download_utils.h
+--        install-includes:   hs_download_utils.h
+--    else
+
+    cc-options:         -O2
+                        -DINET6
+                        -D_GNU_SOURCE
+                        -D_FILE_OFFSET_BITS=64
+                        -UDEBUG
+
+    c-sources:          cbits/download.c
+                        cbits/common.c
+                        cbits/ftp.c
+                        cbits/http.c
+                        cbits/file.c
+                        cbits/hs_download_utils.c
+
+    include-dirs:       cbits
+    includes:           download.h
+                        common.h
+                        ftperr.h
+                        httperr.h
+                        hs_download_utils.h
+
+    install-includes:   common.h
+                        download.h
+                        ftperr.h
+                        httperr.h
+                        hs_download_utils.h
+
+test-suite test
+    type:          exitcode-stdio-1.0
+    ghc-options:   -Wall
+    main-is:       Spec.hs
+    
+    build-depends:   base >= 4.5 && < 5,
+                     download,
+                     hspec == 2.*
