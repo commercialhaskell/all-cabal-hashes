@@ -1,0 +1,120 @@
+Name:                   language-c-inline
+Version:                0.7.10.0
+Cabal-version:          >= 1.9.2
+Tested-with:            GHC == 7.10.3
+Build-type:             Simple
+
+Synopsis:               Inline C & Objective-C code in Haskell for language interoperability
+Description:            This library provides inline C & Objective-C code using GHC's support for
+                        quasi-quotation. In particular, it enables the use of foreign libraries
+                        without a dedicated bridge or binding. Here is a tiny example:
+                        .
+                        > nslog :: String -> IO ()
+                        > nslog msg = $(objc ['msg :> ''String] (void [cexp| NSLog(@"Here is a message from Haskell: %@", msg) |]))
+                        .
+                        For more information, see <https://github.com/mchakravarty/language-c-inline/wiki>.
+                        .
+                        Known bugs: <https://github.com/mchakravarty/language-c-inline/issues>
+                        .
+                        * New in 0.7.10: Distinction between 'Class' (NSObject pointers) and 'Struct' (C pointers) in both hints and marhsallers.
+                        .
+                        * New in 0.7.9: C wrapper names include the filename to disambiguate linker symbols.
+                        .
+                        * New in 0.7.8: (1) Record marshalling; (2) foreign pointer-class marshalling; (3) custom type
+                        marshallers; (4) marshall raw pointer types. Generated _objc.m files now always include "HsFFI.h"
+                        (as the tool can generate type names declared in that header). Marshals 'Bool' as 'BOOL'. Marshal 'Int'
+                        and 'Word' to 'NSInteger' and 'NSUInteger', respectively.
+                        .
+                        * New in 0.6.0: Introduction of explicit marshalling hints (for more flexibility and support of
+                        GHC 7.8's untyped Template Haskell quotations)
+                        .
+                        * New in 0.5.0: Marshalling of numeric types
+                        .
+                        * New in 0.4.0: Maybe types are marshalled as pointers that may be nil & bug fixes.
+                        .
+                        * New in 0.3.0: Boxed Haskell types without a dedicated type mapping are marshalled using stable
+                        pointers.
+                        .
+                        * New in 0.2.0: Support for multiple free variables in one inline expression as well
+                        as for inline code returning 'void'.
+                        .
+                        * New in 0.1.0: We are just getting started! This is just a ROUGH AND
+                        HIGHLY EXPERIMENTAL PROTOTYPE.
+License:                BSD3
+License-file:           LICENSE
+Author:                 Manuel M T Chakravarty
+Maintainer:             Manuel M T Chakravarty <chak@justtesting.org>
+Homepage:               https://github.com/mchakravarty/language-c-inline/
+Bug-reports:            https://github.com/mchakravarty/language-c-inline/issues
+
+Category:               Language, Foreign
+Stability:              Experimental
+
+Extra-source-files:     README.md
+                        tests/objc/app/App.hs
+                        tests/objc/app/AppDelegate.hs
+                        tests/objc/app/Interpreter.hs
+                        tests/objc/app/Main.hs
+                        tests/objc/app/Makefile
+                        tests/objc/app/Readme.md
+                        tests/objc/app/HSApp.app/Contents/Info.plist
+                        tests/objc/app/HSApp.app/Contents/MacOS/.gitkeep
+                        tests/objc/app/HSApp.app/Contents/Resources/en.lproj/Credits.rtf
+                        tests/objc/app/HSApp.app/Contents/Resources/en.lproj/InfoPlist.strings
+                        tests/objc/app/HSApp.app/Contents/Resources/en.lproj/MainMenu.nib
+                        tests/objc/concept/Makefile
+                        tests/objc/minimal/Makefile
+                        tests/objc/minimal/Main.hs
+                        tests/objc/record/Makefile
+                        tests/objc/record/Main.hs
+                        tests/objc/record/Particle.hs
+
+Source-repository head
+  Type:                 git
+  Location:             git://github.com/mchakravarty/language-c-inline.git
+
+Flag ManualTests
+  Description:         Enables tests that require manual intervention.
+  Default:             False
+
+Library
+  Build-depends:        array,
+                        base              >= 4.0 && < 5,
+                        containers        >= 0.4,
+                        filepath          >= 1.2,
+                        language-c-quote  >= 0.8 && < 0.9,
+                        mainland-pretty   >= 0.2.5,
+                        template-haskell
+
+  Exposed-modules:      Language.C.Inline.ObjC
+
+  Other-modules:        Language.C.Inline.Error
+                        Language.C.Inline.Hint
+                        Language.C.Inline.State
+                        Language.C.Inline.TH
+                        Language.C.Inline.ObjC.Hint
+                        Language.C.Inline.ObjC.Marshal
+
+  Extensions:           TemplateHaskell, QuasiQuotes
+
+-- Doesn't work!!! Use the Makefile in the tests/ instead. (How can we get cabal to compile & link the generated ObjC files?)
+Test-Suite concept
+  if flag(ManualTests)
+     Buildable:         True
+  else
+     Buildable:         False
+
+  Build-depends:        base              >= 4.0 && < 5,
+                        language-c-quote,
+                        language-c-inline
+  
+  Frameworks:           Foundation
+
+  Type:                 exitcode-stdio-1.0
+
+  Hs-source-dirs:       tests/objc/concept
+
+  Main-is:              MainInlineObjC.hs
+
+  Other-modules:        TestInlineObjC
+  
