@@ -1,0 +1,92 @@
+name:               hakyll-series
+version:            0.1.0.1
+synopsis:           Adds series functionality to hakyll
+description:
+  Module for adding series functionality to hakyll.
+  .
+  Example <https://oisdk.github.io/hakyll-series/ here>.
+  .
+  In your posts, provide metadata at the top like so:
+  .
+  > ---
+  > title: something
+  > series: things
+  > ---
+  .
+  This will add the following fields to the post:
+  .
+    [@series@]: The name of the series
+    [@seriesLength@]: The total number of posts in the series
+    [@seriesCurPos@]: The position of the current post in the series
+    [@seriesUrl@]: The URL of the series page
+  .
+  Using that, in your post template, something like this:
+  .
+  >
+  > $if(series)$
+  >     <a href="$seriesUrl$">Part $seriesCurPos$ of a $seriesLength$-part series on $series$</a>
+  > $endif$
+  .
+  Will render like this:
+  .
+  > Part 1 of a 5-part series on things
+  .
+  Linked to the aggregate page for the series, which would render something like this:
+  .
+  > Things
+  > Part 1: something
+  .
+  To add it to your blog, add something like this to your @main@:
+  .
+  > series <- buildSeries "posts/*" (fromCapture "series/*.html")
+  >
+  > tagsRules series $ \(s:erie) pattrn -> do
+  >     let title = toUpper s : erie
+  >     route idRoute
+  >     compile $ do
+  >         posts <- chronological =<< loadAll pattrn
+  >         let ctx = constField "title" title `mappend`
+  >                   listField "posts" postCtx (pure posts) `mappend`
+  >                   defaultContext
+  >
+  >         makeItem ""
+  >             >>= loadAndApplyTemplate "templates/series.html" ctx
+  >             >>= loadAndApplyTemplate "templates/default.html" ctx
+  >             >>= relativizeUrls
+  .
+  To have access to the series context in each post, change the post rule to something like this:
+  .
+  > match "posts/*" $ do
+  >     route $ setExtension "html"
+  >     compile $ pandocCompiler
+  >         >>= loadAndApplyTemplate "templates/post.html"    (postCtxWithSeries series)
+  >         >>= loadAndApplyTemplate "templates/default.html" (postCtxWithSeries series)
+  >         >>= relativizeUrls
+  .
+  Where `postCtxWithSeries` can be something like:
+  .
+  > postCtxWithSeries :: Tags -> Context String
+  > postCtxWithSeries series = seriesField series `mappend` postCtx
+  .
+  A minimal example is provided in this repo, on top of the default hakyll setup. (it also provides the templates)
+build-type:         Simple
+cabal-version:      >= 1.10
+homepage:           https://github.com/oisdk/hakyll-series
+license:            MIT
+license-file:       LICENSE
+author:             Donnacha Oisín Kidney
+copyright:          2016 Donnacha Oisín Kidney
+maintainer:         mail@doisinkidney.com
+category:           Web
+
+library
+  hs-source-dirs:   src
+  exposed-modules:  Hakyll.Web.Series
+  build-depends:    base == 4.*
+                  , hakyll >= 4.8.0
+                  , containers >= 0.5
+  default-language: Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/oisdk/hakyll-series
