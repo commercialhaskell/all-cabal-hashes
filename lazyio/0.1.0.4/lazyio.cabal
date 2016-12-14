@@ -1,0 +1,79 @@
+Name:             lazyio
+Version:          0.1.0.4
+License:          BSD3
+License-File:     LICENSE
+Author:           Henning Thielemann <haskell@henning-thielemann.de>
+Maintainer:       Henning Thielemann <haskell@henning-thielemann.de>
+Homepage:         http://www.haskell.org/haskellwiki/Lazy_IO
+Category:         Monads, Control
+Synopsis:         Run IO actions lazily while respecting their order
+Description:
+  Run IO actions lazily while respecting their order.
+  Running a value of the LazyIO monad in the IO monad is like starting a thread
+  which is however driven by its output.
+  That is, the LazyIO action is only executed as far as necessary
+  in order to provide the required data.
+  .
+  The package may help you to avoid stack overflows in @mapM@.
+  Say you have
+  .
+  > mapM f xs
+  .
+  where @xs@ is a long list. When run, you may encounter a stack overflow.
+  To prevent it, write instead:
+  .
+  > import qualified System.IO.Lazy as LazyIO
+  >
+  > LazyIO.run $ mapM (LazyIO.interleave . f) xs
+  .
+  The stack overflow is gone.
+Tested-With:       GHC==6.8.2, GHC==6.12.1
+Tested-With:       GHC==7.4.1, GHC==7.6.3
+Cabal-Version:     >=1.6
+Build-Type:        Simple
+Extra-Source-Files:
+  CHANGES
+
+Source-Repository head
+  type:     darcs
+  location: http://code.haskell.org/~thielema/lazyio/
+
+Source-Repository this
+  type:     darcs
+  location: http://code.haskell.org/~thielema/lazyio/
+  tag:      0.1.0.4
+
+Flag splitBase
+  description: Choose the new smaller, split-up base package.
+
+Flag buildTests
+  description: Build test executables
+  default:     False
+
+Library
+  Build-Depends:
+    unsafe >=0.0 && <0.1,
+    transformers >=0.2 && <0.6
+  If flag(splitBase)
+    Build-Depends: base >=2 && <5
+  Else
+    Build-Depends:
+      special-functors >=1.0 && <1.1,
+      base >=1.0 && <2
+
+  GHC-Options:      -Wall
+  Hs-Source-Dirs:   src
+  Exposed-Modules:
+    System.IO.Lazy
+  Other-Modules:
+    Data.ApplicativeChain
+    System.IO.Lazy.Applicative
+
+
+Executable       test
+  If !flag(buildTests)
+    Buildable:         False
+
+  GHC-Options:      -Wall
+  Hs-source-dirs:   src
+  Main-Is:          Test/Main.hs
