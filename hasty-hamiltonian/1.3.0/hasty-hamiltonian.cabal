@@ -1,0 +1,74 @@
+name:                hasty-hamiltonian
+version:             1.3.0
+synopsis:            Speedy traversal through parameter space.
+homepage:            http://github.com/jtobin/hasty-hamiltonian
+license:             MIT
+license-file:        LICENSE
+author:              Jared Tobin
+maintainer:          jared@jtobin.ca
+category:            Numeric
+build-type:          Simple
+cabal-version:       >= 1.10
+Description:
+  Gradient-based traversal through parameter space.
+  .
+  This implementation of HMC algorithm uses 'lens' as a means to operate over
+  generic indexed traversable functors, so you can expect it to work if your
+  target function takes a list, vector, map, sequence, etc. as its argument.
+  .
+  If you don't want to calculate your gradients by hand you can use the
+  handy <https://hackage.haskell.org/package/ad ad> library for automatic
+  differentiation.
+  .
+  Exports a 'mcmc' function that prints a trace to stdout, a 'chain' function
+  for collecting results in memory, and a 'hamiltonian' transition operator
+  that can be used more generally.
+  .
+  > import Numeric.AD (grad)
+  > import Numeric.MCMC.Hamiltonian
+  >
+  > target :: RealFloat a => [a] -> a
+  > target [x0, x1] = negate ((x0 + 2 * x1 - 7) ^ 2 + (2 * x0 + x1 - 5) ^ 2)
+  >
+  > gTarget :: [Double] -> [Double]
+  > gTarget = grad target
+  >
+  > booth :: Target [Double]
+  > booth = Target target (Just gTarget)
+  >
+  > main :: IO ()
+  > main = withSystemRandom . asGenIO $ mcmc 10000 0.05 20 [0, 0] booth
+
+Source-repository head
+  Type:     git
+  Location: http://github.com/jtobin/hasty-hamiltonian.git
+
+library
+  default-language: Haskell2010
+  ghc-options:
+    -Wall
+  exposed-modules:
+    Numeric.MCMC.Hamiltonian
+  build-depends:
+      base             >= 4 && < 6
+    , kan-extensions   >= 5 && < 6
+    , mcmc-types       >= 1.0.1
+    , mwc-probability  >= 1.0.1
+    , lens             >= 4 && < 5
+    , pipes            >= 4 && < 5
+    , primitive        >= 0.5 && < 1.0
+    , transformers     >= 0.5 && < 1.0
+
+Test-suite booth
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Booth.hs
+  default-language:    Haskell2010
+  ghc-options:
+    -rtsopts
+  build-depends:
+      ad                >= 4 && < 5
+    , base              >= 4 && < 6
+    , mwc-probability   >= 1.0.1
+    , hasty-hamiltonian
+
