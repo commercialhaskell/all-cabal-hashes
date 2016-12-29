@@ -1,0 +1,59 @@
+name:                neural-network-blashs
+version:             0.1.0.0
+license-file:        LICENSE
+license:             BSD3
+author:              Jiasen Wu
+maintainer:          jiasenwu@hotmail.com
+homepage:            https://github.com/pierric/neural-network
+bug-reports:         https://github.com/pierric/neural-network/issues
+Category:            AI
+Synopsis:            Yet Another High Performance and Extendable Neural Network in Haskell
+Description:         Provides execution backend of neural network on top of blas-hs.
+Stability:           Experimental
+build-type:          Custom
+cabal-version:       >=1.10
+
+flag vec128
+  Description: Enable 128-bit vector hardware instructions.
+  Default:     False
+  Manual:      True
+flag vec256
+  Description: Enable 256-bit vector hardware instructions.
+  Default:     False
+  Manual:      True
+flag vec512
+  Description: Enable 512-bit vector hardware instructions.
+  Default:     False
+  Manual:      True
+
+library
+  if flag(vec128)
+    hs-source-dirs:     ., vec128
+    ghc-options:        -fllvm
+  else
+    if flag(vec256)
+      hs-source-dirs:   ., vec256
+      ghc-options:      -fllvm -mavx2
+    else
+      if flag(vec512)
+        hs-source-dirs: ., vec512
+        ghc-options:    -fllvm -mavx512
+      else
+        hs-source-dirs: ., novec
+
+  build-depends:       base >= 4.7 && < 5, blas-hs, mwc-random, mtl, vector, constraints, ghc-prim, neural-network-base
+  exposed-modules:     Data.NeuralNetwork.Backend.BLASHS
+  other-modules:       Data.NeuralNetwork.Backend.BLASHS.Layers
+                       Data.NeuralNetwork.Backend.BLASHS.Utils
+                       Data.NeuralNetwork.Backend.BLASHS.SIMD
+  default-language:    Haskell2010
+
+test-suite s1
+  type:               exitcode-stdio-1.0
+  main-is:            Test/S1.hs
+  hs-source-dirs:     ., novec
+  other-modules:      Data.NeuralNetwork.Backend.BLASHS.Utils,
+                      Data.NeuralNetwork.Backend.BLASHS.SIMD
+                      Test.Utils, Test.Gen
+  build-depends:      hspec, QuickCheck, base, hmatrix, vector, blas-hs, neural-network-base
+  default-language:   Haskell2010
