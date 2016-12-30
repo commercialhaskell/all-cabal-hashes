@@ -1,0 +1,87 @@
+name:            binary-ext
+version:         1.0
+license:         BSD3
+license-file:    LICENSE
+author:          Warlock <internalmike@gmail.com>
+maintainer:      Warlock <internalmike@gmail.com>
+homepage:        https://github.com/A1-Triard/binary-ext
+description:     An alternate with typed errors for Data.Binary.Get monad from 'binary' library. 
+synopsis:        An alternate with typed errors for Data.Binary.Get monad from 'binary' library.
+category:        Data, Parsing
+stability:       provisional
+build-type:      Simple
+cabal-version:   >= 1.8
+tested-with:     GHC == 8.0.1
+extra-source-files:
+  README.md
+
+source-repository head
+  type: git
+  location: git://github.com/A1-Triard/binary-ext.git
+
+library
+  build-depends:   base >= 4.5.0.0 && < 5, bytestring >= 0.10.2, containers, array, binary
+  hs-source-dirs:  src
+  exposed-modules: Data.Binary.Get.Ext
+                 , Data.Binary.Get.Ext.Internal
+
+  other-modules:   Data.Binary.Internal,
+                   Data.Binary.FloatCast
+  if impl(ghc <= 7.6)
+    -- prior to ghc-7.4 generics lived in ghc-prim
+    build-depends: ghc-prim
+
+  ghc-options:     -O2 -Wall -fliberate-case-threshold=1000
+
+  if impl(ghc >= 8.0)
+    ghc-options: -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances
+
+-- Due to circular dependency, we cannot make any of the test-suites
+-- depend on the binary library. Instead, for each test-suite,
+-- we include the source directory of binary and build-depend on all
+-- the dependencies binary has.
+
+test-suite qc
+  type:  exitcode-stdio-1.0
+  hs-source-dirs: src tests
+  main-is: QC.hs
+  other-modules: Action
+               , Arbitrary
+               , Data.Binary.Get.Ext
+               , Data.Binary.Get.Ext.Internal
+               , Data.Binary.Internal
+               , Data.Binary.FloatCast
+  build-depends: base >= 4.5.0.0 && < 5
+               , binary
+               , bytestring >= 0.10.2
+               , random>=1.0.1.0
+               , test-framework
+               , test-framework-quickcheck2 >= 0.3
+               , QuickCheck
+
+  -- build dependencies from using binary source rather than depending on the library
+  build-depends: array, containers
+  ghc-options: -Wall -O2 -threaded
+  if impl(ghc <= 7.6)
+    -- prior to ghc-7.4 generics lived in ghc-prim
+    build-depends: ghc-prim
+
+
+test-suite read-write-file
+  type:  exitcode-stdio-1.0
+  hs-source-dirs: src tests
+  main-is: File.hs
+  build-depends: base >= 4.5.0.0 && < 5
+               , bytestring >= 0.10.2
+               , Cabal
+               , binary
+               , directory
+               , filepath
+               , HUnit
+
+  -- build dependencies from using binary source rather than depending on the library
+  build-depends: array, containers
+  ghc-options: -Wall
+  if impl(ghc <= 7.6)
+    -- prior to ghc-7.4 generics lived in ghc-prim
+    build-depends: ghc-prim
