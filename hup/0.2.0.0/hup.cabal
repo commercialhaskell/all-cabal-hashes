@@ -1,0 +1,145 @@
+name:                hup
+version:             0.2.0.0
+synopsis:            Upload packages or documentation to a hackage server
+description:         
+  Upload packages or documentation to a hackage server
+  .
+  See README for details.
+homepage:            https://github.com/phlummox/hup
+license:             BSD2
+license-file:        LICENSE
+author:              phlummox
+maintainer:          phlummox2@gmail.com
+copyright:           phlummox 2016, others where indicated
+category:            Distribution, Web, Documentation  
+build-type:          Simple
+tested-with:         GHC == 8.0.1, GHC == 7.10.3 
+cabal-version:       >=1.10
+extra-source-files:  README.md, stack.yaml 
+
+Flag EnableWebTests
+  Description: Enable tests that do a (pretty minimal) check by running an actual
+    Warp web server. (Slower to build and run than other tests.)
+  Default:     False
+  Manual:      True
+
+
+library
+  hs-source-dirs:      lib
+  exposed-modules:     
+      Distribution.Hup
+    , Distribution.Hup.BuildTar
+    , Distribution.Hup.Parse
+    , Distribution.Hup.Types
+    , Distribution.Hup.Upload
+  build-depends:       
+      base >= 4.7 && < 5
+    , bytestring
+    , directory
+    , filepath
+    , http-client
+    , http-client-tls
+    , http-types
+    , mtl
+    , split
+    , tar
+    , zlib
+  default-language:    Haskell2010
+
+
+Flag PatchHelpMessage
+  Description:
+    Use patched version of cmdargs-0.10.14.1 with more informative help
+    message. The patched version will need to be pulled from github
+    (or a stack.yaml file must point to it) - see stack.yaml for details.
+  Default:     False
+  Manual:      True
+
+
+executable hup
+  hs-source-dirs:      src
+  main-is:             Main.hs
+  other-modules:       
+      CmdArgs
+    , CmdArgs.PatchHelp
+    , DefaultServerUrl
+    , Paths_hup
+    , SanityCheck
+    , Types
+    , Upload
+  if flag(PatchHelpMessage)
+    other-modules: CmdArgs.PatchHelp
+    cpp-options:   -DPATCH_HELP
+    build-depends: cmdargs == 0.10.14.1 
+  else     
+    build-depends: cmdargs  
+  default-language:    Haskell2010
+  build-depends:       
+      base 
+    , bytestring
+    , directory 
+    , mtl
+    , shelly >= 1.6.5
+    -- shelly - higher possibly needed?
+    , tagsoup
+    , text
+    , transformers
+    , hup
+
+test-suite hup-spec
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:
+      base
+    , bytestring
+    , filepath
+    , hspec-wai
+    , http-client
+    , http-types
+    , hup
+    , hspec
+    , QuickCheck
+    , simple 
+    , temporary
+    , transformers
+    , wai
+    , wai-extra
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+  other-modules:
+      Distribution.Hup.WebTest
+    , Distribution.Hup.ParseSpec
+    , Distribution.Hup.Parse.Test
+    , Distribution.Hup.UploadSpec
+    , Distribution.Hup.Upload.Test
+  if flag(EnableWebTests)
+    build-depends:
+        network
+      , vector
+      -- ridiculous. With cabal 1.24 and ghc 8.0.1, (a) installing dependencies
+      -- fails if 'vector' isn't added here (despite it not being a direct
+      -- dependency) and (b) the build takes much longer than with, e.g.
+      -- ghc 7.10.3.
+      -- TODO: track down the problem sometime.
+      , warp
+    cpp-options:         -DWEB_TESTS
+
+
+test-suite hup-doctest
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             DocTest.hs
+  build-depends:       base
+                     , hup
+                     , doctest
+                     , Glob
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+
+source-repository head
+  type:     git
+  location: https://github.com/phlummox/hup
+
+
