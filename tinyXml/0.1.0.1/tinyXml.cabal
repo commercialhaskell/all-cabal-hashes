@@ -1,0 +1,82 @@
+name:                tinyXml 
+
+-- The package version.  See the Haskell package versioning policy (PVP) 
+-- for standards guiding when and how versions should be incremented.
+-- https://wiki.haskell.org/Package_versioning_policy
+-- PVP summary:      +-+------- breaking API changes
+--                   | | +----- non-breaking API additions
+--                   | | | +--- code changes with no API change
+version:             0.1.0.1
+
+synopsis:            A fast DOM parser for a subset of XML
+
+description:         Fast DOM parser for XML with no support for entities, CDATA sections nor namespaces.
+
+license:             BSD3
+
+license-file:        LICENSE
+
+author:              Pepe Iborra
+
+maintainer:          pepeiborra@gmail.com
+
+category:            XML
+
+build-type:          Simple
+
+extra-source-files:  README.md, ChangeLog.md, xml/benchmark.xml.bz2, xml/mail.xml.bz2
+extra-tmp-files:     xml/benchmark.xml, xml/mail.xml, xml/benchmark.xml.reprint, xml/mail.xml.reprint
+
+cabal-version:       >=1.22
+
+tested-with:         GHC == 7.10.3, GHC == 8.0.1
+
+source-repository head
+  type: git
+  location: https://github.com/pepeiborra/tinyXml
+
+Flag Debug
+    Description:     enables call stacks and other debug options
+    Default: False
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Text.Xml.Tiny,
+                       Text.Xml.Tiny.Internal
+  other-modules:       Config,
+                       Data.VectorBuilder.Storable,
+                       Text.Xml.Tiny.Internal.Parser,
+                       Text.Xml.Tiny.Internal.Checks,
+                       Text.Xml.Tiny.Internal.Monad
+
+  if impl(ghc < 8)
+            default-extensions: FlexibleContexts
+  other-extensions:    OverloadedStrings, BangPatterns, DisambiguateRecordFields, FlexibleContexts, TemplateHaskell, ConstraintKinds, NoMonomorphismRestriction, LambdaCase, OverloadedLists, PartialTypeSignatures
+  build-depends:       base >=4.8 && <5, bytestring >=0.10 && <0.11, mtl >=2.2 && <2.3, containers >=0.5 && <0.6, vector >= 0.11, primitive
+  default-language:    Haskell2010
+  if impl(ghc >= 8)
+    default-extensions:  StrictData
+  ghc-options:         -funfolding-use-threshold=10000
+  ghc-options:         -fno-warn-partial-type-signatures
+  if flag(Debug)
+     cpp-options:         -DDEBUG -DSTACKTRACES
+
+test-suite test
+        type: exitcode-stdio-1.0
+        main-is: Test.hs
+        -- we want to rebuild with asserts on
+        hs-source-dirs:      .,src
+        default-language:    Haskell2010
+        build-depends: base, bytestring, tinyXml, mtl, containers, vector >= 0.11, hexml, filepath, primitive, process
+        default-language:    Haskell2010
+        ghc-options:         -fno-warn-partial-type-signatures -fno-ignore-asserts -O0
+        cpp-options:         -DENABLE_CONSISTENCY_CHECKS -DENABLE_VECTOR_CHECKS -DDEBUG -DSTACKTRACES
+        if impl(ghc < 8)
+            default-extensions: FlexibleContexts
+
+Executable validate 
+        main-is: Validate.hs
+        build-depends:  base, bytestring, tinyXml, mtl, optparse-generic, directory, filepath
+        ghc-options: -rtsopts
+        default-language:    Haskell2010
+        ghc-options:         -fno-warn-partial-type-signatures -rtsopts
