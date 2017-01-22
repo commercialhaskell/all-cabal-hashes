@@ -1,0 +1,88 @@
+name:                THEff
+version:             0.1.4
+synopsis:            TH implementation of effects. 
+license:             BSD3
+license-file:        LICENSE
+author:              Kolodezny Diver
+maintainer:          kolodeznydiver@gmail.com
+category:            Control, Effect, TH 
+build-type:          Simple
+cabal-version:       >=1.10
+description:    
+  This package implements effects, as alternative to monad
+  transformers. Actually, the effects themselves are created without 
+  the use of TH, but the binding of nested effects described by 
+  mkEff splice. For example.
+  .
+  > mkEff "MyReader"    ''Reader    ''Int       ''Lift
+  > mkEff "SomeState"   ''State     ''Bool      ''MyReader
+  > mkEff "OtherRdr"    ''Reader    ''Float     ''SomeState
+  > 
+  > main:: IO ()
+  > main = do
+  >     r <- runMyReader  100 
+  >        $ runSomeState False
+  >        $ runOtherRdr  pi  $ do
+  >             i :: Int   <- ask                    -- MyReader 
+  >             f :: Float <- ask                    -- OtherRdr
+  >             b <- get                             -- SomeState
+  >             put $ not b                          -- SomeState 
+  >             lift $ putStrLn "print from effect!" -- Lift  
+  >             return $ show $ fromIntegral i * f 
+  >     print r
+  .
+  For more information about extensible effects , see the original paper at
+  <http://okmij.org/ftp/Haskell/extensible/exteff.pdf>.
+  But, this package is significantly different from the original.
+  It uses a chains of ordinary GADTs created by TH. 
+  No Typeable, no unsafe... , no ExistentialQuantification ...
+
+extra-source-files:    
+    README.md
+    changelog
+    samples/*.hs
+  
+Source-repository head
+    type:               git
+    location:           https://github.com/KolodeznyDiver/THEff.git
+    
+library
+  ghc-options:         -Wall  -fwarn-tabs 
+  exposed-modules:     Control.THEff
+                       Control.THEff.Reader
+                       Control.THEff.State
+                       Control.THEff.Exception
+                       Control.THEff.Catch
+                       Control.THEff.Writer
+                       Control.THEff.Fresh
+                       Control.THEff.Validator
+                       Control.THEff.Writer.Strict
+                       Control.THEff.Reader.Strict
+                       Control.THEff.State.Strict 
+  
+  -- Modules included in this library but not exported.
+  other-modules:       Control.THEff.TH.Internal
+  
+  -- LANGUAGE extensions used by modules in this package.
+  other-extensions:    KindSignatures
+                       , FlexibleInstances
+                       , FlexibleContexts
+                       , MultiParamTypeClasses
+                       , TemplateHaskell
+                       , ViewPatterns
+                       , RecordWildCards
+                       , ScopedTypeVariables
+                       , RankNTypes
+                       , GADTs
+                       , BangPatterns
+  
+  -- Other library packages from which modules are imported.
+  build-depends:       base >= 4.7 && < 5
+                      ,template-haskell >=2.11
+  
+  -- Directories containing source files.
+  hs-source-dirs:      src
+  
+  -- Base language which the package is written in.
+  default-language:    Haskell2010
+  
