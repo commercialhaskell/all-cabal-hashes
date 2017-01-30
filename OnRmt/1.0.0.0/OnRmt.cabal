@@ -1,0 +1,119 @@
+name:                OnRmt
+version:             1.0.0.0
+synopsis:            Text UI library for performing parallel remote SSH operations
+license:             BSD3
+license-file:        LICENSE
+author:              Kevin Quick <quick@sparq.org>
+maintainer:          <quick@sparq.org>
+copyright:           Kevin Quick, 2013-2017
+category:            System
+build-type:          Simple
+cabal-version:       >=1.8
+
+description:
+
+   This library provides the ability to coordinate the remote ssh
+   execution of commands on target nodes and display the results in a
+   console interface.  The console interface can either be a cmdline
+   (CLI) or a text interface (TUI), based on brick and vty; support is
+   provided for extension to other UI components as well.
+   .
+   Almost all of the functionality is provided in the library itself;
+   it just needs an executable that will invoke it with the set of
+   remote nodes.  See the 'GetRemotes.hs' file for an example: remotes
+   can be of any type that is an instance of @WorkEntry@ with an
+   associated @WorkGroup@ grouping.
+   .
+   There is an onrmttest executable built that showcases the
+   functionality using ssh operations to localhost, and a
+   corresponding onrmttestline executable that provides a simple CLI.
+
+data-files: CHANGELOG.md
+
+
+Flag brick017
+     Description: true for Brick version 0.17 or later
+     Default: True
+
+
+library
+  hs-source-dirs: src
+  if flag(brick017)
+    hs-source-dirs: compat/brick_017
+  else
+    hs-source-dirs: compat/brick_016
+  exposed-modules: Network.OnRmt
+                 , Network.OnRmt.UI.CmdLine
+                 , Network.OnRmt.UI.BrickUI
+  other-modules: Concurrent.Worker
+               , Network.OnRmt.UI
+               , Data.Conduit.RemoteOp
+               , Network.OnRmt.UI.MainScreen
+               , BrickCompat
+  build-depends:       base >= 4.8 && < 5.0
+                     , vty 
+                     , brick >= 0.13
+                     , itemfield >= 1.2.0.0
+                     , time, old-locale
+                     , process, transformers, void, vector, text-zipper
+                     , text, bytestring, string-conversions, listsafe
+                     , conduit, conduit-extra, async, repl-toolkit
+                     , microlens, containers
+                     , control-monad-loop, mtl, data-default
+--  ghc-options:       -threaded
+
+executable onrmtssh
+  main-is: onrmtssh.hs
+  buildable: True
+  -- hs-source-dirs:    .
+  build-depends:       base, OnRmt, vty, brick >= 0.13, time, old-locale
+                     , itemfield >= 1.2.0.0
+                     , process, transformers, void, vector, text-zipper
+                     , text, bytestring, string-conversions
+                     , conduit, conduit-extra, async , microlens
+                     , control-monad-loop, mtl, data-default
+                     , ssh-known-hosts
+  ghc-options:       -threaded
+
+executable onrmtsample
+  main-is: onrmtsample.hs
+  hs-source-dirs:    sample
+  other-modules:       GetRemotes
+  build-depends:       base, OnRmt, vty, brick >= 0.13, time, old-locale
+                     , itemfield >= 1.2.0.0
+                     , process, transformers, void, vector, text-zipper
+                     , text, bytestring, string-conversions
+                     , conduit, conduit-extra, async
+                     , microlens
+                     , control-monad-loop, mtl, data-default
+  ghc-options:       -threaded
+
+executable onrmtsamplecli
+  main-is: onrmtsamplecli.hs
+  hs-source-dirs:    sample
+  other-modules:       GetRemotes
+  build-depends:       base, OnRmt, time, old-locale
+                     , process, transformers, void, vector, text-zipper
+                     , text, bytestring, string-conversions, listsafe
+                     , conduit, conduit-extra, async, repl-toolkit
+                     , microlens, containers
+                     , control-monad-loop, mtl, data-default
+  ghc-options:       -threaded
+
+
+test-suite test_ops
+  type: exitcode-stdio-1.0
+  main-is: test_onrmt.hs
+  cpp-options: -DTEST
+  hs-source-dirs: src, test
+  other-modules: Data.Conduit.RemoteOp
+               , Concurrent.Worker
+               , Network.OnRmt
+               , Network.OnRmt.UI
+  build-depends: base, time, transformers, old-locale, vty, brick >= 0.13
+               , itemfield >= 1.2.0.0
+                 -- , OnRmt
+               , HUnit, test-framework, test-framework-hunit
+                 -- , hspec
+               , text, bytestring, string-conversions
+               , conduit, conduit-extra, async, vector, text-zipper
