@@ -1,0 +1,82 @@
+name:                keyring
+version:             0.1.0.5
+synopsis:            Keyring access
+description:
+  keyring provides access to the system's keyring to securely store passwords.
+  .
+  Currently this library supports the following keyring implementations:
+  .
+  * Keychain on OS X
+  .
+  * KWallet on KDE
+  .
+  The "System.Keyring" module provides the high-level functions 'getPassword'
+  and 'setPassword' to easily get and set passwords in the keyring of the
+  current user.  The appropriate backend is chosen automatically.
+
+homepage:            https://github.com/lunaryorn/haskell-keyring
+bug-reports:         https://github.com/lunaryorn/haskell-keyring/issues
+license:             MIT
+license-file:        LICENSE
+extra-source-files:  README.md,
+                     CHANGES.md
+author:              Sebastian Wiesner
+maintainer:          swiesner@lunaryorn.com
+copyright:           (C) 2014, 2015 Sebastian Wiesner
+category:            System
+build-type:          Simple
+cabal-version:       >=1.10
+
+source-repository head
+  type:              git
+  location:          https://github.com/lunaryorn/haskell-keyring.git
+  branch:            master
+
+source-repository this
+  type:              git
+  location:          https://github.com/lunaryorn/haskell-keyring.git
+  tag:               0.1.0.5
+
+flag AllBackends
+  description:         Try to build as many backends as possible
+  manual:              True
+  default:             False
+
+flag Example
+  description:         Build an example executable
+  manual:              True
+  default:             False
+
+library
+  hs-source-dirs:      src/
+  ghc-options:         -Wall
+  exposed-modules:     System.Keyring
+  other-modules:       System.Keyring.Types
+  build-depends:       base >=4.6 && <4.10
+  default-language:    Haskell2010
+
+  if os(darwin)
+     cpp-options:      -DDARWIN
+     exposed-modules:  System.Keyring.Darwin
+     other-modules:    System.Keyring.Darwin.Native
+     build-tools:      hsc2hs
+     build-depends:    utf8-string >=1 && <1.1,
+                       bytestring >=0.10 && <0.11
+     frameworks:       Security CoreFoundation
+
+  if !os(darwin) || flag(AllBackends)
+     exposed-modules:  System.Keyring.Unix
+                       System.Keyring.Unix.KDE
+     build-depends:    udbus >=0.2 && <0.3
+
+executable keyring-example
+  main-is:             Example.hs
+  default-language:    Haskell2010
+  ghc-options:         -Wall -O2
+  build-depends:       base,
+                       keyring
+
+  if flag(Example)
+     buildable:        True
+  else
+     buildable:        False
