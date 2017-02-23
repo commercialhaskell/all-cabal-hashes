@@ -1,0 +1,204 @@
+name:                lol-apps
+-- The package version.  See the Haskell package versioning policy (PVP)
+-- for standards guiding when and how versions should be incremented.
+-- http://www.haskell.org/haskellwiki/Package_versioning_policy
+-- PVP summary:      +-+------- breaking API changes
+--                   | | +----- non-breaking API additions
+--                   | | | +--- code changes with no API change
+version:             0.2.0.1
+synopsis:            Lattice-based cryptographic applications using <https://hackage.haskell.org/package/lol lol>.
+homepage:            https://github.com/cpeikert/Lol
+Bug-Reports:         https://github.com/cpeikert/Lol/issues
+license:             GPL-2
+license-file:        LICENSE
+author:              Eric Crockett <ecrockett0@gmail.com>, Chris Peikert <cpeikert@alum.mit.edu>
+maintainer:          Eric Crockett <ecrockett0@gmail.com>
+copyright:           Eric Crockett, Chris Peikert
+category:            Crypto
+stability:           experimental
+build-type:          Simple
+extra-source-files:  README, CHANGES.md, SHE.proto, HomomPRF.proto
+cabal-version:       >= 1.10
+description:
+    This library contains example cryptographic applications built using
+    <https://hackage.haskell.org/package/lol lol>,
+    a general-purpose library for ring-based lattice cryptography.
+
+source-repository head
+  type: git
+  location: https://github.com/cpeikert/Lol
+
+Flag llvm
+  Description:  Compile via LLVM. This produces much better object code,
+                but you need to have the LLVM compiler installed.
+
+  Default:      False
+
+Flag opt
+  Description: Turn on library optimizations
+  Default:     True
+  Manual:      False
+
+library
+  default-language:   Haskell2010
+
+  if flag(llvm)
+    ghc-options: -fllvm -optlo-O3
+
+  -- ghc optimizations
+  if flag(opt)
+    ghc-options: -O3 -Odph -funbox-strict-fields -fwarn-dodgy-imports
+    ghc-options: -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000
+
+  exposed-modules:
+    Crypto.Lol.Applications.HomomPRF
+    Crypto.Lol.Applications.KeyHomomorphicPRF
+    Crypto.Lol.Applications.SymmSHE
+    Crypto.Proto.HomomPRF
+    Crypto.Proto.HomomPRF.LinearFuncChain
+    Crypto.Proto.HomomPRF.RoundHintChain
+    Crypto.Proto.HomomPRF.TunnelInfoChain
+    Crypto.Proto.SHE
+    Crypto.Proto.SHE.KSHint
+    Crypto.Proto.SHE.RqPolynomial
+    Crypto.Proto.SHE.SecretKey
+    Crypto.Proto.SHE.TunnelInfo
+
+  build-depends:
+    base >= 4.9 && < 5,
+    containers < 0.6,
+    deepseq >= 1.4.1.1 && < 1.5,
+    lol >= 0.6.0.0 && < 0.7,
+    MonadRandom >= 0.2 && < 0.6,
+    mtl < 2.3,
+    numeric-prelude >= 0.4.2 && < 0.5,
+    protocol-buffers < 2.5,
+    protocol-buffers-descriptor < 2.5,
+    singletons < 2.3,
+    split < 0.3
+
+test-suite test-apps
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   tests, examples
+  default-language: Haskell2010
+  main-is:          TestAppsMain.hs
+  ghc-options:      -main-is TestAppsMain
+  other-modules:    KHPRFTests, SHETests
+
+  ghc-options:      -threaded -rtsopts
+
+  build-depends:
+    arithmoi < 0.5,
+    base >= 4.9 && < 5,
+    constraints < 0.10,
+    deepseq < 1.5,
+    DRBG < 0.6,
+    lol >= 0.6.0.0 && < 0.7,
+    lol-apps,
+    lol-cpp < 0.1,
+    lol-repa < 0.1,
+    lol-tests < 0.1,
+    MonadRandom < 0.6,
+    mtl < 2.3,
+    numeric-prelude < 0.5,
+    QuickCheck >= 2.8 && < 3.0,
+    random < 1.2,
+--    repa < 3.5,
+    singletons < 2.3,
+    test-framework >= 0.8 &&  < 0.9,
+    test-framework-quickcheck2 >= 0.3 && < 0.4,
+    vector < 0.13
+
+Benchmark bench-apps
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   benchmarks, examples
+  default-language: Haskell2010
+  main-is:          BenchAppsMain.hs
+  ghc-options:      -main-is BenchAppsMain
+  other-modules:    KHPRFBenches, SHEBenches
+
+--  if flag(llvm)
+--    ghc-options: -fllvm -optlo-O3
+  ghc-options: -threaded -rtsopts -O2
+--  ghc-options: -O2 -Odph -funbox-strict-fields -fwarn-dodgy-imports -rtsopts
+--  ghc-options: -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000
+
+  build-depends:
+    arithmoi < 0.5,
+    base >= 4.9 && < 5,
+    containers < 0.6,
+    criterion < 1.2,
+    deepseq < 1.5,
+    DRBG < 0.6,
+    lol >= 0.6.0.0 && < 0.7,
+    lol-apps,
+    lol-benches >= 0.0.0.3 && < 0.1,
+    lol-cpp < 0.1,
+    lol-repa < 0.1,
+    MonadRandom < 0.6,
+    mtl < 2.3,
+    numeric-prelude < 0.5,
+    singletons < 2.3,
+    transformers < 0.6,
+    vector < 0.13,
+    repa >=3.4 && < 3.5
+
+executable homomprf
+  hs-source-dirs: examples
+  default-language: Haskell2010
+  main-is: HomomPRFMain.hs
+  ghc-options: -main-is HomomPRFMain
+  other-modules: HomomPRFParams
+
+  ghc-options: -threaded -rtsopts -O2
+
+  build-depends:
+    arithmoi < 0.5,
+    base >= 4.9 && < 5,
+    deepseq < 1.5,
+    DRBG < 0.6,
+    filepath < 1.5,
+    lol >= 0.6.0.0 && < 0.7,
+    lol-apps,
+    lol-cpp < 0.1,
+    MonadRandom < 0.6,
+    mtl < 2.3,
+    numeric-prelude < 0.5,
+    singletons < 2.3,
+    time < 1.9
+
+executable khprf
+  hs-source-dirs: examples
+  default-language: Haskell2010
+  main-is: KHPRFMain.hs
+  ghc-options: -main-is KHPRFMain
+
+  ghc-options: -threaded -rtsopts -O2
+
+  build-depends:
+    arithmoi < 0.5,
+    base >= 4.9 && < 5,
+    deepseq < 1.5,
+    lol >= 0.6.0.0 && < 0.7,
+    lol-apps,
+    lol-cpp < 0.1,
+    MonadRandom < 0.6,
+    mtl < 2.3,
+    numeric-prelude < 0.5
+
+executable symmshe
+  hs-source-dirs:   examples
+  default-language: Haskell2010
+  main-is:          SHEMain.hs
+  ghc-options: -main-is SHEMain
+
+  ghc-options: -threaded -rtsopts -O2
+
+  build-depends:
+    arithmoi < 0.5,
+    base >= 4.9 && < 5,
+    lol >= 0.6.0.0 && < 0.7,
+    lol-apps,
+    lol-cpp < 0.1,
+    MonadRandom < 0.6,
+    numeric-prelude < 0.5
