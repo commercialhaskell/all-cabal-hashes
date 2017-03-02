@@ -1,0 +1,350 @@
+name:    raaz
+version: 0.1.1
+
+synopsis: The raaz cryptographic library.
+
+description: Raaz is a cryptographic network library for Haskell
+  designed to use strong typing to eliminate some common errors that
+  occur in cryptographic settings like side channel attacks. This
+  package implements basic types and cryptographic primitives like
+  hashes, macs etc. Actual network protocols are expected to use this
+  library. Common abstractions like for example packet parsing should
+  be part of this library.
+
+homepage: http://github.com/raaz-crypto/raaz
+
+license:      BSD3
+license-file: LICENSE
+author:       Piyush P Kurur
+maintainer:   ppk@cse.iitk.ac.in
+
+category:      Codec, Raaz
+build-type:    Simple
+cabal-version: >=1.10
+
+
+bug-reports: https://github.com/raaz-crypto/raaz/issues
+
+-- List of platform specific source files.
+extra-source-files: entropy/urandom/Raaz/Entropy.hs
+                    entropy/arc4random/Raaz/Entropy.hs
+
+source-repository head
+  type: git
+  location: https://github.com/raaz-crypto/raaz
+
+------------------------- Flags -------------------------------------------------------------
+
+flag opt-native
+     Description: Use optimisation for the platform on which it is being built. Do not enable this
+        when cross compiling as it can break the implementation. Also tested only with gcc.
+     Default: False
+     Manual: True
+
+
+flag opt-vectorise
+     Description: Enable vectorisation for gcc. This is not always an optimisation and needs to be benchmarked.
+       Also gains are fairly minimal if you do not use opt-natvive.
+     Default: False
+     Manual: True
+
+flag vector128
+     Description: Make use of vector instructions with size being 128. Do not enable this unless you have reasons
+       to. It is better to use opt-native and opt-vectorise and let gcc have a go at the portable implementation
+     Default: False
+     Manual: True
+
+flag vector256
+     Description: Make use of gcc vector instructions with size being 256. Do not enable this unless you have reasons
+       to. It is better to use opt-native and opt-vectorise and let gcc have a go at the portable implementation.
+     Default: False
+     Manual: True
+
+flag vector512
+     Description: Make use of gcc vector instructions with size being 512.
+     Default: False
+     Manual: True
+flag avx2
+     Description: Support avx2 optimisations. Warning: enable only if you are sure of support.
+     Default: False
+     Manual: True
+----------------------------- The library -----------------------------------------------------
+
+library
+  default-language: Haskell2010
+  ghc-options: -Wall
+  hs-source-dirs: .
+  exposed-modules: Raaz
+                 , Raaz.Core
+                 , Raaz.Core.ByteSource
+                 , Raaz.Core.DH
+                 , Raaz.Core.Encode
+                 , Raaz.Core.Memory
+                 , Raaz.Core.MonoidalAction
+                 , Raaz.Core.Parse.Applicative
+                 , Raaz.Core.Primitives
+                 , Raaz.Core.Types
+                 , Raaz.Core.Util
+                 , Raaz.Core.Transfer
+                 --
+                 -- Cryptographic hashes
+                 --
+                 , Raaz.Hash
+                 , Raaz.Hash.Internal
+                 , Raaz.Hash.Sha1
+                 , Raaz.Hash.Sha1.Implementation.CPortable
+                 , Raaz.Hash.Sha224
+                 , Raaz.Hash.Sha224.Implementation.CPortable
+                 , Raaz.Hash.Sha256
+                 , Raaz.Hash.Sha256.Implementation.CPortable
+                 , Raaz.Hash.Sha384
+                 , Raaz.Hash.Sha384.Implementation.CPortable
+                 , Raaz.Hash.Sha512
+                 , Raaz.Hash.Sha512.Implementation.CPortable
+                 --
+                 -- Ciphers
+                 --
+                 , Raaz.Cipher
+                 , Raaz.Cipher.Internal
+                 , Raaz.Cipher.AES
+                 , Raaz.Cipher.AES.CBC.Implementation.CPortable
+                 , Raaz.Cipher.ChaCha20
+                 , Raaz.Cipher.ChaCha20.Implementation.CPortable
+		 --
+		 -- Randomness
+		 --
+                 , Raaz.Random
+  other-modules: Raaz.Core.Constants
+               , Raaz.Core.Encode.Internal
+               , Raaz.Core.Encode.Base16
+               , Raaz.Core.Encode.Base64
+               , Raaz.Core.Util.ByteString
+               , Raaz.Core.Types.Aligned
+               , Raaz.Core.Types.Pointer
+               , Raaz.Core.Types.Tuple
+               , Raaz.Core.Types.Equality
+               , Raaz.Core.Types.Endian
+               , Raaz.Core.Types.Describe
+               , Raaz.Core.Types.Copying
+               --
+               -- Hashes
+               --
+               , Raaz.Hash.Internal.HMAC
+               , Raaz.Hash.Sha.Util
+               , Raaz.Hash.Sha1.Internal
+               , Raaz.Hash.Sha1.Recommendation
+               , Raaz.Hash.Sha256.Recommendation
+               , Raaz.Hash.Sha256.Internal
+               , Raaz.Hash.Sha224.Recommendation
+               , Raaz.Hash.Sha224.Internal
+               , Raaz.Hash.Sha384.Recommendation
+               , Raaz.Hash.Sha384.Internal
+               , Raaz.Hash.Sha512.Recommendation
+               , Raaz.Hash.Sha512.Internal
+               --
+               -- Internal modules from cipher
+               --
+               , Raaz.Cipher.AES.Internal
+               , Raaz.Cipher.AES.Recommendation
+               , Raaz.Cipher.ChaCha20.Internal
+               , Raaz.Cipher.ChaCha20.Recommendation
+               --
+               -- Internal module for randomness
+               --
+               , Raaz.Random.ChaCha20PRG
+               , Raaz.Entropy
+               , Paths_raaz
+  build-depends: base                           >= 4.6  &&  < 4.11
+               , bytestring                     >= 0.9  &&  < 0.11
+               , deepseq                        >= 1.1  &&  < 1.5
+               , mtl                            >= 2.1  &&  < 2.3
+               , vector                         >= 0.7.1 && < 0.13
+  if impl(ghc < 8)
+    -- 'transformers' needed for "Control.Monad.IO.Class" only
+    -- starting with base-4.9 we don't need 'transformers' anymore
+    build-depends: transformers
+
+  c-sources: cbits/raaz/core/endian.c
+           -- hash implementations
+           , cbits/raaz/hash/sha1/portable.c
+           , cbits/raaz/hash/sha256/portable.c
+           , cbits/raaz/hash/sha512/portable.c
+           -- ciphers
+           , cbits/raaz/cipher/aes/common.c
+           , cbits/raaz/cipher/aes/cportable.c
+           -- chacha20
+           , cbits/raaz/cipher/chacha20/cportable.c
+
+  include-dirs: cbits
+  includes: raaz/core/endian.h
+  install-includes: raaz/core/endian.h
+                  , cbits/raaz/cipher/aes/common.h
+                  , cbits/raaz/cipher/aes/cportable.h
+                  , cbits/raaz/cipher/chacha20/common.h
+
+  --------------------------- Options for vector instructions ---------------------------------
+  if flag(opt-native)
+    cc-options: -march=native
+
+  if flag(opt-vectorise)
+    cc-options: -ftree-vectorize
+
+  if flag(vector128)
+     cpp-options: -DHAVE_VECTOR_128
+     cc-options:  -DHAVE_VECTOR_128
+     exposed-modules: Raaz.Cipher.ChaCha20.Implementation.Vector128
+     c-sources: cbits/raaz/cipher/chacha20/vector128.c
+
+  if flag(vector256)
+     cpp-options: -DHAVE_VECTOR_256
+     cc-options:  -DHAVE_VECTOR_256
+     exposed-modules: Raaz.Cipher.ChaCha20.Implementation.Vector256
+     c-sources: cbits/raaz/cipher/chacha20/vector256.c
+
+  if flag(avx2)
+     cpp-options: -DHAVE_VECTOR_256
+     cc-options:  -DHAVE_AVX2  -DHAVE_VECTOR_256
+     if !flag(opt-native)
+        cc-options: -mavx2
+  if flag(vector512)
+     cpp-options: -DHAVE_VECTOR_512
+     cc-options:  -DHAVE_VECTOR_512
+
+  ----------------------- System specific configurations ----------------------------------
+
+  if !os(windows)
+
+     cpp-options: -DHAVE_MLOCK
+
+     --------------------- Entropy ----------------------------------------------
+
+     if os(openbsd)
+        -- Entropy for openbsd using arc4random
+        hs-source-dirs: entropy/arc4random
+
+     if !os(openbsd)
+        -- Entropy for generic posix by reading /dev/urandom
+        hs-source-dirs: entropy/urandom
+
+  if os(osx)
+     -- Endian coversion code is different for osx.
+     cc-options: -DPLATFORM_OSX
+
+
+---------------------------- Executables -------------------------------------------------
+
+executable raaz
+  default-language: Haskell2010
+  hs-source-dirs: bin
+  main-is: Main.hs
+  other-modules: Command.Checksum
+               , Command.Rand
+  build-depends: base
+               , raaz     == 0.1.1
+  if impl(ghc < 8)
+    -- 'transformers' needed for "Control.Monad.IO.Class" only
+    -- starting with base-4.9 we don't need 'transformers' anymore
+    build-depends: transformers
+
+---------------------------- Test suit -----------------------------------------------------
+
+test-Suite spec
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  hs-source-dirs: spec
+  main-is: Spec.hs
+
+  if flag(vector128)
+     cpp-options: -DHAVE_VECTOR_128
+
+  if flag(vector256)
+     cpp-options:  -DHAVE_VECTOR_256
+  if flag(vector512)
+     cpp-options: -DHAVE_VECTOR_512
+
+  ghc-options: -Wall
+
+  other-modules: Common
+               , Common.Cipher
+               , Common.Hash
+               , Common.Imports
+               , Common.Instances
+               , Common.Utils
+               , Raaz.Cipher.AESSpec
+               , Raaz.Cipher.ChaCha20Spec
+               , Raaz.Core.EncodeSpec
+               , Raaz.Core.MemorySpec
+               , Raaz.Core.Types.WordSpec
+               , Raaz.Core.Util.ByteStringSpec
+               , Raaz.RandomSpec
+               , Raaz.Hash.Sha1Spec
+               , Raaz.Hash.Sha224Spec
+               , Raaz.Hash.Sha256Spec
+               , Raaz.Hash.Sha384Spec
+               , Raaz.Hash.Sha512Spec
+               , Raaz.Hash.Blake256Spec
+
+
+  build-depends: base
+               , bytestring
+               , HUnit                          >= 1.2
+               , QuickCheck                     >= 2.4
+               , hspec
+               , transformers
+               , raaz                           == 0.1.1
+               , vector
+
+---------------------------------------------- Bench marks -----------------------------------------
+
+benchmark blaze-vs-write
+  hs-source-dirs: benchmarks
+  default-language: Haskell2010
+  main-is: BlazeVsWrite.hs
+  type: exitcode-stdio-1.0
+  build-depends: base
+               , blaze-builder
+               , bytestring
+               , criterion >= 1.0
+               , raaz
+
+
+---------------------------------------------- Cipher implemntation benchmarks ----------------------
+
+benchmark bench-ciphers
+  hs-source-dirs: benchmarks
+  default-language: Haskell2010
+  if flag(vector128)
+     cpp-options: -DHAVE_VECTOR_128
+  if flag(vector256) || flag(avx2)
+     cpp-options: -DHAVE_VECTOR_256
+  if flag(vector512)
+     cpp-options: -DHAVE_VECTOR_512
+
+  main-is: Cipher.hs
+  type: exitcode-stdio-1.0
+  build-depends: base
+               , blaze-builder
+               , bytestring
+               , criterion >= 1.0
+               , raaz
+
+-------------------------------- Benchmarking all primitives --------------------------------
+
+benchmark primitives
+  hs-source-dirs: benchmarks
+  default-language: Haskell2010
+  if flag(vector128)
+     cpp-options: -DHAVE_VECTOR_128
+  if flag(vector256) || flag(avx2)
+     cpp-options: -DHAVE_VECTOR_256
+  if flag(vector512)
+     cpp-options: -DHAVE_VECTOR_512
+
+  main-is: BenchPrimitives.hs
+  type: exitcode-stdio-1.0
+  build-depends: base
+               , blaze-builder
+               , bytestring
+               , criterion >= 1.0
+               , pretty
+               , raaz
