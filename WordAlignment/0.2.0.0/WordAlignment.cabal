@@ -1,0 +1,223 @@
+name:           WordAlignment
+version:        0.2.0.0
+author:         Christian Hoener zu Siederdissen, 2013-2017
+copyright:      Christian Hoener zu Siederdissen, 2013-2017
+homepage:       https://github.com/choener/WordAlignment
+bug-reports:    https://github.com/choener/WordAlignment/issues
+maintainer:     choener@bioinf.uni-leipzig.de
+category:       Linguistics
+license:        GPL-3
+license-file:   LICENSE
+build-type:     Simple
+stability:      experimental
+cabal-version:  >= 1.10.0
+tested-with:    GHC == 7.10.3, GHC == 8.0.1
+synopsis:       Bigram word pair alignments.
+description:
+                The library provides fast dynamic programming algorithms to
+                align word pairs using either a simple or a bigram scoring
+                scheme. Simple schemes are unigram schemes in nature but use an
+                ad-hoc scoring scheme. Bigram schemes use actual training data
+                for bigram frequences.
+                .
+                The WordAlign executable provides a wrapper around the provided
+                alignment algorithms. Call WordAlign without any arguments (or
+                just *WordAlign manual* to display the README.md).
+
+
+
+Extra-Source-Files:
+  changelog.md
+  README.md
+  scores/defaultBigramScores
+  scores/defaultSimpleScores
+  stack.yaml
+  -- we have lots of test files now that are being checked
+  tests/*.bgdef
+  tests/*.bgms
+  tests/*.golden
+  tests/*.ugdef
+  tests/*.words
+
+
+
+flag debug
+  description:  dump intermediate Core files
+  default:      False
+  manual:       True
+
+flag llvm
+  description:  use llvm
+  default:      False
+  manual:       True
+
+
+
+library
+  build-depends: base                       >= 4.7      &&  < 5.0
+               , aeson                      >= 0.9
+               , attoparsec                 >= 0.10
+               , bytestring
+               , containers
+               , data-default               >= 0.5
+               , deepseq                    >= 1.3
+               , file-embed                 >= 0.0.6
+               , fmlist                     >= 0.9
+               , ghc-prim
+               , hashable                   >= 1.1
+               , intern                     >= 0.9
+               , lens                       >= 4.0
+               , mtl
+               , pipes                      >= 4.0
+               , primitive                  >= 0.5
+               , strict                     >= 0.3.2
+               , template-haskell
+               , text                       >= 1.0
+               , text-format                >= 0.3
+               , transformers
+               , tuple-th                   >= 0.2.4
+               , unordered-containers       >= 0.2.3
+               , vector                     >= 0.10
+               --
+               , ADPfusion                  == 0.5.2.*
+               , AlignmentAlgorithms        == 0.1.0.*
+               , bimaps                     == 0.1.0.*
+               , DPutils                    == 0.0.1.*
+               , FormalGrammars             == 0.3.1.*
+               , GrammarProducts            == 0.1.1.*
+               , LinguisticsTypes           == 0.0.0.*
+               , NaturalLanguageAlphabets   == 0.1.1.*
+               , PrimitiveArray             == 0.8.0.*
+  exposed-modules:
+    Linguistics.WordAlignment
+    Linguistics.WordAlignment.AlignmentBuilder
+    Linguistics.WordAlignment.Bigram
+    Linguistics.WordAlignment.Common
+    Linguistics.WordAlignment.FastLookups
+    Linguistics.WordAlignment.PipedPairs
+    Linguistics.WordAlignment.TwoWay.Global.Bigram
+    Linguistics.WordAlignment.TwoWay.Global.Simple
+--    Linguistics.WordAlignment.TwoWay.Infix.Bigram
+--    Linguistics.WordAlignment.TwoWay.Infix.Simple
+    Linguistics.WordAlignment.Word
+  default-language:
+    Haskell2010
+  default-extensions: BangPatterns
+                    , DeriveGeneric
+                    , FlexibleContexts
+                    , FlexibleInstances
+                    , GeneralizedNewtypeDeriving
+                    , OverloadedStrings
+                    , PatternGuards
+                    , QuasiQuotes
+                    , RecordWildCards
+                    , ScopedTypeVariables
+                    , StandaloneDeriving
+                    , TemplateHaskell
+                    , TypeFamilies
+                    , TypeOperators
+  ghc-options:
+    -fsimpl-tick-factor=900
+    -O2
+    -fexcess-precision
+  if flag(debug)
+    ghc-options:
+      -ddump-to-file
+      -ddump-simpl
+      -dsuppress-all
+  if flag(llvm)
+    ghc-options:
+      -fllvm
+      -optlo-O3
+
+
+
+executable WordAlign
+  build-depends: base
+               , aeson
+               , bytestring
+               , cmdargs                    >= 0.10
+               , containers
+               , data-default
+               , file-embed
+               , intern
+               , lens
+               , mtl
+               , parallel                   >= 3.2
+               , pipes
+               , strict
+               , text
+               , text-format                >= 0.3
+               , transformers
+               , unordered-containers
+               , vector
+               --
+               , DPutils
+               , LinguisticsTypes
+               , NaturalLanguageAlphabets
+               , WordAlignment
+  main-is:
+    WordAlign.hs
+  hs-source-dirs:
+    src
+  default-language:
+    Haskell2010
+  default-extensions: BangPatterns
+                    , DeriveDataTypeable
+                    , FlexibleContexts
+                    , NondecreasingIndentation
+                    , OverloadedStrings
+                    , PatternGuards
+                    , RecordWildCards
+                    , ScopedTypeVariables
+                    , TemplateHaskell
+  ghc-options:
+    -fsimpl-tick-factor=900
+    -rtsopts
+    -O2
+    -funfolding-use-threshold100
+    -funfolding-keeness-factor100
+    -fexcess-precision
+  if flag(llvm)
+    ghc-options:
+      -fllvm
+      -optlo-O3
+
+
+
+test-suite properties
+  type:
+    exitcode-stdio-1.0
+  main-is:
+    properties.hs
+  ghc-options:
+    -O2 -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:
+    tests
+  default-language:
+    Haskell2010
+  default-extensions: BangPatterns
+                    , OverloadedStrings
+                    , ScopedTypeVariables
+                    , TemplateHaskell
+  build-depends: base
+               , bytestring
+               , containers
+               , filepath
+               , split                      >= 0.2.3
+               , tasty                      >= 0.11
+               , tasty-quickcheck           >= 0.8
+               , tasty-silver               >= 3.1.9
+               , tasty-th                   >= 0.1
+               , text
+               --
+               , DPutils
+               , NaturalLanguageAlphabets
+               , WordAlignment
+
+
+
+source-repository head
+  type: git
+  location: git://github.com/choener/WordAlignment
+
