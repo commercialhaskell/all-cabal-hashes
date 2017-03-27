@@ -1,0 +1,106 @@
+name: tweet-hs
+version: 0.5.3.0
+cabal-version: >=1.10
+build-type: Simple
+license: BSD3
+license-file: LICENSE
+copyright: 2016 Vanessa McHale
+maintainer: tmchale@wisc.edu
+stability: stable
+homepage: https://github.com/vmchale/command-line-tweeter#readme
+synopsis: Command-line tool for twitter
+description:
+    a Command Line Interface Tweeter
+category: Web
+author: Vanessa McHale
+extra-source-files:
+    README.md
+    stack.yaml
+    bash/mkCompletions
+    test/data
+
+source-repository head
+    type: git
+    location: https://github.com/vmchale/command-line-tweeter
+
+flag llvm-fast
+    description:
+        Enable build with llvm backend
+    default: False
+
+library
+    exposed-modules:
+        Web.Tweet
+        Web.Tweet.Exec
+        Web.Tweet.Parser
+    build-depends:
+        base >=4.7 && <5,
+        http-client-tls >=0.3.4 && <0.4,
+        http-client >=0.5.6.1 && <0.6,
+        http-types >=0.9.1 && <0.10,
+        authenticate-oauth ==1.6.*,
+        bytestring >=0.10.8.1 && <0.11,
+        split >=0.2.3.1 && <0.3,
+        optparse-applicative >=0.13.2.0 && <0.14,
+        lens >=4.15.1 && <4.16,
+        data-default >=0.7.1.1 && <0.8,
+        text >=1.2.2.1 && <1.3,
+        megaparsec >=5.2.0 && <5.3,
+        ansi-wl-pprint >=0.6.7.3 && <0.7,
+        MissingH >=1.4.0.1 && <1.5,
+        directory >=1.3.0.0 && <1.4,
+        extra >=1.5.1 && <1.6,
+        composition >=1.0.2.1 && <1.1
+    default-language: Haskell2010
+    hs-source-dirs: src
+    other-modules:
+        Web.Tweet.Types
+        Web.Tweet.Utils
+        Web.Tweet.Utils.Colors
+        Web.Tweet.Sign
+        Web.Tweet.API
+        Web.Tweet.Utils.API
+
+executable tweet
+    
+    if flag(llvm-fast)
+        ghc-options: -threaded -rtsopts -with-rtsopts=-N -fllvm -optlo-O3 -O3
+    else
+        ghc-options: -threaded -rtsopts -with-rtsopts=-N
+    main-is: Main.hs
+    build-depends:
+        base >=4.9.1.0 && <4.10,
+        tweet-hs >=0.5.3.0 && <0.6
+    default-language: Haskell2010
+    hs-source-dirs: app
+
+test-suite tweeths-test
+    type: exitcode-stdio-1.0
+    main-is: Spec.hs
+    build-depends:
+        base >=4.9.1.0 && <4.10,
+        tweet-hs >=0.5.3.0 && <0.6,
+        hspec >=2.4.2 && <2.5,
+        hspec-megaparsec >=0.3.1 && <0.4,
+        megaparsec >=5.2.0 && <5.3,
+        bytestring >=0.10.8.1 && <0.11
+    default-language: Haskell2010
+    hs-source-dirs: test
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+
+benchmark tweeths-bench
+    
+    if flag(llvm-fast)
+        ghc-options: -threaded -rtsopts -with-rtsopts=-N -fllvm -optlo-O3 -O3
+    else
+        ghc-options: -threaded -rtsopts -with-rtsopts=-N -O3
+    type: exitcode-stdio-1.0
+    main-is: Bench.hs
+    build-depends:
+        base >=4.9.1.0 && <4.10,
+        criterion >=1.1.4.0 && <1.2,
+        tweet-hs >=0.5.3.0 && <0.6,
+        megaparsec >=5.2.0 && <5.3,
+        bytestring >=0.10.8.1 && <0.11
+    default-language: Haskell2010
+    hs-source-dirs: bench
