@@ -1,0 +1,175 @@
+name:                   accelerate-bignum
+version:                0.1.0.0
+synopsis:               Fixed-length large integer arithmetic for Accelerate
+description:
+  This package provides fixed-length large integer types and arithmetic
+  operations for Accelerate. Signed and unsigned 96, 128, 160, 192, 224, 256,
+  and 512-bit types are predefined.
+  .
+  Refer to the main /Accelerate/ package for more information:
+  <http://hackage.haskell.org/package/accelerate>
+
+homepage:               https://github.com/tmcdonell/accelerate-bignum
+bug-reports:            https://github.com/tmcdonell/accelerate-bignum/issues
+license:                BSD3
+license-file:           LICENSE
+author:                 Trevor L. McDonell
+maintainer:             Trevor L. McDonell <tmcdonell@cse.unsw.edu.au>
+copyright:              BSD3
+category:               Compilers/Interpreters, Concurrency, Data, Parallelism
+build-type:             Simple
+extra-source-files:     README.md
+cabal-version:          >= 1.10
+
+flag llvm-cpu
+  description:          Enable primpos for the LLVM CPU backend
+  default:              True
+
+flag llvm-ptx
+  description:          Enable primops for the LLVM PTX backend
+  default:              True
+
+library
+  default-language:     Haskell2010
+  hs-source-dirs:       src
+  exposed-modules:
+      Data.Array.Accelerate.Data.BigInt
+      Data.Array.Accelerate.Data.BigWord
+
+  other-modules:
+      Data.Array.Accelerate.Internal.BigInt
+      Data.Array.Accelerate.Internal.BigWord
+      Data.Array.Accelerate.Internal.LLVM.Native
+      Data.Array.Accelerate.Internal.LLVM.PTX
+      Data.Array.Accelerate.Internal.Num2
+      Data.Array.Accelerate.Internal.Orphans
+      Data.Array.Accelerate.Internal.Orphans.Base
+      Data.Array.Accelerate.Internal.Orphans.Elt
+
+  build-depends:
+          base                          >= 4.8 && < 4.10
+        , ghc-prim
+        , template-haskell
+        , accelerate                    == 1.0.*
+
+  if flag(llvm-cpu)
+    cpp-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:
+          accelerate-llvm               == 1.0.*
+        , accelerate-llvm-native        == 1.0.*
+        , llvm-hs-pure                  >= 3.9
+    --
+    other-modules:
+      Data.Array.Accelerate.Internal.LLVM.Prim
+
+  if flag(llvm-ptx)
+    cpp-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:
+          accelerate-llvm               == 1.0.*
+        , accelerate-llvm-ptx           == 1.0.*
+        , llvm-hs-pure                  >= 3.9
+    --
+    other-modules:
+      Data.Array.Accelerate.Internal.LLVM.Prim
+
+  ghc-options:
+        -O2
+        -Wall
+        -fwarn-tabs
+
+  cpp-options:
+        -DUNBOXED_TUPLES=1
+
+  if impl(ghc == 8.0.1)
+    -- https://ghc.haskell.org/trac/ghc/ticket/12212
+    ghc-options:
+        -O0
+
+
+test-suite accelerate-bignum-test
+  default-language:     Haskell2010
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       test
+  main-is:              Main.hs
+
+  build-depends:
+          base                          >= 4.8 && < 4.10
+        , accelerate                    >= 0.16
+        , accelerate-bignum
+        , tasty
+        , tasty-quickcheck
+
+  ghc-options:
+        -O2
+        -Wall
+        -threaded
+        -rtsopts
+        -fno-liberate-case
+        -funfolding-use-threshold=200
+        -with-rtsopts=-N
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+
+  if flag(llvm-cpu)
+    cpp-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:
+          accelerate-llvm-native
+
+  if flag(llvm-ptx)
+    cpp-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:
+          accelerate-llvm-ptx
+
+benchmark accelerate-bignum-bench
+  default-language:     Haskell2010
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       bench
+  main-is:              Main.hs
+  other-modules:
+      Accelerate
+      WideWord
+
+  build-depends:
+          base                          >= 4.8 && < 4.10
+        , accelerate
+        , accelerate-bignum
+        , accelerate-io                 >= 0.16
+        , criterion                     >= 1.0
+        , mwc-random                    >= 0.13
+        , vector                        >= 0.11
+        , vector-th-unbox               >= 0.2
+        , wide-word                     == 0.1.*
+
+  ghc-options:
+        -O2
+        -Wall
+        -threaded
+        -rtsopts
+        -fno-liberate-case
+        -funfolding-use-threshold=200
+        -- -with-rtsopts=-N
+        -- -with-rtsopts=-n2M
+        -- -with-rtsopts=-A64M
+
+  if flag(llvm-cpu)
+    cpp-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:
+          accelerate-llvm-native
+
+  if flag(llvm-ptx)
+    cpp-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:
+          accelerate-llvm-ptx
+
+
+source-repository head
+  type:     git
+  location: https://github.com/tmcdonell/accelerate-bignum
+
+source-repository this
+  type:     git
+  tag:      0.1.0.0
+  location: https://github.com/tmcdonell/accelerate-bignum
+
+-- vim: nospell
+
