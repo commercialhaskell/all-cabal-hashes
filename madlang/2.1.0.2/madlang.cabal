@@ -1,0 +1,102 @@
+name:                madlang
+version:             2.1.0.2
+synopsis:            Randomized templating language DSL
+description:         Please see README.md
+homepage:            https://github.com/vmchale/madlang#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Vanessa McHale
+maintainer:          tmchale@wisc.edu
+copyright:           Copyright: (c) 2016 Vanessa McHale
+category:            Web
+build-type:          Simple
+stability:           experimental
+extra-source-files:  README.md
+                   , test/templates/fortune-teller.mad
+                   , test/templates/gambling.mad
+                   , test/templates/var.mad
+                   , test/templates/ordered.mad
+                   , test/templates/include.mad
+                   , test/templates/err/*.mad
+                   , bench/templates/*.mad
+                   , stack.yaml
+                   , bash/mkCompletions
+cabal-version:       >=1.10
+
+Flag llvm-fast {
+  Description: Enable build with llvm backend
+  Default: False
+}
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Text.Madlibs
+  other-modules:       Text.Madlibs.Ana.ParseUtils
+                     , Text.Madlibs.Cata.Run
+                     , Text.Madlibs.Ana.Parse
+                     , Text.Madlibs.Ana.Resolve
+                     , Text.Madlibs.Internal.Types
+                     , Text.Madlibs.Internal.Utils
+                     , Text.Madlibs.Cata.SemErr
+                     , Text.Madlibs.Exec.Main
+  build-depends:       base >= 4.7 && < 5
+                     , megaparsec
+                     , text
+                     , optparse-applicative
+                     , composition
+                     , directory
+                     , mwc-random
+                     , mtl
+                     , ansi-wl-pprint
+                     , containers
+                     , tibetan-utils
+                     , lens
+  default-language:    Haskell2010
+  default-extensions:  OverloadedStrings
+                     , DeriveGeneric
+                     , DeriveFunctor
+                     , DeriveAnyClass
+
+executable madlang
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  if flag(llvm-fast)
+    ghc-options:       -threaded -rtsopts -with-rtsopts=-N -fllvm -optlo-O3 -O3
+  else
+    ghc-options:       -threaded -rtsopts -with-rtsopts=-N 
+  build-depends:       base
+                     , madlang
+  default-language:    Haskell2010
+
+benchmark tweeths-bench
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          Bench.hs
+  build-depends:    base
+                  , criterion
+                  , madlang
+                  , megaparsec
+                  , text
+  if flag(llvm-fast)
+    ghc-options:       -threaded -rtsopts -with-rtsopts=-N -fllvm -optlo-O3 -O3
+  else
+    ghc-options:       -threaded -rtsopts -with-rtsopts=-N -O3
+  default-language: Haskell2010
+
+test-suite madlang-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , madlang
+                     , hspec
+                     , megaparsec
+                     , text
+                     , mtl
+                     , hspec-megaparsec
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N 
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/vmchale/madlang
