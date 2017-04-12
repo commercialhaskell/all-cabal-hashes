@@ -1,0 +1,199 @@
+name:                  grenade
+version:               0.1.0
+license:               BSD2
+license-file:          LICENSE
+author:                Huw Campbell <huw.campbell@gmail.com>
+maintainer:            Huw Campbell <huw.campbell@gmail.com>
+copyright:             (c) 2016-2017 Huw Campbell.
+synopsis:              Practical Deep Learning in Haskell
+category:              AI, Machine Learning
+cabal-version:         >= 1.8
+build-type:            Simple
+description:
+    Grenade is a composable, dependently typed, practical, and fast
+    recurrent neural network library for precise specifications and
+    complex deep neural networks in Haskell.
+    .
+    Grenade provides an API for composing layers of a neural network
+    into a sequence parallel graph in a type safe manner; running
+    networks with reverse automatic differentiation to calculate their
+    gradients; and applying gradient decent for learning.
+    .
+    Documentation and examples are available on github
+    <https://github.com/HuwCampbell/grenade>.
+
+extra-source-files:
+  README.md
+  cbits/im2col.h
+  cbits/im2col.c
+  cbits/gradient_decent.h
+  cbits/gradient_decent.c
+  cbits/pad.h
+  cbits/pad.c
+
+source-repository head
+  type: git
+  location: https://github.com/HuwCampbell/grenade.git
+
+library
+  build-depends:
+                       base                            >= 4.8         && < 5
+                     , bytestring                      == 0.10.*
+                     , containers                      >= 0.5         && < 0.6
+                     , cereal                          >= 0.5         && < 0.6
+                     , deepseq                         >= 1.4         && < 1.5
+                     , exceptions                      == 0.8.*
+                     , hmatrix                         == 0.18.*
+                     , MonadRandom                     >= 0.4         && < 0.6
+                     , mtl                             >= 2.2.1       && < 2.3
+                     , primitive                       >= 0.6         && < 0.7
+                     , text                            == 1.2.*
+                     , singletons                      >= 2.1         && < 2.3
+                     , vector                          >= 0.11        && < 0.13
+
+  ghc-options:
+                       -Wall
+  hs-source-dirs:
+                       src
+
+  if impl(ghc < 8.0)
+    ghc-options:       -fno-warn-incomplete-patterns
+
+
+  exposed-modules:
+                       Grenade
+                       Grenade.Core
+                       Grenade.Core.Layer
+                       Grenade.Core.LearningParameters
+                       Grenade.Core.Network
+                       Grenade.Core.Runner
+                       Grenade.Core.Shape
+
+                       Grenade.Layers
+                       Grenade.Layers.Concat
+                       Grenade.Layers.Convolution
+                       Grenade.Layers.Crop
+                       Grenade.Layers.Deconvolution
+                       Grenade.Layers.Dropout
+                       Grenade.Layers.Elu
+                       Grenade.Layers.FullyConnected
+                       Grenade.Layers.Inception
+                       Grenade.Layers.Logit
+                       Grenade.Layers.Merge
+                       Grenade.Layers.Pad
+                       Grenade.Layers.Pooling
+                       Grenade.Layers.Relu
+                       Grenade.Layers.Reshape
+                       Grenade.Layers.Softmax
+                       Grenade.Layers.Tanh
+                       Grenade.Layers.Trivial
+
+                       Grenade.Layers.Internal.Convolution
+                       Grenade.Layers.Internal.Pad
+                       Grenade.Layers.Internal.Pooling
+                       Grenade.Layers.Internal.Update
+
+                       Grenade.Recurrent
+
+                       Grenade.Recurrent.Core
+                       Grenade.Recurrent.Core.Layer
+                       Grenade.Recurrent.Core.Network
+                       Grenade.Recurrent.Core.Runner
+
+                       Grenade.Recurrent.Layers
+                       Grenade.Recurrent.Layers.BasicRecurrent
+                       Grenade.Recurrent.Layers.LSTM
+
+                       Grenade.Utils.OneHot
+
+  includes:            cbits/im2col.h
+                       cbits/gradient_decent.h
+                       cbits/pad.h
+  c-sources:           cbits/im2col.c
+                       cbits/gradient_decent.c
+                       cbits/pad.c
+
+  cc-options:          -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
+
+test-suite test
+  type:                exitcode-stdio-1.0
+
+  main-is:             test.hs
+
+  ghc-options:         -Wall -threaded -O2
+
+  hs-source-dirs:
+                       test
+
+
+  other-modules:       Test.Hedgehog.Compat
+                       Test.Hedgehog.Hmatrix
+                       Test.Hedgehog.TypeLits
+
+                       Test.Grenade.Network
+                       Test.Grenade.Layers.Convolution
+                       Test.Grenade.Layers.FullyConnected
+                       Test.Grenade.Layers.Nonlinear
+                       Test.Grenade.Layers.PadCrop
+                       Test.Grenade.Layers.Pooling
+                       Test.Grenade.Layers.Internal.Convolution
+                       Test.Grenade.Layers.Internal.Pooling
+                       Test.Grenade.Layers.Internal.Reference
+
+                       Test.Grenade.Recurrent.Layers.LSTM
+                       Test.Grenade.Recurrent.Layers.LSTM.Reference
+
+  if impl(ghc < 8.0)
+    ghc-options:       -fno-warn-incomplete-patterns
+
+  build-depends:
+                       base                            >= 4.8         && < 5
+                     , grenade
+                     , hedgehog                        >= 0.1         && < 0.2
+                     , hmatrix
+                     , mtl
+                     , singletons
+                     , text                            == 1.2.*
+                     , typelits-witnesses
+                     , transformers
+                     , constraints
+                     , MonadRandom
+                     , random
+                     , ad
+                     , reflection
+                     , vector
+
+
+benchmark bench
+  type:                exitcode-stdio-1.0
+
+  main-is:             bench.hs
+
+  ghc-options:         -Wall -threaded -O2
+
+  hs-source-dirs:
+                       bench
+
+  build-depends:
+                       base                            >= 3          && < 5
+                     , bytestring                      == 0.10.*
+                     , criterion                       == 1.1.*
+                     , grenade
+                     , hmatrix
+
+benchmark bench-lstm
+  type:                exitcode-stdio-1.0
+
+  main-is:             bench-lstm.hs
+
+  ghc-options:         -Wall -threaded -O2
+
+  hs-source-dirs:
+                       bench
+
+  build-depends:
+                       base                            >= 3          && < 5
+                     , bytestring                      == 0.10.*
+                     , criterion                       == 1.1.*
+                     , grenade
+                     , hmatrix
