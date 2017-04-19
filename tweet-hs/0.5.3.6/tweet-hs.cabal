@@ -1,0 +1,95 @@
+name:                tweet-hs
+version:             0.5.3.6
+synopsis:            Command-line tool for twitter
+description:         a Command Line Interface Tweeter
+homepage:            https://github.com/vmchale/command-line-tweeter#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Vanessa McHale
+maintainer:          tmchale@wisc.edu
+copyright:           2016 Vanessa McHale
+category:            Web
+build-type:          Simple
+stability:           stable
+extra-source-files:  README.md, stack.yaml, bash/mkCompletions, test/data
+cabal-version:       >=1.10
+
+Flag llvm-fast {
+  Description: Enable build with llvm backend
+  Default: False
+}
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Web.Tweet
+                     , Web.Tweet.Exec
+                     , Web.Tweet.Parser
+                     , Web.Tweet.Parser.FastParser
+  other-modules:       Web.Tweet.Types
+                     , Web.Tweet.Utils
+                     , Web.Tweet.Utils.Colors
+                     , Web.Tweet.Sign
+                     , Web.Tweet.API
+                     , Web.Tweet.Utils.API
+  build-depends:       base >= 4.7 && < 5
+                     , http-client-tls
+                     , http-client
+                     , http-types
+                     , authenticate-oauth
+                     , bytestring
+                     , split
+                     , optparse-applicative 
+                     , lens
+                     , data-default
+                     , text
+                     , megaparsec
+                     , ansi-wl-pprint
+                     , MissingH
+                     , directory
+                     , extra
+                     , composition
+                     , aeson
+  default-language:    Haskell2010
+
+executable tweet
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  if flag(llvm-fast)
+    ghc-options:       -threaded -rtsopts -with-rtsopts=-N -fllvm -optlo-O3 -O3
+  else
+    ghc-options:       -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , tweet-hs 
+  default-language:    Haskell2010
+
+benchmark tweeths-bench
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          Bench.hs
+  build-depends:    base
+                  , criterion
+                  , tweet-hs
+                  , megaparsec
+                  , bytestring
+  if flag(llvm-fast)
+    ghc-options:       -threaded -rtsopts -with-rtsopts=-N -fllvm -optlo-O3 -O3
+  else
+    ghc-options:       -threaded -rtsopts -with-rtsopts=-N -O3
+  default-language: Haskell2010
+
+test-suite tweeths-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , tweet-hs
+                     , hspec
+                     , hspec-megaparsec
+                     , megaparsec
+                     , bytestring
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N 
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/vmchale/command-line-tweeter
