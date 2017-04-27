@@ -1,0 +1,177 @@
+name:                type-indexed-queues
+version:             0.2.0.0
+synopsis:            Queues with verified and unverified versions.
+description:
+  This library provides implementations of five different queues
+  (binomial, pairing, skew, leftist, and Braun), each in two
+  flavours: one verified, and one not.
+  .
+  At the moment, only structural invariants are maintained.
+  .
+  More information, and a walkthough of a couple implementations, can
+  be found at this <http://doisinkidney.com/posts/2017-04-23-verifying-data-structures-in-haskell-lhs.html blog post>.
+  .
+  /Comparisons of verified and unverified queues/
+  .
+  Both versions of each queue are provided for comparison: for
+  instance, compare the standard leftist queue (in
+  "Data.Queue.Leftist"):
+  .
+  > data Leftist a
+  >   = Leaf
+  >   | Node !Int
+  >         a
+  >         (Leftist a)
+  >         (Leftist a)
+  .
+  To its size-indexed counterpart (in "Data.Queue.Indexed.Leftist"):
+  .
+  > data Leftist n a where
+  >         Leaf :: Leftist 0 a
+  >         Node :: !(The Nat (n + m + 1))
+  >              -> a
+  >              -> Leftist n a
+  >              -> Leftist m a
+  >              -> !(m <= n)
+  >              -> Leftist (n + m + 1) a
+  .
+  The invariant here (that the size of the left queue must
+  always be less than that of the right) is encoded in the
+  proof @m '<=' n@.
+  .
+  With that in mind, compare the unverified and verified
+  implementatons of @merge@:
+  .
+  > merge Leaf h2 = h2
+  > merge h1 Leaf = h1
+  > merge h1@(Node w1 p1 l1 r1) h2@(Node w2 p2 l2 r2)
+  >   | p1 < p2 =
+  >       if ll <= lr
+  >           then Node (w1 + w2) p1 l1 (merge r1 h2)
+  >           else Node (w1 + w2) p1 (merge r1 h2) l1
+  >   | otherwise =
+  >       if rl <= rr
+  >           then Node (w1 + w2) p2 l2 (merge r2 h1)
+  >           else Node (w1 + w2) p2 (merge r2 h1) l2
+  >   where
+  >     ll = rank r1 + w2
+  >     lr = rank l1
+  >     rl = rank r2 + w1
+  >     rr = rank l2
+  .
+  Verified:
+  .
+  > merge Leaf h2 = h2
+  > merge h1 Leaf = h1
+  > merge h1@(Node w1 p1 l1 r1 _) h2@(Node w2 p2 l2 r2 _)
+  >   | p1 < p2 =
+  >       if ll <=. lr
+  >         then Node (w1 +. w2) p1 l1 (merge r1 h2)
+  >         else Node (w1 +. w2) p1 (merge r1 h2) l1 . totalOrder ll lr
+  >   | otherwise =
+  >       if rl <=. rr
+  >           then Node (w1 +. w2) p2 l2 (merge r2 h1)
+  >           else Node (w1 +. w2) p2 (merge r2 h1) l2 . totalOrder rl rr
+  >   where
+  >     ll = rank r1 +. w2
+  >     lr = rank l1
+  >     rl = rank r2 +. w1
+  >     rr = rank l2
+  .
+  /Using type families and typechecker plugins to encode the invariant/
+  .
+  The similarity is accomplished through overloading, and some
+  handy functions. For instance, the second if-then-else works
+  on boolean /singletons/, and the @<=.@ function provides a
+  proof of order along with its answer. The actual arithmetic
+  is carried out at runtime on normal integers, rather than
+  Peano numerals. These tricks are explained in more detail
+  "TypeLevel.Singletons" and "TypeLevel.Bool".
+  .
+  A typechecker plugin does most of the heavy lifting, although
+  there are some (small) manual proofs.
+  .
+  /Uses of verified queues/
+  .
+  The main interesting use of these sturctures is total traversable
+  sorting (<https://github.com/treeowl/sort-traversable sort-traversable>).
+  An implementation of this is provided in "Data.Traversable.Parts". I'm
+  interested in finding out other uses for these kinds of structures.
+
+homepage:            https://github.com/oisdk/type-indexed-queues
+license:             MIT
+license-file:        LICENSE
+author:              Donnacha Oisín Kidney
+maintainer:          mail@doisinkidney.com
+copyright:           2017 Donnacha Oisín Kidney
+category:            Data Structures
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Data.Queue.Binomial
+                     , Data.Queue.Pairing
+                     , Data.Queue.Skew
+                     , Data.Queue.Splay
+                     , Data.Queue.Leftist
+                     , Data.Queue.Braun
+                     , Data.Queue.Class
+                     , Data.Queue.WithDict
+                     , Data.Queue.Indexed.Pairing
+                     , Data.Queue.Indexed.Binomial
+                     , Data.Queue.Indexed.Skew
+                     , Data.Queue.Indexed.Leftist
+                     , Data.Queue.Indexed.Braun
+                     , Data.Queue.Indexed.Class
+                     , Data.Queue.Indexed.Erased
+                     , Data.Queue.Indexed.List
+                     , Data.Queue.Indexed.Splay
+                     , Data.Traversable.Parts
+
+                     , Data.Tree.Replicate
+
+                     , TypeLevel.Nat
+                     , Data.BinaryTree
+                     , TypeLevel.Singletons
+                     , TypeLevel.Nat.Proofs
+                     , TypeLevel.Bool
+
+  build-depends:       base >=4.7 && <5
+                     , ghc-typelits-natnormalise >=0.4
+                     , deepseq >=1.4
+                     , containers >=0.5
+  default-language:    Haskell2010
+
+benchmark bench
+  default-language:    Haskell2010
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      bench
+  main-is:             bench.hs
+  ghc-options:         -O2 -rtsopts -threaded
+
+  build-depends:       base >=4.8
+                     , type-indexed-queues
+                     , criterion >=0.1
+                     , containers >=0.5
+                     , random >=1.0.0.0
+                     , pqueue >=1.0.0
+
+test-suite type-indexed-queues-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base >=4.7 && <5
+                     , type-indexed-queues
+                     , QuickCheck >=1.0
+                     , doctest >=0.3.0
+                     , containers >=0.5
+                     , tasty >=0.1
+                     , tasty-quickcheck >=0.1
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/oisdk/type-indexed-queues
