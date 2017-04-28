@@ -1,0 +1,92 @@
+name:          hyphenation
+category:      Text
+version:       0.7
+license:       BSD3
+cabal-version: >= 1.8
+license-file:  LICENSE
+author:        Edward A. Kmett
+maintainer:    Edward A. Kmett <ekmett@gmail.com>
+stability:     provisional
+homepage:      http://github.com/ekmett/hyphenation
+bug-reports:   http://github.com/ekmett/hyphenation/issues
+copyright:     (C) 2012-2016 Edward A. Kmett
+synopsis:      Configurable Knuth-Liang hyphenation
+tested-with:   GHC == 7.4.2, GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.1
+description:
+  Configurable Knuth-Liang hyphenation
+  .
+  Uses the UTF8 encoded hyphenation patterns provided by
+  hyph-utf8 from
+  <http://www.ctan.org/tex-archive/language/hyph-utf8>
+  .
+  Usage:
+  .
+  >>> hyphenate english_US "supercalifragilisticexpialadocious"
+  ["su","per","cal","ifrag","ilis","tic","ex","pi","al","ado","cious"]
+  .
+  >>> hyphenate english_US "hyphenation"
+  ["hy","phen","ation"]
+  .
+  >>> hyphenate icelandic "va\240lahei\240avegavinnuverkf\230rageymslusk\250r"
+  ["va\240la","hei\240a","vega","vinnu","verk","f\230ra","geymslu","sk\250r"]
+build-type:    Custom
+
+data-dir:      data
+data-files:    *.hyp.txt.gz, *.pat.txt.gz, *.lic.txt.gz, *.chr.txt.gz
+extra-source-files: .travis.yml CHANGELOG.markdown HLint.hs
+
+custom-setup
+  setup-depends:
+    base          >= 4.3 && <5,
+    Cabal         >= 1.10,
+    cabal-doctest >= 1 && <1.1
+
+source-repository head
+  type: git
+  location: git://github.com/ekmett/hyphenation.git
+
+Flag Embed
+  Description: Embed data in library binary
+               (Warning: This increases the executable size by about 1Mb unless
+                         unneeded language data files are manually removed from
+                         the "data" directory before compiling)
+  Default:     False
+
+library
+  build-depends:
+    base                 >= 4       && < 5,
+    bytestring           >= 0.9     && < 0.11,
+    containers           >= 0.3.0.0 && < 0.6,
+    unordered-containers >= 0.2.1   && < 0.3,
+    zlib                 >= 0.5     && < 0.7
+
+  if flag(embed)
+    build-depends: file-embed >= 0.0.7 && < 0.1
+    CPP-Options: "-DEMBED"
+
+  exposed-modules:
+   Text.Hyphenation
+   Text.Hyphenation.Hyphenator
+   Text.Hyphenation.Language
+   Text.Hyphenation.Exception
+   Text.Hyphenation.Pattern
+
+  other-modules:
+   Text.Hyphenation.ByteStringLazyCompat
+   Paths_hyphenation
+
+  hs-source-dirs: src
+  ghc-options: -Wall
+
+-- Verify the results of the examples
+test-suite doctests
+  type:    exitcode-stdio-1.0
+  main-is: doctests.hs
+  build-depends:
+    base,
+    containers,
+    doctest >= 0.11.2 && < 0.12,
+    hyphenation,
+    unordered-containers
+  ghc-options: -Wall -threaded
+  hs-source-dirs: tests
