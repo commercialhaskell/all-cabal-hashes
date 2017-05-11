@@ -10,9 +10,9 @@ instead, please check out the [stackage-update repo](https://github.com/fpco/sta
 
 Note that this repository is almost identical to
 [all-cabal-files](https://github.com/commercialhaskell/all-cabal-files).
-However, this repository modifies all of the cabal files downloaded from
-Hackage to have a number of extra metadata fields useful for verifying
-authenticity of packages, namely:
+However, this repository accompanies each of the cabal files downloaded from
+Hackage with a JSON file containing a number of extra metadata fields useful for
+verifying authenticity of packages, namely:
 
 * package-hashes, which contains a number of different hashes (i.e. using different algorithms) applied to the package tarball
 * package-locations, providing a set of download URLs
