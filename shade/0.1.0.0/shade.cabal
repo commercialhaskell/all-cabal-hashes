@@ -1,0 +1,66 @@
+name:                shade
+version:             0.1.0.0
+synopsis:            A control structure used to combine heterogenous types with delayed effects.
+description:
+    > {-# LANGUAGE MultiParamTypeClasses #-}
+    > module Main ( main ) where
+    >
+    > import Data.Functor.Identity
+    > import Control.Monad
+    >
+    > import Control.Monad.Shade
+
+    A shade can be used to save heterogeneous types in containers with the same
+    type e.g. using a type-class as a common denominator:
+
+    > showshade :: Applicative m => Show a => a -> Shade m String
+    > showshade a = pure (show a)
+    >
+    > hetero :: Shade Identity String
+    > hetero = mconcat [ showshade () , showshade 2 , showshade "hej" ]
+
+    The values inside a shade are stored in a context. We can swap this context
+    by defining a transfer function:
+
+    > idToIO :: Identity b -> IO b
+    > idToIO (Identity v) = putStrLn "Transferring" *> pure v
+
+    The context is switched using `transfer` and we can access the value in this
+    new context by using `shadow`:
+
+    > runInIO :: Shade Identity a -> IO a
+    > runInIO = shadow . transfer idToIO
+
+    The point to note about this example is that the values are stored in an
+    shades with the identity as context. We can manipulate this context
+    including the value. We cannot, however inspect the value since it is
+    universally quantified.
+
+homepage:            https://github.com/fredefox/shade#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Frederik Hanghøj Iversen
+maintainer:          fhi.1990@gmail.com
+copyright:           Copyright: (c) 2017 Frederik Hanghøj Iversen
+category:            Web
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Control.Monad.Shade
+  build-depends:       base >= 4.7 && < 5
+  default-language:    Haskell2010
+
+executable shade
+  hs-source-dirs:      app
+  main-is:             Example.lhs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , shade
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/fredefox/shade
