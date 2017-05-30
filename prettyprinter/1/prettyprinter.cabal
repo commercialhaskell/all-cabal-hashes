@@ -1,0 +1,148 @@
+name:                prettyprinter
+version:             1
+cabal-version:       >= 1.10
+category:            User Interfaces, Text
+synopsis:            A modern, extensible and well-documented prettyprinter.
+description:         See README.md
+license:             BSD2
+license-file:        LICENSE.md
+extra-source-files:  README.md
+                   , misc/version-compatibility-macros.h
+                   , CONTRIBUTORS.md
+author:              Phil Wadler, Daan Leijen, Max Bolingbroke, Edward Kmett, David Luposchainsky
+maintainer:          David Luposchainsky <dluposchainsky at google>
+bug-reports:         http://github.com/quchen/prettyprinter/issues
+homepage:            http://github.com/quchen/prettyprinter
+build-type:          Simple
+tested-with:         GHC==7.8.4, GHC==7.10.2, GHC==7.10.3, GHC==8.0.1, GHC==8.0.2
+
+
+
+source-repository head
+    type: git
+    location: git://github.com/quchen/prettyprinter.git
+
+
+
+library
+    exposed-modules:
+          Data.Text.Prettyprint.Doc
+        , Data.Text.Prettyprint.Doc.Internal
+        , Data.Text.Prettyprint.Doc.Internal.Type
+        , Data.Text.Prettyprint.Doc.Render.ShowS
+        , Data.Text.Prettyprint.Doc.Render.Text
+        , Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial
+        , Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial
+        , Data.Text.Prettyprint.Doc.Render.Util.Panic
+        , Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree
+        , Data.Text.Prettyprint.Doc.Render.Util.StackMachine
+        , Data.Text.Prettyprint.Doc.Util
+        -- Hidden for now, until I figure out where to put it:
+        -- , Data.Text.Prettyprint.Doc.Unicode
+    ghc-options: -Wall
+    hs-source-dirs: src
+    include-dirs: misc
+    default-language: Haskell2010
+    other-extensions:
+          BangPatterns
+        , CPP
+        , LambdaCase
+        , OverloadedStrings
+        , QuasiQuotes
+        , DefaultSignatures
+        , ScopedTypeVariables
+
+    build-depends:
+          base < 127
+        , text
+
+    if impl(ghc >= 8.0)
+        ghc-options: -Wcompat
+    if impl(ghc < 8.0)
+        build-depends: semigroups >= 0.1 && < 0.19
+    if impl(ghc < 7.10)
+        build-depends: void
+
+
+
+executable generate_readme
+    hs-source-dirs: app
+    main-is: GenerateReadme.hs
+    build-depends:
+          base < 127
+        , prettyprinter
+        , text
+        , template-haskell
+    default-language: Haskell2010
+    other-modules: MultilineTh
+    other-extensions: OverloadedStrings
+                    , TemplateHaskell
+    if impl (ghc < 7.10)
+        buildable: False
+
+
+
+test-suite doctest
+    type: exitcode-stdio-1.0
+    hs-source-dirs: test/Doctest
+    main-is: Main.hs
+    build-depends:
+          base < 127
+        , doctest >= 0.9
+        , QuickCheck >= 2.7
+    ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+    default-language: Haskell2010
+    if impl (ghc < 7.10)
+        buildable: False
+        -- Doctest does not support searching through directories in old versions
+
+test-suite testsuite
+    type: exitcode-stdio-1.0
+    hs-source-dirs: test/Testsuite
+    main-is: Main.hs
+    build-depends:
+          base
+        , prettyprinter
+
+        , pgp-wordlist
+        , bytestring
+        , tasty
+        , tasty-quickcheck
+        , text
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+    default-language: Haskell2010
+
+    if impl(ghc < 8.0)
+        build-depends: semigroups >= 0.1 && < 0.19
+
+
+
+benchmark fusion
+    type: exitcode-stdio-1.0
+    hs-source-dirs: bench
+    main-is: Fusion.hs
+    build-depends:
+          base
+        , prettyprinter
+
+        , criterion
+        , mtl
+        , random
+        , text
+        , transformers
+        , ansi-wl-pprint
+    ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+    default-language: Haskell2010
+    other-extensions: NumDecimals, OverloadedStrings
+
+benchmark faster-unsafe-text
+    build-depends: base >= 4.7 && < 5
+                 , criterion
+                 , text
+                 , prettyprinter
+
+    hs-source-dirs:      bench
+    main-is:             FasterUnsafeText.hs
+    ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
+    default-language:    Haskell2010
+    type:                exitcode-stdio-1.0
