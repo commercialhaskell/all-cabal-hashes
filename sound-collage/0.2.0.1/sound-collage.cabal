@@ -1,0 +1,145 @@
+Name:           sound-collage
+Version:        0.2.0.1
+License:        BSD3
+License-File:   LICENSE
+Author:         Henning Thielemann <haskell@henning-thielemann.de>
+Maintainer:     Henning Thielemann <haskell@henning-thielemann.de>
+Category:       Sound
+Synopsis:       Approximate a song from other pieces of sound
+Description:
+  This program allows you to decompose a set of audio files into chunks
+  and use these chunks for building a new audio file
+  that matches another given audio file.
+  This is very similar to constructing an image
+  from small images that are layed out in a rectangular grid.
+  .
+  The simplest way to use the program consists of the following two steps:
+  .
+  Step 1: Add chunks from an audio file to the pool:
+  .
+  > sound-collage --chunksize=8192 decompose track00.wav pool/%06d
+  > sound-collage --chunksize=8192 decompose track01.wav pool/%06d
+  .
+  Attention:
+  The chunk size and the number of (stereo) channels
+  must be the same for all added files.
+  These parameters are not stored in the pool itself
+  and thus consistency cannot be checked.
+  .
+  Adding the same set of audio files to the chunk pool again
+  will fool the automatic chunk size determination in the composition step.
+  You should not add an audio file twice anyway,
+  since it increases disk usage and computation time
+  and has no effect to the result.
+  .
+  Step 2: Compose an approximation of an audio file
+  using chunks from the pool
+  .
+  > sound-collage auto pool/ music.wav collage.f32
+  .
+  It performs four steps:
+  .
+  1. Decompose @music.wav@ into chunks
+  .
+  2. Find best matching chunk from the pool
+     for every chunk in the audio file.
+  .
+  3. Check where it is better to take an
+     originally adjacent chunk from the pool.
+  .
+  4. Compose matching chunks to a single file.
+  .
+  You can run these steps manually in order to inspect the results,
+  repeat individual steps or omit them (e.g. step 3).
+  Here an example for stereo music file:
+  .
+  > sound-collage --chunksize=8192 decompose music.wav music/%06d
+  .
+  > sound-collage --chunksize=8192 --channels=2 associate pool/ music/ collage/%06d
+  .
+  > sound-collage --chunksize=8192 --channels=2 adjacent pool/ music/ collage/
+  .
+  > sound-collage --chunksize=8192 --channels=2 compose collage/ collage.f32
+  .
+  For the @adjacent@ step there is the @--cohesion@ option.
+  It specifies how much adjacent chunks shall be prefered to the best matching chunk.
+  (Please note, that the best matching chunk is not actually the best matching one,
+  but only an approximatively best one. See below for details.)
+  If cohesion is 1 then an adjacent chunk is only prefered
+  if it matches better than the best matching chunk.
+  If cohesion is larger then adjacent chunks are more often prefered
+  to the best matching one.
+  If cohesion is zero, then always the best matching chunk is chosen.
+  This is like skipping the @--adjacent@ step completely.
+  .
+  You can use any input format supported by SoX,
+  but output is always raw @Float@ format, i.e. @.f32@.
+  Spectra are computed and stored in @Float@
+  (single precision floating point)
+  and chunks in the pool are stored in @Int16@.
+  .
+  This is how it works:
+  Since there is a lot of data to process
+  I have chosen the following optimization
+  that however influences the result.
+  I group all chunks according to the index of the largest Fourier coefficient.
+  All chunks with the same index are stored in one file.
+  For the search of matching chunks I traverse the Fourier indices.
+  Then e.g. for Fourier index 10 I load all chunks from the pool
+  and all chunks from the decomposed music
+  and find best matching chunks only within this group.
+  This way I may miss the best matching chunk,
+  but save a lot of computation (I hope so).
+  .
+  Btw. if you also add @music.wav@ to the pool,
+  then @music.wav@ will not be restored by the collage algorithm
+  since the audio files are decomposed into overlapping chunks.
+  .
+  Approximation is done using simple L2 norm.
+  It is well-known that this does not match human perception very good.
+  Maybe it is a good idea to work with lossily compressed audio files
+  where all non-audible waves are already eliminated.
+  In this case the L2 norm might better match
+  the human idea of similarity of audio chunks.
+Tested-With:    GHC==7.4.1
+Cabal-Version:  >=1.6
+Build-Type:     Simple
+
+Source-Repository this
+  Tag:         0.2.0.1
+  Type:        darcs
+  Location:    http://hub.darcs.net/thielema/sound-collage/
+
+Source-Repository head
+  Type:        darcs
+  Location:    http://hub.darcs.net/thielema/sound-collage/
+
+Executable sound-collage
+  Build-Depends:
+    fft >=0.1.8 && <0.2,
+    carray >=0.1.3 && <0.2,
+    containers >=0.2 && <0.6,
+    array >=0.1 && <0.6,
+    storablevector-carray >=0.0 && <0.1,
+    storablevector >=0.2 && <0.3,
+    synthesizer-core >=0.7 && <0.9,
+    soxlib >=0.0.1 && <0.1,
+    sample-frame >=0.0 && <0.1,
+    numeric-prelude >=0.4.1 && <0.5,
+    Cabal >=1.14 && <3,
+    optparse-applicative >=0.11 && <0.15,
+    pathtype >=0.8 && <0.9,
+    filepath >=1.3 && <1.5,
+    temporary >=1.1 && <1.3,
+    transformers >=0.4 && <0.6,
+    utility-ht >=0.0.12 && <0.1,
+    base >= 3 && <5
+
+  GHC-Prof-Options: -fprof-auto -rtsopts
+  GHC-Options:    -Wall
+  Hs-Source-Dirs: src
+  Main-Is:        Main.hs
+  Other-Modules:
+    SoundCollage
+    Option
+    PathFormat
