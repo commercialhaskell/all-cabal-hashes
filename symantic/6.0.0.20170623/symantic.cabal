@@ -1,0 +1,289 @@
+author: Julien Moutinho <julm+symantic@autogeree.net>
+bug-reports: Julien Moutinho <julm+symantic@autogeree.net>
+build-type: Simple
+cabal-version: >= 1.24
+category: Language
+description:
+ __Description__
+ .
+ This is an experimental library for composing, parsing, typing, compiling, transforming and interpreting
+ a custom DSL (Domain-Specific Language) expressing
+ a subset of GHC's Haskell type system:
+ .
+ * /first class functions/ (aka. /lambdas/),
+ * chosen /monomorphic types/ (like 'Bool' or 'Maybe'),
+ * chosen /rank-1 polymorphic types/ (like @(@'Maybe'@ a)@),
+ * chosen /type class instances/,
+ * chosen /type family instances/,
+ * and chosen /type constraints/;
+ .
+ where "chosen X" means declared in Haskell
+ and selected when composing the DSL.
+ .
+ In particular, this library is currently not able to:
+ .
+ * do /type inferencing/ for the argument of /lambdas/
+   (they must all be explicitely annotated, aka. /Church-style/),
+ * do /pattern matching/ (aka. /case/) (but /Church-encoding/ functions are often enough),
+ * do /rank-N polymorphic types/ (aka. /non-prenex forall/, like @(forall s. ST s a) -> a@).
+ .
+ And by itself, the DSL is only able to define new terms to be interpreted,
+ no new types, or other type-level structures.
+ .
+ __Warning__
+ .
+ Please be aware that despite its using of powerful ideas from clever people,
+ this remains a FUND-LESS SINGLE-PERSON EXPERIMENTAL LIBRARY.
+ Meaning that it IS NOT heavily tested and documented,
+ DOES NOT have a strong commitment to preserving backward compatibility,
+ MAY FAIL to comply with the <http://www.haskell.org/haskellwiki/Package_versioning_policy PVP>,
+ and CAN die without notice.
+ You've been warned.
+ .
+ __Use cases__
+ .
+ The main goal of this library is to enable the runtime interpretation of terms,
+ type-checked according to some types defined at composing-time (ie. GHC's compile-time).
+ .
+ Using a DSL enables to limit expressiveness in order to ease analysis.
+ Here the idea is that the more complex logic shall remain written in Haskell,
+ and then this library used to project an interface into a DSL
+ (using GHC's Haskell as a FFI (Foreign Function Interface)).
+ This in order to give runtime users the flexibility
+ to write programs not requiring a full-blown Haskell compiler,
+ yet enabling enough flexibility to let them express complex needs
+ with a reasonably advanced type-safe way
+ and a controlled environment of primitives.
+ .
+ Typical use cases:
+ .
+ * Enabling runtime users to enter some Haskell-like expressions
+   (maybe with a more convenient syntax wrt. the domain problem)
+   without using at runtime all the heavy machinery and ecosystem of GHC
+   (eg. by using <https://hackage.haskell.org/package/hint hint>),
+   but still leaning on primitive functions coded in GHC's Haskell.
+ * Limiting those expressions to be built from well-controlled expressions only.
+ * Run some analyzes/optimizations on those well-controlled expressions.
+ .
+ __Usage__
+ .
+ Please pick in <https://hackage.haskell.org/package/symantic-lib symantic-lib>
+ a few specific @Lib/*.hs@ files near what you want to do
+ and the corresponding @Lib\/*/Test.hs@ file,
+ if any in the <git://git.autogeree.net/symantic Git repository>,
+ to learn by examples how to use this library.
+ .
+ Those @Lib\/*/Test.hs@ files use <https://hackage.haskell.org/package/megaparsec megaparsec> as parser
+ (see @Grammar/Megaparsec.hs@) and a default grammar somehow sticking to Haskell's,
+ but staying context-free (so in particular: insensitive to the indentation),
+ and supporting prefix and postfix operators.
+ This grammar — itself written as a symantic embedded DSL
+ with <https://hackage.haskell.org/package/symantic-grammar symantic-grammar> —
+ can be reused to build other ones, is not bound to a specific parser,
+ and can produce its own EBNF rendition.
+ .
+ __Acknowledgements__
+ .
+ This library would probably be much worse than it is
+ without the following seminal works:
+ .
+ * <http://okmij.org/ftp/tagless-final/ Finally Tagless> by Jacques Carette, Oleg Kiselyov, and Chung-chieh Shan.
+ * <http://cs.brynmawr.edu/~rae/papers/2016/thesis/eisenberg-thesis.pdf Dependent Types in Haskell> by Richard A. Eisenberg.
+ .
+ __Main ideas__
+ .
+ * __Symantic DSL__.
+   Terms are encoded in the <http://okmij.org/ftp/tagless-final/ Tagless-Final> way (aka. the /symantic/ way)
+   which leverages the /type class/ system of Haskell — instead of using /data types/ — to form an embedded DSL.
+   More specifically, a /class/ encodes the /syntax/ of terms (eg. 'Sym_Bool')
+   and its /class instances/ on a dedicated type encodes their /semantics/
+   (eg. @(Sym_Bool Eval)@ interprets a term as a value of its type
+   in the host language ('Bool' in Haskell here),
+   or @(Sym_Bool View)@ interprets a term as a textual rendition, etc.).
+   
+   DSL are then composed/extended by selecting those symantic /classes/
+   (and in an embedded DSL those could even be automatically inferred,
+   when @NoMonomorphismRestriction@ is on).
+   Otherwise, when using symantics for a non-embedded DSL
+   — the whole point of this library — the /classes/ composing the DSL
+   are selected manually at GHC's compile-time,
+   through the /type-level list/ @ss@ given to 'readTerm'.
+   
+   Moreover, those symantic @term@s are parameterized by the type of the value they encode,
+   in order to get the same type safety as with plain Haskell values.
+   Hence the symantic /classes/ have the higher kind: @((* -> *) -> Constraint)@
+   instead of just @(* -> Constraint)@.
+   
+   Amongst those symantics, 'Sym_Lambda' introduces /lambda abstractions/ by an higher-order approach,
+   meaning that they directly reuse GHC's internal machinery
+   to abstract or instantiate variables,
+   which I think is by far the most efficient and simplest way of doing it
+   (no (generalized or not) DeBruijn encoding
+   like in <https://hackage.haskell.org/package/bound bound>'s @Monad@s).
+ 
+ * __Singleton for any type__.
+   To typecheck terms using a @(@'Type'@ src vs t)@ which acts as a /singleton type/
+   for any Haskell /type index/ @t@ of any kind,
+   which is made possible with the dependant Haskell extensions:
+   especially @TypeFamilies@, @GADTs@ and @TypeInType@.
+ 
+ * __Type constants using 'Typeable'__.
+   /Type constant/ could be introduced by indexing them amongst a /type-level list/,
+   but since they are /monomorphic types/, using 'Typeable' simplifies
+   the machinery, and is likely more space/time efficient, including at GHC-compile-time.
+ 
+ * __Type variables using a type-level list__.
+   Handling /type variables/ is done by indexing them amongst a @vs@ /type-level list/,
+   where each /type variable/ is wrapped inside a @Proxy@ to handle different kinds.
+   Performing a substitution (in 'substVar') preserves the /type index/ @t@,
+   which is key for preserving any associated 'Term'.
+   Unifying /type variables/ is done with 'unsafeCoerce' (in 'unifyType'),
+   which I think is necessary and likely safe.
+ 
+ -- NOTE: no longer used.
+ -- * __Extensible data type__.
+ --   To inject a type into a /type-level list/
+ --   or project a /type-level list/ onto a type,
+ --   to compose an /extensible data type/
+ --   (eg. the 'Token' @GADT@ gathering the 'TokenT' /data instances/,
+ --   that a parser can build and then give to 'compile').
+ --   This type-level programming requires @UndecidableInstances@,
+ --   but not @OverlappingInstances@.
+ -- 
+ --   There is a similarity with
+ --   <http://dx.doi.org/10.1017/S0956796808006758 Data types à la carte>
+ --   (see for instance <https://hackage.haskell.org/package/compdata compdata>
+ --   or <https://hackage.haskell.org/package/syntactic syntactic>).
+ --   Those also enable to compose a DSL using some machinery
+ --   based upon (co)free(r) (co)monads and (cata|ana)morphisms.
+ --   Which library fits best your problem domain and brain is for you to judge :)
+ --   On that topic, see also:
+ --   <https://www.youtube.com/watch?v=qaAKRxO21fU Stop Paying for Free Monads>.
+ --
+ -- Here, I just came up using /type-level lists/ by hacking
+ -- <https://hackage.haskell.org/package/glambda glambda>'s @Elem@.
+ .
+ __Main extensions__
+ .
+ * @AllowAmbiguousTypes@ for avoiding a lot of uses of 'Proxy'.
+ * @ConstraintKinds@ for /type lists/ to contain 'Constraint's,
+   or reifying any 'Constraint' as an explicit dictionary 'Dict',
+   or defining /type synonym/ of /type classes/,
+   or merging /type constraints/.
+ * @DataKinds@ for type-level data structures (eg. /type-level lists/).
+ * @DefaultSignatures@ for providing identity transformations of terms,
+   and thus avoid boilerplate code when a transformation
+   does not need to alter all semantics.
+   Almost as explained in <https://ro-che.info/articles/2016-02-03-finally-tagless-boilerplate Reducing boilerplate in finally tagless style>.
+ * @GADTs@ for knowing types by pattern-matching terms,
+   or building terms by using type classes.
+ * @PolyKinds@ for avoiding a lot of uses of 'Proxy'.
+ * @Rank2Types@ or @ExistentialQuantification@ for parsing @GADT@s.
+ * @TypeApplications@ for having a more concise syntax
+   to build 'Type' (eg. 'tyConst'@ @\@Bool).
+ * @TypeFamilies@ for type-level programming.
+ * @TypeInType@ (introduced in GHC 8.0.1)
+   for 'Type' to also bind a kind equality for the type @t@ it encodes.
+   Which makes the /type application/ ('TyApp')
+   give us an /arrow kind/ for the Haskell /type constructor/
+   it applies an Haskell type to, releaving me from tricky workarounds.
+ * @UndecidableInstances@ for type-level programming that may never terminate.
+ .
+ __Bugs__
+ .
+ There are some of them hidding in there,
+ and the whole thing is far from being perfect…
+ Your comments, problem reports, or questions, are welcome!
+ You have my email address, so… just send me some emails :]
+ .
+ __To do__
+ .
+ * Study to which point /type inferencing/ is doable,
+   now that 'Type' is powerful enough to contain 'TyVar's.
+ * Study to which point error messages can be improved,
+   now that there is a 'Source' carried through all 'Kind's or 'Type's,
+   it should enable some nice reports.
+   Still, a lot of work and testing remain to be done,
+   and likely some ideas to find too…
+ * Add more terms in <https://hackage.haskell.org/package/symantic-lib symantic-lib>.
+ * Add more transformations.
+ * Study how to integrate types into the module system.
+ * Study where to put @INLINE@, @INLINEABLE@ or @SPECIALIZE@ pragmas.
+ * Study how to support /rank-N polymorphic types/,
+   special cases can likely use the /boxed polymorphism/ workaround,
+   but even if GHC were supporting /impredicative types/,
+   I'm currently clueless about how to do this.
+extra-source-files:
+extra-tmp-files:
+-- homepage: 
+license: GPL-3
+license-file: COPYING
+maintainer: Julien Moutinho <julm+symantic@autogeree.net>
+name: symantic
+stability: experimental
+synopsis: Library for Typed Tagless-Final Higher-Order Composable DSL
+tested-with: GHC==8.0.2
+-- PVP:  +-+------- breaking API changes
+--       | | +----- non-breaking API additions
+--       | | | +--- code changes with no API change
+version: 6.0.0.20170623
+
+Source-Repository head
+  location: git://git.autogeree.net/symantic
+  type:     git
+
+Library
+  default-extensions:
+    DataKinds
+    DefaultSignatures
+    FlexibleContexts
+    FlexibleInstances
+    LambdaCase
+    MultiParamTypeClasses
+    NamedFieldPuns
+    OverloadedStrings
+    Rank2Types
+    ScopedTypeVariables
+    StandaloneDeriving
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+  ghc-options: -Wall
+               -fno-warn-tabs
+  default-language: Haskell2010
+  exposed-modules:
+    Language.Symantic
+    Language.Symantic.Compiling
+    Language.Symantic.Compiling.Beta
+    Language.Symantic.Compiling.Grammar
+    Language.Symantic.Compiling.Module
+    Language.Symantic.Compiling.Read
+    Language.Symantic.Compiling.Term
+    Language.Symantic.Interpreting
+    Language.Symantic.Interpreting.Dup
+    Language.Symantic.Interpreting.Eval
+    Language.Symantic.Interpreting.View
+    Language.Symantic.Transforming
+    Language.Symantic.Transforming.Beta
+    Language.Symantic.Transforming.Trans
+    Language.Symantic.Typing
+    Language.Symantic.Typing.Document
+    Language.Symantic.Typing.Grammar
+    Language.Symantic.Typing.Kind
+    Language.Symantic.Typing.List
+    Language.Symantic.Typing.Peano
+    Language.Symantic.Typing.Read
+    Language.Symantic.Typing.Show
+    Language.Symantic.Typing.Type
+    Language.Symantic.Typing.Unify
+    Language.Symantic.Typing.Variable
+  build-depends:
+    base >= 4.6 && < 5
+    , containers
+    , ghc-prim
+    , mono-traversable
+    , symantic-grammar
+    , symantic-document
+    , transformers
+    , text
