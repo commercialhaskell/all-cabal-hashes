@@ -1,0 +1,85 @@
+name:                hlibsass
+version:             0.1.6.1
+license:             MIT
+license-file:        LICENSE
+author:              Jakub Fijałkowski <fiolek94@gmail.com>
+maintainer:          fiolek94@gmail.com
+homepage:            https://github.com/jakubfijalkowski/hlibsass
+category:            Foreign
+build-type:          Custom
+cabal-version:       >= 1.10
+stability:           experimental
+synopsis:            Low-level bindings to Libsass
+description:
+  This package provides (very) low level bindings to LibSass. By default, it
+  uses LibSass compiled as a static library, so if you use this in your project,
+  you have to link your project with C++ runtime (which hLibsass does
+  automatically - links with /libstdc++/).
+  For documentation visit <https://github.com/sass/libsass>.
+
+extra-source-files:
+  libsass/src/*.cpp
+  libsass/src/*.c
+  libsass/src/*.h
+  libsass/src/*.hpp
+  libsass/src/*.am
+  libsass/src/b64/*.h
+  libsass/src/utf8/*.h
+  libsass/src/support/*.pc.in
+  libsass/src/memory/*.hpp
+  libsass/src/memory/*.cpp
+  libsass/include/*.h
+  libsass/include/sass/*.h
+  libsass/include/sass/*.h.in
+  libsass/Makefile
+  libsass/Makefile.conf
+  libsass/LICENSE
+  libsass/VERSION
+  CHANGELOG.md
+
+source-repository head
+  type:              git
+  location:          git://github.com/jakubfijalkowski/hlibsass.git
+
+flag externalLibsass
+  description:       Use LibSass that is installed in the system.
+  default:           False
+
+flag sharedLibsass
+  description:
+    Build LibSass as a shared library (only if external_libsass = False).
+  default:           False
+
+custom-setup
+  setup-depends: base >= 4.7 && < 5, Cabal >= 1.18, directory >= 1.2.1
+
+library
+  exposed-modules:
+      Bindings.Libsass
+    , Bindings.Libsass.Base
+    , Bindings.Libsass.Types
+    , Bindings.Libsass.Wrappers
+    , Bindings.Libsass.Context
+    , Bindings.Libsass.Functions
+    , Bindings.Libsass.Values
+  build-depends:       base >= 4.7 && < 5
+  hs-source-dirs:      .
+  default-language:    Haskell2010
+  default-extensions:  ForeignFunctionInterface
+  ghc-options:         -Wall
+  extra-libraries:     sass
+  if !flag(externalLibsass) && !flag(sharedLibsass)
+    if os(darwin)
+      extra-libraries: c++
+    else
+      extra-libraries: stdc++
+
+test-suite tests
+  hs-source-dirs:      tests
+  main-is:             Main.hs
+  type:                exitcode-stdio-1.0
+  ghc-options:         -Wall
+  if flag(externalLibsass)
+    cpp-options:       -DEXTERNAL_LIBSASS
+  build-depends:       base >= 4.7 && < 5, hspec, hlibsass
+  default-language:    Haskell2010
