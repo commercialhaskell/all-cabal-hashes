@@ -1,0 +1,254 @@
+Name:                   mellon-web
+Version:                0.8.0.2
+Cabal-Version:          >= 1.18
+Build-Type:             Simple
+Author:                 Drew Hess <dhess-src@quixoftic.com>
+Maintainer:             Drew Hess <dhess-src@quixoftic.com>
+Homepage:               https://github.com/quixoftic/mellon/
+Bug-Reports:            https://github.com/quixoftic/mellon/issues/
+Stability:              experimental
+License:                BSD3
+License-File:           LICENSE
+Copyright:              Copyright (c) 2017, Quixoftic, LLC
+Tested-With:            GHC == 7.10.3, GHC == 8.0.1, GHC == 8.0.2
+Category:               Web
+Synopsis:               A REST web service for Mellon controllers
+Description:
+  The @mellon-web@ package wraps a @mellon-core@ controller in a REST
+  web service, making it possible to control physical access devices
+  from an HTTP client. The package includes both a WAI application
+  server, and native Haskell client bindings for the service.
+  .
+  Like the @mellon-core@ controller interface, the @mellon-web@ REST API
+  is quite simple. There are only 3 methods:
+  .
+  * @GET /time@ returns the system time on the server. This is made
+    available for diagnostic purposes, primarily to ensure the server
+    has an accurate clock.
+  .
+  * @GET /state@ returns the controller's current state (either @Locked@
+    or @Unlocked date@ where @date@ is the UTC time at which the
+    controller will automatically lock again).
+  .
+  * @PUT /state@ sets the controller's current state. Use this method to
+    lock and unlock the controller.
+  .
+  See the included <API.md API.md> document for detailed documentation
+  on the REST service.
+  .
+  Note that the @mellon-web@ server does not provide an authentication
+  mechanism! You should proxy it behind a secure, authenticating HTTPS
+  server such as Nginx.
+Extra-Doc-Files:        README.md
+                      , swagger.json
+Extra-Source-Files:     changelog.md
+                      , examples/*.hs
+
+-- Build doctests
+Flag test-doctests
+  Default: True
+  Manual: True
+
+-- Build hlint test
+Flag test-hlint
+  Default: True
+  Manual: True
+
+-- Build the mock server example
+Flag mock-example
+  Default: True
+  Manual: True
+
+-- Build the GPIO server example
+Flag gpio-example
+  Default: True
+  Manual: True
+
+-- Build the unlock client example
+Flag client-unlock-example
+  Default: True
+  Manual: True
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints
+  Exposed-Modules:      Mellon.Web.Client
+                      , Mellon.Web.Server
+                      , Mellon.Web.Server.API
+                      , Mellon.Web.Server.SwaggerAPI
+  Other-Extensions:     DataKinds
+                      , DeriveGeneric
+                      , MultiParamTypeClasses
+                      , OverloadedStrings
+                      , TypeOperators
+  Build-Depends:        base               >= 4.8   && < 5
+                      , aeson              >= 0.11  && < 1.3
+                      , aeson-pretty       == 0.8.*
+                      , bytestring         == 0.10.*
+                      , http-client        >= 0.4   && < 0.6
+                      , http-types         == 0.9.*
+                      , lens               >= 4     && < 5
+                      , lucid              == 2.9.*
+                      , mellon-core        == 0.8.*
+                      , servant            == 0.11.*
+                      , servant-client     == 0.11.*
+                      , servant-docs       >= 0.10  && < 0.12
+                      , servant-lucid      == 0.7.*
+                      , servant-server     == 0.11.*
+                      , servant-swagger    == 1.1.*
+                      , servant-swagger-ui == 0.2.*
+                      , swagger2           == 2.1.*
+                      , text               == 1.2.*
+                      , time               >= 1.5   && < 2
+                      , transformers       >= 0.4.2 && < 0.6
+                      , wai                == 3.2.*
+                      , warp               == 3.2.*
+
+Executable mock-mellon-server
+  Main-Is:              MockServer.hs
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       examples
+  GHC-Options:          -Wall -threaded -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints
+  If !flag(mock-example)
+    Buildable:         False
+  Else                        
+    Build-Depends:      base
+                      , mellon-core
+                      , mellon-web
+                      , warp
+
+Executable gpio-mellon-server
+  Main-Is:              GpioServer.hs
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       examples
+  GHC-Options:          -Wall -threaded -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints
+  Other-Extensions:     OverloadedStrings
+  If !flag(gpio-example)
+    Buildable:         False
+  Else                        
+    Build-Depends:      base
+                      , exceptions           >= 0.8.0  && < 1
+                      , hpio                 >= 0.8    && < 1
+                      , mellon-core
+                      , mellon-gpio          == 0.8.*
+                      , mellon-web
+                      , mtl
+                      , network              == 2.6.*
+                      , optparse-applicative >= 0.11.0 && < 0.14
+                      , time
+                      , transformers
+                      , warp
+
+Executable mellon-schedule-unlock
+  Main-Is:              ScheduleUnlock.hs
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       examples
+  GHC-Options:          -Wall -threaded -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints
+  Other-Extensions:     LambdaCase
+                      , OverloadedStrings
+  If !flag(client-unlock-example)
+    Buildable:         False
+  Else                        
+    Build-Depends:      base
+                      , bytestring
+                      , exceptions
+                      , http-client
+                      , http-client-tls
+                      , http-types
+                      , mellon-core
+                      , mellon-web
+                      , mtl
+                      , network
+                      , optparse-applicative
+                      , servant-client
+                      , time
+                      , transformers
+                        
+Test-Suite hlint
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       test
+  Ghc-Options:          -w -threaded -rtsopts -with-rtsopts=-N
+  Main-Is:              hlint.hs
+  If !flag(test-hlint)
+    Buildable:          False
+  Else
+    Build-Depends:      base
+                      , hlint >= 1.9 && < 2.1
+
+Test-Suite doctest
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       test
+  Ghc-Options:          -Wall -threaded
+  If impl(ghc > 8)
+    GHC-Options:        -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances -fno-warn-redundant-constraints -fno-warn-redundant-constraints
+  Main-Is:              doctest.hs
+  If !flag(test-doctests)
+    Buildable: False
+  Else
+    Build-Depends:      base
+                      , doctest >= 0.10.1 && < 1
+
+Test-Suite spec
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  Hs-Source-Dirs:       src
+                      , test
+  Ghc-Options:          -w -threaded -rtsopts -with-rtsopts=-N
+  Main-Is:              Main.hs
+  Other-Extensions:     ScopedTypeVariables
+  Build-Depends:        base
+                      , QuickCheck
+                      , quickcheck-instances
+                      , aeson
+                      , aeson-pretty
+                      , bytestring
+                      , hspec          >= 2.2   && < 2.5
+                      , hspec-wai      >= 0.6.6 && < 0.9
+                      , http-client
+                      , http-types
+                      , lens
+                      , lucid
+                      , mellon-core
+                      , network
+                      , servant
+                      , servant-client
+                      , servant-docs
+                      , servant-lucid
+                      , servant-server
+                      , servant-swagger
+                      , servant-swagger-ui
+                      , swagger2
+                      , text
+                      , time
+                      , transformers
+                      , wai
+                      , wai-extra      == 3.0.*
+                      , warp
+  Other-Modules:        Mellon.Web.Client
+                      , Mellon.Web.Server
+                      , Mellon.Web.Server.API
+                      , Mellon.Web.Server.SwaggerAPI
+                      , Spec
+                      , Mellon.Web.ClientSpec
+                      , Mellon.Web.ServerSpec
+                      , Mellon.Web.SwaggerAPISpec
+
+Source-Repository head
+  Type:                 git
+  Location:             git://github.com/quixoftic/mellon.git
+
+Source-Repository this
+  Type:                 git
+  Location:             git://github.com/quixoftic/mellon.git
+  Tag:                  v0.8.0.2
