@@ -1,0 +1,126 @@
+-- This file has been generated from package.yaml by hpack version 0.17.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           perfect-hash-generator
+version:        0.1.0.0
+synopsis:       Perfect minimal hashing implementation in native Haskell
+description:     A <https://en.wikipedia.org/wiki/Perfect_hash_function perfect hash function> for a set @S@ is a hash function that maps distinct elements in @S@ to a set of integers, with __no collisions__. A <https://en.wikipedia.org/wiki/Perfect_hash_function#Minimal_perfect_hash_function minimal perfect hash function> is a perfect hash function that maps @n@ keys to @n@ __consecutive__ integers, e.g. the numbers from @0@ to @n-1@.
+                .
+                In contrast with the <https://hackage.haskell.org/package/PerfectHash PerfectHash package>, which is a binding to a C-based library, this package is a fully-native Haskell implementation.
+                .
+                It is intended primarily for generating C code for embedded applications (compare to @<https://www.gnu.org/software/gperf/manual/gperf.html#Search-Structures gperf>@). The output of this tool is a pair of arrays that can be included in generated C code for __<https://en.wikipedia.org/wiki/C_dynamic_memory_allocation allocation>-free hash tables__.
+                .
+                Though lookups also perform reasonably well for Haskell applications, it hasn't been benchmarked thorougly with respect to other data structures.
+                .
+                This implementation was adapted from <http://stevehanov.ca/blog/index.php?id=119 Steve Hanov's Blog>.
+                .
+                = Usage
+                The library is written generically to hash both strings and raw integers. Integers should be wrapped in the @Atom@ newtype:
+                .
+                > import Data.PerfectHash.Construction (createMinimalPerfectHash)
+                >
+                > tuples = [
+                >    (Atom 1000, 1)
+                >  , (Atom 5555, 2)
+                >  , (Atom 9876, 3)
+                >  ]
+                >
+                > lookup_table = createMinimalPerfectHash tuples
+                .
+                Generation of C code based on the arrays in @lookup_table@ is left as an exercise to the reader. Algorithm documentation in the "Data.PerfectHash.Hashing" and "Data.PerfectHash.Lookup" modules will be helpful.
+                .
+                See the @hash-perfectly-strings-demo@ and @hash-perfectly-ints-demo@, as well as the test suite, for working examples.
+                .
+                > $ stack build
+                > $ stack exec hash-perfectly-strings-demo
+                .
+                = Caveats
+                Only integer keys of at most __32-bits__ have been demonstrated to work properly.  Since the hash function masks to 32 bits, colliding 64-bit integers can hang the lookup table construction. 
+category:       Data Structures, Embedded
+author:         Karl Ostmo
+maintainer:     kostmo@gmail.com
+license:        Apache-2.0
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+
+library
+  hs-source-dirs:
+      src
+  ghc-options: -fwarn-tabs -W
+  build-depends:
+      base >= 4.5 && <= 4.10
+    , unordered-containers
+    , containers
+    , data-ordlist
+    , directory
+    , filepath
+    , hashable
+    , vector
+  exposed-modules:
+      Data.PerfectHash.Construction
+      Data.PerfectHash.Hashing
+      Data.PerfectHash.Lookup
+  default-language: Haskell2010
+
+executable hash-perfectly-ints-demo
+  main-is: IntsDemo.hs
+  hs-source-dirs:
+      demo
+      test
+  ghc-options: -fwarn-tabs -W
+  build-depends:
+      base >= 4.5 && <= 4.10
+    , unordered-containers
+    , perfect-hash-generator
+    , random
+    , optparse-applicative
+    , vector
+    , hashable
+    , containers
+  other-modules:
+      StringsDemo
+      Exercise
+      Test
+  default-language: Haskell2010
+
+executable hash-perfectly-strings-demo
+  main-is: StringsDemo.hs
+  hs-source-dirs:
+      demo
+      test
+  ghc-options: -fwarn-tabs -W
+  build-depends:
+      base >= 4.5 && <= 4.10
+    , unordered-containers
+    , perfect-hash-generator
+    , random
+    , optparse-applicative
+    , vector
+    , hashable
+  other-modules:
+      IntsDemo
+      Exercise
+      Test
+  default-language: Haskell2010
+
+test-suite regression-tests
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  hs-source-dirs:
+      test
+  ghc-options: -fwarn-tabs -W
+  build-depends:
+      base >= 4.5 && <= 4.10
+    , unordered-containers
+    , perfect-hash-generator
+    , optparse-applicative
+    , test-framework
+    , HUnit
+    , test-framework-hunit
+    , hashable
+    , vector
+  other-modules:
+      Exercise
+  default-language: Haskell2010
