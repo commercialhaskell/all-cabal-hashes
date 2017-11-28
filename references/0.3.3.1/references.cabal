@@ -1,0 +1,123 @@
+name:                references
+version:             0.3.3.1
+synopsis:            Selectors for reading and updating data.
+
+description:         References are data accessors that can read, write or update the accessed infromation through their context. They are first-class values, can be passed in functions, transformed, combined. References generalize lenses, folds and traversals for haskell (see: < https://hackage.haskell.org/package/lens>).
+		     .
+             References are more general than field selectors in traditional languages.
+             .
+              * References are first-class values. If there is a struct in C, for example, with an `int` field `fl`, then fl can only be used as part of an expression. One can not generalize a function to take a field selector and transform the selected data or use it in other ways.
+             .
+              * They can have different meanings, while field accessors can only represent data-level containment. They can express uncertain containment (like field selectors of C unions), different viewpoints of the same data, and other concepts.
+             .              
+		     There are two things that references can do but the previously mentioned access methods don't.
+		     .
+		      * References can cooperate with monads, for example IO. This opens many new applications.
+             .
+		      * References can be added using the @&+&@ operator, to create new lenses more easily.
+		     .
+		     Basic idea taken from the currently not maintained package <https://hackage.haskell.org/package/yall>. 
+		     .
+		     An example use of the references (a logger application that spawns new threads to update a global log):
+		     .
+		     > logger =
+		     >   (forever $ do
+		     >      log <- logChan ^? chan&logRecord    -- Extract the log record from the received log message
+		     >      thrId <- forkIO (do time <- getTime
+		     >                          ioref&lastLogTime != time $ logDB     -- Update the last logging time mutable log database
+		     >                          let logMsg = senderThread .- show     -- Transform the thread id to a string and
+		     >                                         $ loggingTime .= time  -- update the time
+		     >                                         $ log                  -- inside the log message
+		     >                          ioref&debugInfos !~ addLogEntry log $ logDB  -- update the table of log entries
+		     >                          mvar !- (+1) $ count )
+		     >      mvar !- (thrId:) $ updaters                               -- Record the spawned thread
+		     >     ) `catch` stopUpdaters updaters
+		     >   where stopUpdaters updaters ThreadKilled =    
+		     >           mvar&traverse !| killThread $ updaters               -- Kill all spawned threads before stopping
+		     .
+		     There are a bunch of predefined references for datatypes included in standard libraries.
+		     .
+		     New references can be created in several ways:
+		     .
+		      * From getter, setter and updater, using the @reference@ function.
+		     .
+              * From getter and setter, using one of the simplified functions (@lens@, @simplePartial@, @partial@, ...).
+		     .
+		      * Using the `Data.Traversal` instance on a datatype to generate a traversal of each element.
+		     .
+		      * Using lenses from `Control.Lens` package. There are a lot of packages defining lenses, folds and traversals
+		        for various data structures, so it is very useful that all of them can simply be converted into a reference.
+		     .
+		      * Generating references for newly defined datatypes using the `makeReferences` Template Haskell function.
+		     .
+
+homepage:            https://github.com/lazac/references
+license:             BSD3
+license-file:        LICENSE
+author:              Boldizsar Nemeth
+maintainer:          nboldi@elte.hu
+copyright:           Boldizsar Nemeth, 2014
+category:            Control
+build-type:          Simple
+cabal-version:       >=1.8
+
+extra-source-files:
+  README.md
+  CHANGELOG.md
+  Control/Reference/Examples/Examples.hs
+  Control/Reference/Examples/Main.hs
+
+test-suite lens-creation
+  type:           exitcode-stdio-1.0
+  main-is:        Control/Reference/Examples/Main.hs
+  build-depends:  base
+                , text
+                , array
+                , mtl
+                , transformers
+                , containers
+                , either
+                , template-haskell
+                , instance-control
+                , directory
+                , filepath
+                , HUnit
+                , lens
+                , uniplate
+                , either
+                , instance-control
+  
+source-repository head
+  type:       git
+  location:   git://github.com/lazac/references.git
+                     
+library
+  ghc-options: -Wall
+  exposed-modules:     Control.Reference
+                     , Control.Reference.Representation
+                     , Control.Reference.Types
+                     , Control.Reference.Combinators
+                     , Control.Reference.Operators
+                     , Control.Reference.Generators
+                     , Control.Reference.Predefined
+                     , Control.Reference.Predefined.Containers
+                     , Control.Reference.Predefined.Containers.Tree
+                     , Control.Reference.TupleInstances
+                     , Control.Reference.InternalInterface
+                     , Control.Reference.TH.Records
+                     , Control.Reference.TH.Tuple
+                     , Control.Reference.Examples.TH
+  build-depends:       base                 >= 4.9 && < 5 
+                     , uniplate             >= 1.6 && < 2
+                     , text                 >= 1.1 && < 2
+                     , array                >= 0.5 && < 1
+                     , mtl                  >= 2.2 && < 3
+                     , transformers         >= 0.4 && < 1
+                     , containers           >= 0.5 && < 1
+                     , either               >= 4.3 && < 6
+                     , template-haskell     >= 2.8 && < 3
+                     , instance-control     >= 0.1 && < 1
+                     , directory            >= 1.2 && < 2
+                     , filepath             >= 1.3 && < 2
+                     
+                  
