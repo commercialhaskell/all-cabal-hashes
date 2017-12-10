@@ -1,0 +1,91 @@
+Name:                atomic-primops
+Version:             0.8.1.1
+License:             BSD3
+License-file:        LICENSE
+Author:              Ryan Newton
+Maintainer:          rrnewton@gmail.com
+Category:            Data
+-- Portability:         non-portabile (x86_64)
+Build-type:          Simple
+Cabal-version:       >=1.18
+HomePage: https://github.com/rrnewton/haskell-lockfree/wiki
+Bug-Reports: https://github.com/rrnewton/haskell-lockfree/issues
+
+Synopsis: A safe approach to CAS and other atomic ops in Haskell.
+
+Description:
+
+  After GHC 7.4 a new `casMutVar#` primop became available, but it's
+  difficult to use safely, because pointer equality is a highly
+  unstable property in Haskell.  This library provides a safer method
+  based on the concept of "Tickets".
+ .
+  Also, this library uses the "foreign primop" capability of GHC to
+  add access to other variants that may be of
+  interest, specifically, compare and swap inside an array.
+ .
+  Note that as of GHC 7.8, the relevant primops have been included in GHC itself.
+  This library is engineered to work pre- and post-GHC-7.8, while exposing the
+  same interface.
+
+Extra-Source-Files:  CHANGELOG.md, DEVLOG.md,
+                     testing/Test.hs, testing/test-atomic-primops.cabal, testing/ghci-test.hs
+                     testing/Makefile, testing/CommonTesting.hs, testing/Counter.hs, testing/CounterCommon.hs, testing/hello.hs, testing/Fetch.hs
+                     testing/Issue28.hs
+                     testing/TemplateHaskellSplices.hs
+                     testing/Raw781_test.hs
+
+Flag debug
+    Description: Enable extra internal checks.
+    Default: False
+
+Library
+  Default-Language: Haskell2010
+  exposed-modules:   Data.Atomics
+                     Data.Atomics.Internal
+                     Data.Atomics.Counter
+  ghc-options: -O2 -funbox-strict-fields
+  ghc-options: -Wall
+
+  -- casMutVar# had a bug in GHC 7.2, thus we require GHC 7.4 or greater
+  -- (base 4.5 or greater). We also need the "Any" kind.
+  build-depends:     base >= 4.6.0.0 && < 4.11, ghc-prim, primitive
+
+  -- TODO: Try to push support back to 7.0, but make it default to an implementation
+  -- other than Unboxed.
+
+  -- Ah, but if we don't USE casMutVar# in this package we are ok:
+  -- build-depends:     base >= 4.3, ghc-prim, primitive
+
+  if impl(ghc < 7.7) {
+     Include-Dirs:     cbits
+     C-Sources:        cbits/primops.cmm
+     -- Duplicate RTS functionality for GHC 7.6:
+     C-Sources:        cbits/RtsDup.c
+  } else {
+     if os(windows) {
+        Include-Dirs:     cbits
+        C-Sources:        cbits/RtsDup.c
+     }
+  }
+  CC-Options:       -Wall
+
+  -- if( cabal-version < 1.17 ) {
+  --   ghc-prof-options: ERROR_DO_NOT_BUILD_THIS_WITH_PROFILING_YET__SEE_CABAL_ISSUE_1284
+  -- }
+
+  if flag(debug)
+    cpp-options: -DDEBUG_ATOMICS
+
+
+-- -- [2013.04.08] This isn't working presently:
+-- -- I'm having problems with building it along with the library; see DEVLOG.
+-- -- Switching to a separate package in ./testing/
+-- Test-Suite test-atomic-primops
+--     type:       exitcode-stdio-1.0
+--     ...
+
+Source-Repository head
+    Type:         git
+    Location:     https://github.com/rrnewton/haskell-lockfree/
+    Subdir:       atomic-primops
