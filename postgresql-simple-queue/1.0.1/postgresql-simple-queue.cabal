@@ -1,0 +1,107 @@
+-- This file has been generated from package.yaml by hpack version 0.20.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 54ecbff1eaa2b7aadf2870516b4db0aeb56c9671f79120584006de5903dbff75
+
+name:           postgresql-simple-queue
+version:        1.0.1
+synopsis:       A PostgreSQL backed queue
+description:    This module utilize PostgreSQL to implement a durable queue for efficently processing arbitrary payloads which can be represented as JSON.
+                .
+                Typically a producer would enqueue a new payload as part of larger database
+                transaction
+                .
+                >  createAccount userRecord = do
+                >     'runDBTSerializable' $ do
+                >        createUserDB userRecord
+                >        'enqueueDB' "queue_schema" $ makeVerificationEmail userRecord
+                .
+                In another thread or process, the consumer would drain the queue.
+                .
+                >   forever $ do
+                >     -- Attempt get a payload or block until one is available
+                >     payload <- lock "queue" conn
+                >
+                >     -- Perform application specifc parsing of the payload value
+                >     case fromJSON $ pValue payload of
+                >       Success x -> sendEmail x -- Perform application specific processing
+                >       Error err -> logErr err
+                >
+                >     -- Remove the payload from future processing
+                >     dequeue "queue" conn $ pId payload
+                >
+                > To support multiple queues in the same database, the API expects a table name string
+                > to determine which queue tables to use.
+category:       Web
+homepage:       https://github.com/jfischoff/postgresql-queue#readme
+bug-reports:    https://github.com/jfischoff/postgresql-queue/issues
+author:         Jonathan Fischoff
+maintainer:     jonathangfischoff@gmail.com
+copyright:      2017 Jonathan Fischoff
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/jfischoff/postgresql-queue
+
+library
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wno-unused-do-bind
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , exceptions
+    , monad-control
+    , pg-transact
+    , postgresql-simple
+    , random
+    , stm
+    , text
+    , time
+    , transformers
+  exposed-modules:
+      Database.PostgreSQL.Simple.Queue
+      Database.PostgreSQL.Simple.Queue.Migrate
+  other-modules:
+      Paths_postgresql_simple_queue
+  default-language: Haskell2010
+
+test-suite unit-tests
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wno-unused-do-bind -O2 -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , async
+    , base >=4.7 && <5
+    , bytestring
+    , exceptions
+    , hspec
+    , hspec-discover
+    , hspec-expectations-lifted
+    , hspec-pg-transact
+    , monad-control
+    , pg-transact
+    , postgresql-simple
+    , postgresql-simple-queue
+    , random
+    , split
+    , stm
+    , text
+    , time
+    , transformers
+  other-modules:
+      Database.PostgreSQL.Simple.QueueSpec
+      Paths_postgresql_simple_queue
+  default-language: Haskell2010
