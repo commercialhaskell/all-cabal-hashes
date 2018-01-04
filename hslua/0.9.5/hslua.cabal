@@ -1,0 +1,220 @@
+name:                   hslua
+version:                0.9.5
+stability:              beta
+cabal-version:          >= 1.8
+license:                MIT
+build-type:             Simple
+license-File:           COPYRIGHT
+copyright:              © 2007–2012 Gracjan Polak
+                        © 2012–2016 Ömer Sinan Ağacan
+                        © 2016–2017 Albert Krewinkel
+author:                 Gracjan Polak, Ömer Sinan Ağacan
+maintainer:             albert+hslua@zeitkraut.de
+synopsis:               A Lua language interpreter embedding in Haskell
+description:            The Foreign.Lua module is a wrapper of Lua language
+                        interpreter as described on
+                        <https://www.lua.org/ lua.org>.
+                        .
+                        This package contains a full Lua interpreter version
+                        5.3.4. If you want to link it with a system-wide Lua
+                        installation, use the @system-lua@ flag.
+                        .
+                        <https://github.com/hslua/hslua-examples Example programs>
+                        are available in a separate repository.
+category:               Foreign
+extra-source-files:     lua-5.3.4/*.h
+                        safer-api/safer-api.h
+                        README.md
+                        CHANGELOG.md
+                        COPYRIGHT
+                        test/lua/*.lua
+
+source-repository head
+  type:                 git
+  location:             https://github.com/hslua/hslua.git
+
+flag system-lua
+  description:          Use the system-wide Lua instead of the bundled copy.
+  default:              False
+
+flag apicheck
+  description:          Compile Lua with -DLUA_USE_APICHECK.
+  default:              False
+
+flag lua_32bits
+  description:          Compile Lua with -DLUA_32BITS
+  default:              False
+
+flag allow-unsafe-gc
+  description:          Allow optimizations which make Lua's garbage collection
+                        potentially unsafe; haskell finalizers must be handled
+                        with extreme care.
+  default:              True
+
+flag export-dynamic
+  description:          Add all symbols to dynamic symbol table; disabling this
+                        will make it possible to create fully static binaries,
+                        but renders loading of dynamic C libraries impossible.
+  default:              True
+
+flag luajit
+  description:          Link with LuaJIT.  This implies flag system-lua as well.
+  default:              False
+
+flag lua501
+  description:          Build against lua 5.1.
+  default:              False
+
+flag lua502
+  description:          Build against lua 5.2.
+  default:              False
+
+flag use-pkgconfig
+  description:          Build using pkg-config to discover library and include paths. This is only used with system-lua and luajit.
+  default:              False
+
+library
+  build-depends:        base       >= 4.7    && < 5
+                      , bytestring >= 0.10.2 && < 0.11
+                      , containers >= 0.5    && < 0.6
+                      , exceptions >= 0.8    && < 0.9
+                      , fail       >= 4.9    && < 5
+                      , mtl        >= 2.2    && < 2.3
+                      , text
+  exposed-modules:      Foreign.Lua
+                      , Foreign.Lua.Api
+                      , Foreign.Lua.Api.Constants
+                      , Foreign.Lua.Api.RawBindings
+                      , Foreign.Lua.Api.Types
+                      , Foreign.Lua.FunctionCalling
+                      , Foreign.Lua.Types
+                      , Foreign.Lua.Types.Error
+                      , Foreign.Lua.Types.FromLuaStack
+                      , Foreign.Lua.Types.Lua
+                      , Foreign.Lua.Types.ToLuaStack
+                      , Foreign.Lua.Util
+  hs-source-dirs:       src
+  if impl(ghc < 7.10)
+     hs-source-dirs:    prelude
+     other-modules:     Prelude
+  ghc-options:          -Wall
+  extensions:           CPP
+  if flag(system-lua) || flag(luajit) || flag(lua501) || flag(lua502)
+    c-sources:          safer-api/safer-api.c
+    include-dirs:       safer-api
+    if flag(luajit)
+      if flag(use-pkgconfig)
+        pkgconfig-depends: luajit
+      else
+        Extra-libraries:  luajit-5.1
+    else
+      if flag(use-pkgconfig)
+        if flag(lua501)
+          pkgconfig-depends: lua5.1
+        else
+          if flag(lua502)
+            pkgconfig-depends: lua5.2
+          else
+            pkgconfig-depends: lua5.3
+      else
+        Extra-libraries:  lua
+    if !flag(use-pkgconfig)
+      includes:         lua.h
+  else
+    c-sources:          lua-5.3.4/lapi.c
+                      , lua-5.3.4/lcode.c
+                      , lua-5.3.4/lctype.c
+                      , lua-5.3.4/ldebug.c
+                      , lua-5.3.4/ldo.c
+                      , lua-5.3.4/ldump.c
+                      , lua-5.3.4/lfunc.c
+                      , lua-5.3.4/lgc.c
+                      , lua-5.3.4/llex.c
+                      , lua-5.3.4/lmem.c
+                      , lua-5.3.4/lobject.c
+                      , lua-5.3.4/lopcodes.c
+                      , lua-5.3.4/lparser.c
+                      , lua-5.3.4/lstate.c
+                      , lua-5.3.4/lstring.c
+                      , lua-5.3.4/ltable.c
+                      , lua-5.3.4/ltm.c
+                      , lua-5.3.4/lundump.c
+                      , lua-5.3.4/lvm.c
+                      , lua-5.3.4/lzio.c
+
+                      , lua-5.3.4/lauxlib.c
+                      , lua-5.3.4/lbaselib.c
+                      , lua-5.3.4/lbitlib.c
+                      , lua-5.3.4/lcorolib.c
+                      , lua-5.3.4/ldblib.c
+                      , lua-5.3.4/liolib.c
+                      , lua-5.3.4/lmathlib.c
+                      , lua-5.3.4/lstrlib.c
+                      , lua-5.3.4/loslib.c
+                      , lua-5.3.4/ltablib.c
+                      , lua-5.3.4/lutf8lib.c
+                      , lua-5.3.4/loadlib.c
+                      , lua-5.3.4/linit.c
+
+                      , safer-api/safer-api.c
+    include-dirs:       lua-5.3.4
+                      , safer-api
+
+  if flag(lua501) || flag(luajit)
+    cpp-options:        -DLUA_VERSION_NUMBER=501
+  else
+    if flag(lua502)
+      cpp-options:      -DLUA_VERSION_NUMBER=502
+    else
+      cpp-options:      -DLUA_VERSION_NUMBER=503
+
+  if os(linux)
+    cc-options:         "-DLUA_USE_LINUX"
+    if flag(export-dynamic)
+      ld-options:         "-Wl,-E"
+
+  if os(darwin)
+    cc-options:         "-DLUA_USE_MACOSX"
+
+  if os(freebsd)
+    cc-options:         "-DLUA_USE_POSIX"
+    if flag(export-dynamic)
+      ld-options:         "-Wl,-E"
+
+  if flag(lua_32bits)
+    cc-options:         "-DLUA_32BITS"
+
+  if flag(allow-unsafe-gc)
+    cc-options:         "-DALLOW_UNSAFE_GC"
+
+  if flag(apicheck)
+    cc-options:         "-DLUA_USE_APICHECK"
+
+test-suite test-hslua
+  type:                 exitcode-stdio-1.0
+  main-is:              test-hslua.hs
+  hs-source-dirs:       test
+  ghc-options:          -Wall -threaded
+  other-modules:        Foreign.LuaTest
+                      , Foreign.Lua.ApiTest
+                      , Foreign.Lua.FunctionCallingTest
+                      , Foreign.Lua.TypesTest
+                      , Foreign.Lua.Types.FromLuaStackTest
+                      , Foreign.Lua.Types.ToLuaStackTest
+                      , Foreign.Lua.UtilTest
+                      , Test.HsLua.Arbitrary
+                      , Test.HsLua.Util
+  build-depends:        base
+                      , QuickCheck >= 2.7
+                      , bytestring
+                      , containers
+                      , hslua
+                      , quickcheck-instances
+                      , tasty
+                      , tasty-expected-failure >= 0.11 && < 0.12
+                      , tasty-hunit
+                      , tasty-quickcheck
+                      , text
+  if impl(ghc < 7.10)
+     hs-source-dirs:    prelude
+     other-modules:     Prelude
