@@ -1,0 +1,117 @@
+name:                ats-format
+version:             0.1.0.24
+synopsis:            A source-code formatter for ATS
+description:         An opinionated source-code formatter for [ATS](http://www.ats-lang.org/).
+homepage:            https://hub.darcs.net/vmchale/ats-format#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Vanessa McHale
+maintainer:          vamchale@gmail.com
+copyright:           Copyright: (c) 2017 Vanessa McHale
+category:            Parser, Language, ATS, Development
+build-type:          Custom
+extra-doc-files:     README.md
+data-files:          .travis.yml
+                   , appveyor.yml
+                   , Justfile
+                   , test/data/*.dats
+                   , test/data/*.sats
+                   , test/data/*.out
+extra-source-files:  stack.yaml
+                   , cabal.project.local
+                   , .atsfmt.toml
+                   , man/atsfmt.1
+cabal-version:       >=1.18
+
+custom-setup
+  setup-depends:   base
+                 , Cabal
+                 , directory
+                 , lens
+                 , process >= 1.4.0.0
+
+Flag development {
+  Description: Enable `-Werror`
+  manual: True
+  default: False
+}
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Language.ATS
+  other-modules:       Language.ATS.Types
+                     , Language.ATS.Lexer
+                     , Language.ATS.Parser
+                     , Language.ATS.PrettyPrint
+                     , Language.ATS.Exec
+                     , Paths_ats_format
+  build-depends:       base >= 4.8 && < 5
+                     , array
+                     , lens
+                     , deepseq
+                     , ansi-wl-pprint >= 0.6.8
+                     , recursion-schemes
+                     , optparse-applicative
+                     , ansi-terminal
+                     , composition-prelude >= 0.1.1.2
+                     , htoml-megaparsec
+                     , megaparsec
+                     , unordered-containers
+                     , text
+                     , directory
+                     , process
+                     , file-embed
+  build-tools:         happy
+                     , alex
+  default-language:    Haskell2010
+  if flag(development)
+    ghc-options:       -Werror
+  if impl(ghc >= 8.0)
+    ghc-options:       -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat
+  ghc-options:         -Wall
+
+executable atsfmt
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  build-depends:       base
+                     , ats-format
+  default-language:    Haskell2010
+  if flag(development)
+    ghc-options:       -Werror
+  if impl(ghc >= 8.0)
+    ghc-options:       -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat
+  ghc-options:         -Wall 
+
+test-suite ats-format-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , ats-format
+                     , hspec
+                     , hspec-dirstream
+                     , system-filepath
+  if flag(development)
+    ghc-options:       -Werror
+  if impl(ghc >= 8.0)
+    ghc-options:       -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall 
+  default-language:    Haskell2010
+
+benchmark ats-format-bench
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      bench
+  main-is:             Bench.hs
+  build-depends:       base
+                     , ats-format
+                     , criterion
+  ghc-options:         -Wall 
+  if flag(development)
+    ghc-options:       -Werror
+  if impl(ghc >= 8.0)
+    ghc-options:       -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/vmchale/ats-format
