@@ -1,0 +1,149 @@
+name:               stylish-cabal
+version:            0.2.0.0
+synopsis:           Format Cabal files
+description:        A tool for nicely formatting your Cabal file.
+license:            BSD3
+license-file:       LICENSE
+author:             Jude Taylor
+maintainer:         me@jude.xyz
+tested-with:        GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2,
+                    GHC == 8.4.0.20180204
+category:           Language
+build-type:         Simple
+extra-source-files: ChangeLog.md
+                    tests/example.cabal
+cabal-version:      >= 1.10
+
+source-repository head
+  type:     git
+  location: https://github.com/pikajude/stylish-cabal.git
+
+flag werror
+  default:     False
+  manual:      True
+  description: build with -Werror
+
+flag test-hackage
+  default:     False
+  manual:      True
+  description: Should I test all Hackage cabal files?
+
+flag test-strictness
+  default:     False
+  manual:      True
+  description:
+    Run the strictness testsuite. This requires the StrictCheck package which is not yet
+    on Hackage, and thus is disabled by default.
+
+library
+  exposed-modules:    StylishCabal
+  other-modules:      Parse
+                      Render
+                      Render.Lib
+                      Transform
+                      Types.Block
+                      Types.Field
+  hs-source-dirs:     src
+  build-depends:      base == 4.*, Cabal == 2.0.*, ansi-wl-pprint, deepseq, split
+  default-language:   Haskell2010
+  default-extensions: NoMonomorphismRestriction
+  ghc-options:        -Wall -fno-warn-missing-signatures
+
+  if flag(werror)
+    ghc-options: -Werror
+
+executable stylish-cabal
+  main-is:          Main.hs
+  build-depends:    base, ansi-wl-pprint, optparse-applicative, stylish-cabal
+  default-language: Haskell2010
+  ghc-options:      -Wall
+
+  if flag(werror)
+    ghc-options: -Werror
+
+test-suite hlint
+  type:             exitcode-stdio-1.0
+  main-is:          hlint.hs
+  hs-source-dirs:   tests
+  build-depends:    base, hlint
+  default-language: Haskell2010
+  ghc-options:      -Wall
+
+  if flag(werror)
+    ghc-options: -Werror
+
+test-suite strictness
+  type:               exitcode-stdio-1.0
+  main-is:            Main.hs
+  other-modules:      Instances
+                      Pretty
+  hs-source-dirs:     tests/strictness
+  build-depends:      base
+                    , Cabal
+                    , StrictCheck
+                    , ansi-wl-pprint
+                    , bytestring
+                    , deepseq
+                    , generics-sop
+                    , hspec
+                    , hspec-expectations-pretty-diff
+                    , stylish-cabal
+  default-language:   Haskell2010
+  default-extensions: CPP
+  ghc-options:        -freduction-depth=0
+
+  if flag(werror)
+    ghc-options: -Werror
+
+  if !(flag(test-strictness) && impl(ghc >= 8.2))
+    buildable: False
+
+test-suite roundtrip
+  type:               exitcode-stdio-1.0
+  main-is:            Main.hs
+  other-modules:      SortedDesc
+                      Utils
+  hs-source-dirs:     tests/roundtrip
+  build-depends:      base
+                    , Cabal
+                    , ansi-wl-pprint
+                    , containers
+                    , hspec
+                    , hspec-core
+                    , hspec-expectations-pretty-diff
+                    , stylish-cabal
+  default-language:   Haskell2010
+  default-extensions: CPP
+  ghc-options:        -Wall -fno-warn-missing-signatures
+
+  if flag(werror)
+    ghc-options: -Werror
+
+test-suite roundtrip-hackage
+  type:             exitcode-stdio-1.0
+  main-is:          Hackage.hs
+  other-modules:    SortedDesc
+                    Utils
+  hs-source-dirs:   tests/roundtrip
+  build-depends:    base
+                  , Cabal
+                  , aeson
+                  , ansi-wl-pprint
+                  , containers
+                  , hspec
+                  , hspec-core
+                  , hspec-expectations-pretty-diff
+                  , lens
+                  , mwc-random
+                  , stylish-cabal
+                  , utf8-string
+                  , vector
+                  , wreq
+  default-language: Haskell2010
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N -Wall -fno-warn-missing-signatures
+
+  if flag(werror)
+    ghc-options: -Werror
+
+  if !flag(test-hackage)
+    buildable: False
