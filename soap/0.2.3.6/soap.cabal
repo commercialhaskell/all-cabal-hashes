@@ -1,0 +1,95 @@
+name:                soap
+version:             0.2.3.6
+synopsis:            SOAP client tools
+description:
+  Tools to build SOAP clients using xml-conduit.
+  .
+  A mildly-complicated example:
+  .
+  > import Network.SOAP
+  > import Network.SOAP.Transport.HTTP
+  >
+  > import Text.XML.Writer
+  > import Text.XML.Stream.Parse as Parse
+  > import           Data.Text (Text)
+  > import qualified Data.Text as T
+  >
+  > main :: IO ()
+  > main = do
+  >     -- Initial one-time preparations.
+  >     transport <- initTransport "http://example.com/soap/endpoint" id (iconv "cp-1251")
+  >
+  >     -- Making queries
+  >     activeStaff <- listStaff transport True
+  >     print activeStaff
+  >
+  > data Person = Person Text Int deriving Show
+  >
+  > listStaff :: Transport -> Bool -> IO [Person]
+  > listStaff t active = invokeWS t "urn:dummy:listStaff" () body parser
+  >     where
+  >         body = element "request" $ element "listStaff" $ do
+  >                    element "active" active
+  >                    element "order" $ T.pack "age"
+  >                    element "limit" (10 :: Int)
+  >
+  >         parser = StreamParser $ force "no people" $ tagNoAttr "people" $ Parse.many parsePerson
+  >
+  >         parsePerson = tagName "person" (requireAttr "age") $ \age -> do
+  >                           name <- Parse.content
+  >                           return $ Person name (read . T.unpack $ age)
+  .
+  Notice: to invoke HTTPS services you need to initialize a transport from soap-tls or soap-openssl.
+  .
+  Full examples available at source repo: <https://bitbucket.org/dpwiz/haskell-soap/src/HEAD/soap/examples/>
+
+homepage:            https://bitbucket.org/dpwiz/haskell-soap
+license:             MIT
+license-file:        LICENSE
+author:              Alexander Bondarenko
+maintainer:          aenor.realm@gmail.com
+copyright:           (c) 2013-2017 Alexander Bondarenko
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.8
+extra-source-files:
+  changelog
+
+library
+  hs-source-dirs:    src/
+  ghc-options: -Wall
+  exposed-modules:
+    Network.SOAP
+    Network.SOAP.Transport
+    Network.SOAP.Exception
+    Network.SOAP.Transport.HTTP
+    Network.SOAP.Transport.Mock
+    Network.SOAP.Parsing.Cursor
+    Network.SOAP.Parsing.Stream
+  build-depends:
+      base                 >= 4.8 && <5.0
+    , bytestring           >= 0.10.6 && < 0.11
+    , conduit              >= 1.2.6.6 && < 1.4
+    , configurator         >= 0.3 && < 1.0
+    , data-default         >= 0.5.3 && < 1.0
+    , exceptions           >= 0.8.2.1 && < 0.11
+    , http-client          >= 0.2 && < 1.0
+    , http-types           >= 0.9 && < 1.0
+    , iconv                >= 0.4.1.3 && < 0.5
+    , mtl                  >= 2.2.1 && < 3.0
+    , resourcet            >= 1.1.7.4 && < 1.3
+    , text                 >= 1.2.2.1 && < 1.3
+    , unordered-containers >= 0.2.5.1 && < 0.3
+    , xml-conduit          >= 1.3.5 && < 2.0
+    , xml-conduit-writer   >= 0.1.1.2 && < 0.2
+    , xml-types            >= 0.3.6 && < 0.4
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test/
+  build-depends:
+    base, soap, hspec, HUnit,
+    xml-conduit, xml-conduit-writer,
+    text, bytestring,
+    unordered-containers
