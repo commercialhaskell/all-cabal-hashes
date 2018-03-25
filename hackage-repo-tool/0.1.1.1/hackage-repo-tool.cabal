@@ -1,0 +1,85 @@
+cabal-version:       1.12
+name:                hackage-repo-tool
+version:             0.1.1.1
+
+synopsis:            Utility to manage secure file-based package repositories
+description:         This utility can be used to manage secure file-based package
+                     repositories (creating [TUF](https://theupdateframework.github.io/)
+                     metadata as well as a Hackage index tarball) which can be used by
+                     clients such as [cabal-install](http://hackage.haskell.org/package/cabal-install).
+                     Currently it also provides various lower level utilities for creating
+                     and signing TUF files.
+                     .
+                     This is part of the [Hackage Security](https://github.com/haskell/hackage-security#readme)
+                     infrastructure.
+license:             BSD3
+license-file:        LICENSE
+author:              Edsko de Vries
+maintainer:          cabal-devel@haskell.org
+copyright:           Copyright 2015 Well-Typed LLP
+category:            Distribution
+homepage:            https://github.com/haskell/hackage-security
+bug-reports:         https://github.com/haskell/hackage-security/issues
+build-type:          Simple
+
+extra-source-files:
+  ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/haskell/hackage-security.git
+
+flag use-network-uri
+  description: Are we using @network-uri@?
+  manual: False
+
+flag use-old-time
+  description: Are we using @old-time@?
+  manual: False
+
+executable hackage-repo-tool
+  hs-source-dirs:      src
+  main-is:             Main.hs
+  other-modules:       Hackage.Security.RepoTool.Options
+                       Hackage.Security.RepoTool.Layout
+                       Hackage.Security.RepoTool.Layout.Keys
+                       Hackage.Security.RepoTool.Paths
+                       Hackage.Security.RepoTool.Util.IO
+                       Prelude
+
+  build-depends:       base                 >= 4.5  && < 5,
+                       Cabal                >= 1.14 && < 2.4,
+                       bytestring           >= 0.9  && < 0.11,
+                       directory            >= 1.1  && < 1.4,
+                       filepath             >= 1.2  && < 1.5,
+                       optparse-applicative >= 0.11 && < 0.15,
+                       tar                  >= 0.4  && < 0.6,
+                       time                 >= 1.2  && < 1.9,
+                       zlib                 >= 0.5  && < 0.7,
+                       hackage-security     >= 0.5  && < 0.6
+  if !os(windows)
+    build-depends:     unix                 >= 2.5  && < 2.8
+
+  if flag(use-old-time)
+    build-depends: directory < 1.2
+                 , old-time == 1.1.*
+  else
+    build-depends: directory >= 1.2
+
+  -- see comments in hackage-security.cabal
+  if flag(use-network-uri)
+    build-depends: network-uri >= 2.6 && < 2.7,
+                   network     >= 2.6 && < 2.7
+  else
+    build-depends: network     >= 2.5 && < 2.6
+
+  default-language:    Haskell2010
+  default-extensions:  DeriveDataTypeable
+                       FlexibleContexts
+                       FlexibleInstances
+                       NoMonomorphismRestriction
+                       ScopedTypeVariables
+                       StandaloneDeriving
+                       RecordWildCards
+
+  ghc-options:         -Wall
