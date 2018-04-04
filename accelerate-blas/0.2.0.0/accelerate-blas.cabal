@@ -1,0 +1,252 @@
+name:                   accelerate-blas
+version:                0.2.0.0
+synopsis:               Numeric Linear Algebra in Accelerate
+description:
+  Linear systems, matrix decompositions, and other numerical computations for
+  use in Accelerate. Most operations are implemented efficiently via FFI calls
+  to BLAS and LAPACK
+  .
+  For further information refer to the main /Accelerate/ package:
+  <http://hackage.haskell.org/package/accelerate>
+
+license:                BSD3
+license-file:           LICENSE
+author:                 Trevor L. McDonell
+maintainer:             tmcdonell@cse.unsw.edu.au
+category:               Math
+build-type:             Simple
+extra-source-files:     CHANGELOG.md
+cabal-version:          >=1.10
+
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+Flag llvm-cpu
+  Description:          Enable the LLVM backend for multicore CPUs
+  Default:              True
+
+Flag llvm-ptx
+  Description:          Enable the LLVM PTX backend for NVIDIA GPUs
+  Default:              True
+
+library
+  default-language:     Haskell2010
+  exposed-modules:
+    Data.Array.Accelerate.Numeric.Sum
+    Data.Array.Accelerate.Numeric.LinearAlgebra
+    Data.Array.Accelerate.Numeric.LinearAlgebra.BLAS.Level1
+    Data.Array.Accelerate.Numeric.LinearAlgebra.BLAS.Level2
+    Data.Array.Accelerate.Numeric.LinearAlgebra.BLAS.Level3
+
+  other-modules:
+    Data.Array.Accelerate.Numeric.LinearAlgebra.Type
+    Data.Array.Accelerate.Numeric.Sum.Arithmetic
+    Data.Array.Accelerate.Numeric.Sum.LLVM.Native
+    Data.Array.Accelerate.Numeric.Sum.LLVM.PTX
+
+  build-depends:
+        base                            >= 4.7 && < 4.12
+      , accelerate                      >= 1.0 && < 1.3
+
+  hs-source-dirs:
+      src
+
+  ghc-options:
+      -O2
+      -Wall
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:
+        accelerate-llvm                 >= 1.1 && < 1.3
+      , accelerate-llvm-native          >= 1.1 && < 1.3
+      , blas-hs                         >= 0.1
+      , llvm-hs-pure                    >= 4.1 && < 6.1
+
+    other-modules:
+      Data.Array.Accelerate.Numeric.LinearAlgebra.LLVM.Native.Base
+      Data.Array.Accelerate.Numeric.LinearAlgebra.LLVM.Native.Level2
+      Data.Array.Accelerate.Numeric.LinearAlgebra.LLVM.Native.Level3
+      Data.Array.Accelerate.Numeric.Sum.LLVM.Prim
+
+  if flag(llvm-ptx)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:
+        accelerate-llvm                 >= 1.1 && < 1.3
+      , accelerate-llvm-ptx             >= 1.1 && < 1.3
+      , bytestring                      >= 0.9
+      , containers                      >= 0.5
+      , cublas                          >= 0.3
+      , cuda                            >= 0.8
+      , file-embed                      >= 0.0.10
+      , llvm-hs-pure                    >= 4.1 && < 6.1
+      , mtl                             >= 2.2
+
+    other-modules:
+      Data.Array.Accelerate.Numeric.LinearAlgebra.LLVM.PTX.Base
+      Data.Array.Accelerate.Numeric.LinearAlgebra.LLVM.PTX.Context
+      Data.Array.Accelerate.Numeric.LinearAlgebra.LLVM.PTX.Level2
+      Data.Array.Accelerate.Numeric.LinearAlgebra.LLVM.PTX.Level3
+      Data.Array.Accelerate.Numeric.Sum.LLVM.Prim
+
+
+test-suite test-llvm-native
+  type:                 exitcode-stdio-1.0
+  default-language:     Haskell2010
+  hs-source-dirs:       test
+  main-is:              TestNative.hs
+  ghc-options:          -main-is TestNative
+
+  if !flag(llvm-cpu)
+    buildable: False
+
+  build-depends:
+        base                    >= 4.7  && < 4.12
+      , accelerate              >= 1.2
+      , accelerate-blas
+      , accelerate-llvm-native
+      , hedgehog                >= 0.5
+      , tasty                   >= 0.11
+      , tasty-hedgehog          >= 0.1
+
+  ghc-options:
+        -Wall
+        -threaded
+        -rtsopts
+
+  other-modules:
+      Test.BLAS
+      Test.BLAS.Level2
+      Test.BLAS.Level3
+      Test.Util
+
+test-suite test-llvm-ptx
+  type:                 exitcode-stdio-1.0
+  default-language:     Haskell2010
+  hs-source-dirs:       test
+  main-is:              TestPTX.hs
+  ghc-options:          -main-is TestPTX
+
+  if !flag(llvm-ptx)
+    buildable: False
+
+  build-depends:
+        base                    >= 4.7  && < 4.12
+      , accelerate              >= 1.2
+      , accelerate-blas
+      , accelerate-llvm-ptx
+      , hedgehog                >= 0.5
+      , tasty                   >= 0.11
+      , tasty-hedgehog          >= 0.1
+
+  ghc-options:
+        -Wall
+        -threaded
+        -rtsopts
+
+  other-modules:
+      Test.BLAS
+      Test.BLAS.Level2
+      Test.BLAS.Level3
+      Test.Util
+
+
+benchmark bench-hmatrix
+  default-language:     Haskell2010
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       bench
+  main-is:              BenchHMatrix.hs
+  ghc-options:          -main-is BenchHMatrix
+
+  -- don't bother if we aren't building one of the real backends
+  if !flag(llvm-cpu) && !flag(llvm-ptx)
+    buildable: False
+
+  build-depends:
+        base                            >= 4.7 && < 4.12
+      , criterion                       >= 1.0
+      , mwc-random                      >= 0.8
+      , deepseq                         >= 1.0
+      , hmatrix                         >= 0.17
+
+  ghc-options:
+      -O2
+      -Wall
+      -rtsopts
+      -threaded
+      -with-rtsopts=-N
+
+  other-modules:
+      Bench.Util
+      Bench.HMatrix
+
+benchmark bench-llvm-native
+  default-language:     Haskell2010
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       bench
+  main-is:              BenchNative.hs
+  ghc-options:          -main-is BenchNative
+
+  if !flag(llvm-cpu)
+    buildable: False
+
+  build-depends:
+        base                            >= 4.7 && < 4.12
+      , accelerate
+      , accelerate-blas
+      , accelerate-llvm-native
+      , criterion                       >= 1.0
+      , mwc-random                      >= 0.8
+      , mwc-random-accelerate           >= 0.1
+
+  ghc-options:
+      -O2
+      -Wall
+      -rtsopts
+      -threaded
+
+  other-modules:
+      Bench.Util
+      Bench.Accelerate
+
+benchmark bench-llvm-ptx
+  default-language:     Haskell2010
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       bench
+  main-is:              BenchPTX.hs
+  ghc-options:          -main-is BenchPTX
+
+  if !flag(llvm-ptx)
+    buildable: False
+
+  build-depends:
+        base                            >= 4.7 && < 4.12
+      , accelerate
+      , accelerate-blas
+      , accelerate-llvm-ptx
+      , criterion                       >= 1.0
+      , mwc-random                      >= 0.8
+      , mwc-random-accelerate           >= 0.1
+
+  ghc-options:
+      -O2
+      -Wall
+      -rtsopts
+      -threaded
+
+  other-modules:
+      Bench.Util
+      Bench.Accelerate
+
+
+source-repository head
+  type:     git
+  location: https://github.com/tmcdonell/accelerate-blas
+
+source-repository this
+  type:     git
+  tag:      0.2.0.0
+  location: https://github.com/tmcdonell/accelerate-blas
+
+-- vim: nospell
