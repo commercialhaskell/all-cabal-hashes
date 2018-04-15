@@ -1,0 +1,76 @@
+name:                catamorphism
+version:             0.7.0.0
+synopsis:            Exposes a Template Haskell function for generating catamorphisms.
+description:
+  This module exposes a 'makeCata' function which can create catamorphisms for
+  arbitrary Haskell types. Catamorphisms are functions which deconstruct some
+  value by replacing each data constructor with a custom function yielding a
+  new value. See <http://www.haskell.org/haskellwiki/Catamorphisms> for a more
+  in-depth discussion of catamorphisms in Haskell.
+  .
+  The Haskell base package already comes with a couple of standard
+  catamorphisms, such as 'maybe' (for 'Maybe' values). The 'maybe' function
+  could have been generated using 'makeCata' as follows:
+  .
+  > -- Defines 'maybe :: b -> (a -> b) -> Maybe a -> b'
+  > $(makeCata defaultOptions ''Maybe)
+  .
+  However, catamorphisms are especially useful for recursive data structures.
+  Consider the following simple example which defines a basic data type for
+  modelling sums of numbers, supporting variables:
+  .
+  > import Data.Morphism.Cata
+  > import Data.Maybe (fromJust)
+  >
+  > data Expr a = Number a
+  >             | Variable Char
+  >             | Sum (Expr a) (Expr a)
+  >
+  > -- Defines 'expr :: (a -> b) -> (Char -> b) -> (b -> b -> b) -> Expr a -> b'
+  > $(makeCata defaultOptions ''Expr)
+  .
+  The 'makeCata' invocation defines a 'expr' function which works like a fold on
+  'Expr' values; it can be used to implement various useful other functions:
+  .
+  > -- Evaluate an Expr, given some variable bindings
+  > eval :: Num a => [(Char, a)] -> Expr a -> a
+  > eval vars = expr id (fromJust . (`lookup` vars)) (+)
+  >
+  > -- Pretty-prints an Expr
+  > pprint :: Show a => Expr a -> String
+  > pprint = expr show show (\a b -> a ++ " + " ++ b)
+  >
+  > -- Counts the number of variables used in an expr
+  > numVars :: Expr a -> Int
+  > numVars = expr (const 1) (const 0) (+)
+homepage:            https://github.com/frerich/catamorphism
+license:             BSD3
+license-file:        LICENSE
+author:              Frerich Raabe
+maintainer:          frerich.raabe@gmail.com
+bug-reports:         https://github.com/frerich/catamorphism/issues
+copyright:           Copyright (c) 2014, 2015, 2016, 2017, 2018 Frerich Raabe <frerich.raabe@gmail.com>
+category:            Development
+build-type:          Simple
+cabal-version:       >=1.10
+stability:           experimental
+
+source-repository head
+  type:       git
+  location:   https://github.com/frerich/catamorphism
+
+library
+  exposed-modules:     Data.Morphism.Cata
+  build-depends:       base >=4.6 && <4.12, template-haskell >=2.8 && <2.14
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+test-suite spec
+  type:                exitcode-stdio-1.0
+  main-is:             Tests.hs
+  hs-source-dirs:      test
+  ghc-options:         -Wall
+  build-depends:       base, catamorphism, hspec, QuickCheck
+  other-modules:       Data.Morphism.CataSpec
+  default-language:    Haskell2010
