@@ -1,0 +1,101 @@
+Name:               hmatrix-gsl
+Version:            0.19.0.1
+Synopsis:           Numerical computation
+Description:        Purely functional interface to selected numerical computations,
+                    internally implemented using GSL.
+Homepage:           https://github.com/albertoruiz/hmatrix
+license:            GPL-3
+license-file:       LICENSE
+Author:             Alberto Ruiz
+Maintainer:         Alberto Ruiz <aruiz@um.es>
+Stability:          provisional
+Category:           Math
+build-type:         Simple
+cabal-version:      >=1.18
+
+
+extra-source-files: src/Numeric/GSL/gsl-ode.c
+
+flag onlygsl
+    description:    don't link gslcblas
+    default:        False
+
+flag disable-default-paths
+    description:    When enabled, don't add default hardcoded include/link dirs by default. Needed for hermetic builds like in nix.
+    default:        False
+    manual: True
+
+library
+
+    Build-Depends:      base<5, hmatrix>=0.18, array, vector,
+                        process, random
+
+    hs-source-dirs:     src
+    Exposed-modules:    Numeric.GSL.Differentiation,
+                        Numeric.GSL.Integration,
+                        Numeric.GSL.Fourier,
+                        Numeric.GSL.Polynomials,
+                        Numeric.GSL.Minimization,
+                        Numeric.GSL.Root,
+                        Numeric.GSL.Fitting,
+                        Numeric.GSL.ODE,
+                        Numeric.GSL,
+                        Numeric.GSL.LinearAlgebra,
+                        Numeric.GSL.Interpolation,
+                        Numeric.GSL.SimulatedAnnealing,
+                        Graphics.Plot
+    other-modules:      Numeric.GSL.Internal,
+                        Numeric.GSL.Vector,
+                        Numeric.GSL.IO,
+                        Numeric.GSL.Random
+
+
+    C-sources:          src/Numeric/GSL/gsl-aux.c
+
+    cc-options:         -O4 -Wall
+
+    if arch(x86_64)
+        cc-options:     -msse2
+    if arch(i386)
+        cc-options:     -msse2
+
+    ghc-options:  -Wall -fno-warn-missing-signatures
+                        -fno-warn-orphans
+                        -fno-warn-unused-binds
+
+    if os(OSX)
+        if !flag(disable-default-paths)
+            extra-lib-dirs: /opt/local/lib/
+            include-dirs: /opt/local/include/
+            extra-lib-dirs: /usr/local/lib/
+            include-dirs: /usr/local/include/
+        extra-libraries: gsl
+        if arch(i386)
+            cc-options: -arch i386
+        frameworks: Accelerate
+
+    if os(freebsd)
+        if !flag(disable-default-paths)
+            extra-lib-dirs: /usr/local/lib
+            include-dirs: /usr/local/include
+        extra-libraries: gsl
+
+    if os(windows)
+        extra-libraries: gsl-0
+
+    if os(linux)
+        if arch(x86_64)
+            cc-options: -fPIC
+
+    if flag(onlygsl)
+      extra-libraries: gsl
+    else
+      pkgconfig-depends: gsl
+
+    default-language:    Haskell2010
+
+
+source-repository head
+    type:     git
+    location: https://github.com/albertoruiz/hmatrix
+
