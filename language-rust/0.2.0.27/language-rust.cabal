@@ -1,0 +1,196 @@
+name:                language-rust
+version:             0.2.0.27
+
+synopsis:            Parsing and pretty printing of Rust code
+description:         Language Rust is a library for the analysis of Rust code. It includes a
+                     complete, well tested parser and pretty printer. 
+
+homepage:            https://github.com/harpocrates/language-rust
+license:             BSD3
+license-file:        LICENSE
+author:              Alec Theriault
+maintainer:          alec.theriault@gmail.com
+copyright:           (c) 2017-2018 Alec Theriault
+stability:           provisional
+bug-reports:         https://github.com/harpocrates/language-rust/issues
+category:            Language
+build-type:          Simple
+extra-source-files:  ChangeLog.md README.md
+cabal-version:       >=1.10
+
+source-repository head
+  type:              git
+  location:          https://github.com/harpocrates/language-rust.git
+
+flag useByteStrings
+    description:     Use 'ByteString' instead of 'String' as 'InputStream' datatype
+    default:         True
+
+flag enableQuasiquotes
+    description:     Provide the experimental 'Language.Rust.Quote' module
+    default:         True
+
+library
+  hs-source-dirs:      src
+
+  ghc-options:         -Wall
+
+  if impl(ghc >= 8)
+    ghc-options:
+                       -Wincomplete-patterns
+                       -Wincomplete-uni-patterns
+                       -Wmissing-signatures
+
+  build-tools:         alex >=3.1, happy >=1.19.8
+  default-language:    Haskell2010
+
+  exposed-modules:     Language.Rust.Syntax
+                       Language.Rust.Parser
+                       Language.Rust.Parser.ParseMonad
+                       Language.Rust.Parser.Lexer
+                       Language.Rust.Parser.Internal
+                       Language.Rust.Pretty
+                       Language.Rust.Pretty.Internal
+                       Language.Rust.Data.Position
+                       Language.Rust.Data.Ident
+                       Language.Rust.Data.InputStream
+  if flag(enableQuasiquotes)
+    exposed-modules:   Language.Rust.Quote
+ 
+  other-modules:       Language.Rust.Parser.Literals
+                       Language.Rust.Parser.Reversed
+                       Language.Rust.Pretty.Resolve
+                       Language.Rust.Pretty.Literals
+                       Language.Rust.Pretty.Util
+                       Language.Rust.Syntax.AST
+                       Language.Rust.Syntax.Token
+
+  other-extensions:    FlexibleContexts
+                     , FlexibleInstances
+                     , OverloadedStrings
+                     , OverloadedLists
+                     , DeriveFunctor
+                     , DeriveGeneric
+                     , DeriveAnyClass
+                     , DeriveDataTypeable
+                     , TypeFamilies
+                     , TypeOperators
+                     , Rank2Types
+                     , BangPatterns
+                     , CPP
+
+  build-depends:       base                 >=4.8  && <5.0
+                     , prettyprinter        >=1.0  && <2.0
+                     , transformers         >=0.4  && <0.6
+                     , array                >=0.5  && <0.6
+                     , deepseq              >=1.1  && <1.5
+  if impl(ghc < 8)
+    build-depends:     semigroups           >=0.18
+
+  if flag(useByteStrings)
+    cpp-options:       -DUSE_BYTESTRING
+    build-depends:     utf8-string          >=1.0
+                     , bytestring           >=0.10
+
+  if flag(enableQuasiquotes)
+    build-depends:     template-haskell     >=2.10
+
+
+test-suite unit-tests
+  hs-source-dirs:      test/unit-tests
+  ghc-options:         -Wall
+  main-is:             Main.hs
+  other-modules:       LexerTest
+                       ParserTest
+                       PrettyTest
+                       CompleteTest
+
+  other-extensions:    FlexibleContexts
+                     , OverloadedStrings
+                     , OverloadedLists
+                     , ScopedTypeVariables
+                     , UnicodeSyntax
+
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       HUnit                >=1.3.0.0
+                     , test-framework       >=0.8.0
+                     , test-framework-hunit >=0.3.0
+
+                     , language-rust
+                     , base
+                     , prettyprinter
+
+test-suite rustc-tests
+  hs-source-dirs:      test/rustc-tests
+  ghc-options:         -Wall
+  main-is:             Main.hs
+  other-modules:       Diff
+                       DiffUtils
+
+  other-extensions:    InstanceSigs 
+                     , OverloadedStrings
+                     , OverloadedLists
+                     , MultiParamTypeClasses
+                     , UnicodeSyntax
+
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  
+  build-depends:       process              >=1.3
+                     , bytestring           >=0.10
+                     , aeson                >=0.11.0.0
+                     , directory            >=1.2.5.0
+                     , filepath             >=1.4.0.0
+                     , test-framework       >=0.8.0
+                     , vector               >=0.10.0
+                     , text                 >=1.2.0
+                     , unordered-containers >=0.2.7
+                     , time                 >=1.2.0.0
+
+                     , language-rust
+                     , base
+                     , prettyprinter        >=1.1
+  if impl(ghc < 8)
+    build-depends:     semigroups           >=0.18
+
+benchmark timing-benchmarks
+  hs-source-dirs:      bench/timing-benchmarks
+  ghc-options:         -Wall
+  main-is:             Main.hs
+
+  other-extensions:    OverloadedStrings
+
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       process              >=1.3
+                     , bytestring           >=0.10
+                     , aeson                >=0.11.0.0
+                     , directory            >=1.2.5.0
+                     , filepath             >=1.4.0.0
+                     , criterion            >=1.1.1.0
+                     , statistics           >=0.14.0
+
+                     , language-rust
+                     , base
+
+benchmark allocation-benchmarks
+  hs-source-dirs:      bench/allocation-benchmarks
+  ghc-options:         -Wall
+  main-is:             Main.hs
+
+
+  other-extensions:    OverloadedStrings
+
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       process              >=1.3
+                     , bytestring           >=0.10
+                     , aeson                >=0.11.0.0
+                     , directory            >=1.2.5.0
+                     , filepath             >=1.4.0.0
+                     , weigh                >=0.0.6
+
+                     , language-rust
+                     , base
+
