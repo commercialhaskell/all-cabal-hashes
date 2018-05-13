@@ -1,0 +1,141 @@
+cabal-version: 1.18
+name: fast-arithmetic
+version: 0.6.0.4
+license: BSD3
+license-file: LICENSE
+copyright: Copyright: (c) 2018 Vanessa McHale
+maintainer: vamchale@gmail.com
+author: Vanessa McHale
+homepage: https://github.com/vmchale/fast-arithmetic#readme
+bug-reports: https://github.com/vmchale/hs-ats/issues
+synopsis: Fast functions on integers.
+description:
+    Fast functions for number theory and combinatorics with a high level of safety guaranteed by [ATS](http://www.ats-lang.org/).
+category: Numerics, Math, Algorithms, Number Theory, Combinatorics, FFI, ATS
+build-type: Simple
+extra-source-files:
+    atspkg.dhall
+    pkg.dhall
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/basics.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/integer.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/pointer.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/integer_long.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/integer_size.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/integer_short.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/bool.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/char.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/float.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/integer_ptr.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/integer_fixed.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/memory.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/string.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/strptr.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/fprintf.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/filebas.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/list.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/option.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/array.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/arrayptr.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/arrayref.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/matrix.cats
+    .atspkg/contrib/ats-includes-0.3.10/prelude/CATS/matrixptr.cats
+    .atspkg/contrib/ats-includes-0.3.10/libats/libc/CATS/stdio.cats
+    .atspkg/contrib/ats-includes-0.3.10/libats/libc/CATS/sys/types.cats
+    .atspkg/contrib/ats-includes-0.3.10/libats/libc/CATS/sys/stat.cats
+    .atspkg/contrib/ats-includes-0.3.10/libats/libc/CATS/sys/types.cats
+    .atspkg/contrib/ats-includes-0.3.10/libats/libc/CATS/stdio.cats
+    .atspkg/contrib/ats-includes-0.3.10/libats/libc/CATS/sys/types.cats
+    .atspkg/contrib/ats-includes-0.3.10/libats/libc/CATS/math.cats
+    .atspkg/contrib/ats-includes-0.3.10/ccomp/runtime/pats_ccomp_memalloc_libc.h
+    .atspkg/contrib/ats-includes-0.3.10/ccomp/runtime/pats_ccomp_runtime_memalloc.c
+extra-doc-files: README.md
+
+source-repository head
+    type: git
+    location: git@github.com:vmchale/hs-ats.git
+
+flag development
+    description:
+        Enable `-Werror`.
+    default: False
+    manual: True
+
+library
+    exposed-modules:
+        Numeric.NumberTheory
+        Numeric.Combinatorics
+    c-sources:
+        cbits/combinatorics.c
+        cbits/number-theory.c
+        cbits/numerics.c
+    hs-source-dirs: src
+    other-modules:
+        Numeric.Common
+    default-language: Haskell2010
+    include-dirs: .atspkg/contrib/ats-includes-0.3.10/ccomp/runtime
+                  .atspkg/contrib/ats-includes-0.3.10/ .atspkg/contrib
+    ghc-options: -Wall -optc-mtune=native -optc-flto -optc-O3
+    build-depends:
+        base >=4.6 && <5,
+        composition-prelude >=1.2.0.0,
+        gmpint -any
+    
+    if impl(ghc >=8.0)
+        ghc-options: -Wincomplete-uni-patterns -Wincomplete-record-updates
+                     -Wcompat
+    
+    if flag(development)
+        ghc-options: -Werror
+
+test-suite fast-arithmetic-test
+    type: exitcode-stdio-1.0
+    main-is: Spec.hs
+    hs-source-dirs: test
+    default-language: Haskell2010
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+    build-depends:
+        base -any,
+        fast-arithmetic -any,
+        hspec -any,
+        QuickCheck -any,
+        arithmoi -any
+    
+    if impl(ghc >=8.4)
+        build-depends:
+            combinat-compat -any
+    else
+        build-depends:
+            combinat -any
+    
+    if flag(development)
+        ghc-options: -Werror
+    
+    if impl(ghc >=8.0)
+        ghc-options: -Wincomplete-uni-patterns -Wincomplete-record-updates
+                     -Wcompat
+
+benchmark fast-arithmetic-bench
+    type: exitcode-stdio-1.0
+    main-is: Bench.hs
+    hs-source-dirs: bench
+    default-language: Haskell2010
+    ghc-options: -Wall
+    build-depends:
+        base -any,
+        fast-arithmetic -any,
+        criterion -any,
+        arithmoi -any
+    
+    if impl(ghc >=8.4)
+        build-depends:
+            combinat-compat -any
+    else
+        build-depends:
+            combinat -any
+    
+    if flag(development)
+        ghc-options: -Werror
+    
+    if impl(ghc >=8.0)
+        ghc-options: -Wincomplete-uni-patterns -Wincomplete-record-updates
+                     -Wcompat
