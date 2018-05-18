@@ -1,0 +1,180 @@
+name:                datafix
+version:             0.0.0.2
+synopsis:            Fixing data-flow problems
+description:         Fixing data-flow problems in expression trees.
+                     This should be useful if you want to write optimizations
+                     for your favorite programming language.
+
+                     See the Tutorial module for an introduction. After that,
+                     you might want to take a look at the `examples/` folder
+                     in the [repository](https://github.com/sgraf812/datafix/tree/master/examples).
+
+license:             ISC
+license-file:        LICENSE
+author:              Sebastian Graf
+maintainer:          sgraf1337@gmail.com
+copyright:           © 2018 Sebastian Graf
+homepage:            https://github.com/sgraf812/datafix
+bug-reports:         https://github.com/sgraf812/datafix/issues
+
+category:            Compiler
+build-type:          Custom
+stability:           alpha (experimental)
+cabal-version:       1.24
+
+extra-source-files:
+  CHANGELOG.md
+  README.md
+  stack.yaml
+  exprs/const.hs
+  exprs/findLT.hs
+  exprs/kahan.hs
+  exprs/lambda.hs
+  exprs/sieve.hs
+
+source-repository head
+  type:     git
+  location: https://github.com/sgraf812/datafix
+
+flag no-lattices
+  description: Don't depend on the lattices package.
+  default: False
+
+custom-setup
+  setup-depends:
+      base
+    , Cabal
+    -- let cabal-toolkit choose the right Cabal and base versions
+    , cabal-toolkit >= 0.0.4
+
+library
+  default-language:  Haskell2010
+  ghc-options:       -Wall
+  hs-source-dirs:    src
+  exposed-modules:   Datafix
+                     Datafix.Common
+                     Datafix.Denotational
+                     Datafix.Explicit
+                     Datafix.MonoMap
+                     Datafix.NodeAllocator
+                     Datafix.ProblemBuilder
+                     Datafix.Tutorial
+                     Datafix.Utils.Constraints
+                     Datafix.Utils.TypeLevel
+                     Datafix.Worklist
+                     Datafix.Worklist.Denotational
+                     Datafix.Worklist.Graph
+                     Datafix.Worklist.Graph.Dense
+                     Datafix.Worklist.Graph.Sparse
+                     Datafix.Worklist.Internal
+  other-modules:
+                     Datafix.Entailments
+                     Datafix.Utils.GrowableVector
+                     Datafix.IntArgsMonoMap
+                     Datafix.IntArgsMonoSet
+  build-depends:     base >= 4.8 && < 5
+                   , containers >= 0.5 && < 0.6
+                   , transformers < 0.6
+                   -- Just Data.Vector.Mutable, which has been there for ages
+                   , vector < 0.13
+                   -- Data.Primitive.Array.sizeofArray was introduced in 0.6.2.0
+                   , primitive >= 0.6.2.0 && < 0.7
+                   -- has not reached the first major version, so quite unstable
+                   , pomaps >= 0.0.0.2 && < 0.0.1.0
+  if !flag(no-lattices)
+    build-depends:   lattices < 2
+  if flag(no-lattices)
+    hs-source-dirs:  lattices
+    exposed-modules: Algebra.Lattice
+
+test-suite tests
+  type:              exitcode-stdio-1.0
+  default-language:  Haskell2010
+  ghc-options:       -Wall -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:    tests examples
+  main-is:           Main.hs
+  other-modules:     Analyses.AdHocStrAnal
+                     Analyses.StrAnal
+                     Analyses.StrAnal.Analysis
+                     Analyses.StrAnal.Arity
+                     Analyses.StrAnal.Strictness
+                     Analyses.Syntax.CoreSynF
+                     Analyses.Syntax.MkCoreHelpers
+                     Analyses.Syntax.MkCoreFromFile
+                     Analyses.Templates.LetDn
+                     Fib
+                     Fac
+                     Mutual
+                     Critical
+                     Trivial
+                     StrAnal
+  build-depends:     base >= 4.8 && < 5
+                   -- let cabal-toolkit choose the Cabal version
+                   , Cabal
+                   , cabal-toolkit == 0.0.4
+                   , tasty >= 0.11
+                   , tasty-hunit >= 0.9
+                   , tasty-smallcheck >= 0.8
+                   , containers
+                   , primitive
+                   , transformers < 0.6
+                   , datafix
+                   , ghc
+                   , ghc-paths
+                   , directory
+                   , filepath
+                   , turtle
+                   , text
+  if !flag(no-lattices)
+    build-depends:   lattices < 2
+  if flag(no-lattices)
+    build-depends:   pomaps >= 0.0.0.2 && < 0.0.1.0
+
+test-suite doctests
+  type:              exitcode-stdio-1.0
+  default-language:  Haskell2010
+  ghc-options:       -Wall -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:    tests
+  main-is:           doctest.hs
+  build-depends:     base >= 4.8 && < 5
+                   , doctest >=0.10
+                   , Glob >= 0.7
+                   , QuickCheck >= 2.5
+                   , datafix
+
+benchmark benchmarks
+  type:              exitcode-stdio-1.0
+  default-language:  Haskell2010
+  ghc-options:       -Wall -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:    bench examples
+  main-is:           Main.hs
+  other-modules:     Sum
+                     Analyses.AdHocStrAnal
+                     Analyses.StrAnal
+                     Analyses.StrAnal.Analysis
+                     Analyses.StrAnal.Arity
+                     Analyses.StrAnal.Strictness
+                     Analyses.Syntax.CoreSynF
+                     Analyses.Syntax.MkCoreHelpers
+                     Analyses.Syntax.MkCoreFromFile
+                     Analyses.Templates.LetDn
+  build-depends:     base >= 4.8 && < 5
+                   -- let cabal-toolkit choose the Cabal version
+                   , Cabal
+                   , cabal-toolkit == 0.0.4
+                   , criterion >= 1.1
+                   , deepseq
+                   , containers
+                   , primitive
+                   , transformers < 0.6
+                   , datafix                   
+                   , ghc
+                   , ghc-paths
+                   , directory
+                   , filepath
+                   , turtle
+                   , text
+  if !flag(no-lattices)
+    build-depends:   lattices < 2
+  if flag(no-lattices)
+    build-depends:   pomaps >= 0.0.0.2 && < 0.0.1.0
