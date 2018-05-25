@@ -1,0 +1,185 @@
+Name:                   hledger-irr
+Version:                0.1.1.14
+Synopsis:               computes the internal rate of return of an investment
+License:                BSD3
+License-file:           LICENSE
+Author:                 Joachim Breitner <mail@joachim-breitner.de>
+Maintainer:             Joachim Breitner <mail@joachim-breitner.de>
+Category:               Finance
+Build-type:             Simple
+Cabal-version:          >= 1.8
+Tested-with:            GHC >= 7.4.1 && <= 7.4.1
+Description:
+ hledger-irr is a small command-line utility based on Simon
+ Michael's hledger library. Its purpose is to compute the internal rate of
+ return, also known as the effective interest rate, of a given investment.
+ After specifying what account holds the investment, and what account stores
+ the gains (or losses, or fees, or cost), it calculates the hypothetical
+ annualy rate of fixed rate investment that would have provided the exact same
+ cash flow.
+ .
+ As an example, consider the following irregular investment recorded in a file
+ called @speculation.ledger@. The account “Speculation” holds the investment which
+ could be, for example, a stock. Regularly, we make sure that the value of the
+ account matches the value of the stock, by moving money from or to the account
+ “Rate Gain”. It does not really matter when we adjust the price, as long as it
+ is correct at the end of our reporting period.
+ .
+ > 2011-01-01 Some wild speculation – I wonder if it pays off
+ >   Speculation   €100.00
+ >   Cash
+ > 
+ > 2011-02-01 More speculation (and adjustment of value)
+ >   Cash         -€10.00
+ >   Rate Gain     -€1.00 
+ >   Speculation
+ > 
+ > 2011-03-01 Lets pull out some money (and adjustment of value)
+ >   Cash          €30.00
+ >   Rate Gain     -€3.00 
+ >   Speculation
+ > 
+ > 2011-04-01 More speculation (and it lost some money!)
+ >   Cash         -€50.00
+ >   Rate Gain     € 5.00
+ >   Speculation
+ > 
+ > 2011-05-01 Getting some money out (and adjustment of value)
+ >   Speculation  -€44.00
+ >   Rate Gain    -€ 3.00
+ >   Cash
+ > 
+ > 2011-06-01 Emptying the account (after adjusting the value)
+ >   Speculation   -€85.00
+ >   Cash           €90.00
+ >   Rate Gain     -€ 5.00
+ .
+ We can now calculate the rate of return for the whole time or just for parts
+ of it (and be freaked out by the volatility of the investment):
+ .
+ > $ hledger-irr -f speculation.ledger -t "Rate Gain" -i Speculation -c
+ > Resolving dependencies...
+ > Build profile: -w ghc-8.0.2 -O1
+ > In order, the following will be built (use -v for more details):
+ >  - hledger-lib-1.9 (lib) (requires download & build)
+ >  - hledger-irr-0.1.1.13 (exe:hledger-irr) (configuration changed)
+ > Downloading hledger-lib-1.9...
+ > Configuring library for hledger-lib-1.9..
+ > Preprocessing library for hledger-lib-1.9..
+ > Building library for hledger-lib-1.9..
+ > [ 1 of 45] Compiling Text.Megaparsec.Compat ( Text/Megaparsec/Compat.hs, dist/build/Text/Megaparsec/Compat.o )
+ > [ 2 of 45] Compiling Paths_hledger_lib ( dist/build/autogen/Paths_hledger_lib.hs, dist/build/Paths_hledger_lib.o )
+ > [ 3 of 45] Compiling Hledger.Utils.UTF8IOCompat ( Hledger/Utils/UTF8IOCompat.hs, dist/build/Hledger/Utils/UTF8IOCompat.o )
+ > [ 4 of 45] Compiling Hledger.Utils.Test ( Hledger/Utils/Test.hs, dist/build/Hledger/Utils/Test.o )
+ > [ 5 of 45] Compiling Hledger.Utils.Regex ( Hledger/Utils/Regex.hs, dist/build/Hledger/Utils/Regex.o )
+ > [ 6 of 45] Compiling Hledger.Utils.Tree ( Hledger/Utils/Tree.hs, dist/build/Hledger/Utils/Tree.o )
+ > [ 7 of 45] Compiling Hledger.Utils.Color ( Hledger/Utils/Color.hs, dist/build/Hledger/Utils/Color.o )
+ > [ 8 of 45] Compiling Hledger.Data.Types ( Hledger/Data/Types.hs, dist/build/Hledger/Data/Types.o )
+ > [ 9 of 45] Compiling Hledger.Utils.Parse ( Hledger/Utils/Parse.hs, dist/build/Hledger/Utils/Parse.o )
+ > [10 of 45] Compiling Hledger.Utils.Debug ( Hledger/Utils/Debug.hs, dist/build/Hledger/Utils/Debug.o )
+ > [11 of 45] Compiling Hledger.Utils.String ( Hledger/Utils/String.hs, dist/build/Hledger/Utils/String.o )
+ > [12 of 45] Compiling Hledger.Utils.Text ( Hledger/Utils/Text.hs, dist/build/Hledger/Utils/Text.o )
+ > [13 of 45] Compiling Hledger.Utils    ( Hledger/Utils.hs, dist/build/Hledger/Utils.o )
+ > [14 of 45] Compiling Hledger.Data.StringFormat ( Hledger/Data/StringFormat.hs, dist/build/Hledger/Data/StringFormat.o )
+ > [15 of 45] Compiling Hledger.Data.RawOptions ( Hledger/Data/RawOptions.hs, dist/build/Hledger/Data/RawOptions.o )
+ > [16 of 45] Compiling Hledger.Data.Period ( Hledger/Data/Period.hs, dist/build/Hledger/Data/Period.o )
+ > [17 of 45] Compiling Hledger.Data.Dates ( Hledger/Data/Dates.hs, dist/build/Hledger/Data/Dates.o )
+ > [18 of 45] Compiling Hledger.Data.Commodity ( Hledger/Data/Commodity.hs, dist/build/Hledger/Data/Commodity.o )
+ > [19 of 45] Compiling Hledger.Data.Amount ( Hledger/Data/Amount.hs, dist/build/Hledger/Data/Amount.o )
+ > [20 of 45] Compiling Hledger.Data.MarketPrice ( Hledger/Data/MarketPrice.hs, dist/build/Hledger/Data/MarketPrice.o )
+ > [21 of 45] Compiling Hledger.Data.AccountName ( Hledger/Data/AccountName.hs, dist/build/Hledger/Data/AccountName.o )
+ > [22 of 45] Compiling Hledger.Data.Posting ( Hledger/Data/Posting.hs, dist/build/Hledger/Data/Posting.o )
+ > [23 of 45] Compiling Hledger.Data.Transaction ( Hledger/Data/Transaction.hs, dist/build/Hledger/Data/Transaction.o )
+ > [24 of 45] Compiling Hledger.Data.Timeclock ( Hledger/Data/Timeclock.hs, dist/build/Hledger/Data/Timeclock.o )
+ > [25 of 45] Compiling Hledger.Query    ( Hledger/Query.hs, dist/build/Hledger/Query.o )
+ > [26 of 45] Compiling Hledger.Data.AutoTransaction ( Hledger/Data/AutoTransaction.hs, dist/build/Hledger/Data/AutoTransaction.o )
+ > [27 of 45] Compiling Hledger.Data.Journal ( Hledger/Data/Journal.hs, dist/build/Hledger/Data/Journal.o )
+ > [28 of 45] Compiling Hledger.Data.Account ( Hledger/Data/Account.hs, dist/build/Hledger/Data/Account.o )
+ > [29 of 45] Compiling Hledger.Data.Ledger ( Hledger/Data/Ledger.hs, dist/build/Hledger/Data/Ledger.o )
+ > [30 of 45] Compiling Hledger.Data     ( Hledger/Data.hs, dist/build/Hledger/Data.o )
+ > [31 of 45] Compiling Hledger.Read.Common ( Hledger/Read/Common.hs, dist/build/Hledger/Read/Common.o )
+ > [32 of 45] Compiling Hledger.Read.CsvReader ( Hledger/Read/CsvReader.hs, dist/build/Hledger/Read/CsvReader.o )
+ > [33 of 45] Compiling Hledger.Read.TimeclockReader ( Hledger/Read/TimeclockReader.hs, dist/build/Hledger/Read/TimeclockReader.o )
+ > [34 of 45] Compiling Hledger.Read.TimedotReader ( Hledger/Read/TimedotReader.hs, dist/build/Hledger/Read/TimedotReader.o )
+ > [35 of 45] Compiling Hledger.Read.JournalReader ( Hledger/Read/JournalReader.hs, dist/build/Hledger/Read/JournalReader.o )
+ > [36 of 45] Compiling Hledger.Read     ( Hledger/Read.hs, dist/build/Hledger/Read.o )
+ > [37 of 45] Compiling Hledger.Reports.ReportOptions ( Hledger/Reports/ReportOptions.hs, dist/build/Hledger/Reports/ReportOptions.o )
+ > [38 of 45] Compiling Hledger.Reports.BalanceReport ( Hledger/Reports/BalanceReport.hs, dist/build/Hledger/Reports/BalanceReport.o )
+ > [39 of 45] Compiling Hledger.Reports.EntriesReport ( Hledger/Reports/EntriesReport.hs, dist/build/Hledger/Reports/EntriesReport.o )
+ > [40 of 45] Compiling Hledger.Reports.MultiBalanceReports ( Hledger/Reports/MultiBalanceReports.hs, dist/build/Hledger/Reports/MultiBalanceReports.o )
+ > [41 of 45] Compiling Hledger.Reports.PostingsReport ( Hledger/Reports/PostingsReport.hs, dist/build/Hledger/Reports/PostingsReport.o )
+ > [42 of 45] Compiling Hledger.Reports.TransactionsReports ( Hledger/Reports/TransactionsReports.hs, dist/build/Hledger/Reports/TransactionsReports.o )
+ > [43 of 45] Compiling Hledger.Reports  ( Hledger/Reports.hs, dist/build/Hledger/Reports.o )
+ > [44 of 45] Compiling Hledger.Reports.BalanceHistoryReport ( Hledger/Reports/BalanceHistoryReport.hs, dist/build/Hledger/Reports/BalanceHistoryReport.o )
+ > [45 of 45] Compiling Hledger          ( Hledger.hs, dist/build/Hledger.o )
+ > Installing library in /home/jojo/.cabal/store/ghc-8.0.2/incoming/new-24901/home/jojo/.cabal/store/ghc-8.0.2/hledger-lib-1.9-a4cfc04f37ff33dd0edbb6c067f4db8b5f70b0536f8af20da9998bad0f3436df/lib
+ > Configuring executable 'hledger-irr' for hledger-irr-0.1.1.13..
+ > Preprocessing executable 'hledger-irr' for hledger-irr-0.1.1.13..
+ > Building executable 'hledger-irr' for hledger-irr-0.1.1.13..
+ > [1 of 2] Compiling Paths_hledger_irr ( /home/jojo/projekte/programming/hledger/hledger-irr/dist-newstyle/build/x86_64-linux/ghc-8.0.2/hledger-irr-0.1.1.13/x/hledger-irr/build/hledger-irr/autogen/Paths_hledger_irr.hs, /home/jojo/projekte/programming/hledger/hledger-irr/dist-newstyle/build/x86_64-linux/ghc-8.0.2/hledger-irr-0.1.1.13/x/hledger-irr/build/hledger-irr/hledger-irr-tmp/Paths_hledger_irr.o ) [/home/jojo/projekte/programming/hledger/hledger-irr/dist-newstyle/build/x86_64-linux/ghc-8.0.2/hledger-irr-0.1.1.13/x/hledger-irr/build/hledger-irr/autogen/cabal_macros.h changed]
+ > [2 of 2] Compiling Main             ( Main.hs, /home/jojo/projekte/programming/hledger/hledger-irr/dist-newstyle/build/x86_64-linux/ghc-8.0.2/hledger-irr-0.1.1.13/x/hledger-irr/build/hledger-irr/hledger-irr-tmp/Main.o ) [Hledger changed]
+ > Linking /home/jojo/projekte/programming/hledger/hledger-irr/dist-newstyle/build/x86_64-linux/ghc-8.0.2/hledger-irr-0.1.1.13/x/hledger-irr/build/hledger-irr/hledger-irr ...
+ > 2011/01/01: €-100.00
+ > 2011/02/01: €-10.00
+ > 2011/03/01: €30.00
+ > 2011/04/01: €-50.00
+ > 2011/05/01: €47.00
+ > 2011/06/01: €90.00
+ > 2011/01/01 - 2018/05/25: -100.00%
+ > $ hledger-irr -f speculation.ledger -t "Rate Gain" -i Speculation -e 2011-03-01
+ > Up to date
+ > 2011/01/01 - 2011/03/01: 26.12%
+ > $ hledger-irr -f speculation.ledger -t "Rate Gain" -i Speculation -b 2011-03-01
+ > Up to date
+ > 2011/03/01 - 2018/05/25: -100.00%
+ > $ hledger-irr -f speculation.ledger -t "Rate Gain" -i Speculation --monthly
+ > Up to date
+ > 2011/01/01 - 2011/02/01: 12.49%
+ > 2011/02/01 - 2011/03/01: 41.55%
+ > 2011/03/01 - 2011/04/01: -51.44%
+ > 2011/04/01 - 2011/05/01: 32.24%
+ > 2011/05/01 - 2011/06/01: 95.92%
+ .
+ Running the utility with @--help@ gives a brief overview over the
+ available options:
+ .
+ > $ hledger-irr --help
+ > Up to date
+ > Usage: hledger-irr [OPTION...]
+ >   -h          --help                        print this message and exit
+ >   -V          --version                     show version number and exit
+ >   -c          --cashflow                    also show all revant transactions
+ >   -f FILE     --file=FILE                   input ledger file (pass '-' for stdin)
+ >   -i ACCOUNT  --investment-account=ACCOUNT  investment account
+ >   -t ACCOUNT  --interest-account=ACCOUNT    interest/gain/fees/losses account
+ >   -b DATE     --begin=DATE                  calculate interest from this date
+ >   -e DATE     --end=DATE                    calculate interest until this date
+ >   -D          --daily                       calculate interest for each day
+ >   -W          --weekly                      calculate interest for each week
+ >   -M          --monthly                     calculate interest for each month
+ >   -Y          --yearly                      calculate interest for each year
+ .
+ Known bugs and issues:
+ .
+ * Currenlty, hledger-irr does not cope well with multiple commodities (e.g.
+   Euro and Dollar, or shares).
+ .
+ * Also, interest or fees that do not pass through the account selected by
+   @--investment-account@ are not taken into consideration.
+
+Executable hledger-irr
+  Main-is:              Main.hs
+  Build-depends:
+    base >= 3 && < 5,
+    hledger-lib >= 1 && < 1.10,
+    Decimal,
+    time,
+    Cabal,
+    statistics >= 0.10,
+    text
+  Ghc-Options:          -Wall
+
+source-repository head
+    type:     darcs
+    location: http://darcs.nomeata.de/hledger-irr
+
