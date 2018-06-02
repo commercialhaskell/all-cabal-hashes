@@ -1,0 +1,140 @@
+cabal-version: >=1.10
+name: etc
+version: 0.4.0.2
+license: MIT
+license-file: LICENSE
+copyright: 2017, 2018 Roman Gonzalez
+maintainer: open-source@roman-gonzalez.info
+author: Roman Gonzalez
+tested-with: ghc ==8.0.1 ghc ==8.0.2 ghc ==8.2.2 ghc ==8.4.2
+homepage: https://github.com/roman/Haskell-etc
+synopsis: Declarative configuration spec for Haskell projects
+description:
+    `etc` gathers configuration values from multiple sources (cli options, OS
+    environment variables, files) using a declarative spec file that defines where
+    these values are to be found and located in a configuration map.
+category: Configuration, System
+build-type: Simple
+data-files:
+    test/fixtures/config.foo
+    test/fixtures/config.json
+    test/fixtures/config.env.json
+    test/fixtures/config.null.json
+    test/fixtures/config.spec.yaml
+    test/fixtures/config.yaml
+    test/fixtures/config.yml
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+    type: git
+    location: https://github.com/roman/Haskell-etc
+
+flag extra
+    description:
+        Include extra utilities
+    default: False
+
+flag cli
+    description:
+        Include support for cli arguments
+    default: False
+
+flag yaml
+    description:
+        Include support to parse YAML files
+    default: False
+
+library
+    exposed-modules:
+        System.Etc
+        System.Etc.Spec
+        System.Etc.Internal.Config
+        System.Etc.Internal.Spec.JSON
+        System.Etc.Internal.Spec.Types
+        System.Etc.Internal.Types
+        System.Etc.Internal.Resolver.Default
+        System.Etc.Internal.Resolver.File
+        System.Etc.Internal.Resolver.Env
+    hs-source-dirs: src
+    other-modules:
+        Paths_etc
+    default-language: Haskell2010
+    ghc-options: -Wall
+    build-depends:
+        base >=4.7 && <5,
+        aeson >=0.11,
+        hashable >=1.2,
+        rio >=0.0.1.0,
+        text >=0.0.1.0,
+        typed-process >=0.1.1,
+        unliftio >=0.1.1.0
+    
+    if flag(extra)
+        exposed-modules:
+            System.Etc.Internal.Extra.Printer
+            System.Etc.Internal.Extra.EnvMisspell
+        cpp-options: -DWITH_EXTRA
+        build-depends:
+            ansi-wl-pprint >=0.6,
+            edit-distance >=0.2
+    
+    if flag(cli)
+        exposed-modules:
+            System.Etc.Internal.Resolver.Cli
+            System.Etc.Internal.Resolver.Cli.Common
+            System.Etc.Internal.Resolver.Cli.Plain
+            System.Etc.Internal.Resolver.Cli.Command
+        cpp-options: -DWITH_CLI
+        build-depends:
+            optparse-applicative >=0.12
+    
+    if flag(yaml)
+        exposed-modules:
+            System.Etc.Internal.Spec.YAML
+        cpp-options: -DWITH_YAML
+        build-depends:
+            yaml >=0.8
+
+test-suite etc-testsuite
+    type: exitcode-stdio-1.0
+    main-is: TestSuite.hs
+    hs-source-dirs: test
+    other-modules:
+        Paths_etc
+        System.Etc.Resolver.DefaultTest
+        System.Etc.Resolver.EnvTest
+        System.Etc.Resolver.FileTest
+        System.Etc.SpecTest
+        System.Etc.ConfigTest
+    default-language: Haskell2010
+    ghc-options: -Wall
+    build-depends:
+        base >=4.7,
+        aeson >=0.11,
+        rio >=0.0.1.0,
+        tasty >=0.11,
+        tasty-hunit >=0.9,
+        etc -any
+    
+    if flag(cli)
+        cpp-options: -DWITH_CLI
+        other-modules:
+            System.Etc.Resolver.CliTest
+            System.Etc.Resolver.Cli.PlainTest
+            System.Etc.Resolver.Cli.CommandTest
+        build-depends:
+            optparse-applicative >=0.12
+    
+    if flag(yaml)
+        cpp-options: -DWITH_YAML
+        build-depends:
+            yaml >=0.8
+    
+    if flag(extra)
+        cpp-options: -DWITH_EXTRA
+        other-modules:
+            System.Etc.Extra.EnvMisspellTest
+        build-depends:
+            edit-distance >=0.2
