@@ -1,0 +1,168 @@
+name:           Allure
+-- The package version. See the Haskell package versioning policy (PVP)
+-- for standards guiding when and how versions should be incremented.
+-- http://www.haskell.org/haskellwiki/Package_versioning_policy
+-- PVP summary:+-+------- breaking API changes
+--             | | +----- minor or non-breaking API additions
+--             | | | +--- code changes with no API change
+version:       0.8.1.1
+synopsis:      Near-future Sci-Fi roguelike and tactical squad game
+description:   Allure of the Stars is a near-future Sci-Fi roguelike
+               and tactical squad game. Binaries and the game manual
+               are available at the homepage, where you can also
+               try the game out in the browser:
+               <http://allureofthestars.com/play>
+               (It runs fastest on Chrome. Keyboard commands and savefiles
+               are supported only on recent enough versions of browsers.
+               Mouse should work everywhere.)
+               .
+               Not a single picture in this game. You have to imagine everything
+               yourself, like with a book (a grown-up book, without pictures).
+               Once you learn to imagine things, though, you can keep exploring
+               and mastering the world and making up stories for a long time.
+               .
+               The game is written in Haskell using the LambdaHack roguelike
+               game engine <http://hackage.haskell.org/package/LambdaHack>.
+               Please see the changelog file for recent improvements
+               and the issue tracker for short-term plans. Long term goals
+               are high replayability and auto-balancing through procedural
+               content generation and persistent content modification
+               based on player behaviour. Contributions are welcome.
+homepage:      http://allureofthestars.com
+bug-reports:   http://github.com/AllureOfTheStars/Allure/issues
+license:       OtherLicense
+license-file:  COPYLEFT
+tested-with:   GHC==8.0.2, GHC==8.2.2, GHC==8.4.3
+data-files:    GameDefinition/config.ui.default,
+               GameDefinition/fonts/16x16x.fon,
+               GameDefinition/fonts/8x8xb.fon,
+               GameDefinition/fonts/8x8x.fon,
+               GameDefinition/fonts/LICENSE.16x16x,
+               GameDefinition/fonts/Fix15Mono-Bold.woff,
+               GameDefinition/fonts/LICENSE.Fix15Mono-Bold,
+               GameDefinition/InGameHelp.txt,
+               README.md,
+               CHANGELOG.md,
+               LICENSE,
+               COPYLEFT,
+               CREDITS
+extra-source-files: GameDefinition/MainMenu.ascii,
+                    GameDefinition/PLAYING.md,
+                    Makefile
+author:        Andres Loeh, Mikolaj Konarski and others
+maintainer:    Mikolaj Konarski <mikolaj.konarski@funktory.com>
+category:      Game
+build-type:    Simple
+cabal-version: >= 1.10
+
+source-repository head
+  type:               git
+  location:           git://github.com/AllureOfTheStars/Allure.git
+
+executable Allure
+  hs-source-dirs:     GameDefinition
+  main-is:            Main.hs
+  other-modules:      Client.UI.Content.KeyKind,
+                      Content.CaveKind,
+                      Content.ItemKind,
+                      Content.ItemKindEmbed,
+                      Content.ItemKindActor,
+                      Content.ItemKindOrgan,
+                      Content.ItemKindBlast,
+                      Content.ItemKindTemporary,
+                      Content.ModeKind,
+                      Content.ModeKindPlayer,
+                      Content.PlaceKind,
+                      Content.RuleKind,
+                      Content.TileKind,
+                      Implementation.MonadClientImplementation,
+                      Implementation.MonadServerImplementation,
+                      Implementation.TieKnot,
+                      Paths_Allure
+  build-depends:      LambdaHack >= 0.8.1.0 && < 0.8.2.0,
+                      template-haskell >= 2.6,
+
+                      async      >= 2,
+                      base       >= 4.9 && < 99,
+                      containers >= 0.5.3.0,
+                      enummapset >= 0.5.2.2,
+                      filepath   >= 1.2.0.1,
+                      optparse-applicative >= 0.13,
+                      random     >= 1.1,
+                      text       >= 0.11.2.3,
+                      transformers >= 0.4
+
+  default-language:   Haskell2010
+  default-extensions: MonoLocalBinds, ScopedTypeVariables, OverloadedStrings
+                      BangPatterns, RecordWildCards, NamedFieldPuns, MultiWayIf,
+                      LambdaCase, StrictData, CPP
+  other-extensions:   TemplateHaskell
+  ghc-options:        -Wall -Wcompat -Worphans -Wincomplete-uni-patterns -Wincomplete-record-updates -Wimplicit-prelude -Wmissing-home-modules -Widentities -Wredundant-constraints
+  ghc-options:        -Wall-missed-specialisations
+  ghc-options:        -fno-ignore-asserts -fexpose-all-unfoldings -fspecialise-aggressively
+  ghc-options:        -threaded -rtsopts
+-- Minimize median lag at the cost of occasional bigger GC lag,
+-- which fortunately sometimes fits into idle time between turns):
+  ghc-options:        -with-rtsopts=-A99m
+
+  if impl(ghcjs) {
+-- This is the largest GHCJS_BUSY_YIELD value that does not cause dropped frames
+-- on my machine with default --maxFps.
+    cpp-options:      -DGHCJS_BUSY_YIELD=50
+    cpp-options:      -DUSE_JSFILE
+  } else {
+    build-depends:    zlib >= 0.5.3.1
+  }
+
+test-suite test
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     GameDefinition, test
+  main-is:            test.hs
+  other-modules:      Client.UI.Content.KeyKind,
+                      Content.CaveKind,
+                      Content.ItemKind,
+                      Content.ItemKindEmbed,
+                      Content.ItemKindActor,
+                      Content.ItemKindOrgan,
+                      Content.ItemKindBlast,
+                      Content.ItemKindTemporary,
+                      Content.ModeKind,
+                      Content.ModeKindPlayer,
+                      Content.PlaceKind,
+                      Content.RuleKind,
+                      Content.TileKind,
+                      Implementation.MonadClientImplementation,
+                      Implementation.MonadServerImplementation,
+                      Implementation.TieKnot,
+                      Paths_Allure
+  build-depends:      LambdaHack,
+                      template-haskell >= 2.6,
+
+                      base       >= 4.9 && < 99,
+                      containers >= 0.5.3.0,
+                      enummapset >= 0.5.2.2,
+                      filepath   >= 1.2.0.1,
+                      optparse-applicative >= 0.13,
+                      random     >= 1.1,
+                      text       >= 0.11.2.3,
+                      transformers >= 0.4
+
+  default-language:   Haskell2010
+  default-extensions: MonoLocalBinds, ScopedTypeVariables, OverloadedStrings
+                      BangPatterns, RecordWildCards, NamedFieldPuns, MultiWayIf,
+                      LambdaCase, StrictData, CPP
+  other-extensions:   TemplateHaskell
+  ghc-options:        -Wall -Wcompat -Worphans -Wincomplete-uni-patterns -Wincomplete-record-updates -Wimplicit-prelude -Wmissing-home-modules -Widentities -Wredundant-constraints
+  ghc-options:        -fno-ignore-asserts -fexpose-all-unfoldings -fspecialise-aggressively
+  ghc-options:        -threaded -rtsopts
+-- Minimize median lag at the cost of occasional bigger GC lag,
+-- which fortunately sometimes fits into idle time between turns):
+  ghc-options:        -with-rtsopts=-A99m
+
+  if impl(ghcjs) {
+-- This is the largest GHCJS_BUSY_YIELD value that does not cause dropped frames
+-- on my machine with default --maxFps.
+    cpp-options:      -DGHCJS_BUSY_YIELD=50
+  } else {
+    build-depends:    zlib >= 0.5.3.1
+  }
