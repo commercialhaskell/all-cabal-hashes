@@ -1,0 +1,256 @@
+Name:           bustle
+Category:       Network, Desktop
+Version:        0.7.1
+Cabal-Version:  >= 1.24
+Tested-With:    GHC == 8.2.2, GHC == 8.4.3
+Synopsis:       Draw sequence diagrams of D-Bus traffic
+Description:    Draw sequence diagrams of D-Bus traffic
+License:        OtherLicense
+License-file:   LICENSE
+Author:         Will Thompson <will@willthompson.co.uk>
+Maintainer:     Will Thompson <will@willthompson.co.uk>
+Homepage:       https://www.freedesktop.org/wiki/Software/Bustle/
+Data-files:     data/bustle.ui,
+                data/OpenTwoDialog.ui,
+                data/RecordAddressDialog.ui,
+                LICENSE
+Build-type:     Custom
+Extra-source-files:
+                  -- C bits
+                    c-sources/bustle-pcap.c,
+                    c-sources/pcap-monitor.h,
+                    c-sources/config.h,
+                    Makefile,
+
+                  -- Stuff for nerds
+                    README.md,
+                    NEWS.md,
+                    HACKING.md,
+                    INSTALL.md,
+                    run-uninstalled.sh
+                  , Test/data/log-with-h.bustle
+
+                  -- inlined copy of the Cabal hooks from hgettext;
+                  -- see https://github.com/fpco/stackage/issues/746
+                  , GetText.hs
+
+                  -- wow many translate
+                  , po/*.po
+                  , po/*.pot
+
+                  -- intl bits
+                  , data/org.freedesktop.Bustle.appdata.xml.in
+                  , data/org.freedesktop.Bustle.desktop.in
+
+                  -- icons
+                  , data/icons/hicolor/16x16/apps/org.freedesktop.Bustle.png
+                  , data/icons/hicolor/22x22/apps/org.freedesktop.Bustle.png
+                  , data/icons/hicolor/32x32/apps/org.freedesktop.Bustle.png
+                  , data/icons/hicolor/48x48/apps/org.freedesktop.Bustle.png
+                  , data/icons/hicolor/256x256/apps/org.freedesktop.Bustle.png
+                  , data/icons/hicolor/scalable/apps/org.freedesktop.Bustle.svg
+                  , data/icons/hicolor/scalable/apps/org.freedesktop.Bustle-symbolic.svg
+
+x-gettext-po-files:     po/*.po
+x-gettext-domain-name:  bustle
+
+custom-setup
+  setup-depends:
+    base >= 4 && < 5,
+    Cabal >= 1.24,
+    filepath,
+    directory,
+    process
+
+Source-Repository head
+  Type:           git
+  Location:       https://gitlab.freedesktop.org/bustle/bustle.git
+
+Flag hgettext
+  Description:    Enable translations. Since there are no translations this is currently rather pointless.
+  Default:        True
+
+Flag InteractiveTests
+  Description:    Build interactive test programs
+  Default:        False
+
+Flag threaded
+  Description:    Build with the multi-threaded runtime
+  Default:        True
+
+Executable bustle
+  Main-is:       Bustle.hs
+  Other-modules: Bustle.Application.Monad
+               , Bustle.Diagram
+               , Bustle.Loader
+               , Bustle.Loader.Pcap
+               , Bustle.Marquee
+               , Bustle.Missing
+               , Bustle.Monitor
+               , Bustle.Noninteractive
+               , Bustle.Regions
+               , Bustle.Renderer
+               , Bustle.StatisticsPane
+               , Bustle.Stats
+               , Bustle.Translation
+               , Bustle.Types
+               , Bustle.UI
+               , Bustle.UI.AboutDialog
+               , Bustle.UI.Canvas
+               , Bustle.UI.DetailsView
+               , Bustle.UI.FilterDialog
+               , Bustle.UI.OpenTwoDialog
+               , Bustle.UI.RecordAddressDialog
+               , Bustle.UI.Recorder
+               , Bustle.UI.Util
+               , Bustle.Util
+               , Bustle.VariantFormatter
+               , Paths_bustle
+  default-language: Haskell2010
+  Ghc-options: -Wall
+               -fno-warn-unused-do-bind
+  if flag(threaded)
+    ghc-options: -threaded
+  C-sources: c-sources/pcap-monitor.c
+  cc-options: -fPIC -g
+  pkgconfig-depends: glib-2.0 >= 2.54
+  Build-Depends: base >= 4 && < 5
+               , bytestring
+               , cairo
+               , containers
+               , dbus >= 0.10
+               , directory
+               , filepath
+               , glib
+               , gio
+               , gtk3
+               , mtl >= 2.2.1
+               , pango
+               , pcap
+               , process
+               , text
+               , time
+  if flag(hgettext)
+    Build-Depends: hgettext >= 0.1.5
+                 , setlocale
+    -- Other-Modules: GetText_bustle
+    hs-source-dirs: .
+                  , src-hgettext
+  else
+    hs-source-dirs: .
+                  , src-no-hgettext
+
+Executable test-monitor
+  if flag(InteractiveTests)
+    buildable: True
+  else
+    buildable: False
+
+  main-is: tests/Monitor.hs
+  other-modules: Bustle.Monitor
+  default-language: Haskell2010
+  if flag(threaded)
+    Ghc-options: -threaded
+  C-sources: c-sources/pcap-monitor.c
+  cc-options: -fPIC
+  pkgconfig-depends: glib-2.0
+  Build-Depends: base >= 4 && < 5
+               , bytestring
+               , cairo
+               , containers
+               , dbus
+               , directory
+               , filepath
+               -- 0.13.6 doesn't compile with GCC 5: https://github.com/gtk2hs/gtk2hs/issues/104
+               , gtk3 >= 0.13.7
+               , glib
+               , mtl
+               , pango
+               , pcap
+               , text
+
+
+Executable dump-messages
+  if flag(InteractiveTests)
+    buildable: True
+  else
+    buildable: False
+
+  main-is: Test/DumpMessages.hs
+  default-language: Haskell2010
+  Build-Depends: base
+               , bytestring
+               , containers
+               , dbus >= 0.10
+               , mtl
+               , pcap
+               , text
+
+Test-suite test-pcap-crash
+    type: exitcode-stdio-1.0
+    main-is: Test/PcapCrash.hs
+    other-modules: Bustle.Loader.Pcap
+                 , Bustle.Translation
+                 , Bustle.Types
+    default-language: Haskell2010
+    Build-Depends: base
+                 , bytestring
+                 , containers
+                 , dbus >= 0.10
+                 , mtl
+                 , pcap
+                 , text
+    if flag(hgettext)
+        Build-Depends: hgettext >= 0.1.5
+                     , setlocale
+        -- Other-Modules: GetText_bustle
+        hs-source-dirs: .
+                      , src-hgettext
+    else
+        hs-source-dirs: .
+                      , src-no-hgettext
+
+Test-suite test-regions
+    type: exitcode-stdio-1.0
+    main-is: Test/Regions.hs
+    other-modules: Bustle.Regions
+    default-language: Haskell2010
+    Build-Depends: base
+                 , QuickCheck
+
+Test-suite test-renderer
+    type: exitcode-stdio-1.0
+    main-is: Test/Renderer.hs
+    other-modules: Bustle.Diagram
+                 , Bustle.Marquee
+                 , Bustle.Regions
+                 , Bustle.Renderer
+                 , Bustle.Translation
+                 , Bustle.Types
+                 , Bustle.Util
+
+
+
+    default-language: Haskell2010
+    Build-Depends: base
+                 , cairo
+                 , containers
+                 , dbus >= 0.10
+                 , directory
+                 , filepath
+                 , gtk3
+                 , mtl
+                 , text
+                 , pango
+                 , test-framework
+                 , test-framework-hunit
+                 , HUnit
+    if flag(hgettext)
+        Build-Depends: hgettext >= 0.1.5
+                     , setlocale
+        -- Other-Modules: GetText_bustle
+        hs-source-dirs: .
+                      , src-hgettext
+    else
+        hs-source-dirs: .
+                      , src-no-hgettext
