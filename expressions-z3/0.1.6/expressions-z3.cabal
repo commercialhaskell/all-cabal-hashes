@@ -1,0 +1,88 @@
+name:                expressions-z3
+version:             0.1.6
+synopsis:            Encode and Decode expressions from Z3 ASTs
+description:
+  A simple interface for converting expressions back and forth between pure
+  representation and an AST within a Z3 context.
+  .
+  Assume
+  .
+  > λ> :m + Control.Monad Data.Expression Data.Expression.Z3 Z3.Monad Data.Singletons
+  > λ> :t f
+  > f :: MonadZ3 z3 => AST -> z3 AST
+  .
+  Then
+  .
+  > λ> let g :: ( MonadZ3 z3, IFromZ3 f, IToZ3 f, SingI s ) => IFix f s -> z3 (IFix f s); g = fromZ3 <=< f <=< toZ3
+  > λ> :t g (var "a" :: Lia 'BooleanSort)
+  > g (var "a" :: Lia 'BooleanSort) :: MonadZ3 z3 => z3 (Lia 'BooleanSort)
+  .
+  For example
+  .
+  > λ> let f b = mkStringSymbol "a" >>= mkIntVar >>= toApp >>= \a' -> mkForallConst [] [a'] b
+  > λ> let g :: ( MonadZ3 z3, IFromZ3 f, IToZ3 f ) => IFix f 'BooleanSort -> z3 (IFix f 'BooleanSort); g = fromZ3 <=< g <=< toZ3
+  > λ> evalZ3 $ g (var "a" .+. cnst 1 .=. var "b" :: Lia 'BooleanSort)
+  > (forall ((a : int)) (= (+ 1 (a : int)) (b : int)))
+  .
+  Or more interestingly
+  .
+  > λ> :{
+  > |  let f :: ( MonadZ3 z3, IFromZ3 f, IToZ3 f, SingI s ) => IFix f s -> z3 (IFix f s)
+  > |      f a = do
+  > |      a' <- toZ3 a
+  > |      r <- getModel
+  > |      case r of
+  > |          (Sat, Just m) -> do
+  > |              v <- modelEval m a' True
+  > |              case v of
+  > |                Just v' -> fromZ3 v'
+  > |                _ -> error "..."
+  > |          _ -> error "..."
+  > :}
+  > λ> evalZ3 $ f (var "a" :: Lia 'BooleanSort)
+  > false
+  > λ> evalZ3 $ f (var "a" :: Lia 'IntegralSort)
+  > 0
+  > λ> evalZ3 $ f (var "a" .+. cnst 1:: Lia 'IntegralSort)
+  > 1
+
+license:             BSD3
+license-file:        LICENSE
+author:              Jakub Daniel
+maintainer:          jakub.daniel@protonmail.com
+copyright:           Copyright (C) 2017 Jakub Daniel
+category:            Data, Logic, Math
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=1.10
+
+source-repository head
+  type:     git
+  location: https://github.com/jakubdaniel/expressions-z3.git
+
+library
+  exposed-modules:     Data.Expression.Z3
+  build-depends:       base >=4.9 && <4.12,
+                       containers >=0.5 && <0.7,
+                       expressions >=0.1.7 && <0.2,
+                       singletons >=2.2 && <2.5,
+                       transformers >=0.5.2 && <0.6,
+                       list-t >=1.0 && <1.1,
+                       z3 >=4.1.2 && <4.4
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns
+
+test-suite test
+  type:                exitcode-stdio-1.0
+  build-depends:       base,
+                       containers,
+                       expressions,
+                       expressions-z3,
+                       singletons,
+                       transformers,
+                       z3
+  hs-source-dirs:      test
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  ghc-options:         -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns
