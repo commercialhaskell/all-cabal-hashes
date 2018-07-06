@@ -1,0 +1,100 @@
+cabal-version: 1.18
+name: brainheck
+version: 0.1.0.8
+license: BSD3
+license-file: LICENSE
+copyright: Copyright: (c) 2016-2018 Vanessa McHale
+maintainer: vamchale@gmail.com
+author: Vanessa McHale
+homepage: https://github.com/vmchale/brainheck#readme
+synopsis: Brainh*ck interpreter in haskell
+description:
+    Brainh*ck interpreter written in haskell and taking advantage of many prominent libraries
+category: Web
+build-type: Simple
+extra-source-files:
+    README.md
+    bf/helloworld.bf
+
+source-repository head
+    type: git
+    location: https://github.com/vmchale/brainheck
+
+flag llvm-fast
+    description:
+        Enable build with llvm backend
+    default: False
+
+flag development
+    description:
+        Turn on '-Werror'
+    default: False
+    manual: True
+
+library
+    exposed-modules:
+        Brainheck
+    hs-source-dirs: src
+    default-language: Haskell2010
+    default-extensions: DeriveFunctor DeriveFoldable DeriveTraversable
+                        TypeFamilies
+    other-extensions: TemplateHaskell KindSignatures FlexibleContexts
+    ghc-options: -Wall
+    build-depends:
+        base >=4.10 && <5,
+        mtl -any,
+        vector -any,
+        recursion-schemes -any,
+        text -any,
+        lens -any,
+        megaparsec >=6.0,
+        containers -any
+    
+    if flag(development)
+        ghc-options: -Werror
+    
+    if impl(ghc >=8.0)
+        ghc-options: -Wincomplete-uni-patterns -Wincomplete-record-updates
+
+executable brainheck
+    main-is: Main.hs
+    hs-source-dirs: app
+    other-modules:
+        Paths_brainheck
+    default-language: Haskell2010
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+    build-depends:
+        base >=4.11,
+        brainheck -any,
+        optparse-applicative -any,
+        text -any
+    
+    if flag(development)
+        ghc-options: -Werror
+    
+    if impl(ghc >=8.0)
+        ghc-options: -Wincomplete-uni-patterns -Wincomplete-record-updates
+
+benchmark brainheck-bench
+    type: exitcode-stdio-1.0
+    main-is: Bench.hs
+    hs-source-dirs: bench
+    default-language: Haskell2010
+    ghc-options: -Wall
+    build-depends:
+        base -any,
+        criterion -any,
+        brainheck -any,
+        text -any
+    
+    if flag(llvm-fast)
+        ghc-options: -threaded -rtsopts -with-rtsopts=-N -fllvm -optlo-O3
+                     -O3
+    else
+        ghc-options: -threaded -rtsopts -with-rtsopts=-N -O3
+    
+    if flag(development)
+        ghc-options: -Werror
+    
+    if impl(ghc >=8.0)
+        ghc-options: -Wincomplete-uni-patterns -Wincomplete-record-updates
