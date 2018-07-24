@@ -1,0 +1,156 @@
+name:           Win32-services
+category:       System
+version:        0.4
+cabal-version:  1.16
+build-type:     Simple
+author:         Michael Steele
+maintainer:     Michael Steele <mikesteele81@gmail.com>
+copyright:      Copyright 2011-2018 Michael Steele
+homepage:       http://github.com/mikesteele81/win32-services
+bug-reports:    http://github.com/mikesteele81/win32-services/issues
+license:        BSD3
+license-file:   LICENSE
+tested-with:    GHC == 7.6.3, GHC == 7.8.3, GHC == 7.10.1, GHC == 8.2.2, GHC == 8.4.3
+stability:      provisional
+synopsis:       Windows service applications
+description:
+  This package provides a partial binding to the Win32 System Services
+  API. It makes it easy to write Windows service applications using
+  Haskell. _This is the first version that supports both 32-bit and 64-bit versions of GHC._
+  .
+  The binding is partial. Here are a few ways in which it differs from the
+  official API:
+  .
+  * Only services running within their own process are supported. These are
+  processes of the "WIN32_OWN_PROCESS" type.
+  .
+  * In cases where multiple versions of the same function exist (for
+  compatibility), this binding only offers one of them.
+  .
+  * None of the extended control codes are supported. Handlers you write will
+  automatically report this to the operating system when such controls are
+  received.
+  .
+  * Only facilities for writing services are supported; not controlling them.
+  .
+  Effort has been made to simplify using the API without hiding what is
+  happening behind the scenes. Users are encouraged to read Microsoft's
+  documentation under 'Dev Center - Desktop > Docs > Desktop app development
+  documentation > System Services > Services'. The official example has been
+  ported to Haskell. This can be found in the 'examples' directory of the
+  source tree.
+  .
+  /Simple Example and Usage/
+  .
+  @
+  module Main where
+  .
+  import Control.Concurrent.MVar
+  import System.Win32.Services
+  .
+  main = do
+  &#x20;   mStop <- newEmptyMVar
+  &#x20;   startServiceCtrlDispatcher \"Test\" 3000 (handler mStop) $ \\_ _ h -> do
+  &#x20;       setServiceStatus h running
+  &#x20;       takeMVar mStop
+  &#x20;       setServiceStatus h stopped
+  .
+  handler mStop hStatus Stop = do
+  &#x20;   setServiceStatus hStatus stopPending
+  &#x20;   putMVar mStop ()
+  &#x20;   return True
+  handler _ _ Interrogate = return True
+  handler _ _ _           = return False
+  .
+  running = ServiceStatus Win32OwnProcess Running [AcceptStop] nO_ERROR 0 0 0
+  stopped = ServiceStatus Win32OwnProcess Stopped [] nO_ERROR 0 0 0
+  stopPending = ServiceStatus Win32OwnProcess StopPending [AcceptStop] nO_ERROR 0 0 0
+  @
+  .
+  @
+  C:\programming\test\>ghc --make -threaded Main.hs
+  [1 of 1] Compiling Main             ( Main.hs, Main.o )
+  Linking Main.exe ...
+  \<linker warnings omitted\>
+  C:\\programming\\test\>copy Main.exe c:\\svc\\Test.exe
+      1 file(s) copied.
+  @
+  .
+  Execute the following from an elevated command prompt to register the
+  service:
+  .
+  @
+  C:\\svc\>sc create Test binPath= c:\\svc\\Test.exe
+  [SC] CreateService SUCCESS
+  @
+  .
+  The service can now be started and stopped from the services console.
+  .
+  Installation Notes:
+  .
+  Depending on which version of GHC you are using you may also need to add
+  a extra-lib-dirs directive. In GHC version 8.4.3 it works out of the box with
+  the libadvapi32.a file in ...\\mingw\\x86_64-w64-mingw32\\lib.
+  For older version you need to use a version from a Windows SDK. Your
+  .cabal file will then need to be modified before installing. A simple `cabal
+  install Win32-services` may not work. For example, If you are building on
+  Windows 8 64-bit with the Windows 8 SDK the 'extra-lib-dirs' field will need
+  to be changed to read as follows:
+  .
+  @
+  Extra-Lib-Dirs: \"C:\\\\Program Files (x86)\\\\Windows Kits\\\\8.0\\\\Lib\\\\win8\\\\um\\\\x86\"
+  @
+  .
+  If building with stack an option is to set it in stack.yaml.
+  For example with the Windows 10 SDK installed with Build Tools for Visual Studio 2017:
+  .
+  @
+  extra-lib-dirs:
+  - C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.15063.0\\um\\x64
+  @
+  .
+
+extra-source-files:
+    changelog
+    examples/*.hs
+
+source-repository head
+  type: git
+  location: git://github.com/mikesteele81/win32-services.git
+
+library
+  build-depends: base   >= 4.5 && < 5.0
+               , Win32  >= 2.2 && < 2.8
+               , Win32-errors >= 0.2 && < 0.3
+  default-language: Haskell2010
+  ghc-options:     -Wall
+  hs-source-dirs: src
+  Exposed-Modules: System.Win32.Services
+  Extra-Libraries: Advapi32
+  -- Extra-Lib-Dirs: "C:\\Program Files (x86)\\Windows Kits\\8.0\\Lib\\win8\\um\\x86"
+  -- Extra-Lib-Dirs: "C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\x64"
+  -- Extra-Lib-Dirs: "C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.15063.0\\um\\x64\\AdvAPI32.Lib"
+  -- Extra-Lib-Dirs: c:\Windows\System32
+  other-modules:
+                 Import
+               , System.Win32.Services.Raw
+               , System.Win32.Services.Accept
+               , System.Win32.Services.Control
+               , System.Win32.Services.State
+               , System.Win32.Services.Status
+               , System.Win32.Services.TableEntry
+               , System.Win32.Services.Type
+
+-- executable SimpleExample
+--   hs-source-dirs:      examples
+--   main-is:             simple.hs
+--   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+--   build-depends:       base, Win32-services, Win32-errors
+--   default-language:    Haskell2010
+--
+-- executable OfficialExample
+--   hs-source-dirs:      examples
+--   main-is:             official.hs
+--   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -eventlog
+--   build-depends:       base, Win32-services, Win32, Win32-errors
+--   default-language:    Haskell2010
