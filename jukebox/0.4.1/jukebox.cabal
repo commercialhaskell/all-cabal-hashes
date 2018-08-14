@@ -1,0 +1,83 @@
+Name: jukebox
+Version: 0.4.1
+Cabal-version: >= 1.8
+Build-type: Simple
+Author: Nick Smallbone
+Maintainer: nicsma@chalmers.se
+Copyright: 2009-2017 Nick Smallbone, Koen Claessen, Ann Lillieström
+
+Category:            Logic
+
+Synopsis:            A first-order reasoning toolbox
+Description:
+  Jukebox is a suite of tools for transforming problems in first-order logic.
+  It reads problems in TPTP (FOF and TFF) format.
+  .
+  Currently it can translate typed problems to untyped (by efficiently
+  encoding types) and clausify problems (both typed and untyped).
+License: BSD3
+License-file: LICENSE
+extra-source-files: src/errors.h gcc-static-libstdc++
+
+flag minisat
+  Description: Use minisat. Required for monotonicity inference.
+  Default: True
+
+flag static-cxx
+  description: Build a binary which statically links against libstdc++.
+  default: False
+
+source-repository head
+  type:     git
+  location: https://github.com/nick8325/jukebox
+
+Library
+  Build-depends: base >= 4 && < 5, array, transformers >= 0.4.0.0, directory,
+    filepath, pretty >= 1.1.2.0, symbol, dlist, process, containers, uglymemo
+  if !impl(ghc >= 8.0)
+    Build-depends: semigroups
+  if flag(minisat)
+    Build-depends: minisat
+    Exposed-modules:
+      Jukebox.Sat
+      Jukebox.Sat.ThreeValued
+      Jukebox.Sat.Equality
+      Jukebox.Sat.Minimise
+      Jukebox.Sat.Easy
+  else
+    cpp-options: -DNO_MINISAT
+  ghc-options: -W -fno-warn-incomplete-patterns
+  Build-tools: alex
+  Hs-source-dirs: src
+  include-dirs: src
+  Exposed-modules:
+    Jukebox.Form
+    Jukebox.Name
+    Jukebox.Options
+    Jukebox.ExternalProvers.E
+    Jukebox.ExternalProvers.SPASS
+    Jukebox.SMTLIB
+    Jukebox.Toolbox
+    Jukebox.Tools.Clausify
+    Jukebox.Tools.GuessModel
+    Jukebox.Tools.InferTypes
+    Jukebox.Tools.AnalyseMonotonicity
+    Jukebox.Tools.EncodeTypes
+    Jukebox.Tools.HornToUnit
+    Jukebox.TPTP.Parse.Core
+    Jukebox.TPTP.FindFile
+    Jukebox.TPTP.Lexer
+    Jukebox.TPTP.Parsec
+    Jukebox.TPTP.Parse
+    Jukebox.TPTP.ParseSnippet
+    Jukebox.TPTP.Print
+    Jukebox.UnionFind
+    Jukebox.Utils
+
+Executable jukebox
+  Main-is: executable/Main.hs
+  Build-depends: base >= 4 && < 5, jukebox
+  ghc-options: -W -fno-warn-incomplete-patterns
+
+  if flag(static-cxx)
+    ghc-options: -pgml ./gcc-static-libstdc++
