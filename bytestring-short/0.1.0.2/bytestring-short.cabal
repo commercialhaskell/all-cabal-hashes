@@ -1,0 +1,99 @@
+name:                bytestring-short
+version:             0.1.0.2
+synopsis:            Backport copy of ShortByteString
+description:         This package provides the backport copy of ShortByteString
+license:             BSD3
+license-file:        LICENSE
+author:              Kei Hibino
+maintainer:          Kei Hibino <ex8k.hibino@gmail.com>
+copyright:           Copyright (c) Don Stewart          2005-2009,
+                               (c) Duncan Coutts        2006-2013,
+                               (c) David Roundy         2003-2005,
+                               (c) Kei Hibino           2015.
+category:            Text
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+tested-with:           GHC == 8.2.1, GHC == 8.2.2
+                     , GHC == 8.0.1, GHC == 8.0.2
+                     , GHC == 7.10.1, GHC == 7.10.2, GHC == 7.10.3
+                     , GHC == 7.8.1, GHC == 7.8.2, GHC == 7.8.3, GHC == 7.8.4
+                     , GHC == 7.6.1, GHC == 7.6.2, GHC == 7.6.3
+                     , GHC == 7.4.1, GHC == 7.4.2
+extra-source-files:
+                     tests/Properties.hs
+
+flag use-backport
+  description: If true, use backport implementation, otherwize use bytestring 0.10.4 or newer.
+  default:     True
+
+library
+  -- Compatible package list trick like: ... bytestring, bytestring-short ...
+
+  if flag(use-backport)
+    exposed-modules:
+                       Data.ByteString.Short
+                       Data.ByteString.Short.Internal
+
+    other-extensions:
+                       DeriveDataTypeable
+                       CPP
+                       BangPatterns
+                       RankNTypes
+                       ForeignFunctionInterface
+                       MagicHash
+                       UnboxedTuples
+                       UnliftedFFITypes
+                       Unsafe
+    hs-source-dirs:      src
+  else
+    exposed-modules:
+
+
+  exposed-modules:
+                        Data.ByteString.Short.Compat
+
+  if flag(use-backport)
+    build-depends:         base >=4.2 && <5
+                         , bytestring >=0.9.1 && <0.10.4
+                         , deepseq >=1.1
+  else
+    build-depends:         base >=4.2 && <5
+                         , bytestring >=0.10.4
+
+  hs-source-dirs:      compat
+  default-language:    Haskell98
+
+  ghc-options:         -Wall
+
+  c-sources:           cbits/short_fpstring.c
+  include-dirs:        include
+  includes:            short_fpstring.h
+  install-includes:    short_fpstring.h
+
+test-suite prop-compiled
+
+  if flag(use-backport)
+    type:              exitcode-stdio-1.0
+    main-is:           Properties.hs
+    build-depends:     base <5, bytestring-short, bytestring,
+                       QuickCheck >=2
+    c-sources:         cbits/short_fpstring.c
+    include-dirs:      include
+
+  else
+    type:              exitcode-stdio-1.0
+    main-is:           TT.hs
+    build-depends:     base <5
+
+  hs-source-dirs:      tests
+  ghc-options:         -Wall
+  default-language:    Haskell98
+
+source-repository head
+  type:       git
+  location:   https://github.com/khibino/haskell-bytestring-short
+
+source-repository head
+  type:       mercurial
+  location:   https://bitbucket.org/khibino/haskell-bytestring-short
