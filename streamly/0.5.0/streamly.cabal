@@ -1,0 +1,512 @@
+name:               streamly
+version:            0.5.0
+synopsis:           Beautiful Streaming, Concurrent and Reactive Composition
+description:
+  Streamly, short for streaming concurrently, provides monadic streams, with a
+  simple API, almost identical to standard lists, and an in-built support for
+  concurrency.  By using stream-style combinators on stream composition,
+  streams can be generated, merged, chained, mapped, zipped, and consumed
+  concurrently – providing a generalized high level programming framework
+  unifying streaming and concurrency. Controlled concurrency allows even
+  infinite streams to be evaluated concurrently.  Concurrency is auto scaled
+  based on feedback from the stream consumer.  The programmer does not have to
+  be aware of threads, locking or synchronization to write scalable concurrent
+  programs.
+  .
+  The basic streaming functionality of streamly is equivalent to that provided by
+  streaming libraries like
+  <https://hackage.haskell.org/package/vector vector>,
+  <https://hackage.haskell.org/package/streaming streaming>,
+  <https://hackage.haskell.org/package/pipes pipes>, and
+  <https://hackage.haskell.org/package/conduit conduit>.
+  In addition to providing streaming functionality, streamly subsumes the
+  functionality of list transformer libraries like @pipes@ or
+  <https://hackage.haskell.org/package/list-t list-t> and also the logic
+  programming library <https://hackage.haskell.org/package/logict logict>. On
+  the concurrency side, it subsumes the functionality of the
+  <https://hackage.haskell.org/package/async async> package. Because it
+  supports streaming with concurrency we can write FRP applications similar in
+  concept to <https://hackage.haskell.org/package/Yampa Yampa> or
+  <https://hackage.haskell.org/package/reflex reflex>.
+  .
+  For file IO, currently the library provides only one API to stream the lines
+  in the file as Strings.  Future versions will provide better streaming file
+  IO options.  Streamly interworks with the popular streaming libraries, see
+  the interworking section in "Streamly.Tutorial".
+  .
+  Why use streamly?
+  .
+  * /Simplicity/: Simple list like streaming API, if you know how to use lists
+    then you know how to use streamly. This library is built with simplicity
+    and ease of use as a primary design goal.
+  * /Concurrency/: Simple, powerful, and scalable concurrency.  Concurrency is
+    built-in, and not intrusive, concurrent programs are written exactly the
+    same way as non-concurrent ones.
+  * /Generality/: Unifies functionality provided by several disparate packages
+    (streaming, concurrency, list transformer, logic programming, reactive
+    programming) in a concise API.
+  * /Performance/: Streamly is designed for high performance.
+    It employs stream fusion optimizations for best possible performance.
+    Serial peformance is equivalent to the venerable `vector` library in most
+    cases and even better in some cases. Concurrent performance is unbeatable.
+    See
+    <https://github.com/composewell/streaming-benchmarks streaming-benchmarks>
+    for a comparison of popular streaming libraries on micro-benchmarks.
+  .
+  Where to find more information:
+  .
+  * @README@ shipped with the package for a quick overview
+  * "Streamly.Tutorial" module in the haddock documentation for a detailed introduction
+  * @examples@ directory in the package for some simple practical examples
+
+homepage:            https://github.com/composewell/streamly
+bug-reports:         https://github.com/composewell/streamly/issues
+license:             BSD3
+license-file:        LICENSE
+tested-with:         GHC==7.10.3, GHC==8.0.2, GHC==8.2.2, GHC==8.4.3
+author:              Harendra Kumar
+maintainer:          harendra.kumar@gmail.com
+copyright:           2017 Harendra Kumar
+category:            Control, Concurrency, Streaming, Reactivity
+stability:           Experimental
+build-type:          Simple
+cabal-version:       >= 1.10
+
+extra-source-files:
+    Changelog.md
+    README.md
+    bench.sh
+    stack-7.10.yaml
+    stack-8.0.yaml
+    stack.yaml
+    src/Streamly/Streams/Instances.hs
+    src/Streamly/Streams/inline.h
+
+source-repository head
+    type: git
+    location: https://github.com/composewell/streamly
+
+flag diag
+  description: Diagnostics build
+  manual: True
+  default: False
+
+flag dev
+  description: Development build
+  manual: True
+  default: False
+
+flag no-fusion
+  description: Disable rewrite rules
+  manual: True
+  default: False
+
+flag streamk
+  description: Use CPS style streams when possible
+  manual: True
+  default: False
+
+flag examples
+  description: Build including examples
+  manual: True
+  default: False
+
+flag examples-sdl
+  description: Build including SDL examples
+  manual: True
+  default: False
+
+-------------------------------------------------------------------------------
+-- Library
+-------------------------------------------------------------------------------
+
+library
+    hs-source-dirs:    src
+    other-modules:     Streamly.SVar
+                     , Streamly.Streams.StreamK
+                     , Streamly.Streams.StreamD
+                     , Streamly.Streams.Serial
+                     , Streamly.Streams.SVar
+                     , Streamly.Streams.Async
+                     , Streamly.Streams.Parallel
+                     , Streamly.Streams.Ahead
+                     , Streamly.Streams.Zip
+                     , Streamly.Streams.Prelude
+
+    exposed-modules:   Streamly.Prelude
+                     , Streamly.Time
+                     , Streamly
+                     , Streamly.Tutorial
+
+    default-language: Haskell2010
+    ghc-options:      -Wall
+
+    if flag(streamk)
+      cpp-options:    -DUSE_STREAMK_ONLY
+
+    if flag(no-fusion)
+      cpp-options:    -DDISABLE_FUSION
+
+    if flag(diag)
+      cpp-options:    -DDIAGNOSTICS
+
+    if flag(dev)
+      cpp-options:    -DDIAGNOSTICS
+      ghc-options:    -Wmissed-specialisations
+                      -Wall-missed-specialisations
+                      -fno-ignore-asserts
+    if impl(ghc >= 8.0)
+      ghc-options:    -Wcompat
+                      -Wunrecognised-warning-flags
+                      -Widentities
+                      -Wincomplete-record-updates
+                      -Wincomplete-uni-patterns
+                      -Wredundant-constraints
+                      -Wnoncanonical-monad-instances
+                      -Wnoncanonical-monadfail-instances
+
+    build-depends:     base              >= 4.8   &&  < 5
+                     , ghc-prim          >= 0.2   && < 0.6
+                     , containers        >= 0.5   && < 0.6
+                     , heaps             >= 0.3   && < 0.4
+
+                    -- concurrency
+                     , atomic-primops    >= 0.8   && < 0.9
+                     , lockfree-queue    >= 0.2.3 && < 0.3
+                     , clock             >= 0.7.1 && < 0.8
+
+                    -- transfomers
+                     , exceptions        >= 0.8   && < 0.11
+                     , monad-control     >= 1.0   && < 2
+                     , mtl               >= 2.2   && < 3
+                     , transformers      >= 0.4   && < 0.6
+                     , transformers-base >= 0.4   && < 0.5
+
+  if impl(ghc < 8.0)
+    build-depends:
+        semigroups    >= 0.18   && < 0.19
+
+-------------------------------------------------------------------------------
+-- Test suites
+-------------------------------------------------------------------------------
+
+-- Compilation for coverage builds on CI machines takes too long without -O0
+
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test
+  ghc-options:  -O0 -Wall -threaded -with-rtsopts=-N
+  if flag(dev)
+    cpp-options:    -DDEVBUILD
+    ghc-options:    -Wmissed-specialisations
+                    -Wall-missed-specialisations
+  if impl(ghc >= 8.0)
+    ghc-options:    -Wcompat
+                    -Wunrecognised-warning-flags
+                    -Widentities
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wredundant-constraints
+                    -Wnoncanonical-monad-instances
+                    -Wnoncanonical-monadfail-instances
+  build-depends:
+      streamly
+    , base              >= 4.8   && < 5
+    , hspec             >= 2.0   && < 3
+    , containers        >= 0.5   && < 0.6
+    , transformers      >= 0.4   && < 0.6
+    , mtl               >= 2.2   && < 3
+    , exceptions        >= 0.8   && < 0.11
+  default-language: Haskell2010
+
+test-suite properties
+  type: exitcode-stdio-1.0
+  main-is: Prop.hs
+  hs-source-dirs: test
+  ghc-options:  -Wall -O0 -threaded -with-rtsopts=-N
+  if flag(dev)
+    cpp-options:    -DDEVBUILD
+    ghc-options:    -Wmissed-specialisations
+                    -Wall-missed-specialisations
+  if impl(ghc >= 8.0)
+    ghc-options:    -Wcompat
+                    -Wunrecognised-warning-flags
+                    -Widentities
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wredundant-constraints
+                    -Wnoncanonical-monad-instances
+                    -Wnoncanonical-monadfail-instances
+  build-depends:
+      streamly
+    , base              >= 4.8   && < 5
+    , QuickCheck        >= 2.10  && < 2.13
+    , hspec             >= 2.0   && < 3
+  default-language: Haskell2010
+
+test-suite maxrate
+  type: exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is: MaxRate.hs
+  hs-source-dirs:  test
+  ghc-options:  -O2 -Wall -threaded -with-rtsopts=-N
+  if flag(dev)
+    buildable: True
+    build-Depends:
+          streamly
+        , base   >= 4.8   && < 5
+        , clock  >= 0.7.1 && < 0.8
+        , hspec  >= 2.0   && < 3
+        , random >= 1.0.0 && < 1.2
+  else
+    buildable: False
+
+test-suite loops
+  type: exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is: loops.hs
+  hs-source-dirs:  test
+  build-Depends:
+      streamly
+    , base >= 4.8   && < 5
+
+test-suite nested-loops
+  type: exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is: nested-loops.hs
+  hs-source-dirs:  test
+  build-Depends:
+      streamly
+    , base   >= 4.8   && < 5
+    , random >= 1.0.0 && < 1.2
+
+test-suite parallel-loops
+  type: exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is: parallel-loops.hs
+  hs-source-dirs:  test
+  build-Depends:
+      streamly
+    , base   >= 4.8   && < 5
+    , random >= 1.0.0 && < 1.2
+
+-------------------------------------------------------------------------------
+-- Benchmarks
+-------------------------------------------------------------------------------
+
+benchmark linear
+  type: exitcode-stdio-1.0
+  hs-source-dirs: benchmark
+  main-is: Linear.hs
+  other-modules: LinearOps
+  default-language: Haskell2010
+  ghc-options:  -O2 -Wall
+  if flag(dev)
+    ghc-options:    -Wmissed-specialisations
+                    -Wall-missed-specialisations
+                    -fno-ignore-asserts
+  if impl(ghc >= 8.0)
+    ghc-options:    -Wcompat
+                    -Wunrecognised-warning-flags
+                    -Widentities
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wredundant-constraints
+                    -Wnoncanonical-monad-instances
+                    -Wnoncanonical-monadfail-instances
+  build-depends:
+      streamly
+    , base                >= 4.8   && < 5
+    , deepseq             >= 1.4.0 && < 1.5
+    , random              >= 1.0   && < 2.0
+    , gauge               >= 0.2.3 && < 0.3
+
+benchmark nested
+  type: exitcode-stdio-1.0
+  hs-source-dirs: benchmark
+  main-is: Nested.hs
+  other-modules: NestedOps
+  default-language: Haskell2010
+  ghc-options:  -O2 -Wall
+  if flag(dev)
+    ghc-options:    -Wmissed-specialisations
+                    -Wall-missed-specialisations
+                    -fno-ignore-asserts
+  if impl(ghc >= 8.0)
+    ghc-options:    -Wcompat
+                    -Wunrecognised-warning-flags
+                    -Widentities
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wredundant-constraints
+                    -Wnoncanonical-monad-instances
+                    -Wnoncanonical-monadfail-instances
+  build-depends:
+      streamly
+    , base                >= 4.8   && < 5
+    , deepseq             >= 1.4.0 && < 1.5
+    , random              >= 1.0   && < 2.0
+    , gauge               >= 0.2.3 && < 0.3
+
+-------------------------------------------------------------------------------
+-- Internal benchmarks for unexposed modules
+-------------------------------------------------------------------------------
+
+-- We have to copy the streamly library modules here because there is no
+-- way to use unexposed modules from the library.
+
+benchmark base
+  type: exitcode-stdio-1.0
+  hs-source-dirs: benchmark, src
+  main-is: BaseStreams.hs
+  other-modules:     Streamly.SVar
+                   , Streamly.Streams.StreamK
+                   , Streamly.Streams.StreamD
+                   , Streamly.Streams.Prelude
+
+                   , StreamDOps
+                   , StreamKOps
+
+  default-language: Haskell2010
+  ghc-options:  -O2 -Wall
+  if flag(dev)
+    ghc-options:    -Wmissed-specialisations
+                    -Wall-missed-specialisations
+                    -fno-ignore-asserts
+  if impl(ghc >= 8.0)
+    ghc-options:    -Wcompat
+                    -Wunrecognised-warning-flags
+                    -Widentities
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wredundant-constraints
+                    -Wnoncanonical-monad-instances
+                    -Wnoncanonical-monadfail-instances
+
+  build-depends:
+      base              >= 4.8   && < 5
+    , deepseq           >= 1.4.0 && < 1.5
+    , random            >= 1.0   && < 2.0
+    , gauge             >= 0.2.3 && < 0.3
+
+    , ghc-prim          >= 0.2   && < 0.6
+    , containers        >= 0.5   && < 0.7
+    , heaps             >= 0.3   && < 0.4
+
+    -- concurrency
+    , atomic-primops    >= 0.8   && < 0.9
+    , lockfree-queue    >= 0.2.3 && < 0.3
+    , clock             >= 0.7.1 && < 0.8
+
+    , exceptions        >= 0.8   && < 0.11
+    , monad-control     >= 1.0   && < 2
+    , mtl               >= 2.2   && < 3
+    , transformers      >= 0.4   && < 0.6
+    , transformers-base >= 0.4   && < 0.5
+
+  if impl(ghc < 8.0)
+      build-depends:
+          semigroups    >= 0.18   && < 0.19
+
+executable chart-linear
+  default-language: Haskell2010
+  hs-source-dirs: benchmark
+  main-is: ChartLinear.hs
+  if flag(dev)
+    buildable: True
+    build-Depends:
+        base >= 4.8 && < 5
+      , bench-graph >= 0.1 && < 0.2
+      , split
+  else
+    buildable: False
+
+executable chart-nested
+  default-language: Haskell2010
+  hs-source-dirs: benchmark
+  main-is: ChartNested.hs
+  if flag(dev)
+    buildable: True
+    build-Depends:
+        base >= 4.8 && < 5
+      , bench-graph >= 0.1 && < 0.2
+      , split
+  else
+    buildable: False
+
+-------------------------------------------------------------------------------
+-- Examples
+-------------------------------------------------------------------------------
+
+executable SearchQuery
+  default-language: Haskell2010
+  main-is: SearchQuery.hs
+  hs-source-dirs:  examples
+  if flag(examples) || flag(examples-sdl)
+    buildable: True
+    build-Depends:
+        streamly
+      , base         >= 4.8   && < 5
+      , http-conduit >= 2.2.2 && < 2.4
+  else
+    buildable: False
+
+executable ListDir
+  default-language: Haskell2010
+  main-is: ListDir.hs
+  hs-source-dirs:  examples
+  if flag(examples) || flag(examples-sdl)
+    buildable: True
+    build-Depends:
+        streamly
+      , base    >= 4.8   && < 5
+      , path-io >= 0.1.0 && < 1.4
+    if impl(ghc < 8.0)
+      build-depends:
+          transformers  >= 0.4    && < 0.6
+  else
+    buildable: False
+
+executable MergeSort
+  default-language: Haskell2010
+  main-is: MergeSort.hs
+  hs-source-dirs:  examples
+  if flag(examples) || flag(examples-sdl)
+    buildable: True
+    build-Depends:
+        streamly
+      , base   >= 4.8   && < 5
+      , random >= 1.0.0 && < 1.2
+  else
+    buildable: False
+
+executable AcidRain
+  default-language: Haskell2010
+  main-is: AcidRain.hs
+  hs-source-dirs:  examples
+  if flag(examples) || flag(examples-sdl)
+    buildable: True
+    build-Depends:
+        streamly
+      , base         >= 4.8   && < 5
+      , mtl          >= 2.2   && < 3
+    if impl(ghc < 8.0)
+      build-depends:
+          semigroups    >= 0.18   && < 0.19
+        , transformers  >= 0.4    && < 0.6
+  else
+    buildable: False
+
+executable CirclingSquare
+  default-language: Haskell2010
+  main-is: CirclingSquare.hs
+  hs-source-dirs:  examples
+  if flag(examples-sdl)
+    buildable: True
+    build-Depends:
+        streamly
+      , base >= 4.8   && < 5
+      , SDL  >= 0.6.5 && < 0.7
+  else
+    buildable: False
