@@ -1,0 +1,121 @@
+cabal-version: 2.0
+name: hgis
+version: 1.0.0.3
+license: BSD3
+license-file: LICENSE
+copyright: Copyright: (c) 2016-2018 Vanessa McHale
+maintainer: vamchale@gmail.com
+author: Vanessa McHale
+synopsis: Library and for GIS with Haskell
+description:
+    Package containing functions to make graphs, read
+    shapefiles, and compute areas/perimeters of
+    geographic features.
+category: Web
+build-type: Simple
+extra-source-files:
+    cabal.project.local
+extra-doc-files: README.md
+                 CHANGELOG.md
+                 docs/manual.tex
+                 dbf/LICENSE
+
+source-repository head
+    type: darcs
+    location: https://hub.darcs.net/vmchale/hgis
+
+flag development
+    description:
+        Turn on '-Werror'
+    default: False
+    manual: True
+
+flag cairo
+    description:
+        Enable build using cairo backend, allowing generation of PNGs
+
+flag diagrams
+    description:
+        Enable build using diagrams backend, allowing generation of SVGs
+
+library
+    exposed-modules:
+        GIS.Math.Projections
+        GIS.Math.Spherical
+        GIS.Hylo
+    hs-source-dirs: src
+    other-modules:
+        GIS.Graphics.Types
+        GIS.Utils
+        GIS.Graphics.Plot
+        GIS.Types
+    default-language: Haskell2010
+    default-extensions: DeriveGeneric OverloadedStrings
+    other-extensions: RankNTypes FlexibleInstances RecordWildCards
+    ghc-options: -Wall -Wincomplete-uni-patterns
+                 -Wincomplete-record-updates -Wmissing-export-lists
+    build-depends:
+        base >=4.11 && <5,
+        Chart -any,
+        lens -any,
+        composition-prelude >=1.1.0.1,
+        ansi-wl-pprint -any,
+        directory -any,
+        colour -any,
+        data-default -any,
+        hgis-readshp -any,
+        spherical -any
+    
+    if flag(cairo)
+        exposed-modules:
+            GIS.Graphics.PlotPNG
+    
+    if flag(diagrams)
+        exposed-modules:
+            GIS.Graphics.PlotSVG
+    
+    if flag(cairo)
+        build-depends:
+            Chart-cairo -any
+    
+    if flag(diagrams)
+        build-depends:
+            Chart-diagrams -any
+    
+    if flag(development)
+        ghc-options: -Werror
+
+library hgis-readshp
+    exposed-modules:
+        Geometry.Shapefile.Types
+        Geometry.Shapefile.MergeShpDbf
+        Geometry.Shapefile.ReadShp
+    hs-source-dirs: dbf
+    other-modules:
+        Geometry.Shapefile.ReadDbf
+        Geometry.Shapefile.Internal
+    default-language: Haskell2010
+    build-depends:
+        base -any,
+        binary -any,
+        bytestring -any,
+        data-binary-ieee754 -any,
+        monad-loops -any,
+        filepath -any
+
+test-suite hgis-test
+    type: exitcode-stdio-1.0
+    main-is: Spec.hs
+    hs-source-dirs: test
+    default-language: Haskell2010
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+                 -Wincomplete-uni-patterns -Wincomplete-record-updates
+                 -Wmissing-export-lists
+    build-depends:
+        base -any,
+        hgis -any,
+        hspec -any,
+        spherical >=0.1.2.0
+    
+    if flag(development)
+        ghc-options: -Werror
