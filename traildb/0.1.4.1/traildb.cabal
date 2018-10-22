@@ -1,0 +1,85 @@
+name:                traildb
+version:             0.1.4.1
+synopsis:            TrailDB bindings for Haskell
+description:         Check out README.md for information on these bindings.
+                     .
+                     TrailDB project home page is at traildb.io
+license-file:        LICENSE
+license:             MIT
+author:              Mikko Juola
+maintainer:          mikko.juola@adroll.com
+copyright:           AdRoll Inc (c) 2016-2017
+category:            Database
+build-type:          Simple
+cabal-version:       >=1.10
+stability:           beta
+extra-source-files:  README.md
+                     examples/tutorial_simple_traildb.hs
+                     stack.yaml
+
+source-repository head
+  type:                git
+  location:            https://github.com/traildb/traildb-haskell
+
+flag use-ioref
+  default:             False
+  description:         Use `IORef` instead of `MVar` as
+                       the container for `Tdb`. Can improve performance (very
+                       slightly) but you lose thread safety.
+
+flag build-wikipedia-benchmark
+  default:             False
+  description:         Build the wikipedia scanning executable from
+                       https://github.com/joeyrobert/traildb-benchmark
+                       This program requires you to download the wikipedia TrailDB
+                       manually; check out the linked git repository for where to get it.
+
+library
+  exposed-modules:     System.TrailDB
+                       System.TrailDB.Error
+                       System.TrailDB.Internal
+  build-depends:       base       >=4.6 && <5.0
+                      ,bytestring
+                      ,containers >=0.4 && <1.0
+                      ,directory
+                      ,exceptions
+                      ,primitive
+                      ,profunctors
+                      ,text
+                      ,time
+                      ,transformers
+                      ,unix
+                      ,vector
+  extra-libraries:     traildb, Judy
+  ghc-options:         -Wall -fno-warn-name-shadowing -O2
+  c-sources:           cbits/shim.c
+  default-language:    Haskell2010
+
+  if flag(use-ioref)
+    cpp-options:       -DUSE_IOREF
+
+executable traildb-wikipedia-benchmark
+  main-is:             Main.hs
+  if !flag(build-wikipedia-benchmark)
+    buildable:         False
+  hs-source-dirs:      wikipedia-benchmark
+  build-depends:       base >=4.6 && <5.0
+                      ,traildb
+                      ,vector
+  ghc-options:         -Wall -fno-warn-name-shadowing -O2
+  default-language:    Haskell2010
+
+benchmark bench-traildb
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  build-depends:       base >=4.6 && <5.0
+                      ,bytestring
+                      ,cereal
+                      ,criterion
+                      ,deepseq
+                      ,directory
+                      ,random
+                      ,traildb
+  ghc-options:         -Wall -fno-warn-name-shadowing -O2
+  hs-source-dirs:      bench-traildb
+  default-language:    Haskell2010
