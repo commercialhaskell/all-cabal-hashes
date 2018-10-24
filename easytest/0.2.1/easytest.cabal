@@ -1,0 +1,116 @@
+name:          easytest
+category:      Testing
+version:       0.2.1
+license:       MIT
+cabal-version: >= 1.8
+license-file:  LICENSE
+author:        Joel Burget, Paul Chiusano
+maintainer:    Joel Burget <joelburget@gmail.com>
+stability:     provisional
+homepage:      https://github.com/joelburget/easytest
+bug-reports:   https://github.com/joelburget/easytest/issues
+copyright:     Copyright (C) 2017-2018 Joel Burget, Copyright (C) 2016 Paul Chiusano and contributors
+synopsis:      Simple, expressive testing library
+description:
+  EasyTest is a simple testing toolkit, meant to replace most uses of QuickCheck, SmallCheck, HUnit, and frameworks like Tasty, etc. Here's an example usage:
+  .
+  > module Main where
+  >
+  > import EasyTest
+  > import Control.Applicative
+  > import Control.Monad
+  >
+  > suite :: Test ()
+  > suite = tests
+  >   [ scope "addition.ex1" $ expect (1 + 1 == 2)
+  >   , scope "addition.ex2" $ expect (2 + 3 == 5)
+  >   , scope "list.reversal" . fork $ do
+  >       -- generate lists from size 0 to 10, of Ints in (0,43)
+  >       -- shorthand: listsOf [0..10] (int' 0 43)
+  >       ns <- [0..10] `forM` \n -> replicateM n (int' 0 43)
+  >       ns `forM_` \ns -> expect (reverse (reverse ns) == ns)
+  >   -- equivalent to `scope "addition.ex3"`
+  >   , scope "addition" . scope "ex3" $ expect (3 + 3 == 6)
+  >   , scope "always passes" $ do
+  >       note "I'm running this test, even though it always passes!"
+  >       ok -- like `pure ()`, but records a success result
+  >   , scope "failing test" $ crash "oh noes!!" ]
+  >
+  > -- NB: `run suite` would run all tests, but we only run
+  > -- tests whose scopes are prefixed by "addition"
+  > main = runOnly "addition" suite
+  .
+  This generates the output:
+  .
+  > Randomness seed for this run is 5104092164859451056
+  > Raw test output to follow ...
+  > ------------------------------------------------------------
+  > OK addition.ex1
+  > OK addition.ex2
+  > OK addition.ex3
+  > ------------------------------------------------------------
+  > ✅  3 tests passed, no failures! 👍 🎉
+  The idea here is to write tests with ordinary Haskell code, with control flow explicit and under programmer control.
+
+build-type:    Simple
+extra-source-files: CHANGES.md
+data-files:
+tested-with: GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.3, GHC == 8.6.1
+
+source-repository head
+  type: git
+  location: git@github.com:joelburget/easytest.git
+
+-- `cabal install -foptimized` enables optimizations
+flag optimized
+  manual: True
+  default: False
+
+flag quiet
+  manual: True
+  default: False
+
+library
+  hs-source-dirs: src
+
+  exposed-modules:
+    EasyTest
+    EasyTest.Internal
+
+  other-modules:
+    EasyTest.Generators
+    EasyTest.Porcelain
+
+  -- these bounds could probably be made looser
+  build-depends:
+    async                     >= 2.1      && <= 2.3,
+    base                      >= 4.8      && <= 5,
+    mtl                       >= 2.0.1    && < 2.3,
+    containers                >= 0.4.0    && < 0.7,
+    stm                       >= 2.4      && < 3,
+    random                    >= 1.1      && < 2,
+    text                      >= 1.2      && < 1.3,
+    transformers              >= 0.4.2,
+    call-stack                >= 0.1
+
+  if !impl(ghc >= 8.0)
+    build-depends: semigroups == 0.18.*
+
+  ghc-options: -Wall -fno-warn-name-shadowing
+
+  if flag(optimized)
+    ghc-options: -funbox-strict-fields -O2
+
+  if flag(quiet)
+    ghc-options: -v0
+
+-- I really have no idea why you'd ever use this, just use an executable as above
+test-suite tests
+  type:           exitcode-stdio-1.0
+  main-is:        Suite.hs
+  ghc-options:    -w -threaded -rtsopts -with-rtsopts=-N -v0
+  hs-source-dirs: tests
+  other-modules:
+  build-depends:
+    base,
+    easytest
