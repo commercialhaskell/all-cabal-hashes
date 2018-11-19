@@ -1,0 +1,163 @@
+name:                simple-effects
+version:             0.13.0.0
+synopsis:            A simple effect system that integrates with MTL
+description:
+    Some of the things you can do with this package:
+    .
+    * Declare and check which side-effects your function uses
+    * Dependency injection
+    * Test effectful code
+    * Avoid the \(n \times k\) instance problem
+    * Define custom effects with very little programming overhead
+    .
+    === Declare and check which side-effects your function uses
+    .
+    The library provides a nice, declarative way of specifying exactly what your monadic function
+    does.
+    .
+    > getProductAndWriteToFile :: MonadEffects '[Database, FileSystem] m => ProductId -> FilePath -> m ()
+    .
+    This way you can be sure that your @harmlessFunction@ doesn't do unexpected things behind your
+    back. The compiler makes sure that all the effects are accounted for in the function's type.
+    .
+    === Dependency injection
+    .
+    Functions are not tied to any specific implementation of an effect meaning you can swap out
+    different implementations without changing your code. Code like this
+    .
+    > myFunction :: MonadEffects '[Time, Logging] m => m ()
+    > myFunction = do
+    >     t <- getCurrentTime
+    >     log (show t)
+    .
+    is effectively the same as
+    .
+    > myFunction :: Monad m => m ZonedTime -> (String -> m ()) -> m ()
+    > myFunction getCurrentTime log = do
+    >     t <- getCurrentTime
+    >     log (show t)
+    .
+    but the library does all the parameter passing for you. And just like you'd be able to
+    provide any implementation as @getCurrentTime@ and @log@ parameters you can do the same with
+    simple effects.
+    .
+    > myFunction
+    >     & implement (TimeMethods someCurrentTimeImplementation)
+    >     & implement (LoggingMethods someLoggingImplementation)
+    .
+    === Test effectful code
+    .
+    Easily provide dummy implementations of your effects to prevent missle-launching during testing.
+    .
+    > myEffectfulFunction :: MonadEffects '[Database, Missiles] m => m Int
+    >
+    > main = do
+    >     conn <- connectToDb "connStr"
+    >     myEffectfulFunction
+    >         & implement (realDatabase conn)
+    >         & implement (MissilesMethods (launchMissles "access codes"))
+    >
+    > spec = do
+    >     res <- myEffectfulFunction
+    >         & implement (fakeDb Map.empty)
+    >         & implement (MissilesMethods (print "Totally launching missiles"))
+    >     when (res /= 42) (error "Test failed!")
+    .
+    === Avoid the \(n \times k\) instance problem
+    .
+    Any effect you define is automatically liftable through any transformer. Most @MonadX@ instances
+    you'd write would look like @func a b c = lift (func a b c)@, so why would you have to write them
+    yourself? @simple-effects@ does it for you using an overlappable instance.
+    .
+    What about effects that aren't that simple? Each effect can specify a constraint on the transformers
+    that it can be lifted through and a mechanism that does the lifting. So you get all the benefits
+    of automatic lifting of simple effects and retain all of the flexibility of complex ones.
+    .
+    === Define custom effects with very little programming overhead
+    .
+    Lets say we need a way to get coordinates for some address. Here's how we'd declare that
+    functionality.
+    .
+    @
+    data Geolocation m = GeolocationMethods
+    &#32;   &#x7b; _getLocation :: Address -> m Coordinates &#x7d;
+    &#32;   deriving (Generic, Effect)
+    getLocation :: MonadEffect Geolocation m => Address -> m Coordinates
+    getLocation = _getLocation effect
+    @
+    .
+    That's all you need to start using your effect in functions.
+    .
+    > getUsersLocation :: (MonadEffect Geolocation m, MonadIO m) => m Coordinates
+    > getUsersLocation = do
+    >     liftIO $ putStrLn "Please enter your address:"
+    >     addr <- liftIO readLn
+    >     getLocation addr
+    .
+    ==== <Tutorial-T1_Introduction.html Check out the tutorial modules for more details>
+    .
+homepage:            https://gitlab.com/LukaHorvat/simple-effects
+license:             BSD3
+license-file:        LICENSE
+author:              Luka Horvat
+maintainer:          luka.horvat9@gmail.com
+copyright:           2018 Luka Horvat
+category:            Control
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  CHANGELOG.md
+
+library
+  exposed-modules:     Control.Effects
+                     , Control.Effects.State
+                     , Control.Effects.Reader
+                     , Control.Effects.List
+                     , Control.Effects.Signal
+                     , Control.Effects.Early
+                     , Control.Effects.Generic
+                     , Control.Effects.Async
+                     , Control.Effects.Yield
+                     , Control.Effects.Resource
+                     , Control.Effects.Newtype
+                     , Control.Monad.Runnable
+                     , Tutorial.T1_Introduction
+                     , Tutorial.T2_Details
+                     , Tutorial.T3_CustomEffects
+  other-modules:       Import
+                       Tutorial.Test
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , transformers
+                     , mtl
+                     , monad-control == 1.0.*
+                     , transformers-base == 0.4.*
+                     , list-t
+                     , array
+                     , MonadRandom
+                     , exceptions
+                     , text
+                     , bytestring
+                     , async
+  ghc-options:         -Wall -O2
+
+test-suite tests
+    hs-source-dirs:    test
+    main-is:           Main.hs
+    default-language:  Haskell2010
+    type:              exitcode-stdio-1.0
+    build-depends:     base >= 4.7 && < 5
+                     , simple-effects
+    ghc-options:       -Wall -threaded -with-rtsopts=-N
+
+benchmark bench-effects
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      bench
+  main-is:             Bench.hs
+  build-depends:       base
+                     , criterion
+                     , mtl
+                     , transformers
+                     , simple-effects
+  default-language:    Haskell2010
+  ghc-options:         -O2
