@@ -1,0 +1,98 @@
+cabal-version:  2.2
+
+name:           ron
+version:        0.5
+
+bug-reports:    https://github.com/ff-notes/ron/issues
+category:       Distributed Systems, Protocol, Database
+copyright:      2018-2019 Yuriy Syrovetskiy
+homepage:       https://github.com/ff-notes/ron
+license:        BSD-3-Clause
+license-file:   LICENSE
+maintainer:     Yuriy Syrovetskiy <haskell@cblp.su>
+synopsis:       RON
+
+description:
+    Replicated Object Notation (RON), data types (RDT), and RON-Schema
+    .
+    Typical usage:
+    .
+    > import RON.Data
+    > import RON.Schema.TH
+    > import RON.Storage.IO as Storage
+    >
+    > [mkReplicated|
+    >     (struct_lww Note
+    >         active Boole
+    >         text RgaString)
+    > |]
+    >
+    > instance Collection Note where
+    >     collectionName = "note"
+    >
+    > main :: IO ()
+    > main = do
+    >     let dataDir = "./data/"
+    >     h <- Storage.newHandle dataDir
+    >     runStorage h $ do
+    >         obj <- newObject
+    >             Note{active = True, text = "Write a task manager"}
+    >         createDocument obj
+
+build-type:     Simple
+
+common language
+    build-depends: base >= 4.10 && < 4.13, integer-gmp
+    default-extensions: MonadFailDesugaring StrictData
+    default-language: Haskell2010
+    hs-source-dirs: prelude
+    other-modules: Prelude
+
+library
+    import: language
+    build-depends:
+        aeson,
+        attoparsec,
+        binary,
+        bytestring,
+        containers,
+        hashable,
+        mtl,
+        template-haskell,
+        text,
+        time,
+        unordered-containers
+    exposed-modules:
+        RON.Base64
+        RON.Binary
+        RON.Binary.Parse
+        RON.Binary.Serialize
+        RON.Binary.Types
+        RON.Epoch
+        RON.Error
+        RON.Event
+        RON.Event.Simulation
+        RON.Text
+        RON.Text.Parse
+        RON.Text.Serialize
+        RON.Text.Serialize.UUID
+        RON.Types
+        RON.Util
+        RON.Util.Word
+        RON.UUID
+    other-modules:
+        Attoparsec.Extra
+        Data.ZigZag
+    hs-source-dirs: lib
+
+benchmark bench
+    import: language
+    build-depends:
+        -- global
+        criterion,
+        deepseq,
+        -- package
+        ron
+    main-is: Main.hs
+    hs-source-dirs: bench
+    type: exitcode-stdio-1.0
