@@ -1,0 +1,73 @@
+cabal-version:       2.2
+name:                datadog-tracing
+version:             1.1.0
+synopsis:            Datadog tracing client and mock agent.
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Sam Halliday
+maintainer:          Sam Halliday
+copyright:           (c) 2019 Symbiont.io
+bug-reports:         https://github.com/symbiont-io/haskell-datadog/pulls
+tested-with:         GHC ^>= 8.4.4 || ^>= 8.6.3
+category:            Logging
+description:
+  An HTTP client to publish tracing to
+  a [datadog agent](https://docs.datadoghq.com/agent/?tab=agentv6).
+  .
+  In addition, an HTTP server is provided that can be used in place of
+  the official agent, that does not communicate with upstream datadog
+  servers, allowing replay of all data from a `GET /dump` endpoint,
+  compatible with `jaeger-flamegraph`.
+
+source-repository head
+  type: git
+  location: https://github.com/symbiont-io/haskell-datadog
+
+-- https://www.haskell.org/cabal/users-guide/cabal-projectindex.html
+
+common deps
+  build-depends:    , base ^>= 4.11.1.0 || ^>= 4.12.0.0
+                    , bytestring           ^>= 0.10.8.2
+                    , containers ^>= 0.5.11.0 || ^>= 0.6.0.1
+                    , text                 ^>= 1.2.3.1
+                    , aeson                ^>= 1.4.1.0
+                    , servant              ^>= 0.14.1
+  ghc-options:        -Wall
+                      -Werror=missing-home-modules
+  default-language:   Haskell2010
+
+library
+  import:             deps
+  hs-source-dirs:     library
+  exposed-modules:    Datadog.Agent
+                    , Datadog.Client
+                    , Datadog.Jaeger
+  build-depends:    , generic-random  ^>= 1.2.0.0
+                    , refined         ^>= 0.2.3.0
+                    , prettyprinter   ^>= 1.2.1
+                    , servant-client  ^>= 0.14
+                    , time            ^>= 1.8.0.2
+                    , QuickCheck      ^>= 2.11.3
+                    , quickcheck-text ^>= 0.1.2.1
+
+executable datadog-agent
+  import:             deps
+  hs-source-dirs:     exe
+  main-is:            Main.hs
+  build-depends:    , datadog-tracing
+                    , servant-server       ^>= 0.14.1
+                    , warp                 ^>= 3.2.25
+  ghc-options:        -threaded
+
+test-suite            tests
+  import:             deps
+  hs-source-dirs:     test
+  type:               exitcode-stdio-1.0
+  main-is:            Driver.hs
+  other-modules:      Datadog.AgentTest
+  build-depends:    , datadog-tracing
+                    , hspec-golden-aeson ^>= 0.7.0.0
+                    , tasty              ^>= 1.1.0.4
+                    , tasty-hspec        ^>= 1.1.5.1
+  build-tool-depends: tasty-discover:tasty-discover ^>= 4.2.1
+  ghc-options:        -threaded
