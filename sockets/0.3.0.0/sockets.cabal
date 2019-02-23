@@ -1,0 +1,115 @@
+cabal-version: 2.2
+name: sockets
+version: 0.3.0.0
+synopsis: High-level network sockets
+description:
+  This library provides a high-level abstraction for network sockets. It uses
+  Haskell2010 (along with GADTs) without typeclasses to ensure that
+  consumers of the API can only call appropriate functions on a socket.
+  Exceptions are tracked in the types of functions and returned to the caller
+  with `Either`. The caller is free to handle these gracefully or to throw
+  them. This library only throws exceptions when it detects that it has misused
+  the operating system's sockets API (open an issue for this) or when the
+  caller asks for a negatively-sized slice of a buffer (such exceptions are
+  unrecoverable and indicate a mistake in the code consuming this API).
+homepage: https://github.com/andrewthad/sockets
+bug-reports: https://github.com/andrewthad/sockets/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Andrew Martin
+maintainer: andrew.thaddeus@gmail.com
+copyright: 2019 Andrew Martin
+category: Network
+extra-source-files: CHANGELOG.md
+
+flag mmsg
+  manual: True
+  description: Use sendmmsg and recvmmsg 
+  default: False
+
+flag debug
+  manual: True
+  description: Print debug output 
+  default: False
+
+flag example
+  manual: True
+  description: Build example executables
+  default: False
+
+library
+  exposed-modules:
+    Socket.Datagram.IPv4.Undestined
+    Socket.Datagram.IPv4.Spoof
+    Socket.Stream.IPv4
+  other-modules:
+    Socket.Stream
+    Socket.Datagram
+    Socket.Datagram.IPv4.Undestined.Multiple
+    Socket.Datagram.IPv4.Undestined.Internal
+    Socket.Debug
+    Socket.IPv4
+    Socket
+  build-depends:
+    , base >= 4.11.1.0 && < 5
+    , ip >= 1.4.1
+    , posix-api >= 0.2.1
+    , primitive >= 0.6.4
+    , stm >= 2.4
+    , text >= 1.2
+  hs-source-dirs: src
+  if flag(debug)
+    hs-source-dirs: src-debug
+  else
+    hs-source-dirs: src-production
+  if flag(mmsg)
+    hs-source-dirs: src-mmsg
+  else
+    hs-source-dirs: src-no-mmsg
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+
+test-suite test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends:
+    , base >= 4.11.1.0 && < 5
+    , sockets
+    , tasty
+    , tasty-hunit
+    , ip >= 1.4.1
+    , primitive >= 0.6.4
+    , async
+  ghc-options: -Wall -O2 -threaded
+  default-language: Haskell2010
+
+benchmark macro
+  type: exitcode-stdio-1.0
+  build-depends:
+    , base >= 4.11.1.0 && < 5
+    , sockets
+    , ip >= 1.4.1
+    , primitive >= 0.6.4
+    , bytestring >= 0.10.8.2
+    , entropy >= 0.4.1.4
+  ghc-options: -Wall -O2 -threaded -rtsopts
+  default-language: Haskell2010
+  hs-source-dirs: bench
+  main-is: Macro.hs
+
+executable sockets-example
+  if flag(example)
+    build-depends:
+      , base >= 4.11.1.0 && < 5
+      , sockets
+      , ip >= 1.4.1
+      , primitive >= 0.6.4
+      , bytestring >= 0.10.8.2
+      , fast-logger >= 2.4.13
+  else
+    buildable: False
+  hs-source-dirs: example
+  main-is: Main.hs
+  ghc-options: -Wall -O2 -threaded
+  default-language: Haskell2010
