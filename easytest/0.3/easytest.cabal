@@ -1,0 +1,97 @@
+name:          easytest
+category:      Testing
+version:       0.3
+license:       MIT
+cabal-version: >= 1.8
+license-file:  LICENSE
+author:        Joel Burget, Paul Chiusano
+maintainer:    Joel Burget <joelburget@gmail.com>
+stability:     provisional
+homepage:      https://github.com/joelburget/easytest
+bug-reports:   https://github.com/joelburget/easytest/issues
+copyright:     Copyright (C) 2017-2019 Joel Burget, Copyright (C) 2016 Paul Chiusano and contributors
+synopsis:      Simple, expressive testing library
+description:
+  EasyTest is a simple testing toolkit for unit- and property-testing. It's based on the hedgehog property-testing system. Here's an example usage:
+  .
+  > module Main where
+  >
+  > import           EasyTest
+  > import qualified Hedgehog.Gen   as Gen
+  > import qualified Hedgehog.Range as Range
+  >
+  > suite :: Test
+  > suite = tests
+  >   [ scope "addition.ex1" $ unitTest $ 1 + 1 === 2
+  >   , scope "addition.ex2" $ unitTest $ 2 + 3 === 5
+  >   , scope "list.reversal" $ property $ do
+  >       ns <- forAll $
+  >         Gen.list (Range.singleton 10) (Gen.int Range.constantBounded)
+  >       reverse (reverse ns) === ns
+  >   -- equivalent to `scope "addition.ex3"`
+  >   , scope "addition" . scope "ex3" $ unitTest $ 3 + 3 === 6
+  >   , scope "always passes" $ unitTest success -- record a success result
+  >   , scope "failing test" $ crash "oh noes!!"
+  >   ]
+  >
+  > -- NB: `run suite` would run all tests, but we only run
+  > -- tests whose scopes are prefixed by "addition"
+  > main :: IO Summary
+  > main = runOnly "addition" suite
+  .
+  This generates the output:
+  .
+  > ━━━ runOnly "addition" ━━━
+  >   ✓ addition.ex1 passed 1 test.
+  >   ✓ addition.ex2 passed 1 test.
+  >   ⚐ list.reversal gave up after 1 discard, passed 0 tests.
+  >   ✓ addition.ex3 passed 1 test.
+  >   ⚐ always passes gave up after 1 discard, passed 0 tests.
+  >   ⚐ failing test gave up after 1 discard, passed 0 tests.
+  >   ⚐ 3 gave up, 3 succeeded.
+  We write tests with ordinary Haskell code, with control flow explicit and under programmer control.
+
+build-type:         Simple
+extra-source-files: CHANGES.md
+tested-with:        GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.3, GHC == 8.4.4, GHC == 8.6.3
+
+source-repository head
+  type: git
+  location: git@github.com:joelburget/easytest.git
+
+library
+  hs-source-dirs: src
+
+  exposed-modules:
+    EasyTest
+    EasyTest.Internal
+    EasyTest.Internal.Hedgehog
+    EasyTest.Prism
+
+  build-depends:
+    base                      >= 4.5      && <= 5,
+    call-stack                >= 0.1,
+    -- since we rely on a hedgehog internal module we need to maintain tight
+    -- bounds (and test with all possible versions, ideally)
+    hedgehog                  >= 0.6      && <= 0.6.1,
+    stm,
+    -- for splitOn:
+    split                     >= 0.2.3,
+    -- we need mtl and transformers only for the breaking down / building up we
+    -- do of hedgehog properties. we leave their versions completely
+    -- unconstrained so we can rely just on the relevant hedgehog version
+    -- bounds.
+    mtl,
+    transformers,
+    profunctors, tagged
+
+  if !impl(ghc >= 8.0)
+    build-depends: semigroups == 0.18.*
+
+  ghc-options: -Wall
+
+test-suite tests
+  type:           exitcode-stdio-1.0
+  main-is:        Suite.hs
+  hs-source-dirs: tests
+  build-depends:  base, easytest, hedgehog, unix, directory, profunctors, transformers
