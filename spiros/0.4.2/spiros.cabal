@@ -1,0 +1,669 @@
+cabal-version:       2.2
+
+                     -- ^ « v2.2 » provides « common » stanzas.
+                     --   « v2.2 » is the latest version that works with « cabal2nix ».
+
+build-type:          Simple
+
+--------------------------------------------------
+
+name:                spiros
+version:             0.4.2
+
+--x-revision:          1
+
+--TODO rename spiros to sboo?
+--TODO split off spiros-base.
+
+--------------------------------------------------
+
+author:              Spiros Boosalis
+maintainer:          samboosalis@gmail.com
+
+--------------------------------------------------
+-- Description -----------------------------------
+--------------------------------------------------
+
+synopsis:            Spiros Boosalis's Custom Prelude
+
+category:            Prelude
+
+--------------------------------------------------
+
+description:         My custom prelude.
+                     I'm @user\/sboo@ on Hackage, @\@sboosali@ on GitHub, and @\/u\/spirosboosalis@ on reddit.
+                     .
+                     Diverges slightly from base's: adding, removing, and shadowing.
+                     .
+                     Compatible with (and built\/tested against):
+                     .
+                     * 5 GHCs — from « ghc-7.10.* » (in Debian) to  « ghc-8.6.* » (the latest, circa 2019).
+                     * GHCJS  — the Haskell→JavaScript transpiler (« ghcjs-8.6.* »).
+                     * Musl   — « ghc » statically-linked against « libmusl »
+                       (instead of dynamically-linked against « glibc », the default).
+                     * 3 OSs — Linux (« linux »), Windows (« win32 »), and MacOS (« darwin »). (Should work on FreeBSD and Andriod, too).
+                     .
+
+--------------------------------------------------
+-- Portability -----------------------------------
+--------------------------------------------------
+
+stability: experimental
+
+--------------------------------------------------
+
+tested-with: GHC   == 8.6.4
+           , GHC   == 8.4.4
+           , GHC   == 8.2.2
+           , GHC   == 8.0.2
+           , GHC   == 7.10.3
+
+             -- ^ Compatible with all GHCs from « ghc-7.10 » to « ghc-8.6 ».
+
+           , GHC == 8.4.3
+
+             -- ^ For statically-linked CLI applications.
+             --
+             --   The default « ghc » in:
+             --   « nixpkgs=https://github.com/NixOS/nixpkgs/archive/2c07921cff84dfb0b9e0f6c2d10ee2bfee6a85ac.tar.gz ».
+
+           , GHCJS == 8.6.0.1
+
+             -- ^ For browser applications.
+             --
+             --   The default « ghcjs » in:
+             --   « nixpkgs=https://github.com/NixOS/nixpkgs/archive/18.09.tar.gz ».
+
+--------------------------------------------------
+-- Licensing -------------------------------------
+--------------------------------------------------
+
+license:             Apache-2.0
+license-file:        LICENSE
+copyright:           2019 Sam Boosalis
+
+--------------------------------------------------
+-- Files -----------------------------------------
+--------------------------------------------------
+
+data-dir: data
+
+--------------------------------------------------
+
+extra-source-files: LICENSE
+                  , README.md
+                  , CHANGELOG.md
+                  , ./share/images/*.png
+
+--------------------------------------------------
+
+--TODO add images
+-- extra-doc-files: docs/
+
+--------------------------------------------------
+-- Repository ------------------------------------
+--------------------------------------------------
+
+homepage:    https://github.com/sboosali/spiros#readme
+bug-reports: https://github.com/sboosali/spiros#issues
+
+--------------------------------------------------
+
+source-repository head
+  type:     git
+
+  location: https://github.com/sboosali/spiros
+  subdir:   spiros
+
+--------------------------------------------------
+-- Flags -----------------------------------------
+--------------------------------------------------
+
+flag develop
+
+  default:     False
+
+  description: Dynamic typechecking and/or exposed internals (for development).
+
+  manual:      True
+
+--------------------------------------------------
+
+flag orphans
+
+  default:     True
+
+  description: Orphan Instances (e.g. for « Lift », via « th-lift-instances »).
+
+  manual:      True
+
+--------------------------------------------------
+
+flag static
+
+  default:     False
+
+  description: Build a statically-linked dynamic-library and/or statically-linked executables (NOTE you should also, via « ./nix/static.nix », provision an environment with « musl » and other statically-linkable C Libraries.)
+
+  manual:      True
+
+--------------------------------------------------
+
+flag examples
+
+  default:     False
+
+  description: « example-spiros » executable.
+
+  manual:      True
+
+--------------------------------------------------
+
+flag cpphs
+
+  default:     False
+
+  description: Use « cpphs » as a C-Pre-Procesor (instead of « gcc », « clang », etc).
+
+  manual:      True
+
+--------------------------------------------------
+-- Common Stanzas --------------------------------
+--------------------------------------------------
+
+common Haskell2020
+
+ -----------------------------
+ -- cross-platform (operating system)
+ -----------------------------
+
+ -- if   os(linux)
+ -- --   linux-only:
+ -- --   ...
+ -- elif os(windows)
+ -- --   windows-only:
+ -- --   ...
+ -- elif os(darwin)
+ -- --   mac-only:
+ -- --   ...
+
+ -- ^ See « System.Info.os ».
+
+ -- ^ NOTE « os(windows) » canonicalizes « os(mingw32) », « os(cygwin32) », etc.
+
+ -----------------------------
+ -- cross-platform (architecture)
+ -----------------------------
+
+ -- if   arch(x86_64)
+ -- --   64-bit-only:
+ -- --   ...
+ -- elif arch(i386)
+ -- --   32-bit-only:
+ -- --   ...
+
+ -- ^ See « System.Info.arch ».
+
+ -----------------------------
+ -- development settings -----
+ -----------------------------
+
+ if flag(develop)
+ 
+    cpp-options: -DCABALFLAG_DEVELOP
+
+                 -- ^ Define the « ..._DEVELOP » symbol (for CPP).
+
+ -----------------------------
+
+ if flag(develop) && impl(ghc >= 8.0)
+
+    ghc-options: -fdefer-typed-holes
+
+                 -- ^ Use « typed-holes » (not « undefined ») during development.
+
+
+ -----------------------------
+ -- Pre-Processor ------------
+ -----------------------------
+
+ if flag(cpphs)
+
+    build-tools: cpphs >= 1.19
+    ghc-options: -pgmP cpphs -optP --cpp
+
+ -----------------------------
+ -- etc ----------------------
+ -----------------------------
+
+--------------------------------------------------
+
+common Haskell2020Library
+
+ -----------------------------
+
+ if flag(orphans)
+ 
+    cpp-options: -DCABALFLAG_ORPHANS
+
+                 -- ^ Define the « ..._ORPHANS » symbol (for CPP).
+
+--------------------------------------------------
+-- Library ---------------------------------------
+--------------------------------------------------
+
+library
+
+ ------------------------------
+
+ import: Haskell2020Library
+
+ ------------------------------
+
+ if flag(static)
+
+    ld-options: -static
+                -pthread
+
+ ------------------------------
+
+ hs-source-dirs: library
+
+ ------------------------------
+
+ exposed-modules: 
+                 --Spiros
+                  Prelude.Spiros
+                  Prelude.NotSpiros
+
+                  --Base.GHC710
+                  Prelude.Spiros.Utilities
+
+                  Prelude.Spiros.Types
+                  Prelude.Spiros.Reexports
+                  Prelude.Spiros.Classes
+
+                  Prelude.Spiros.Text
+
+                  Prelude.Spiros.Print
+                  Prelude.Spiros.Parse
+                  Prelude.Spiros.System
+                  Prelude.Spiros.Application
+
+ other-modules:
+
+                  Prelude.Spiros.Compatibility
+                  Prelude.Spiros.Enriched
+                  Prelude.Spiros.Exception
+                  Prelude.Spiros.GUI
+                  Prelude.Spiros.Generics
+
+                  Prelude.Spiros.Validator
+
+ ------------------------------
+
+ if impl(ghc >= 8.0)
+    exposed-modules:
+                 Prelude.Spiros.Pretty
+
+ ------------------------------
+
+ if impl(ghc >= 8.2)
+    hs-source-dirs: other-sources
+
+    exposed-modules:
+                    Data.Digit
+                    -- requires -XDerivingStrategies
+
+ ------------------------------
+
+ include-dirs:     include
+ install-includes: include/sboo-base-feature-macros.h
+
+ ------------------------------
+
+ build-depends: base >= 4.7   && <5.0
+
+                ----------------------------------
+                -- Standard Library --------------
+                ----------------------------------
+                
+              , mtl
+              , transformers
+              , text
+              , bytestring
+              , containers
+--            , vector
+              , template-haskell     >= 2.10
+
+                ----------------------------------
+                -- Compatibility -----------------
+                ----------------------------------
+
+              , semigroups >= 0.16.2
+                -- 0.16.2 introduces Data.Semigroup.Generic
+
+    -- for generically-deriving 
+    -- TODO when was nonempty list and semigroup introduced into base? 
+
+                ----------------------------------
+                -- Extended Library --------------
+                ----------------------------------
+
+              , th-lift-instances
+                -- ^ « instance Lift Text », etc
+
+              , exceptions >= 0.10
+                -- ^ « class MonadThrow »
+              , data-default-class
+                -- ^ « class Default »
+
+              , unordered-containers
+                -- ^ « data HashMap »
+              , hashable >= 1.2.5
+                -- ^ « class Hashable »
+
+              , directory   >= 1.3
+              , filepath    >= 1.4
+              , unix-compat >= 0.5
+
+              , process
+           -- , typed-process ^>= 0.2
+
+              , time    >= 1.8
+              , cpuinfo >= 0.1.0.1
+           -- , clock
+                --NOTE clock fails on Android.
+
+                ----------------------------------
+                -- Preludes ----------------------
+                ----------------------------------
+
+              , safe
+
+           -- , safe-exceptions 
+                -- re-exports exceptions
+
+              , stm
+              , split
+
+           -- , protolude            >= 0.2.1
+                -- NOTE « protolude » doesn't cross-compile onto Android, because of « clock ».
+
+           -- , basic-prelude
+                --  extra symbols
+
+           -- , base-prelude
+                -- all of base, modulo conflicting symbols
+
+           -- , mtl-prelude
+                -- Reexports of most definitions from \"mtl\" and \"transformers\".
+
+                ----------------------------------
+                -- Miscellaneous -----------------
+                ----------------------------------
+
+              , case-insensitive
+              , string-conv
+
+              , prettyprinter
+--              , show-prettyprint
+
+              , generic-deriving >= 1.11
+                -- for Generics.Deriving.Semigroup
+
+                ----------------------------------
+                -- / Build-Depends ---------------
+                ----------------------------------
+
+-- General-purpose packages among the GHC Boot Libraries include:
+-- 
+-- array
+-- base
+-- binary
+-- bytestring
+-- containers
+-- deepseq
+-- directory
+-- filepath
+-- mtl
+-- old-locale
+-- old-time
+-- parsec
+-- pretty
+-- process
+-- random
+-- stm
+-- template-haskell
+-- text
+-- time
+-- transformers
+-- xhtml
+--
+
+ ------------------------------
+
+ if impl(ghc >= 8.2)
+    build-depends:
+                  deepseq      >= 1.4.3
+                  -- NFData1, NFData2
+ else
+    build-depends:
+                  deepseq      >= 1.0
+
+ ------------------------------
+
+ default-language: Haskell2010
+
+ default-extensions: CPP
+                   , PackageImports
+
+ ------------------------------
+
+ if impl(ghc >= 7.4)
+    default-extensions: ConstraintKinds
+                   
+ if impl(ghc >= 8.0)
+    default-extensions: TemplateHaskellQuotes
+                        DuplicateRecordFields
+                        DeriveLift
+
+ if impl(ghc >= 8.2)
+    default-extensions: DeriveLift
+                        DeriveAnyClass
+
+ if impl(ghc >= 8.4)
+    default-extensions: DerivingStrategies
+
+ ------------------------------
+
+ ghc-options:         -Wall
+
+ if impl(ghc >= 8.2)
+    ghc-options: -Wcpp-undef
+
+ ------------------------------
+ 
+--------------------------------------------------
+-- Executables -----------------------------------
+--------------------------------------------------
+
+executable example-spiros
+
+ ------------------------------
+
+ import: Haskell2020Library
+
+ -----------------------------
+
+ if !flag(examples)
+
+    buildable: False
+
+ ------------------------------
+
+ if flag(static)
+
+    ld-options: -static
+                -pthread
+
+ ------------------------------
+
+ main-is:             Main.hs
+
+ hs-source-dirs:      executables
+
+ ------------------------------
+
+ other-modules: Example.Spiros
+
+ ------------------------------
+
+ build-depends: spiros
+              , base
+              , text
+              , optparse-applicative
+
+ -- ghc-options: -pgml gcc "-optl-Wl,--allow-multiple-definition" "-optl-Wl,--whole-archive" "-optl-Wl,-Bstatic" "-optl-Wl,-lXYZ" "-optl-Wl,-Bdynamic" "-optl-Wl,--no-whole-archive"
+
+   -- cc-options: -static
+
+   -- ghc-options: -pgml g++
+   --              "-optl-Wl,--allow-multiple-definition"
+   --              "-optl-Wl,--whole-archive"
+   --              "-optl-Wl,-Bstatic"
+   --           -- "-optl-Wl,-lfltkc"
+   --              "-optl-Wl,-Bdynamic"
+   --              "-optl-Wl,--no-whole-archive"
+
+ ------------------------------
+
+ ghc-options: -O2
+
+              -threaded
+              -rtsopts -with-rtsopts=-N             
+ 
+              -Wno-missing-signatures
+              -fno-warn-type-defaults
+
+ ------------------------------
+
+ default-language: Haskell2010
+ 
+--------------------------------------------------
+-- Tests -----------------------------------------
+--------------------------------------------------
+
+test-suite doc
+
+ ------------------------------
+
+ import: Haskell2020Library
+
+ -----------------------------
+
+ if impl(ghcjs)
+
+    buildable: False
+
+    -- ^ Because « GHCJSi » doesn't work (yet).
+
+ -----------------------------
+
+ hs-source-dirs: tests/doc
+
+ main-is:        DocTests.hs
+
+--other-modules:       
+
+ -----------------------------
+
+ build-depends: base
+              , spiros
+
+              ----------------
+
+              , doctest
+
+ ------------------------------
+
+ default-language: Haskell2010
+ 
+ -----------------------------
+
+ type: exitcode-stdio-1.0
+
+--------------------------------------------------
+
+-- test-suite doctest
+
+--  if flag(test-doctest) && impl(ghc)
+--     buildable: True
+--  else
+--     buildable: False   
+
+--  hs-source-dirs:      test
+--  main-is:             DocTests.hs
+
+--  type:                exitcode-stdio-1.0
+--  default-language:    Haskell2010
+
+--  ghc-options:         -Wall 
+
+--  build-depends:
+--     base
+--   , spiros
+--   , doctest
+
+-- --------------------------------------------------
+
+-- test-suite unit
+
+--  if impl(ghc >= 8.0)
+--     buildable: True
+--  else
+--     buildable: False   
+
+--  hs-source-dirs:      test
+--  main-is:             UnitTests.hs
+--  other-modules:
+--   UnitTests.WarningValidation
+
+--  type:                exitcode-stdio-1.0
+--  default-language:    Haskell2010
+
+--  ghc-options:         -Wall 
+
+--  build-depends:
+--     base
+--   , spiros
+--   , tasty
+--   , tasty-hunit
+
+-- --------------------------------------------------
+
+-- test-suite static
+           
+--  if flag(test-static)
+--     buildable: True
+--  else
+--     buildable: False
+
+--  hs-source-dirs:      test
+--  main-is:             StaticTests.hs
+--  other-modules:
+--   StaticTests.Generics
+
+--  type:                exitcode-stdio-1.0
+--  default-language:    Haskell2010
+--  ghc-options:         -Wall 
+
+--  build-depends:
+--     base
+--   , spiros
+
+-- --------------------------------------------------
+
+--------------------------------------------------
+-- EOF -------------------------------------------
+--------------------------------------------------
