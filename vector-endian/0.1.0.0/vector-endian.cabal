@@ -1,0 +1,101 @@
+cabal-version:       2.2
+name:                vector-endian
+version:             0.1.0.0
+synopsis:            Storable vectors with cpu-independent representation.
+description:
+  This package exposes data types that implement the type classes from the
+  vector package, but the vectors have an in-memory representation that
+  is independent of the host's CPU.
+  .
+  This makes the data stored within them suitable for storage or transmission
+  over a network, and they can be converted to bytestrings without copying.
+homepage:            https://git.zenhack.net/zenhack/haskell-vector-endian
+license:             MIT
+license-file:        LICENSE
+author:              Ian Denhardt
+maintainer:          ian@zenhack.net
+copyright:           2019 Ian Denhardt
+category:            Data, Data Structures
+
+build-type:          Simple
+extra-source-files:
+    CHANGELOG.md
+  , README.md
+  , .gitignore
+
+source-repository head
+  type:     git
+  branch:   master
+  location: https://git.zenhack.net/zenhack/haskell-vector-endian
+
+common shared-opts
+  default-extensions:
+      NoImplicitPrelude
+    , OverloadedStrings
+  build-depends:
+      base ^>=4.12
+    , zenhack-prelude ^>=0.1
+    , cpu ^>=0.1.2
+    , vector ^>=0.12.0
+    , deepseq ^>=1.4.4
+  ghc-options:
+    -Wall
+  default-language:    Haskell2010
+
+library endian-common
+  import: shared-opts
+  exposed-modules: Data.Vector.Endian.Class
+  hs-source-dirs: src/endian-common
+
+library little-endian
+  import: shared-opts
+  build-depends: endian-common
+  exposed-modules: Internal.Endianness
+  hs-source-dirs: src/little-endian
+
+library big-endian
+  import: shared-opts
+  build-depends: endian-common
+  exposed-modules: Internal.Endianness
+  hs-source-dirs: src/big-endian
+
+library vector-endian-indef
+  import: shared-opts
+  exposed-modules:
+      Data.Vector.Endian
+    , Data.Vector.Endian.Mutable
+  other-modules:
+    Internal.Vector
+  build-depends:
+    endian-common
+  signatures:
+    Internal.Endianness
+  hs-source-dirs: src/vector-endian-indef
+
+library vector-endian-little
+  import: shared-opts
+  build-depends: vector-endian-indef, little-endian
+  reexported-modules:
+      Data.Vector.Endian as Data.Vector.Endian.Little
+    , Data.Vector.Endian.Mutable as Data.Vector.Endian.Little.Mutable
+
+library vector-endian-big
+  import: shared-opts
+  build-depends: vector-endian-indef, big-endian
+  reexported-modules:
+      Data.Vector.Endian as Data.Vector.Endian.Big
+    , Data.Vector.Endian.Mutable as Data.Vector.Endian.Big.Mutable
+
+library
+  import: shared-opts
+  build-depends:
+      endian-common
+    , vector-endian-big
+    , vector-endian-little
+  reexported-modules:
+      Data.Vector.Endian.Class as Data.Vector.Endian
+    , Data.Vector.Endian.Little
+    , Data.Vector.Endian.Little.Mutable
+    , Data.Vector.Endian.Big
+    , Data.Vector.Endian.Big.Mutable
+  hs-source-dirs:      src
