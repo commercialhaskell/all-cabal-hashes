@@ -1,0 +1,204 @@
+name: hjugement-protocol
+-- PVP:  +-+------- breaking API changes
+--       | | +----- non-breaking API additions
+--       | | | +--- code changes with no API change
+version: 0.0.0.20190501
+category: Politic
+synopsis: A cryptographic protocol for the Majority Judgment.
+description:
+  This work-in-progress library aims at implementing an online voting protocol
+  named <https://eprint.iacr.org/2013/177.pdf Helios-C> (Helios with Credentials)
+  by its authors from the <https://www.cnrs.fr/ CNRS>,
+  the <http://www.loria.fr INRIA>
+  and the <https://www.univ-lorraine.fr/ Université de Lorraine>:
+  <http://www.loria.fr/~cortier/ Véronique Cortier>,
+  <https://dgalindo.es/ David Galindo>,
+  <http://www.loria.fr/~gaudry/ Pierrick Gaudry>,
+  <http://stephane.glondu.net/ Stéphane Glondu>
+  and Malika Izabachène.
+  .
+  (TODO) Actually, this protocol is adapted a little bit here to better support
+  a better method of voting known as the <http://libgen.io/book/index.php?md5=BF67AA4298C1CE7633187546AA53E01D Majority Judgment>.
+  .
+  * A large-public introduction (in french) to Helios-C is available here:
+    <https://members.loria.fr/VCortier/files/Papers/Bulletin1024-2016.pdf Bulletin de la société informatique de France – numéro 9, novembre 2016>.
+  * A more scientific (yet understandable) introduction (in english) to Belenios
+    (an implementation of Helios-C) is available here:
+    <https://hal.inria.fr/hal-02066930/document Belenios: a simple private and verifiable electronic voting system>.
+  .
+  The main properties of this protocol are:
+  .
+  * /fully correct/: the published result are proven to correspond
+    to the (sum of) intended votes of the voters,
+    while accounting for a malicious bulletin board (BB) (adding fake ballots)
+    by requiring a registration authority (RA)
+    (responsible for generating and sending voters' credentials).
+    Assuming that the BB and the RA are not simultaneously dishonest.
+  .
+  * /verifiable/: each voter is able to check that:
+    his\/her ballot did contribute to the outcome (/individual verifiability/),
+    and that the tallying authorities did their job properly (/universal verifiability/).
+  .
+  * /private/: the identities of the voters who cast a vote are not publicly revealed.
+  .
+  More specifically, in this protocol :
+  .
+  * Ballots are encrypted using public-key cryptography
+    secured by the /Discrete Logarithm problem/:
+    finding @x@ in @g^x `mod` p@, where @p@ is a large prime
+    and @g@ a generator of @Gq@, the multiplicative subgroup of order @q@,
+    in @Fp@ (the finite prime field whose characteristic is @p@).
+    Here, @p@ is 2048-bit and @q@ is 256-bit.
+    The signing (Schnorr-like), the encrypting (ElGamal-like)
+    and the /Decisional Diffe Hellman/ (DDH) assumption,
+    all rely on the hardness of that problem.
+  * Ballots are added without being decrypted
+    because adding (multiplying actually) ciphertexts then decrypting,
+    is like decrypting then adding plaintexts (/additive homomorphism/).
+    Which requires to solve the /Discrete Logarithm Problem/
+    for numbers in the order of the number of voters,
+    which is not hard for small numbers (with a lookup table as here,
+    or with Pollard’s rho algorithm for logarithms).
+  * The /Schnorr protocol/ is used to prove that a voter has knowledge
+    of the secret key used to sign their votes.
+    A voter's credentials is a secret key (the signing key)
+    that has a public part (the verification key).
+    The association between the public part and the corresponding voter’s identity
+    does not need to be known, and actually should not be disclosed to satisfy
+    e.g. the French requirements regarding voting systems.
+    Using credentials prevent the submission of duplicated ballots
+    (because they are added as an additional input to the random oracle
+    in the /non-interactive zero-knowledge/ (NIZK) proofs for ciphertext well-formedness).
+    This allows a testing of duplicates which depends only on the size of the number of voters,
+    and thus enables Helios-C to scale for larger elections while attaining correctness.
+  * The /Chaum-Pedersen protocol/ (proving that equality of discrete logarithms)
+    is used to prove that ciphertexts are well-formed
+    (encrypting a 0 or a 1… or any expected natural) without decrypting them.
+    Which is known as a /Disjunctive Chaum-Pedersen/ proof of partial knowledge.
+  * A /strong Fiat-Shamir transformation/ is used
+    to transform the /interactive zero-knowledge/ (IZK) /Chaum-Pedersen protocol/
+    into a /non-interactive zero-knowledge/ (NIZK) proof, using a SHA256 hash.
+  * (TODO) A Pedersen's /distributed key generation/ (DKG) protocol
+    coupled with ElGamal keys (under the DDH assumption),
+    is used to have a fully distributed semantically secure encryption.
+extra-doc-files: 
+license: GPL-3
+license-file: COPYING
+stability: experimental
+author:      Julien Moutinho <julm+hjugement@autogeree.net>
+maintainer:  Julien Moutinho <julm+hjugement@autogeree.net>
+bug-reports: Julien Moutinho <julm+hjugement@autogeree.net>
+-- homepage:
+
+build-type: Simple
+cabal-version: 1.24
+tested-with: GHC==8.4.4
+extra-source-files:
+  stack.yaml
+extra-tmp-files:
+
+Source-Repository head
+ location: git://git.autogeree.net/hjugement
+ type:     git
+
+Library
+  exposed-modules:
+    Protocol.Arithmetic
+    Protocol.Credential
+    Protocol.Election
+  default-language: Haskell2010
+  default-extensions:
+    AllowAmbiguousTypes
+    ConstraintKinds
+    DefaultSignatures
+    FlexibleContexts
+    FlexibleInstances
+    GeneralizedNewtypeDeriving
+    LambdaCase
+    MonoLocalBinds
+    MultiParamTypeClasses
+    NamedFieldPuns
+    NoImplicitPrelude
+    NoMonomorphismRestriction
+    RecordWildCards
+    ScopedTypeVariables
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    UndecidableInstances
+  ghc-options:
+    -Wall
+    -Wincomplete-uni-patterns
+    -Wincomplete-record-updates
+    -fno-warn-tabs
+    -- -fhide-source-paths
+  build-depends:
+      base >= 4.6 && < 5
+    , bytestring >= 0.10
+    , containers >= 0.5
+    , cryptonite >= 0.25
+    -- , fixed-vector >= 1.1
+    -- , hashable >= 1.2.6
+    , memory >= 0.14
+    , mmorph >= 1.1
+    -- , monad-classes >= 0.3
+    , random >= 1.1
+    -- , reflection >= 2.1
+    , text >= 1.2
+    , transformers >= 0.5
+    , unordered-containers >= 0.2.8
+
+Test-Suite hjugement-protocol-test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  other-modules:
+    HUnit
+    HUnit.Arithmetic
+    HUnit.Credential
+    HUnit.Election
+    HUnit.Utils
+    -- QuickCheck
+  default-language: Haskell2010
+  default-extensions:
+    AllowAmbiguousTypes
+    ConstraintKinds
+    DefaultSignatures
+    FlexibleContexts
+    FlexibleInstances
+    GeneralizedNewtypeDeriving
+    LambdaCase
+    MonoLocalBinds
+    MultiParamTypeClasses
+    NamedFieldPuns
+    NoImplicitPrelude
+    NoMonomorphismRestriction
+    RecordWildCards
+    ScopedTypeVariables
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    UndecidableInstances
+  ghc-options:
+    -Wall
+    -Wincomplete-uni-patterns
+    -Wincomplete-record-updates
+    -fno-warn-tabs
+    -- -fhide-source-paths
+  build-depends:
+      hjugement-protocol
+    , base >= 4.6 && < 5
+    , containers >= 0.5
+    , hashable >= 1.2.6
+    , QuickCheck >= 2.0
+    -- , monad-classes >= 0.3
+    , random >= 1.1
+    -- , reflection >= 2.1
+    , tasty >= 0.11
+    , tasty-hunit >= 0.9
+    , tasty-quickcheck
+    , text >= 1.2
+    , transformers >= 0.5
+    , unordered-containers >= 0.2.8
