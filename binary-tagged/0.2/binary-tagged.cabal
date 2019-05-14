@@ -1,0 +1,171 @@
+cabal-version:      >=1.10
+name:               binary-tagged
+version:            0.2
+synopsis:           Tagged binary serialisation.
+category:           Data
+description:
+  Structurally tag binary serialisation stream.
+  .
+  Say you have:
+  .
+  @
+  data Record = Record
+  \  { _recordFields  :: HM.HashMap Text (Integer, ByteString)
+  \  , _recordEnabled :: Bool
+  \  }
+  \  deriving (Eq, Show, Generic)
+  .
+  instance Binary Record
+  instance HasStructuralInfo Record
+  instance HasSemanticVersion Record
+  @
+  .
+  then you can serialise and deserialise @Record@ values with a structure tag by simply
+  .
+  @
+  encodeTaggedFile "cachefile" record
+  decodeTaggedFile "cachefile" :: IO Record
+  @
+  .
+  If structure of @Record@ changes in between, deserialisation will fail early.
+  .
+  The overhead is next to non-observable, see [a simple benchmark](https://github.com/phadej/binary-tagged/blob/master/bench/Bench.hs).
+  .
+  @
+  benchmarking encode/Binary
+  time                 362.6 μs   (361.2 μs .. 363.8 μs)
+  .
+  benchmarking encode/Tagged
+  time                 379.2 μs   (375.5 μs .. 382.2 μs)
+  .
+  benchmarking decode/Binary
+  time                 366.3 μs   (365.1 μs .. 368.1 μs)
+  .
+  benchmarking decode/Tagged
+  time                 367.6 μs   (367.0 μs .. 368.2 μs)
+  @
+
+homepage:           https://github.com/phadej/binary-tagged#readme
+bug-reports:        https://github.com/phadej/binary-tagged/issues
+author:             Oleg Grenrus <oleg.grenrus@iki.fi>
+maintainer:         Oleg Grenrus <oleg.grenrus@iki.fi>
+license:            BSD3
+license-file:       LICENSE
+build-type:         Simple
+tested-with:
+  GHC ==7.8.4 || ==7.10.3 || ==8.0.2 || ==8.2.2 || ==8.4.4 || ==8.6.5 || ==8.8.1
+
+extra-source-files:
+  CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/phadej/binary-tagged
+
+library
+  hs-source-dirs:   src
+  ghc-options:      -Wall
+
+  -- Libraries bundled with GHC
+  build-depends:
+      array       >=0.5.0.0  && <0.6
+    , base        >=4.7.0.2  && <4.13
+    , binary      >=0.7.1.0  && <0.10
+    , bytestring  >=0.10.4.0 && <0.11
+    , containers  >=0.5.5.1  && <0.7
+    , text        >=1.2.3.0  && <1.3
+    , time        >=1.4.2    && <1.9
+
+  -- other dependencies
+  build-depends:
+      aeson                 >=0.8        && <1.5
+    , base16-bytestring     >=0.1.1.6    && <0.2
+    , cryptohash-sha1       >=0.11.100.1 && <0.12
+    , generics-sop          >=0.3.2.0    && <0.6
+    , hashable              >=1.2        && <1.4
+    , scientific            >=0.3        && <0.4
+    , tagged                >=0.7        && <0.9
+    , unordered-containers  >=0.2        && <0.3
+    , vector                >=0.10       && <0.13
+
+  exposed-modules:  Data.Binary.Tagged
+  default-language: Haskell2010
+
+  if !impl(ghc >=8.0)
+    build-depends: semigroups >=0.18.5 && <0.20
+
+  if !impl(ghc >=7.10)
+    build-depends: nats >=1.1.2 && <1.2
+
+test-suite binary-tagged-test
+  type:             exitcode-stdio-1.0
+  main-is:          Tests.hs
+  hs-source-dirs:   test
+  ghc-options:      -Wall
+  build-depends:
+      aeson
+    , array
+    , base
+    , base16-bytestring
+    , bifunctors
+    , binary
+    , binary-instances      >=1 && <1.1
+    , binary-tagged
+    , bytestring
+    , containers
+    , generics-sop
+    , hashable
+    , quickcheck-instances
+    , scientific
+    , tagged
+    , tasty
+    , tasty-quickcheck
+    , tasty-hunit
+    , text
+    , time
+    , unordered-containers
+    , vector
+
+  if !impl(ghc >=8.0)
+    build-depends: semigroups
+
+  if !impl(ghc >=7.10)
+    build-depends: nats
+
+  other-modules:
+    Generators
+    Rec1
+    Rec2
+
+  default-language: Haskell2010
+
+benchmark binary-tagged-bench
+  type:             exitcode-stdio-1.0
+  main-is:          Bench.hs
+  hs-source-dirs:   bench
+  ghc-options:      -Wall
+  build-depends:
+      aeson
+    , array
+    , base
+    , base16-bytestring
+    , binary
+    , binary-instances
+    , binary-tagged
+    , bytestring
+    , containers
+    , criterion
+    , deepseq
+    , generics-sop
+    , hashable
+    , nats
+    , scientific
+    , semigroups
+    , SHA
+    , tagged
+    , text
+    , time
+    , unordered-containers
+    , vector
+
+  default-language: Haskell2010
