@@ -1,0 +1,123 @@
+name:                ansi-terminal-game
+version:             0.3.1.0
+synopsis:            sdl-like functions for terminal applications, based on
+                     ansi-terminal
+description:         Library which aims to replicate standard 2d game
+                     functions (blit, ticks, timers, etc.) in a terminal
+                     setting.
+                     Aims to be cross compatible (based on "ansi-terminal",
+                     no unix-only dependencies), practical.
+                     See example folder for some minimal programs.
+homepage:            none-yet
+license:             GPL-3
+license-file:        LICENSE
+author:              Francesco Ariis
+maintainer:          fa-ml@ariis.it
+copyright:           © 2017-2019 Francesco Ariis
+category:            Game
+build-type:          Simple
+extra-source-files:  changes.txt
+cabal-version:       >=1.10
+
+flag example
+  description:       builds examples
+  default:           False
+
+library
+  exposed-modules:     Terminal.Game
+  other-modules:       Terminal.Game.Animation,
+                       Terminal.Game.Layer.Imperative,
+                       Terminal.Game.Layer.Object,
+                       Terminal.Game.Layer.Object.Display,
+                       Terminal.Game.Draw,
+                       Terminal.Game.Input,
+                       Terminal.Game.Plane,
+                       Terminal.Game.Timer
+  build-depends:       base == 4.*,
+                       ansi-terminal == 0.8.*,
+                       array == 0.5.*,
+                       bytestring == 0.10.*,
+                       cereal == 0.5.*,
+                       clock == 0.7.*,
+                       linebreak == 1.0.*,
+                       mtl == 2.2.*,
+                       split == 0.2.*,
+                       terminal-size == 0.3.*,
+                       timers-tick == 0.4.*
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+  -- horrible horrible horrible hack to make unbuffered input
+  -- work on Windows
+  if os(windows)
+    hs-source-dirs: platform-dep/windows
+  if !os(windows)
+    hs-source-dirs: platform-dep/non-win
+
+test-suite test
+  default-language:    Haskell2010
+  hs-Source-Dirs:      test, src
+  main-is:             Test.hs
+  other-modules:       Terminal.Game,
+                       Terminal.Game.Animation,
+                       Terminal.Game.Draw,
+                       Terminal.Game.DrawSpec,
+                       Terminal.Game.Layer.Imperative,
+                       Terminal.Game.Layer.ImperativeSpec,
+                       Terminal.Game.Layer.Object,
+                       Terminal.Game.Layer.Object.Display,
+                       Terminal.Game.Input,
+                       Terminal.Game.Plane,
+                       Terminal.Game.PlaneSpec
+  build-depends:       base == 4.*,
+                       ansi-terminal == 0.8.*,
+                       array == 0.5.*,
+                       bytestring == 0.10.*,
+                       cereal == 0.5.*,
+                       clock == 0.7.*,
+                       linebreak == 1.0.*,
+                       mtl == 2.2.*,
+                       split == 0.2.*,
+                       terminal-size == 0.3.*,
+                       timers-tick == 0.4.*
+                       -- the above plus hspec
+                       , hspec
+  type:                exitcode-stdio-1.0
+  ghc-options:         -Wall
+
+  -- horrible horrible horrible hack to make unbuffered input
+  -- work on Windows, part II
+  if os(windows)
+    hs-source-dirs: platform-dep/windows
+  if !os(windows)
+    hs-source-dirs: platform-dep/non-win
+
+executable alone-in-a-room
+    if flag(example)
+      build-depends:    base == 4.*,
+                        ansi-terminal-game
+    else
+      buildable:        False
+
+    hs-source-dirs:   example
+    main-is:          Alone.hs
+    default-language: Haskell2010
+        -- With the -threaded option, only foreign calls with the unsafe
+        -- attribute will block all other threads.
+    ghc-options:      -threaded
+                      -- -O2 non rende le cose più veloci
+    -- Senza threaded non compila su windows
+    -- required on win before ghc 8.4?
+    --
+    -- geekosaur dice
+    --    geekosaur f-a, a. heh. so the thoguht I had turned out to
+    --           be correct:
+    --           Control.Concurent.rtsSupportsBoundThreads (because
+    --           green threads can't be usefully bound)
+    --    geekosaur so if that produces True, it's using the
+    --              threaded runtime; if False, you can say
+    --              something useful instead of hanging
+
+-- per time profiling
+-- cabal new-run -f example alone-in-a-room --enable-profiling -- +RTS -p
