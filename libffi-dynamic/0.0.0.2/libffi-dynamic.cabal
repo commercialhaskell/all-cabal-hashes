@@ -1,0 +1,54 @@
+name:                   libffi-dynamic
+version:                0.0.0.2
+stability:              experimental
+
+cabal-version:          >= 1.6
+build-type:             Simple
+
+author:                 James Cook <mokus@deepbondi.net>
+maintainer:             James Cook <mokus@deepbondi.net>
+license:                PublicDomain
+homepage:               /dev/null
+
+category:               Foreign
+synopsis:               LibFFI interface with dynamic bidirectional
+                        type-driven binding generation
+description:            LibFFI interface with support for importing and
+                        exporting function types inferred at compile time,
+                        constructed at runtime, or a combination of both.
+
+source-repository head
+  type: git
+  location: git://github.com/mokus0/libffi-dynamic.git
+
+Library
+  hs-source-dirs:       src
+  exposed-modules:      Foreign.Dynamic
+                        Foreign.Wrapper
+                        Foreign.LibFFI.Dynamic
+                        Foreign.LibFFI.Dynamic.Base
+                        Foreign.LibFFI.Dynamic.CIF
+                        Foreign.LibFFI.Dynamic.Closure
+                        Foreign.LibFFI.Dynamic.FFIType
+                        Foreign.LibFFI.Dynamic.Type
+  ghc-options:          -fwarn-unused-binds -fwarn-unused-imports
+  build-depends:        base >= 3 && < 5,
+                        contravariant,
+                        hashable,
+                        intern
+  extra-libraries:      ffi
+  
+  -- Custom build of libffi's closure allocator, so we can use
+  -- ffi_closure_free on code pointers.
+  -- also, GHC's ffi_closure_alloc just doesn't work on Mac OS
+  -- anyway because it appears to be build without FFI_MMAP_EXEC_WRIT.
+  c-sources:            cbits/closures.c
+  cc-options:           -DFFI_CLOSURES=1
+                        -DFFI_MMAP_EXEC_WRIT=1
+                        -DMAYBE_UNUSED=
+                        -DFFI_CLOSURE_FREE_CODE=1
+                        -Dffi_closure_alloc=hs_ffi_closure_alloc
+                        -Dffi_closure_free=hs_ffi_closure_free
+  
+  include-dirs:         cbits, include
+  install-includes:     dlmalloc.c, hs_libffi_closure.h
