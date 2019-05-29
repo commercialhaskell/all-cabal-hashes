@@ -1,0 +1,85 @@
+cabal-version:       1.12
+name:                uhttpc
+version:             0.1.1.1
+
+synopsis:            Minimal HTTP client library optimized for benchmarking
+homepage:            https://github.com/hvr/uhttpc
+license:             GPL-3
+license-file:        LICENSE
+author:              Herbert Valerio Riedel
+maintainer:          hvr@gnu.org
+copyright:           © 2013-2019 Herbert Valerio Riedel
+category:            Network
+build-type:          Simple
+description:
+  @uhttpc@ contains a simple low-level and lightweight Haskell
+  <https://tools.ietf.org/html/rfc2616 HTTP 1.1>
+  library optimized for providing the bare minimum required for HTTP
+  benchmarking purposes and allowing for time measurements of the
+  individual phases of the HTTP transaction.
+  .
+  This package also provides the command-line tool @uhttpc-bench@ as an
+  usage example which mimics the popular
+  <https://github.com/lighttpd/weighttp weighttp> HTTP benchmarking tool's
+  CLI.
+  .
+  WARNING: @uhttpc@ was originally developed for evaluating the new
+  <http://haskell.cs.yale.edu/wp-content/uploads/2013/08/hask035-voellmy.pdf \"Mio\" parallel I/O manager>
+  introduced with GHC 7.8 and provide a base-line for HTTP client libraries.
+  However, this is not a fully RFC compliant HTTP client library and
+  therefore ought not be used as a general purpose HTTP
+  implementation; Use libraries such as
+  <http://hackage.haskell.org/package/http-streams http-streams>
+  instead which aim toward full RFC compliance as well as having good
+  performance.
+
+extra-source-files: README.md CHANGELOG.md cbits/hs_uhttpc.h
+
+tested-with: GHC ==8.6.5, GHC ==8.4.4, GHC ==8.2.2, GHC ==8.0.2, GHC==7.10.3, GHC==7.10.2, GHC==7.8.4, GHC==7.6.3
+
+flag network--GE-3_0_0
+  description: [network](http://hackage.haskell.org/package/network) ≥ 3.0.0
+  default: True
+  manual: False
+
+library
+  default-language:    Haskell2010
+  other-extensions:    BangPatterns, CPP, OverloadedStrings, CApiFFI
+  exposed-modules:     Network.HTTP.MicroClient
+  ghc-options:         -Wall -fwarn-tabs
+  include-dirs:        cbits
+
+  build-depends:
+    base              >=4.6 && <4.13,
+    bytestring        ==0.10.*,
+    network           ==2.6.* || ==2.8.* || ==3.0.* || ==3.1.*,
+    network-uri       ==2.6.*,
+    bytestring-lexing >=0.4 && <0.6,
+    deepseq           >=1.1 && <1.5
+
+  if flag(network--GE-3_0_0)
+    build-depends:
+        network >= 3.0.0
+      , network-bsd >= 2.8.1 && <2.9
+
+executable uhttpc-bench
+  default-language:    Haskell2010
+  other-extensions:    Arrows, BangPatterns, DeriveDataTypeable, OverloadedStrings, RecordWildCards
+  hs-source-dirs:      src-exe
+  main-is:             uhttpc-bench.hs
+  ghc-options:         -Wall -fwarn-tabs -funbox-strict-fields -threaded -rtsopts
+  build-depends:
+    uhttpc,
+    -- uhttpc-lib's build-deps don't need to restate version bounds
+    base,
+    bytestring,
+    bytestring-lexing,
+    deepseq,
+    network,
+    -- build-deps which need version bounds
+    async                 ==2.0.* || ==2.1.* || ==2.2.*,
+    optparse-applicative  ==0.11.* || ==0.12.* || ==0.13.* || ==0.14.*
+
+Source-Repository head
+  Type: git
+  Location: https://github.com/hvr/uhttpc.git
