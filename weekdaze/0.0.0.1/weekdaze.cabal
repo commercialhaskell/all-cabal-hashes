@@ -1,0 +1,447 @@
+-- This file is part of WeekDaze.
+--
+-- WeekDaze is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- WeekDaze is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with WeekDaze.  If not, see <http://www.gnu.org/licenses/>.
+
+Name:		weekdaze
+Version:	0.0.0.1
+Cabal-version:	>= 1.10
+Copyright:	(C) 2013-2015 Dr. Alistair Ward
+License:	GPL
+License-file:	LICENSE
+Author:		Dr. Alistair Ward
+Stability:	stable
+Synopsis:	A school-timetable problem-solver.
+Build-type:	Simple
+Description:	An application which searches for a solution to the configured school-timetable problem.
+Category:	Application, Teaching
+Tested-with:	GHC == 8.0, GHC == 8.2, GHC == 8.4, GHC == 8.6
+Homepage:	https://functionalley.com/WeekDaze/weekdaze.html
+Maintainer:	mailto:weekdaze@functionalley.com
+Bug-reports:	mailto:weekdaze@functionalley.com
+
+-- These files can be read by the application from 'Paths_weekdaze.datadir'.
+Data-files:
+    css/weekdaze.css
+    dtd/*.dtd
+    images/*.png
+    sql/MySQL/weekdazeCreate.sql
+    sql/MySQL/weekdazeExamples.sql
+    sql/MySQL/weekdazeTriggers.sql
+    sql/MySQL/*.ini
+    xhtml/*.xhtml
+    xml/*.xml
+
+-- None of these files are needed at run-time.
+Extra-source-files:
+    .ghci
+    changelog.Debian
+    changelog.markdown
+    copyright
+    debian/DEBIAN/control
+    images/*.pdf
+    man/man1/weekdaze.1
+    man/man5/weekdaze.5
+    README.markdown
+    weekdaze.spec
+    weekdaze.svg
+
+-- Enable using: 'runhaskell Setup configure -f HDBC-mysql --verbose'.
+flag HDBC-mysql
+    Description:	Link with the package "HDBC-mysql" & consequently the native MySQL-interface (which will require a development package for 'mysqlclient'), which the application can use to connect to a MySQL data-server.
+    Manual:		True
+    Default:		False
+
+-- Enable using: 'runhaskell Setup configure -f HDBC-odbc --verbose'.
+flag HDBC-odbc
+    Description:	Link with the package "HDBC-odbc", which the application can use to connect to a generic data-server.
+    Manual:		True
+    Default:		False
+
+-- Enable using: 'runhaskell Setup configure -f llvm --verbose'.
+flag llvm
+    Description:	Whether the 'llvm' compiler-backend has been installed and is required for code-generation.
+    Manual:		True
+    Default:		False
+
+-- Enable using: 'runhaskell Setup configure -f printDBQueries --verbose'.
+flag printDBQueries
+    Description:	Whether to print SQL-queries as the database is read. N.B.: only relevant when either of the flags 'HDBC-odbc' or 'HDBC-mysql' is True. N.B.: the output will be more readable when 'queryDBConcurrently' is off.
+    Manual:		True
+    Default:		False
+
+-- Enable using: 'runhaskell Setup configure -f printDBRows --verbose'.
+flag printDBRows
+    Description:	Whether to print the rows read from the database. N.B.: only relevant when either of the flags 'HDBC-odbc' or 'HDBC-mysql' is True. N.B.: the output will be more readable when 'queryDBConcurrently' is off.
+    Manual:		True
+    Default:		False
+
+-- Disable using: 'runhaskell Setup configure -f -queryDBConcurrently --verbose'.
+flag queryDBConcurrently
+    Description:	Whether database-queries should be issued concurrently.
+    Manual:		True
+    Default:		True
+
+-- Enable using: 'runhaskell Setup configure -f static --verbose', which will then require a large number of archives instead of shared objects.
+flag static
+    Description:	Link statically, perhaps for deployment in an environment where one doesn't have root access.
+    Manual:		True
+    Default:		False
+
+-- CAVEAT: 'Database.HDBC.MySQL.withRTSSignalsBlocked' requires the threaded runtime.
+flag threaded
+    Description:	Build for parallel runtime.
+    Manual:		True
+    Default:		True
+
+-- Automatically disabled when the required package isn't available, which will typically be the case on Windows.
+flag unix
+    Description:	Link with package "unix" when available.
+    Default:		True
+
+Library
+    Default-language:	Haskell2010
+    GHC-options:	-O2 -Wall -fno-warn-tabs
+    Hs-source-dirs:	src-lib
+
+    Exposed-modules:
+        WeekDaze.Aggregate.GroupCatalogue
+        WeekDaze.Aggregate.LocationCatalogue
+        WeekDaze.Aggregate.StudentBody
+        WeekDaze.Aggregate.StudentBodyRegister
+        WeekDaze.Aggregate.StudentClass
+        WeekDaze.Aggregate.TeacherRegister
+        WeekDaze.Colour.HTMLColour
+        WeekDaze.Colour.HTMLColourCode
+        WeekDaze.Colour.RGB
+        WeekDaze.Configuration
+        WeekDaze.Data.Course
+        WeekDaze.Data.Group
+        WeekDaze.Data.HumanResource
+        WeekDaze.Data.Location
+        WeekDaze.Data.Requirements
+        WeekDaze.Data.Resource
+        WeekDaze.Data.Student
+        WeekDaze.Data.Subject
+        WeekDaze.Data.Teacher
+        WeekDaze.Enhanced.EnhancedDouble
+        WeekDaze.Enhanced.EnhancedRatio
+        WeekDaze.ExecutionConfiguration.Criterion
+        WeekDaze.ExecutionConfiguration.CriterionWeight
+        WeekDaze.ExecutionConfiguration.EvolutionStrategies
+        WeekDaze.ExecutionConfiguration.ExecutionOptions
+        WeekDaze.ExecutionConfiguration.LessonCriteriaWeights
+        WeekDaze.ExecutionConfiguration.OptimiseLessonCriteriaWeights
+        WeekDaze.ExecutionConfiguration.TimetableBreederFecundity
+        WeekDaze.ExecutionConfiguration.TimetableCriteriaWeights
+        WeekDaze.Identifiers.Campus
+        WeekDaze.Identifiers.Level
+        WeekDaze.Identifiers.LocationId
+        WeekDaze.Identifiers.Stream
+        WeekDaze.Identifiers.SynchronisationId
+        WeekDaze.Identifiers.TeacherId
+        WeekDaze.Identifiers.TimeslotId
+        WeekDaze.Input.ConfigVersion
+        WeekDaze.Input.Options
+        WeekDaze.LinearModel.Timetable
+        WeekDaze.LinearModel.TimetableForWeek
+        WeekDaze.LocationView.Lesson
+        WeekDaze.LocationView.LessonResourceIds
+        WeekDaze.LocationView.Timetable
+        WeekDaze.Model.GeneralisedBooking
+        WeekDaze.Model.GenerateLessonColourFrom
+        WeekDaze.Model.Lesson
+        WeekDaze.Model.Meeting
+        WeekDaze.Model.ResourceUser
+        WeekDaze.Model.Timetable
+        WeekDaze.Model.TimetableAxis
+        WeekDaze.Model.TimetableAxisTraversal
+        WeekDaze.Model.TimetableAxisTriple
+        WeekDaze.Model.TimetableCoordinates
+        WeekDaze.Model.TimetableForDay
+        WeekDaze.Model.TimetableForWeek
+        WeekDaze.Model.Traverse
+        WeekDaze.OutputConfiguration.FileFormat
+        WeekDaze.OutputConfiguration.Format
+        WeekDaze.OutputConfiguration.Options
+        WeekDaze.OutputConfiguration.Style
+        WeekDaze.OutputConfiguration.Verbosity
+        WeekDaze.OutputConfiguration.View
+        WeekDaze.ProblemConfiguration.ProblemAnalysis
+        WeekDaze.ProblemConfiguration.ProblemParameters
+        WeekDaze.ProblemConfiguration.ProblemValidationSwitches
+        WeekDaze.ProblemConfiguration.TimetableValidationSwitches
+        WeekDaze.Size
+        WeekDaze.StudentView.Lesson
+        WeekDaze.StudentView.LessonResourceIds
+        WeekDaze.StudentView.Timetable
+        WeekDaze.StudentView.TimetableCoordinates
+        WeekDaze.StudentView.TimetableForDay
+        WeekDaze.StudentView.TimetableForWeek
+        WeekDaze.TeacherView.Lesson
+        WeekDaze.TeacherView.LessonResourceIds
+        WeekDaze.TeacherView.Timetable
+        WeekDaze.TeacherView.TimetableForWeek
+        WeekDaze.Temporal.Availability
+        WeekDaze.Temporal.Day
+        WeekDaze.Temporal.FreePeriodPreference
+        WeekDaze.Temporal.Time
+        WeekDaze.Temporal.TimeAxes
+        WeekDaze.Temporal.TimeslotRequest
+        WeekDaze.Text.CSS
+        WeekDaze.Text.XHTML
+
+    Other-modules:
+        WeekDaze.Enhanced.EnhancedBool
+        WeekDaze.Enhanced.EnhancedEither
+--      WeekDaze.Enhanced.EnhancedSet
+        WeekDaze.Enhanced.EnhancedTuple
+        WeekDaze.ProblemConfiguration.ValidationSwitch
+        WeekDaze.Temporal.Workload
+
+    Build-depends:
+        array,
+        base == 4.*,
+        bytestring,
+        Cabal >= 1.10,
+        containers >= 0.4.2.0,
+        cryptohash >= 0.8.0,
+        data-default,
+        deepseq >= 1.1,
+        extra,
+        factory >= 0.3.1,
+        filepath,
+        hxt >= 9.0.0.0,
+        mtl,
+        random,
+        toolshed >= 0.17,
+        xhtml
+
+    if flag(HDBC-odbc) || flag(HDBC-mysql)
+        Exposed-modules:	WeekDaze.Database.Selector
+        Build-depends:		convertible, HDBC
+        CPP-Options:		-DUSE_HDBC
+
+        if flag(HDBC-mysql)
+            CPP-Options:	-DUSE_HDBC_MYSQL
+
+        if flag(HDBC-odbc)
+            CPP-Options:	-DUSE_HDBC_ODBC
+
+        if flag(printDBQueries)
+            CPP-Options:	-DPRINT_DB_QUERIES
+
+        if flag(printDBRows)
+            CPP-Options:	-DPRINT_DB_ROWS
+
+        if flag(queryDBConcurrently)
+            CPP-Options:	-DQUERY_DB_CONCURRENTLY
+
+    if impl(ghc >= 7.0)
+        if flag(llvm)
+            GHC-options:	-fllvm
+
+        if impl(ghc >= 7.4.1)
+            GHC-prof-options:	-fprof-auto -fprof-cafs
+
+            if impl(ghc >= 8.0)
+                GHC-options:	-Wredundant-constraints
+        else
+            GHC-prof-options:	-auto-all -caf-all
+
+Executable weekdaze
+    Default-language:	Haskell2010
+    GHC-options:	-O2 -Wall -fno-warn-tabs
+    Hs-source-dirs:	src-exe
+    Main-is:		Main.hs
+
+-- Required for 'cabal sdist'.
+    Other-modules:
+        WeekDaze.Dynamic.HumanViewTimetable
+        WeekDaze.Dynamic.LocationViewTimetableUtilities
+        WeekDaze.Dynamic.StudentViewTimetableForWeekUtilities
+        WeekDaze.Dynamic.StudentViewTimetableUtilities
+        WeekDaze.Dynamic.TeacherViewTimetableForWeekUtilities
+        WeekDaze.Dynamic.TeacherViewTimetableUtilities
+        WeekDaze.Dynamic.TimetableForWeekUtilities
+        WeekDaze.OutputFormat.DeterministicStudentViewTimetableSelection
+        WeekDaze.OutputFormat.EvolutionStrategyStatistics
+        WeekDaze.OutputFormat.XHTMLFormat
+        WeekDaze.OutputFormat.XHTMLFormatLocationViewTimetable
+        WeekDaze.OutputFormat.XHTMLFormatStudentViewTimetable
+        WeekDaze.OutputFormat.XHTMLFormatTeacherViewTimetable
+        WeekDaze.Implementation.DeterministicConstructor
+        WeekDaze.Implementation.EvolutionaryAlgorithm
+        WeekDaze.Implementation.QuantifiedStudentViewTimetable
+        WeekDaze.Implementation.RandomConstructor
+        WeekDaze.Implementation.StudentViewTimetableRandomBreeders
+        WeekDaze.Implementation.TimetableFitness
+        WeekDaze.Input.CommandLineOption
+
+    Build-depends:
+        array,
+        base == 4.*,
+        Cabal >= 1.10,
+        containers >= 0.4.2.0,
+        cryptohash >= 0.8.0,
+        deepseq >= 1.1,
+        data-default,
+        directory,
+        extra,
+        factory >= 0.3.1,
+        filepath,
+        hxt >= 9.0.0.0,
+        mtl,
+        parallel >= 3.0,
+        random,
+        time,
+        toolshed >= 0.17,
+        weekdaze,
+        xhtml
+
+    if flag(HDBC-odbc) || flag(HDBC-mysql)
+        Build-depends:	byteable, bytestring, HDBC
+        CPP-Options:	-DUSE_HDBC
+
+-- N.B.: The Haskell package 'HDBC-mysql' requires 'mysql_config', which in GNU/Linux is provided by the development-package of 'libmysqlclient'; Cygwin might provide it for Windows, though it's unlikely to be pain-free.
+        if flag(HDBC-mysql)
+            Build-depends:	HDBC-mysql
+            Other-modules:	WeekDaze.Database.MySQL
+            CPP-Options:	-DUSE_HDBC_MYSQL
+
+-- N.B.: Building the Haskell package 'HDBC-odbc' on GNU/Linux requires the development-package of 'unixODBC' & a driver for the specific type of DBMS to which connection is to be established, e.g. 'MyODBC-unixODBC' for MySQL.
+        if flag(HDBC-odbc)
+            Build-depends:	HDBC-odbc
+            Other-modules:	WeekDaze.Database.ODBC
+            CPP-Options:	-DUSE_HDBC_ODBC
+
+        if flag(printDBQueries)
+            CPP-Options:	-DPRINT_DB_QUERIES
+
+        if flag(printDBRows)
+            CPP-Options:	-DPRINT_DB_ROWS
+
+        if flag(queryDBConcurrently)
+            CPP-Options:	-DQUERY_DB_CONCURRENTLY
+
+    if impl(ghc >= 7.0)
+        if flag(llvm)
+            GHC-options:	-fllvm
+
+        if flag(threaded)
+            GHC-options:	-rtsopts "-with-rtsopts=-N -H100M"
+
+        if impl(ghc >= 7.4.1)
+            GHC-prof-options:	-fprof-auto -fprof-cafs -rtsopts -with-rtsopts=-H100M
+
+            if impl(ghc >= 8.0)
+                GHC-options:	-Wredundant-constraints
+        else
+            GHC-prof-options:	-auto-all -caf-all
+
+    if flag(threaded)
+        GHC-options:	-threaded
+
+-- N.B.: requires archives for; c, crypto, dl, ffi, gmp, m, mysqlclient, pthread, rt, ssl, util, z
+    if flag(static)
+        ld-options:	-static
+
+-- N.B.: The Haskell package 'unix' may be available on Windows, but building it will probably be laborious.
+    if flag(unix)
+        Other-modules:	WeekDaze.SignalHandlers
+        Build-depends:	unix
+        CPP-Options:	-DUSE_UNIX
+
+Test-Suite test
+    Default-language:	Haskell2010
+    GHC-options:	-Wall -fno-warn-tabs
+    Hs-source-dirs:	src-test
+    Main-is:		Main.hs
+    Type:		exitcode-stdio-1.0
+
+-- Required for 'cabal sdist'.
+    Other-modules:
+        WeekDaze.Test.QuickCheck.Aggregate.LocationCatalogue
+        WeekDaze.Test.QuickCheck.Aggregate.StudentBody
+        WeekDaze.Test.QuickCheck.Aggregate.StudentBodyRegister
+        WeekDaze.Test.QuickCheck.Aggregate.StudentClass
+        WeekDaze.Test.QuickCheck.Aggregate.TeacherRegister
+        WeekDaze.Test.QuickCheck.Colour.HTMLColour
+        WeekDaze.Test.QuickCheck.Colour.RGB
+        WeekDaze.Test.QuickCheck.Data.Course
+        WeekDaze.Test.QuickCheck.Data.Group
+        WeekDaze.Test.QuickCheck.Data.Location
+        WeekDaze.Test.QuickCheck.Data.Student
+        WeekDaze.Test.QuickCheck.Data.Subject
+        WeekDaze.Test.QuickCheck.Data.Teacher
+        WeekDaze.Test.QuickCheck.ExecutionConfiguration.Criterion
+        WeekDaze.Test.QuickCheck.ExecutionConfiguration.CriterionWeight
+        WeekDaze.Test.QuickCheck.ExecutionConfiguration.EvolutionStrategies
+        WeekDaze.Test.QuickCheck.ExecutionConfiguration.ExecutionOptions
+        WeekDaze.Test.QuickCheck.ExecutionConfiguration.LessonCriteriaWeights
+        WeekDaze.Test.QuickCheck.ExecutionConfiguration.OptimiseLessonCriteriaWeights
+        WeekDaze.Test.QuickCheck.ExecutionConfiguration.TimetableBreederFecundity
+        WeekDaze.Test.QuickCheck.ExecutionConfiguration.TimetableCriteriaWeights
+        WeekDaze.Test.QuickCheck.Identifiers.Campus
+        WeekDaze.Test.QuickCheck.Identifiers.Level
+        WeekDaze.Test.QuickCheck.Identifiers.LocationId
+        WeekDaze.Test.QuickCheck.Identifiers.Stream
+        WeekDaze.Test.QuickCheck.Identifiers.SynchronisationId
+        WeekDaze.Test.QuickCheck.Identifiers.TeacherId
+        WeekDaze.Test.QuickCheck.Identifiers.TimeslotId
+        WeekDaze.Test.QuickCheck.Input.ConfigVersion
+        WeekDaze.Test.QuickCheck.Input.Options
+        WeekDaze.Test.QuickCheck.Model.GenerateLessonColourFrom
+        WeekDaze.Test.QuickCheck.Model.Lesson
+        WeekDaze.Test.QuickCheck.Model.TimetableAxis
+        WeekDaze.Test.QuickCheck.Model.TimetableAxisTraversal
+        WeekDaze.Test.QuickCheck.Model.TimetableAxisTriple
+        WeekDaze.Test.QuickCheck.OutputConfiguration.FileFormat
+        WeekDaze.Test.QuickCheck.OutputConfiguration.Format
+        WeekDaze.Test.QuickCheck.OutputConfiguration.Options
+        WeekDaze.Test.QuickCheck.OutputConfiguration.Style
+        WeekDaze.Test.QuickCheck.OutputConfiguration.Verbosity
+        WeekDaze.Test.QuickCheck.OutputConfiguration.View
+        WeekDaze.Test.QuickCheck.ProblemConfiguration.ProblemParameters
+        WeekDaze.Test.QuickCheck.ProblemConfiguration.ProblemValidationSwitches
+        WeekDaze.Test.QuickCheck.ProblemConfiguration.TimetableValidationSwitches
+        WeekDaze.Test.QuickCheck.StudentView.Lesson
+        WeekDaze.Test.QuickCheck.StudentView.Timetable
+        WeekDaze.Test.QuickCheck.StudentView.TimetableForDay
+        WeekDaze.Test.QuickCheck.StudentView.TimetableForWeek
+        WeekDaze.Test.QuickCheck.Temporal.Availability
+        WeekDaze.Test.QuickCheck.Temporal.Day
+        WeekDaze.Test.QuickCheck.Temporal.FreePeriodPreference
+        WeekDaze.Test.QuickCheck.Temporal.Time
+        WeekDaze.Test.QuickCheck.Temporal.TimeAxes
+        WeekDaze.Test.QuickCheck.Temporal.TimeslotRequest
+
+    Build-depends:
+        array,
+        base == 4.*,
+        Cabal >= 1.10,
+        containers >= 0.4.2.0,
+        factory >= 0.3.1,
+        mtl,
+        QuickCheck >= 2.2,
+        toolshed >= 0.17,
+        weekdaze
+
+    if impl(ghc >= 7.4.1)
+        GHC-prof-options:	-fprof-auto -fprof-cafs -rtsopts -with-rtsopts=-H100M
+
+        if impl(ghc >= 8.0)
+            GHC-options:	-Wredundant-constraints
+    else
+        GHC-prof-options:	-auto-all -caf-all
+
