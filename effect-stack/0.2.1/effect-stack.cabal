@@ -1,0 +1,99 @@
+name:                effect-stack
+version:             0.2.1
+synopsis:            Reducing the pain of transformer stacks with duplicated effects
+description:         When using monad transformer stacks, it is common to want
+                     to mix effects from various layers of the stack within a
+                     single block of code. The @lift@ operation can be used to
+                     convert an action that uses effects at some deep layer of
+                     the stack into one that works in the full stack. It
+                     quickly becomes tedious to include exactly the right
+                     number of calls to @lift@ each time they are needed; and
+                     makes the code more fragile when the transformer stack is
+                     changed (e.g. to include a new effect).
+                     .
+                     The @mtl@ package provides a convenient way to point to a
+                     particular layer of the stack, under the assumption that
+                     there is exactly one "kind" of each interesting effect.
+                     (For example, one can only have one type of state, one
+                     type of environment to read from, and so forth.) However,
+                     if one wishes to have to copies of a single kind of
+                     effect, there is no convenient, generic way to choose
+                     anything other than the one that appears topmost in the
+                     stack. For example, for a stack that contains two
+                     @StateT@s in it, one can write code that accesses the
+                     outermost state using a type like
+                     .
+                     @MonadState outer m => m ()@
+                     .
+                     but there is no polymorphic way to reach the inner
+                     @StateT@'s state. One is back to writing fragile code that
+                     depends on exactly which transformer stack was chosen.
+                     .
+                     This package provides a way to make such choices
+                     generically: it introduces a separate stack for each kind
+                     of effect, and provides an operation for popping one layer
+                     of a given effect's stack. Continuing the @StateT@
+                     example, one could write
+                     .
+                     @MonadState outer m => m ()@
+                     .
+                     as before for the outermost state, or
+                     .
+                     @(StateStack m, MonadState inner (PopState m)) => m ()@
+                     .
+                     to access the state from underneath the outermost
+                     @StateT@, no matter how deep it is. A sample action of
+                     that type would be @liftState get >> return ()@.
+                     Equivalently, there is
+                     some mild sugar that lets you write the type
+                     .
+                     @MonadStateDepth 1 m inner => m ()@
+                     .
+                     to mean the same thing as the previous type, and
+                     @depthState \@1 get >> return ()@ to mean the same thing
+                     as the previous action.
+license:             BSD3
+license-file:        LICENSE
+author:              Daniel Wagner
+maintainer:          me@dmwit.com
+-- copyright:
+category:            Control
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       2.0
+
+source-repository head
+  type:     git
+  location: https://github.com/dmwit/effect-stack
+
+library
+  exposed-modules:
+                       Control.Monad.Stack.Accum,
+                       Control.Monad.Stack.Cont,
+                       Control.Monad.Stack.Except,
+                       Control.Monad.Stack.Fail,
+                       Control.Monad.Stack.Internal,
+                       Control.Monad.Stack.Reader,
+                       Control.Monad.Stack.Select,
+                       Control.Monad.Stack.State,
+                       Control.Monad.Stack.Writer
+  other-extensions:
+                       AllowAmbiguousTypes,
+                       ConstraintKinds,
+                       DataKinds,
+                       FlexibleContexts,
+                       KindSignatures,
+                       PolyKinds,
+                       RankNTypes,
+                       ScopedTypeVariables,
+                       TypeApplications,
+                       TypeFamilies,
+                       TypeOperators,
+                       UndecidableInstances
+  build-depends:
+                       base ^>=4.12,
+                       constraints ^>=0.11,
+                       mtl ^>= 2.2,
+                       transformers ^>=0.5.6
+  default-language:    Haskell2010
+  ghc-options:         -fno-warn-tabs
