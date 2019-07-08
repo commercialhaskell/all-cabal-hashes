@@ -1,0 +1,242 @@
+cabal-version:       1.24
+name:                rating-chgk-info
+version:             0.3.6.5
+synopsis:            Client for rating.chgk.info API and CSV tables (documentation in Russian)
+description:
+  Клиент для REST API сайта рейтинга (rating.chgk.info) и функциональности, которой нет в REST API, но которая доступна через экспорт CSV.
+  Также содержит REST-сервер для дополнительной функциональности, доступной через CSV
+  .
+  Документация по типам параметров и возвращаемых значений находится в "RatingChgkInfo.Types"
+  .
+  Документация по функциям для работы с REST API находится в "RatingChgkInfo.Api"
+  .
+  Документация по функциям для работы с CSV находится в "RatingChgkInfo.NoApi"
+  .
+  Примеры работы с библиотекой находятся в папке examples
+  .
+  В следующем большом релизе планируется заменить в части типов для REST API списки значений на множества (Set), например, для составов команд и т.п. Это должно повысить безопасность библиотеки, и не должно ухудшить возможности работы.
+  .
+  Пример использования:
+  .
+  >
+  > -- Наша библиотека
+  > import RatingChgkInfo
+  > -- И немного стандартных библиотек
+  > import Control.Monad (forM, void)
+  > import Control.Monad.IO.Class (liftIO)
+  > import Data.List (nub)
+  > import Data.Time (LocalTime(..),fromGregorian,midnight)
+  > -- Точка входа в приложение
+  > main :: IO ()
+  > main = void $ runRatingApi $ do
+  >   -- Получим список всех очных турниров
+  >   --
+  >   -- Функция tournaments получает одну страницу турниров, а функция getAllItems
+  >   -- оборачивает подобные функции, чтобы пройтись по всем страницам.
+  >   -- Далее из этого списка выбираются очные турниры 2018 года
+  >   let s2018 = LocalTime (fromGregorian 2018 1 1) midnight
+  >       e2018 = LocalTime (fromGregorian 2019 1 1) midnight
+  >   tourns <- filter (\t -> trs_typeName t == Casual &&
+  >                           trs_dateStart t >= s2018 &&
+  >                           trs_dateEnd t <= e2018) <$>
+  >             getAllItems tournaments
+  >   -- Проходимся по полученному списку
+  >   ts <- forM tourns $ \t -> do
+  >     let ident = trs_idtournament t
+  >     -- Получаем результаты турнира
+  >     res <- tournamentResults ident
+  >     -- Возвращаем названия команд-участниц
+  >     pure (map tr_current_name res)
+  >   -- Выводим, сколько уникальных названий было по всем турнирам
+  >   liftIO (print (length (nub ts)))
+
+
+license:             BSD3
+license-file:        LICENSE
+author:              Mansur Ziiatdinov
+maintainer:          gltronred@gmail.com
+copyright:           2018-2019 Mansur Ziiatdinov
+category:            Utility
+build-type:          Simple
+extra-doc-files:     README.md
+                   , CHANGELOG.md
+tested-with:         GHC == 8.4.3
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     RatingChgkInfo
+                       RatingChgkInfo.Api
+                       RatingChgkInfo.Extra
+                       RatingChgkInfo.NoApi
+                       RatingChgkInfo.Types
+                       RatingChgkInfo.Types.Unsafe
+                       Prelude
+  ghc-options:         -Wall
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wcompat
+                       -Widentities
+                       -Wredundant-constraints
+                       -fhide-source-paths
+                       -Wmissing-export-lists
+                       -Wpartial-fields
+  build-depends:       base-noprelude >= 4.11
+                     , relude >= 0.4.0
+                     , aeson >=1.4
+                     , bytestring >=0.10
+                     , cassava >=0.5
+                     , containers >=0.5
+                     , http-client >= 0.5
+                     , http-client-tls >= 0.3
+                     , iconv >=0.4
+                     , lens >=4.17
+                     , network >=2.8
+                     , optparse-generic >=1.3
+                     , servant >=0.16
+                     , servant-client >=0.16
+                     , servant-js >=0.9
+                     , servant-server >=0.16
+                     , servant-swagger >=1.1
+                     , swagger2 >=2.2
+                     , tagsoup >=0.14
+                     , text >=1.2
+                     , time >=1.8
+                     , vector >=0.12
+                     , wai >=3.2
+                     , warp >=3.2
+                     , wreq >=0.5
+  default-language:    Haskell2010
+  
+
+executable example1
+  hs-source-dirs:      examples
+  main-is:             Simple.hs
+  ghc-options:         -Wall
+                       -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wcompat
+                       -Widentities
+                       -Wredundant-constraints
+                       -fhide-source-paths
+                       -Wmissing-export-lists
+                       -Wpartial-fields
+  build-depends:       base-noprelude
+                     , rating-chgk-info
+                     , relude
+                     , time
+  default-language:    Haskell2010
+
+executable example2
+  hs-source-dirs:      examples
+  main-is:             GetAllClaims.hs
+  ghc-options:         -Wall
+                       -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wcompat
+                       -Widentities
+                       -Wredundant-constraints
+                       -fhide-source-paths
+                       -Wmissing-export-lists
+                       -Wpartial-fields
+  build-depends:       base-noprelude
+                     , rating-chgk-info
+                     , relude
+                     , text
+  default-language:    Haskell2010
+
+executable extra-rating-api
+  hs-source-dirs:      app/extra-rating-api
+  main-is:             Main.hs
+  ghc-options:         -Wall
+                       -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wcompat
+                       -Widentities
+                       -Wredundant-constraints
+                       -fhide-source-paths
+                       -Wmissing-export-lists
+                       -Wpartial-fields
+  build-depends:       base-noprelude
+                     , rating-chgk-info
+                     , relude
+  default-language:    Haskell2010
+  
+executable calendar-rating
+  hs-source-dirs:      app/calendar-rating
+  main-is:             Main.hs
+  ghc-options:         -Wall
+                       -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wcompat
+                       -Widentities
+                       -Wredundant-constraints
+                       -fhide-source-paths
+                       -Wmissing-export-lists
+                       -Wpartial-fields
+  build-depends:       base-noprelude
+                     , rating-chgk-info
+                     , relude
+                     , aeson
+                     , directory
+                     , text
+                     , time
+  default-language:    Haskell2010
+  
+
+test-suite rating-chgk-info-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  ghc-options:         -Wall
+                       -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wcompat
+                       -Widentities
+                       -Wredundant-constraints
+                       -fhide-source-paths
+                       -Wmissing-export-lists
+                       -Wpartial-fields
+  build-depends:       base-noprelude
+                     , rating-chgk-info
+                     , relude
+  default-language:    Haskell2010
+  
+
+benchmark rating-chgk-info-benchmark
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      benchmark
+  main-is:             Main.hs
+  ghc-options:         -Wall
+                       -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wcompat
+                       -Widentities
+                       -Wredundant-constraints
+                       -fhide-source-paths
+                       -Wmissing-export-lists
+                       -Wpartial-fields
+  build-depends:       base-noprelude
+                     , gauge
+                     , rating-chgk-info
+                     , relude
+  default-language:    Haskell2010
+  
+
