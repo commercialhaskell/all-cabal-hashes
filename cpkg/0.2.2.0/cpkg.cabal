@@ -1,0 +1,155 @@
+cabal-version: 1.18
+name: cpkg
+version: 0.2.2.0
+license: BSD3
+license-file: LICENSE
+copyright: Copyright: (c) 2018-2019 Vanessa McHale
+maintainer: vanessa.mchale@iohk.io
+author: Vanessa McHale
+synopsis: Build tool for C
+description:
+    A build tool and package manager configured using [Dhall](https://github.com/dhall-lang/dhall-haskell).
+category: Packaging, Package Management, Dhall, C
+build-type: Simple
+extra-source-files:
+    cabal.project
+    dhall/cpkg-prelude.dhall
+    dhall/cpkg-types.dhall
+    pkgs/pkg-set.dhall
+    pkgs/patches/*.patch
+extra-doc-files: README.md
+                 CHANGELOG.md
+
+source-repository head
+    type: git
+    location: https://github.com/vmchale/cpkg
+
+flag development
+    description:
+        Enable `-Werror`
+    default: False
+    manual: True
+
+library
+    exposed-modules:
+        Package.C
+    build-tools: cpphs -any
+    hs-source-dirs: src
+    other-modules:
+        Package.C.Dhall
+        Package.C.Dhall.Type
+        Package.C.Type
+        Package.C.Type.Shared
+        Package.C.Type.Tree
+        Package.C.Type.Verbosity
+        Package.C.Type.Version
+        Package.C.Type.Vars
+        Package.C.Triple
+        Package.C.Triple.Type
+        Package.C.Triple.Parse
+        Package.C.Build
+        Package.C.Build.OS
+        Package.C.Build.Tree
+        Package.C.Unpack
+        Package.C.Error
+        Package.C.Fetch
+        Package.C.Monad
+        Package.C.Db.Type
+        Package.C.Db.Register
+        Package.C.Db.Monad
+        Package.C.Db.Memory
+        Package.C.PackageSet
+        Package.C.Logging
+        System.Process.Ext
+        System.Directory.Executable
+        Data.Text.Prettyprint.Doc.Custom
+        CPkgPrelude
+    default-language: Haskell2010
+    other-extensions: DeriveGeneric DeriveAnyClass OverloadedStrings
+                      DerivingStrategies GeneralizedNewtypeDeriving RankNTypes
+    ghc-options: -Wall
+    build-depends:
+        base >=4.3 && <5,
+        containers >=0.6.0.0,
+        dhall >=1.23.0,
+        text -any,
+        temporary -any,
+        bytestring -any,
+        zlib -any,
+        bzlib -any,
+        lzma -any,
+        tar -any,
+        zip-archive -any,
+        prettyprinter -any,
+        http-client -any,
+        http-client-tls -any,
+        directory >=1.3.1.0,
+        filepath -any,
+        process -any,
+        mtl -any,
+        hashable -any,
+        binary -any,
+        microlens -any,
+        recursion >=2.2.3.0,
+        filemanip -any,
+        network-uri -any,
+        megaparsec -any,
+        libarchive >=1.0.4.0,
+        dir-traverse >=0.2.1.0
+
+    if (flag(development) && impl(ghc <=8.2))
+        ghc-options: -Werror
+
+    if impl(ghc >=8.0)
+        ghc-options: -Wincomplete-uni-patterns -Wincomplete-record-updates
+                     -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+executable cpkg
+    main-is: Main.hs
+    hs-source-dirs: app
+    other-modules:
+        Paths_cpkg
+    default-language: Haskell2010
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+    build-depends:
+        base -any,
+        cpkg -any,
+        optparse-applicative -any,
+        directory -any,
+        text -any
+
+    if (flag(development) && impl(ghc <=8.2))
+        ghc-options: -Werror
+
+    if impl(ghc >=8.0)
+        ghc-options: -Wincomplete-uni-patterns -Wincomplete-record-updates
+                     -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+test-suite cpkg-test
+    type: exitcode-stdio-1.0
+    main-is: Spec.hs
+    hs-source-dirs: test
+    default-language: Haskell2010
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+    build-depends:
+        base -any,
+        cpkg -any,
+        hspec -any,
+        hspec-megaparsec -any,
+        megaparsec -any
+
+    if flag(development)
+        ghc-options: -Werror
+
+    if impl(ghc >=8.0)
+        ghc-options: -Wincomplete-uni-patterns -Wincomplete-record-updates
+                     -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
