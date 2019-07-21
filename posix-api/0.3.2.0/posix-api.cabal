@@ -1,0 +1,128 @@
+cabal-version: 2.2
+name: posix-api
+version: 0.3.2.0
+synopsis: posix bindings
+description:
+  This library provides a very thin wrapper around POSIX APIs. It can be
+  compiled on any operating system that implements the standard as specified
+  in <http://pubs.opengroup.org/onlinepubs/9699919799/ IEEE Std 1003.1>
+  faithfully. It has similar goals as the `unix` package, but its design
+  differs in several areas:
+  .
+  * `ByteArray` and `Addr` are used pervasively. There is no use of
+    `String` in this library.
+  .
+  * Functions do not throw errors. This library uses `IO (Either Errno a)`
+    in places where `unix` would use `IO a`.
+  .
+  * The numeric types from `Foreign.C.Types` and `System.Posix.Types` are
+    used in the type signatures of functions so that a haskell function's
+    type signature matches its underlying POSIX equivalent exactly.
+  .
+  * Flags are newtypes over `CInt` (or whatever integral type matches the
+    posix specification) rather than enumerations. The data constructors
+    are exported, making the types extensible for operating system that
+    have additional flags.
+  .
+  About a dozen other packages offers wrappers for some subset of the POSIX
+  specification are strewn across hackage. They include `regex-posix`,
+  `posix-paths`, `posix-timer`, `posix-socket`, `posix-filelock`,
+  `posix-acl`, etc. This library differs from all off these in various
+  ways. Here are some of the design guidelines followed here that distinguish
+  this package from some or all of these others:
+  .
+  * Scope. Although this library does not include all APIs specified by
+    POSIX, it welcomes as many of them as anyone is willing to implement.
+  .
+  * Monomorphization. Effectful functions in this library return their
+    results in `IO` rather than using a type that involves `MonadIO`
+    or `MonadBaseControl`.
+  .
+  * Typeclass avoidance. This library does not introduce new typeclasses.
+    Overloading is eschewed in favor of providing multiple functions
+    with distinct names.
+  .
+  * Minimality. Functions wrapping the POSIX APIs do little more than
+    wrap the underlying functions. The major deviation here is that,
+    when applicable, the wrappers allocate buffers are the underlying
+    functions fill. This eschews C's characteristic buffer-passing
+    in favor of the Haskell convention of allocating internally and returning.
+    A more minor deviation is that for safe FFI calls, this library
+    will perform additional work to ensure that only pinned byte arrays are
+    handed over.
+  .
+  Unlike `network`, this sockets API in this library does not integrate
+  sockets with GHC's event manager. This is geared
+  toward an audience that understands how to use `threadWaitRead`
+  and `threadWaitWrite` with unsafe FFI calls to avoid blocking
+  the runtime.
+homepage: https://github.com/andrewthad/posix-api
+license: BSD-3-Clause
+license-file: LICENSE
+author: Andrew Martin
+maintainer: andrew.thaddeus@gmail.com
+copyright: 2018 Andrew Martin
+category: System
+build-type: Simple
+extra-source-files:
+  README.md
+  CHANGELOG.md
+  cbits/HaskellPosix.c
+  include/HaskellPosix.h
+  include/custom.h
+
+flag assertions
+  manual: True
+  description: Extra run-time invariant checking 
+  default: False
+
+library
+  exposed-modules:
+    Linux.Epoll
+    Linux.Socket
+    Posix.Directory
+    Posix.Poll
+    Posix.Select
+    Posix.Socket
+    Posix.Types
+  other-modules:
+    Linux.Epoll.Types
+    Linux.Socket.Types
+    Posix.Poll.Types
+    Posix.Socket.Platform
+    Posix.Socket.Types
+    Assertion
+  build-depends:
+    , base >=4.11.1 && <5
+    , primitive >= 0.7 && <0.8
+    , primitive-addr >= 0.1 && <0.2
+    , primitive-offset >= 0.2 && <0.3
+    , primitive-unlifted >= 0.1 && <0.2
+  hs-source-dirs: src
+  if flag(assertions)
+    hs-source-dirs: src-assertions
+  else
+    hs-source-dirs: src-noassertions
+  if os(linux)
+    hs-source-dirs: src-linux
+  default-language: Haskell2010
+  ghc-options: -Wall -O2
+  c-sources: cbits/HaskellPosix.c
+  include-dirs: include
+  includes: HaskellPosix.h
+  build-tool-depends: hsc2hs:hsc2hs
+
+test-suite test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends:
+    , base
+    , posix-api
+    , tasty
+    , tasty-hunit
+    , primitive >= 0.7
+    , primitive-unlifted
+  ghc-options: -Wall -O2 -threaded
+  default-language: Haskell2010
+
