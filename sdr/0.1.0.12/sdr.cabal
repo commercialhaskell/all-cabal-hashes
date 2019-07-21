@@ -1,0 +1,142 @@
+name:                sdr
+version:             0.1.0.12
+synopsis:            A software defined radio library
+description:         
+    Write software defined radio applications in Haskell.
+    .
+    Features:
+    .
+    * Signal processing blocks can be chained together using the <https://hackage.haskell.org/package/pipes Pipes> library
+    .
+    * Zero copy design
+    .
+    * Signal processing functions are implemented in both Haskell and C (with SIMD acceleration)
+    .
+    * Can FIR filter, decimate and resample
+    .
+    * Helper functions for FIR filter design using window functions and plotting of the frequency response
+    .
+    * FFTs using <http://www.fftw.org/ FFTW>
+    .
+    * Line and waterfall plots using OpenGL
+    .
+    * FM demodulation
+    .
+    * PulseAudio sound sink
+    .
+    * <http://sdr.osmocom.org/trac/wiki/rtl-sdr rtl-sdr> and <https://nuand.com BladeRF> based radio sources/sinks supported and other sources are easily added
+    .
+    See <https://github.com/adamwalker/sdr> for more features and screenshots.
+    .
+    A collection of simple apps that use this library can be found <https://github.com/adamwalker/sdr-apps here>. These include an FM radio receiver, an OpenGL waterfall plotter and an AM radio receiver.
+
+license:             BSD3
+license-file:        LICENSE
+author:              Adam Walker
+maintainer:          adamwalker10@gmail.com
+copyright:           2018 Adam Walker
+category:            Software Defined Radio
+homepage:            https://github.com/adamwalker/sdr
+bug-reports:         https://github.com/adamwalker/sdr/issues
+build-type:          Simple
+extra-source-files:  Readme.md
+cabal-version:       >=1.10
+
+source-repository head
+    type: git
+    location: https://github.com/adamwalker/sdr
+
+library
+    if arch(i386)
+        Buildable: False
+    exposed-modules:     
+        SDR.Pulse, 
+        SDR.RTLSDRStream, 
+        SDR.Util, 
+        SDR.Plot, 
+        SDR.Filter, 
+        SDR.Demod, 
+        SDR.FFT, 
+        SDR.FilterInternal, 
+        SDR.Serialize, 
+        SDR.PipeUtils, 
+        SDR.VectorUtils, 
+        SDR.ArgUtils, 
+        SDR.FilterDesign,
+        SDR.CPUID
+    -- other-modules:       
+    other-extensions:    ScopedTypeVariables, GADTs
+    build-depends:       
+        base                 >=4.7   && <5,
+        fftwRaw              >=0.1   && <0.2, 
+        bytestring           >=0.10  && <0.11, 
+        pulse-simple         >=0.1   && <0.2, 
+        pipes                >=4.1   && <4.4, 
+        pipes-concurrency    >=2.0   && <2.1, 
+        time                 >=1.4   && <1.9, 
+        rtlsdr               >=0.1   && <0.2, 
+        storable-complex     >=0.2   && <0.3, 
+        pipes-bytestring     >=2.0   && <2.2, 
+        dynamic-graph        >=0.1.0.12,
+        array                >=0.4   && <0.6, 
+        vector               >=0.11  && <0.13,
+        tuple                >=0.2   && <0.4, 
+        OpenGL               >=2.11  && <3.1,
+        GLFW-b               >=1.4.8 && <4,
+        primitive            >=0.5   && <0.7, 
+        colour               >=2.3   && <2.4, 
+        pango                >=0.13  && <0.14, 
+        containers           >=0.5   && <0.7, 
+        cairo                >=0.13  && <0.14, 
+        cereal               >=0.4   && <0.6, 
+        optparse-applicative >=0.11  && <0.15, 
+        Decimal              >=0.4   && <0.6,
+        Chart                >=1.3   && <1.10, 
+        Chart-cairo          >=1.3   && <1.10,
+        transformers         >=0.5   && <0.6,
+        mwc-random
+    -- hs-source-dirs:      
+    default-language:    Haskell2010
+    ghc-options:         -O2
+    includes:            c_sources/common.h
+    install-includes:    c_sources/common.h
+    c-sources:           
+        c_sources/filter.c, 
+        c_sources/decimate.c, 
+        c_sources/convert.c, 
+        c_sources/resample.c, 
+        c_sources/scale.c,
+        c_sources/cpuid.c
+    hs-source-dirs:      hs_sources
+    cc-options:          -mavx2 -msse4 -g
+
+Test-Suite test
+    type:                exitcode-stdio-1.0
+    main-is:             TestSuite.hs
+    build-depends:       
+        base                       >=4.6  && <5, 
+        QuickCheck                 >=2.8  && <2.11, 
+        vector                     >=0.11 && <0.13, 
+        primitive                  >=0.5  && <0.7, 
+        storable-complex           >=0.2  && <0.3,
+        test-framework             >=0.8  && <0.9,
+        test-framework-quickcheck2 >=0.3  && <0.4,
+        sdr
+    hs-source-dirs:      tests
+    ghc-options:         -O2
+    default-language:    Haskell2010
+
+benchmark benchmark
+    type:                exitcode-stdio-1.0
+    main-is:             Benchmarks.hs
+    build-depends:       
+        base             >=4.6  && <5, 
+        criterion        >=1.0  && <1.4,
+        vector           >=0.11 && <0.13, 
+        primitive        >=0.5  && <0.7, 
+        storable-complex >=0.2  && <0.3,
+        sdr
+    hs-source-dirs:      benchmarks
+    ghc-options:         -O2
+    default-language:    Haskell2010
+    
