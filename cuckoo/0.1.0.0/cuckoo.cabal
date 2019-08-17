@@ -1,0 +1,155 @@
+cabal-version: 2.2
+name: cuckoo
+version: 0.1.0.0
+synopsis: Haskell Implementation of Cuckoo Filters
+Description:
+    Haskell implementation of Cuckoo filters as described in
+    .
+    <https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf B. Fan, D.G. Anderson, M. Kaminsky, M.D. Mitzenmacher. Cuckoo Filter: Practically Better Than Bloom. In Proc. CoNEXT, 2014.>
+    .
+    Cuckoo filters are a data structure for probabilistic set membership. They
+    support insertion, deletion, and membership queries for set elements.
+    .
+    Membership queries may return false positive results. But queries don't
+    return false negative results.
+    .
+    Unlike Bloom filters, Cuckoo filters maintain an upper bound on the false
+    positive rate that is independent of the load of the filter. However,
+    insertion of new elements in the filter can fail. For typical
+    configurations this probability is very small for load factors smaller than
+    90 percent.
+
+homepage: https://github.com/larskuhtz/cuckoo
+bug-reports: https://github.com/larskuhtz/cuckoo/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Lars Kuhtz
+maintainer: lakuhtz@gmail.com
+copyright: Copyright (c) 2019, Lars Kuhtz <lakuhtz@gmail.com>
+category: Data
+tested-with:
+      GHC==8.6.5
+      GHC==8.4.4
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+    type: git
+    location: https://github.com/larskuhtz/cuckoo.git
+
+flag mwc-random
+    description: Use mwc-random instead of the random package
+    manual: True
+    default: False
+
+flag pcg-random
+    description: Use pcg-random instead of the random package
+    manual: True
+    default: False
+
+library random-internal
+    hs-source-dirs: lib/random
+    default-language: Haskell2010
+    exposed-modules:
+        System.Random.Internal
+    ghc-options:
+        -Wall
+    build-depends:
+          base >=4.11 && <4.15
+        , primitive >=0.7
+
+    if flag(pcg-random)
+        build-depends:
+            pcg-random >=0.1
+        cpp-options: -DRANDOM_PCG
+    elif flag(mwc-random)
+        build-depends:
+            mwc-random >=0.14
+          , vector >=0.12
+        cpp-options: -DRANDOM_MWC
+    else
+        build-depends:
+            random >=1.1
+
+library
+    hs-source-dirs: src
+    default-language: Haskell2010
+    ghc-options:
+        -Wall
+    exposed-modules:
+        Data.Cuckoo
+        Data.Cuckoo.Internal
+    build-depends:
+          random-internal
+
+        -- external
+        , base >=4.11 && <4.15
+        , memory >=0.14
+        , primitive >=0.7
+        , vector >=0.12
+
+test-suite tests
+    type: exitcode-stdio-1.0
+    hs-source-dirs: test
+    default-language: Haskell2010
+    ghc-options:
+        -Wall
+        -rtsopts
+        -threaded
+        -with-rtsopts=-N
+    main-is: Main.hs
+    build-depends:
+        -- internal
+          cuckoo
+        , random-internal
+
+        -- external
+        , base >=4.11 && <4.15
+        , bytestring >=0.10
+        , cryptonite >=0.26
+        , hashable >=1.3
+        , memory >=0.14
+        , stopwatch >=0.1
+
+benchmark spellchecker
+    type: exitcode-stdio-1.0
+    hs-source-dirs: bench
+    default-language: Haskell2010
+    ghc-options:
+        -Wall
+        -rtsopts
+        -threaded
+        -with-rtsopts=-N
+    main-is: SpellChecker.hs
+    build-depends:
+        -- internal
+          cuckoo
+
+        -- external
+        , base >=4.11 && <4.15
+        , bytestring >=0.10
+        , memory >=0.14
+        , stopwatch >=0.1
+
+benchmark internal-benchmarks
+    type: exitcode-stdio-1.0
+    hs-source-dirs: bench
+    main-is: Internal.hs
+    default-language: Haskell2010
+    ghc-options:
+        -Wall
+        -rtsopts
+        -threaded
+        -with-rtsopts=-N
+        -mbmi2
+        -msse4.2
+    build-depends:
+        -- internal
+          cuckoo
+
+        -- external
+        , QuickCheck >= 2.13
+        , base >=4.10 && <4.15
+        , criterion >= 1.5
+
