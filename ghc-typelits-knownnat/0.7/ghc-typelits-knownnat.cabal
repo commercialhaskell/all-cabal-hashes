@@ -1,0 +1,128 @@
+name:                ghc-typelits-knownnat
+version:             0.7
+synopsis:            Derive KnownNat constraints from other KnownNat constraints
+description:
+  A type checker plugin for GHC that can derive \"complex\" @KnownNat@
+  constraints from other simple/variable @KnownNat@ constraints. i.e. without
+  this plugin, you must have both a @KnownNat n@ and a @KnownNat (n+2)@
+  constraint in the type signature of the following function:
+  .
+  @
+  f :: forall n . (KnownNat n, KnownNat (n+2)) => Proxy n -> Integer
+  f _ = natVal (Proxy :: Proxy n) + natVal (Proxy :: Proxy (n+2))
+  @
+  .
+  Using the plugin you can omit the @KnownNat (n+2)@ constraint:
+  .
+  @
+  f :: forall n . KnownNat n => Proxy n -> Integer
+  f _ = natVal (Proxy :: Proxy n) + natVal (Proxy :: Proxy (n+2))
+  @
+  .
+  The plugin can derive @KnownNat@ constraints for types consisting of:
+  .
+  * Type variables, when there is a corresponding @KnownNat@ constraint
+  .
+  * Type-level naturals
+  .
+  * Applications of the arithmetic expression: +,-,*,^
+  .
+  * Type functions, when there is either:
+  .
+          1. a matching given @KnownNat@ constraint; or
+  .
+          2. a corresponding @KnownNat\<N\>@ instance for the type function
+  .
+  To use the plugin, add the
+  .
+  @
+  OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver
+  @
+  .
+  Pragma to the header of your file.
+homepage:            http://clash-lang.org/
+license:             BSD2
+license-file:        LICENSE
+author:              Christiaan Baaij
+maintainer:          christiaan.baaij@gmail.com
+copyright:           Copyright © 2016     , University of Twente,
+                                 2017-2018, QBayLogic B.V.,
+                                 2017     , Google Inc.
+category:            Type System
+build-type:          Simple
+extra-source-files:  README.md
+                     CHANGELOG.md
+cabal-version:       >=1.10
+tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5,
+                     GHC == 8.8.1
+
+source-repository head
+  type: git
+  location: https://github.com/clash-lang/ghc-typelits-knownnat.git
+
+flag deverror
+  description:
+    Enables `-Werror` for development mode and TravisCI
+  default: False
+  manual: True
+
+library
+  exposed-modules:     GHC.TypeLits.KnownNat,
+                       GHC.TypeLits.KnownNat.Solver
+  other-modules:       GHC.TypeLits.KnownNat.TH
+  other-extensions:    AllowAmbiguousTypes
+                       DataKinds
+                       FlexibleInstances
+                       KindSignatures
+                       LambdaCase
+                       MultiParamTypeClasses
+                       ScopedTypeVariables
+                       TemplateHaskell
+                       TupleSections
+                       TypeApplications
+                       TypeOperators
+                       TypeFamilies
+                       TypeInType
+                       UndecidableInstances
+                       ViewPatterns
+  build-depends:       base                      >= 4.9      && <5,
+                       ghc                       >= 8.0.1    && <8.9,
+                       ghc-prim                  >= 0.4.0.0  && <0.6,
+                       ghc-tcplugins-extra       >= 0.3,
+                       ghc-typelits-natnormalise >= 0.6      && <0.8,
+                       transformers              >= 0.5.2.0  && <0.6,
+                       template-haskell          >= 2.11.0.0 && <2.15
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  if flag(deverror)
+    ghc-options:       -Wall -Werror
+  else
+    ghc-options:       -Wall
+
+test-suite test-ghc-typelits-knownnat
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  Other-Modules:       TestFunctions
+  build-depends:       base                      >= 4.8   && <5,
+                       ghc-typelits-knownnat,
+                       ghc-typelits-natnormalise >= 0.6   && <0.8,
+                       tasty                     >= 0.10,
+                       tasty-hunit               >= 0.9,
+                       tasty-quickcheck          >= 0.8
+  hs-source-dirs:      tests
+  default-language:    Haskell2010
+  other-extensions:    DataKinds
+                       FlexibleContexts
+                       FlexibleInstances
+                       GADTs
+                       MultiParamTypeClasses
+                       KindSignatures
+                       ScopedTypeVariables,
+                       TemplateHaskell
+                       TypeApplications
+                       TypeFamilies
+                       TypeFamilyDependencies
+                       TypeOperators
+                       UndecidableInstances
+  if flag(deverror)
+    ghc-options:       -O0 -dcore-lint
