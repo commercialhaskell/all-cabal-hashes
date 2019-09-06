@@ -1,0 +1,134 @@
+cabal-version:       2.4
+name:                elm-street
+version:             0.1.0.0
+synopsis:            Crossing the road between Haskell and Elm
+description:
+    `Elm-street` allows you to generate automatically derived from Haskell types
+    definitions of Elm data types, JSON encoders and decoders. This helps to avoid
+    writing and maintaining huge chunk of boilerplate code when developing full-stack
+    applications.
+homepage:            https://github.com/Holmusk/elm-street
+bug-reports:         https://github.com/Holmusk/elm-street/issues
+license:             MPL-2.0
+license-file:        LICENSE
+author:              Veronika Romashkina, Dmitrii Kovanikov
+maintainer:          Holmusk <tech@holmusk.com>
+copyright:           2019 Holmusk
+category:            Language, Compiler, Elm
+build-type:          Simple
+extra-doc-files:     README.md
+                     CHANGELOG.md
+tested-with:         GHC == 8.4.4
+                     GHC == 8.6.5
+
+source-repository head
+  type:                git
+  location:            https://github.com/Holmusk/elm-street.git
+
+common common-options
+  build-depends:       base >= 4.11.1.0 && < 4.13
+
+  ghc-options:         -Wall
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wcompat
+                       -Widentities
+                       -Wredundant-constraints
+                       -fhide-source-paths
+                       -Wmissing-export-lists
+                       -Wpartial-fields
+
+  default-language:    Haskell2010
+  default-extensions:  ConstraintKinds
+                       DeriveGeneric
+                       GeneralizedNewtypeDeriving
+                       InstanceSigs
+                       KindSignatures
+                       LambdaCase
+                       OverloadedStrings
+                       RecordWildCards
+                       ScopedTypeVariables
+                       StandaloneDeriving
+                       TupleSections
+                       TypeApplications
+                       TypeOperators
+                       ViewPatterns
+
+library
+  import:              common-options
+  hs-source-dirs:      src
+  exposed-modules:     Elm
+                         Elm.Aeson
+                         Elm.Ast
+                         Elm.Generate
+                         Elm.Generic
+                         Elm.Print
+                           Elm.Print.Common
+                           Elm.Print.Decoder
+                           Elm.Print.Encoder
+                           Elm.Print.Types
+
+  build-depends:       aeson >= 1.3
+                     , directory ^>= 1.3
+                     , filepath ^>= 1.4
+                     , prettyprinter ^>= 1.2.1
+                     , text ^>= 1.2
+                     , time
+
+library types
+  import:              common-options
+  hs-source-dirs:      types
+  exposed-modules:     Types
+
+  build-depends:       aeson
+                     , elm-street
+                     , text
+                     , time
+
+executable generate-elm
+  import:              common-options
+  hs-source-dirs:      generate-elm
+  main-is:             Main.hs
+
+  build-depends:       elm-street
+                     , types
+                     , directory
+                     , filepath
+                     , text
+
+  ghc-options:         -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
+
+executable run-backend
+  import:              common-options
+  hs-source-dirs:      backend
+  main-is:             Main.hs
+  other-modules:       Api
+
+  build-depends:       servant >= 0.14 && < 0.17
+                     , servant-server >= 0.14 && < 0.17
+                     , types
+                     , wai ^>= 3.2
+                     , warp ^>= 3.2
+
+  ghc-options:         -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
+
+test-suite elm-street-test
+  import:              common-options
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  other-modules:       Test.Golden
+
+  build-depends:       elm-street
+                     , types
+                     , aeson
+                     , bytestring ^>= 0.10
+                     , hspec ^>= 2.7.1
+
+  ghc-options:         -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
