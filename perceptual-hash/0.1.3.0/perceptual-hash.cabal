@@ -1,0 +1,167 @@
+cabal-version:   2.0
+name:            perceptual-hash
+version:         0.1.3.0
+license:         BSD3
+license-file:    LICENSE
+copyright:       Copyright: (c) 2019 Vanessa McHale
+maintainer:      vamchale@gmail.com
+author:          Vanessa McHale
+synopsis:        Find duplicate images
+description:     Find similar images using perceptual hashes
+category:        Application, CommandLine, Images
+build-type:      Simple
+data-files:
+    demo-data/cat.png
+    demo-data/frog.jpeg
+    demo-data/frog.png
+
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+    type:     git
+    location: https://github.com/vmchale/phash
+
+flag with-phash
+    description: Use FFI bindings to pHash
+    default:     False
+    manual:      True
+
+flag llvm
+    description: Use LLVM backend to GHC rather than NCG
+    default:     False
+    manual:      True
+
+library
+    exposed-modules:  PerceptualHash
+    hs-source-dirs:   src
+    other-modules:    Median
+    default-language: Haskell2010
+    other-extensions: FlexibleContexts TypeFamilies
+    ghc-options:      -Wall -O2
+    build-depends:
+        base >=4.8 && <5,
+        hip -any,
+        vector-algorithms -any,
+        vector -any,
+        primitive -any,
+        repa -any
+
+    if flag(llvm)
+        ghc-options: -fllvm
+
+    if flag(with-phash)
+        pkgconfig-depends: pHash -any
+
+    if flag(with-phash)
+        exposed-modules: ForeignHash
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+foreign-library hsphash
+    type:             native-shared
+    hs-source-dirs:   foreign-src
+    other-modules:    Export
+    default-language: Haskell2010
+    ghc-options:      -Wall
+    build-depends:
+        base -any,
+        perceptual-hash -any
+
+    lib-version-info: 1:0:0
+
+    if os(windows)
+        options: standalone
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+executable phash
+    main-is:          Main.hs
+    hs-source-dirs:   app
+    other-modules:
+        Paths_perceptual_hash
+        Parser
+        Parallel
+
+    autogen-modules:  Paths_perceptual_hash
+    default-language: Haskell2010
+    other-extensions: ScopedTypeVariables
+    ghc-options:      -Wall -threaded -rtsopts "-with-rtsopts=-N -qg"
+    build-depends:
+        base >=4.9 && <5,
+        perceptual-hash -any,
+        containers -any,
+        filepath -any,
+        optparse-applicative >=0.13.0.0,
+        par-traverse >=0.2.0.0,
+        stm >=2.3
+
+    if flag(llvm)
+        ghc-options: -fllvm
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+test-suite perceptual-hash-test
+    type:             exitcode-stdio-1.0
+    main-is:          Spec.hs
+    hs-source-dirs:   test
+    default-language: Haskell2010
+    ghc-options:      -Wall -threaded -rtsopts -with-rtsopts=-N
+    build-depends:
+        base -any,
+        perceptual-hash -any,
+        hspec -any
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+benchmark phash-bench
+    type:               exitcode-stdio-1.0
+    main-is:            Bench.hs
+    build-tool-depends: cpphs:cpphs -any
+    hs-source-dirs:     bench
+    default-language:   Haskell2010
+    ghc-options:
+        -threaded -rtsopts "-with-rtsopts=-N -qg" -Wall
+        -Wincomplete-uni-patterns -Wincomplete-record-updates
+        -Wredundant-constraints
+
+    build-depends:
+        base -any,
+        perceptual-hash -any,
+        criterion -any,
+        filepath -any,
+        deepseq -any
+
+    if flag(llvm)
+        ghc-options: -fllvm
+
+    if flag(with-phash)
+        cpp-options: -DFOREIGN_PHASH
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
