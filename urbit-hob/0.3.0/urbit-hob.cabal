@@ -1,0 +1,152 @@
+name:           urbit-hob
+version:        0.3.0
+synopsis:       Hoon-style atom manipulation and printing functions
+homepage:       https://github.com/urbit/urbit-hob
+bug-reports:    https://github.com/urbit/urbit-hob/issues
+author:         Jared Tobin
+maintainer:     jared@jtobin.io
+copyright:      2019 Jared Tobin
+category:       Urbit
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+description:
+  Here you can primarily find functions for dealing with the \"patp\" and
+  \"patq\" /phonetic bases/ used by Urbit.  The \@p encoding is used for naming
+  ships, while the \@q encoding is used for arbitrary data; they each uniquely
+  represent an underlying natural number (or /atom/) in a memorable and
+  pronounceable fashion.
+  .
+  The \@p encoding is an /obfuscated/ representation of an underlying atom, in
+  particular, hence the \"ob\" in the library's name.
+  .
+  The @Urbit.Ob@ module exposes two families of functions, 'patp' and
+  'fromPatp', and then 'patq' and 'fromPatq', for converting between
+  representations.  You can also render a 'Patp' or 'Patq' value as 'Text' via
+  the 'renderPatp' and 'renderPatq' functions, or parse them from 'Text' via
+  'parsePatp' and 'parsePatq'.
+  .
+  Since \@p values represent ships, some utilities for dealing with ships are
+  also exposed.  The 'clan' and 'sein' functions are useful for determining a
+  ship's class and (default) parent, respectively.
+  .
+  Some quick examples:
+  .
+  >>> :set -XOverloadedStrings
+  >>> import qualified Urbit.Ob as Ob
+  >>> let nidsut = Ob.patp 15663360
+  >>> let marzod = Ob.patq (Ob.fromPatp nidsut)
+  >>> Ob.renderPatp nidsut
+  "~nidsut-tomdun"
+  >>> Ob.renderPatq marzod
+  "~mun-marzod"
+  >>> Ob.fromPatp nidsut
+  15663360
+  >>> Ob.parsePatp "~nidsut-tomdun"
+  Right ~nidsut-tomdun
+  >>> Ob.clan nidsut
+  Planet
+  >>> Ob.sein nidsut
+  ~marzod
+
+source-repository head
+  type: git
+  location: https://github.com/urbit/urbit-hob
+
+flag release
+  Description:  Build for release
+  Default:      False
+  Manual:       True
+
+library
+  default-language: Haskell2010
+  hs-source-dirs:   lib
+
+  if flag(release)
+    ghc-options:     -Wall -O2
+  else
+    ghc-options:     -Wall -Werror
+
+  exposed-modules:
+      Urbit.Ob
+    , Urbit.Ob.Co
+    , Urbit.Ob.Muk
+    , Urbit.Ob.Ob
+    , Urbit.Ob.Title
+
+  other-modules:
+      Data.Serialize.Extended
+
+  build-depends:
+      base        >= 4.7  && < 6
+    , bytestring  >= 0.10 && < 1
+    , murmur3     >= 1.0  && < 2
+    , text        >= 1.2  && < 2
+    , vector      >= 0.12 && < 1
+
+Test-suite ob
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Ob.hs
+  other-modules:
+    Ob.Tests.Small
+    Ob.Tests.Med
+    Ob.Tests.Property
+    Ob.Tests.Unit
+  default-language:    Haskell2010
+  ghc-options:
+    -rtsopts
+  build-depends:
+      base
+    , hspec
+    , hspec-core
+    , QuickCheck
+    , urbit-hob
+
+Test-suite co
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Co.hs
+  other-modules:
+    Co.Tests.Property
+    Co.Tests.Unit
+  default-language:    Haskell2010
+  ghc-options:
+    -rtsopts
+  build-depends:
+      base
+    , hspec
+    , hspec-core
+    , QuickCheck
+    , text
+    , urbit-hob
+
+Test-suite title
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Title.hs
+  other-modules:
+    Title.Tests.Property
+  default-language:    Haskell2010
+  ghc-options:
+    -rtsopts
+  build-depends:
+      base
+    , hspec
+    , QuickCheck
+    , urbit-hob
+
+benchmark ob-bench
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      bench
+  main-is:             Ob.hs
+  default-language:    Haskell2010
+  ghc-options:
+    -rtsopts -O2
+  build-depends:
+      base
+    , criterion
+    , deepseq
+    , urbit-hob
+
