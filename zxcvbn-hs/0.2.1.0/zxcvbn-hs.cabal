@@ -1,0 +1,150 @@
+cabal-version: 2.2
+
+--------------------------------------------------------------------------------
+name:          zxcvbn-hs
+version:       0.2.1.0
+synopsis:      Password strength estimation based on zxcvbn.
+description:   Please see the README below.
+license:       MIT
+license-file:  LICENSE
+author:        Peter Jones <pjones@devalot.com>
+maintainer:    Peter Jones <pjones@devalot.com>
+copyright:     Copyright (c) 2019 Peter Jones
+homepage:      https://code.devalot.com/sthenauth/zxcvbn-hs
+bug-reports:   https://github.com/sthenauth/zxcvbn-hs/issues
+category:      System
+
+--------------------------------------------------------------------------------
+extra-source-files:
+  CHANGELOG.md
+  README.md
+
+--------------------------------------------------------------------------------
+flag tools
+  description: Build the data processing tools (i.e. dictionary compilers)
+  default: False
+  manual: True
+
+--------------------------------------------------------------------------------
+source-repository head
+  type: git
+  location: https://code.devalot.com/sthenauth/zxcvbn-hs.git
+
+--------------------------------------------------------------------------------
+common options
+  default-language: Haskell2010
+  ghc-options: -Wall
+               -Werror=incomplete-record-updates
+               -Werror=incomplete-uni-patterns
+               -Werror=missing-home-modules
+               -Widentities
+               -Wmissing-export-lists
+               -Wredundant-constraints
+
+--------------------------------------------------------------------------------
+common dependencies
+  build-depends: base                        >= 4.9   && < 5.0
+               , attoparsec                  >= 0.13  && < 0.14
+               , base64-bytestring           >= 1.0   && < 1.1
+               , binary                      >= 0.8   && < 0.11
+               , binary-instances            >= 0.1   && < 1.0
+               , containers                  >= 0.6   && < 0.7
+               , fgl                         >= 5.7   && < 5.8
+               , lens                        >= 4.17  && < 4.18
+               , math-functions              >= 0.3   && < 0.4
+               , text                        >= 1.2   && < 1.3
+               , time                        >= 1.8   && < 2.0
+               , unordered-containers        >= 0.2   && < 0.3
+               , vector                      >= 0.12  && < 0.13
+               , zlib                        >= 0.6   && < 0.7
+
+--------------------------------------------------------------------------------
+common tool-dependencies
+  build-depends: filepath                    >= 1.4   && < 1.5
+               , mtl                         >= 2.2   && < 2.3
+               , optparse-applicative        >= 0.14  && < 0.15
+               , pipes                       >= 4.3   && < 4.4
+               , pipes-safe                  >= 2.3   && < 2.4
+               , pipes-text                  >= 0.0   && < 0.1
+
+--------------------------------------------------------------------------------
+library
+  import: options, dependencies
+  -- ghc-prof-options: -fprof-auto -fprof-cafs
+  hs-source-dirs: src
+
+  exposed-modules:
+    Text.Password.Strength
+    Text.Password.Strength.Config
+    Text.Password.Strength.Types
+    Text.Password.Strength.Internal
+
+  other-modules:
+    Text.Password.Strength.Generated.Adjacency
+    Text.Password.Strength.Generated.Frequency
+    Text.Password.Strength.Internal.Adjacency
+    Text.Password.Strength.Internal.Config
+    Text.Password.Strength.Internal.Date
+    Text.Password.Strength.Internal.Dictionary
+    Text.Password.Strength.Internal.Estimate
+    Text.Password.Strength.Internal.Keyboard
+    Text.Password.Strength.Internal.L33t
+    Text.Password.Strength.Internal.Match
+    Text.Password.Strength.Internal.Math
+    Text.Password.Strength.Internal.Repeat
+    Text.Password.Strength.Internal.Search
+    Text.Password.Strength.Internal.Sequence
+    Text.Password.Strength.Internal.Token
+
+--------------------------------------------------------------------------------
+executable zxcvbn-tools
+  import: options, dependencies, tool-dependencies
+  main-is: Main.hs
+  hs-source-dirs: tools
+  other-modules:
+    Zxcvbn.Adjacency
+    Zxcvbn.Encode
+    Zxcvbn.Freq
+    Zxcvbn.Global
+  build-depends: zxcvbn-hs
+  if !flag(tools)
+    buildable: False
+
+--------------------------------------------------------------------------------
+executable zxcvbn-example
+  import: options, dependencies
+  main-is: Main.hs
+  hs-source-dirs: example
+  ghc-prof-options: -rtsopts
+  build-depends: zxcvbn-hs
+
+--------------------------------------------------------------------------------
+test-suite test
+  import: options, dependencies
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends: hedgehog       >= 0.6  && < 1.1
+               , tasty          >= 1.1  && < 1.3
+               , tasty-hedgehog >= 0.2  && < 1.1
+               , tasty-hunit    >= 0.10 && < 0.11
+               , zxcvbn-hs
+
+  other-modules:
+    Zxcvbn.Adjacency
+    Zxcvbn.Date
+    Zxcvbn.Estimate
+    Zxcvbn.Match
+    Zxcvbn.Repeat
+    Zxcvbn.Search
+    Zxcvbn.Sequence
+
+--------------------------------------------------------------------------------
+benchmark bench
+  import: options, dependencies
+  type: exitcode-stdio-1.0
+  hs-source-dirs: benchmark
+  main-is: Main.hs
+  ghc-prof-options: -rtsopts
+  build-depends: criterion >= 1.5 && < 1.6
+               , zxcvbn-hs
