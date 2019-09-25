@@ -1,0 +1,161 @@
+name: bitvec
+version: 1.0.1.0
+cabal-version: >=1.10
+build-type: Simple
+license: BSD3
+license-file: LICENSE
+copyright: 2019 Andrew Lelechenko, 2012-2016 James Cook
+maintainer: Andrew Lelechenko <andrew.lelechenko@gmail.com>
+homepage: https://github.com/Bodigrim/bitvec
+synopsis: Space-efficient bit vectors
+description:
+  A newtype over 'Bool' with a better 'Vector' instance: 8x less memory, up to 1000x faster.
+  .
+  The <https://hackage.haskell.org/package/vector vector>
+  package represents unboxed arrays of 'Bool'
+  spending 1 byte (8 bits) per boolean.
+  This library provides a newtype wrapper 'Bit' and a custom instance
+  of unboxed 'Vector', which packs bits densely,
+  achieving __8x less memory footprint.__
+  The performance stays mostly the same;
+  the most significant degradation happens for random writes
+  (up to 10% slower).
+  On the other hand, for certain bulk bit operations
+  'Vector' 'Bit' is up to 1000x faster than 'Vector' 'Bool'.
+  .
+  === Thread safety
+  .
+  * "Data.Bit" is faster, but writes and flips are thread-unsafe.
+    This is because naive updates are not atomic:
+    read the whole word from memory,
+    then modify a bit, then write the whole word back.
+  * "Data.Bit.ThreadSafe" is slower (up to 20%),
+    but writes and flips are thread-safe.
+  .
+  === Similar packages
+  .
+  * <https://hackage.haskell.org/package/bv bv> and
+    <https://hackage.haskell.org/package/bv-little bv-little>
+    do not offer mutable vectors.
+  .
+  * <https://hackage.haskell.org/package/array array>
+    is memory-efficient for 'Bool', but lacks
+    a handy 'Vector' interface and is not thread-safe.
+
+category: Data, Bit Vectors
+author: Andrew Lelechenko <andrew.lelechenko@gmail.com>,
+        James Cook <mokus@deepbondi.net>
+
+tested-with: GHC ==7.10.3 GHC ==8.0.2 GHC ==8.2.2 GHC ==8.4.4 GHC ==8.6.5 GHC ==8.8.1
+extra-source-files:
+  changelog.md
+  README.md
+
+source-repository head
+  type: git
+  location: git://github.com/Bodigrim/bitvec.git
+
+flag bmi2
+  description: Enable bmi2 instruction set
+  default: False
+
+flag integer-gmp
+  description: Use integer-gmp package for binary polynomials
+  default: True
+
+flag libgmp
+  description: Link against GMP library
+  default: True
+
+library
+  exposed-modules:
+    Data.Bit
+    Data.Bit.ThreadSafe
+  build-depends:
+    base >=4.8 && <5,
+    deepseq,
+    ghc-prim,
+    primitive >=0.5,
+    vector >=0.11
+  if (flag(bmi2)) && (impl(ghc >=8.4.1))
+    build-depends:
+      bits-extra >=0.0.0.4 && <0.1
+  if impl(ghc <8.0)
+    build-depends:
+      semigroups >=0.8
+  default-language: Haskell2010
+  hs-source-dirs: src
+  other-modules:
+    Data.Bit.F2Poly
+    Data.Bit.F2PolyTS
+    Data.Bit.Gmp
+    Data.Bit.Immutable
+    Data.Bit.ImmutableTS
+    Data.Bit.Internal
+    Data.Bit.InternalTS
+    Data.Bit.Mutable
+    Data.Bit.MutableTS
+    Data.Bit.Select1
+    Data.Bit.Utils
+  ghc-options: -O2 -Wall
+  include-dirs: src
+  if flag(bmi2) && impl(ghc >=8.4.1)
+    ghc-options: -mbmi2 -msse4.2
+    cpp-options: -DBMI2_ENABLED
+  if flag(integer-gmp) && impl(ghc >=8.0.1)
+    build-depends: integer-gmp
+    cpp-options: -DUseIntegerGmp
+  if flag(libgmp)
+    extra-libraries: gmp
+    cpp-options: -DUseLibGmp
+
+test-suite bitvec-tests
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  build-depends:
+    base >=4.8 && <5,
+    bitvec,
+    primitive >=0.5,
+    quickcheck-classes >=0.6.1,
+    vector >=0.11,
+    tasty,
+    tasty-hunit,
+    tasty-quickcheck
+  if impl(ghc <8.0)
+    build-depends:
+      semigroups >=0.8
+  default-language: Haskell2010
+  hs-source-dirs: test
+  other-modules:
+    Support
+    Tests.MVector
+    Tests.MVectorTS
+    Tests.SetOps
+    Tests.Vector
+  ghc-options: -Wall
+  include-dirs: test
+
+benchmark gauge
+  build-depends:
+    base,
+    bitvec,
+    containers,
+    gauge,
+    random,
+    vector
+  type: exitcode-stdio-1.0
+  main-is: Bench.hs
+  default-language: Haskell2010
+  hs-source-dirs: bench
+  other-modules:
+    Bench.BitIndex
+    Bench.Invert
+    Bench.Intersection
+    Bench.Product
+    Bench.RandomFlip
+    Bench.RandomRead
+    Bench.RandomWrite
+    Bench.Reverse
+    Bench.Sum
+    Bench.Union
+  ghc-options: -O2 -Wall
