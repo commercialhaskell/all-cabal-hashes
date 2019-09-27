@@ -1,0 +1,89 @@
+Name: HDBC
+Version: 2.4.0.3
+License: BSD3
+Maintainer: Nicolas Wu <nicolas.wu@gmail.com>
+Author: John Goerzen, Nicolas Wu
+homepage: https://github.com/hdbc/hdbc
+Copyright: Copyright (c) 2005-2011 John Goerzen
+license-file: LICENSE
+extra-source-files: LICENSE, Makefile, README.md, CHANGELOG.md
+Category: Database
+synopsis: Haskell Database Connectivity
+Description: HDBC provides an abstraction layer between Haskell programs and SQL
+ relational databases. This lets you write database code once, in
+ Haskell, and have it work with any number of backend SQL databases
+ (MySQL, Oracle, PostgreSQL, ODBC-compliant databases, etc.)
+Stability: Stable
+Build-Type: Simple
+
+Cabal-Version: >=1.8
+
+source-repository head
+  type:            git
+  location:        https://github.com/hdbc/hdbc.git
+
+flag splitBase
+  description: Choose the new smaller, split-up base package.
+flag buildtests
+  description: Build the executable to run unit tests
+  default: False
+flag minTime15
+  description: Use time 1.5 or higher.
+  default: True
+
+library
+  if flag(splitBase)
+    Build-Depends: base>=3 && <5, old-time, bytestring, containers
+    if flag(minTime15)
+      Build-Depends: time >= 1.5 && < 1.10
+      CPP-Options: -DMIN_TIME_15
+    else
+      Build-Depends: time < 1.5, old-locale
+  else
+    Build-Depends: base<3
+  Build-Depends: mtl, convertible >= 1.1.0.0, text, utf8-string
+
+  -- Hack for cabal-install weirdness.  cabal-install forces base 3,
+  -- though it works fine for Setup.lhs manually.  Fix.
+  if impl(ghc >= 6.9)
+     build-depends: base >= 4
+
+  GHC-Options: -O2 -Wall -fno-warn-orphans
+
+  Exposed-Modules: Database.HDBC, Database.HDBC.Types, Database.HDBC.DriverUtils,
+    Database.HDBC.ColTypes, Database.HDBC.Statement, Database.HDBC.SqlValue,
+    Database.HDBC.Locale
+  Other-Modules: Database.HDBC.Utils
+  Extensions: ExistentialQuantification, CPP, MultiParamTypeClasses,
+    FlexibleContexts, TypeSynonymInstances, TypeOperators, RankNTypes,
+    FlexibleInstances, DeriveDataTypeable
+
+Executable runtests
+   if flag(buildtests)
+      Buildable: True
+      Build-Depends: HUnit, QuickCheck (>= 2.0), testpack (>= 2.0)
+
+      if flag(splitBase)
+        Build-Depends: base>=3 && <5, old-time, bytestring, containers
+        if flag(minTime15)
+          Build-Depends: time >= 1.5 && < 1.9
+        else
+          Build-Depends: time < 1.5, old-locale
+      else
+        Build-Depends: base<3
+      Build-Depends: mtl, convertible >= 1.1.0.0, utf8-string, text
+
+      -- Hack for cabal-install weirdness.  cabal-install forces base 3,
+      -- though it works fine for Setup.lhs manually.  Fix.
+      if impl(ghc >= 6.9)
+         build-depends: base >= 4
+   else
+      Buildable: False
+   Main-Is: runtests.hs
+   Other-Modules: TestSqlValue
+                  TestInfrastructure
+   Hs-Source-Dirs: ., testsrc
+   GHC-Options: -O2
+   Extensions: ExistentialQuantification, CPP, MultiParamTypeClasses,
+     FlexibleContexts, TypeSynonymInstances, TypeOperators,
+     RankNTypes, FlexibleInstances
