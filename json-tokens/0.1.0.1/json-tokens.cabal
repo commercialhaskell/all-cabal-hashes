@@ -1,0 +1,123 @@
+cabal-version: 2.2
+name: json-tokens
+version: 0.1.0.1
+synopsis: Tokenize JSON
+description:
+  Convert JSON to a token stream. This libary focuses on
+  high performance and minimal allocations. This library
+  is distinguished from `aeson` in the following ways:
+  .
+  * In `aeson`, `decode` parses JSON by building an AST
+    that resembles the ABNF given in RFC 7159. Notably,
+    this converts every JSON `object` to a `HashMap`.
+    (This choice of intermediate data structure may not
+    be appropritae depending on how the user wants to
+    interpret the `object`). By constrast, `json-tokens`
+    converts a document to a token sequence.
+  .
+  * For numbers, `aeson` uses `scientific`, but `json-tokens`
+    uses `scientific-notation`. Although `scientific` and
+    `scientific-notation` have similar APIs, `scientific-notation`
+    includes a parser that is about 4x faster and conversion
+    functions that are 10x faster than those found in
+    `scientific` and `aeson`.
+  .
+  * For text, `aeson` uses the UTF-16-backed `text` library,
+    but `json-tokens` uses the UTF-8-backed `text-short`
+    library.
+  .
+  * Parsing is resumable in `aeson`, which uses `attoparsec`,
+    but not in `json-tokens`, which uses `bytesmith`.
+  .
+  * In `aeson`, all batteries are included. In particular,
+    the combination of typeclasses and GHC Generics
+    (or Template Haskell) make it possible to elide lots of
+    boilerplate. None of these are included in `json-tokens`.
+  .
+  The difference in design decisions means that solutions using
+  `json-tokens` are able to decode JSON twice as fast as
+  solutions with `aeson. In the `zeek-json` benchmark suite,
+  a `json-tokens`-based decoding outperforms `aeson`'s `decode`
+  by a factor of two. This speed comes at a cost. Users must
+  write more code to use `json-tokens` than they do for `aeson`.
+  If high-throughput parsing of small JSON documents is paramount,
+  this cost may be worth bearing. It is always possible to go a
+  step further and forego tokenization entirely, parsing the
+  desired Haskell data type directly from a byte sequence. Doing this
+  in a low-allocation way while retaining both the ability the
+  handle JSON `object` keys in any order and the ability to handle
+  escape sequences in `object` keys is fiendishly difficult. Kudos
+  to the brave soul that goes down that path. For the rest of us,
+  `json-tokens` is a compromise worth considering.
+
+homepage: https://github.com/andrewthad/json-tokens
+bug-reports: https://github.com/andrewthad/json-tokens/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Andrew Martin
+maintainer: andrew.thaddeus@gmail.com
+copyright: 2019 Andrew Martin
+category: Data
+extra-source-files: CHANGELOG.md
+
+library
+  exposed-modules: Json.Token
+  build-depends:
+    , base >=4.12 && <5
+    , bytestring >=0.10.8 && <0.11
+    , array-builder >=0.1 && <0.2
+    , text-short >=0.1.3 && <0.2
+    , bytesmith >=0.3 && <0.4
+    , primitive >=0.7 && <0.8
+    , byteslice >=0.1.3 && <0.2
+    , array-chunks >=0.1.1 && <0.2
+    , scientific-notation >=0.1 && <0.2
+  hs-source-dirs: src
+  default-language: Haskell2010
+  ghc-options: -Wall -O2
+
+test-suite test
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test, common
+  main-is: Main.hs
+  other-modules:
+    Twitter1
+    Twitter10
+    Twitter100
+  ghc-options: -Wall -O2
+  build-depends:
+    , QuickCheck >=2.13.1 && <2.14
+    , base >=4.12.0.0 && <5
+    , byteslice
+    , bytestring
+    , json-tokens
+    , neat-interpolation >=0.3.2
+    , primitive
+    , scientific-notation >=0.1
+    , small-bytearray-builder
+    , tasty >=1.2.3 && <1.3
+    , tasty-hunit >=0.10.0.2 && <0.11
+    , text >=1.2
+    , vector
+
+benchmark bench
+  type: exitcode-stdio-1.0
+  build-depends:
+    , base
+    , byteslice
+    , bytestring
+    , gauge
+    , json-tokens
+    , neat-interpolation >=0.3.2
+    , primitive
+    , text >=1.2
+    , scientific-notation >=0.1
+  ghc-options: -Wall -O2
+  default-language: Haskell2010
+  hs-source-dirs: bench, common
+  main-is: Main.hs
+  other-modules:
+    Twitter1
+    Twitter10
+    Twitter100
