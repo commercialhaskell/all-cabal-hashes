@@ -1,0 +1,85 @@
+Name:                cabal-rpm
+Version:             1.0.1
+Synopsis:            RPM packaging tool for Haskell Cabal-based packages
+Description:
+    This package provides a RPM packaging tool for Haskell Cabal-based packages.
+    .
+    cabal-rpm has commands to generate a RPM spec file and srpm for a package.
+    It can rpmbuild packages, yum/dnf install their dependencies, prep packages,
+    and install them. There are commands to list package dependencies and
+    missing dependencies. The diff command compares the current spec file with
+    a freshly generated one, the update command updates the spec file to latest
+    version from Stackage or Hackage, and the refresh command updates the spec
+    file to the current cabal-rpm packaging. It also handles Hackage revisions of
+    packages. Standalone packages can also be packaged built with cabal-install.
+Homepage:            https://github.com/juhp/cabal-rpm
+Bug-reports:         https://github.com/juhp/cabal-rpm/issues
+License:             GPL-3
+License-file:        COPYING
+Author:              Jens Petersen <juhp@community.haskell.org>, Bryan O'Sullivan <bos@serpentine.com>
+Maintainer:          Jens Petersen <juhpetersen@gmail.com>
+Copyright:           2007-2008 Bryan O'Sullivan <bos@serpentine.com>,
+                     2012-2019 Jens Petersen <petersen@fedoraproject.org>
+Category:            Distribution
+Build-type:          Simple
+Extra-source-files:  ChangeLog Makefile README.md TODO man/cabal-rpm.1.md
+Cabal-version:       >=1.6
+Tested-with:         GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3,
+                     GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4,
+                     GHC == 8.6.5
+
+source-repository head
+  type:     git
+  location: https://github.com/juhp/cabal-rpm
+
+Flag old-locale
+  Description:   Use old-locale and time < 1.5
+  Default:       False
+
+Flag https
+  Description:   Use http to query Stackage (ghc >= 8.0)
+  Default:       True
+
+Executable cabal-rpm
+    Main-is:            Main.hs
+    Build-depends: base < 5,
+                   Cabal > 1.10,
+                   directory,
+                   filepath,
+                   process,
+                   simple-cabal >= 0.1.0,
+                   simple-cmd >= 0.2.0,
+                   simple-cmd-args >= 0.1.2,
+                   unix
+    if flag(old-locale)
+       Build-Depends: old-locale >= 1 && < 1.1,
+                      time >= 1.2 && < 1.5
+    else
+       Build-Depends: time >= 1.5 && < 1.9
+    if impl(ghc<8.0)
+       Build-Depends: semigroups
+    if impl(ghc >= 8.0) && flag(https)
+       Build-Depends: bytestring,
+                      http-client >= 0.4.30,
+                      http-client-tls,
+                      http-conduit
+       Cpp-options: -DHTTPS
+    Other-modules:
+                  Commands.BuildDep,
+                  Commands.Depends,
+                  Commands.Diff,
+                  Commands.Install,
+                  Commands.RpmBuild,
+                  Commands.Refresh,
+                  Commands.Spec,
+                  Commands.Update,
+                  Dependencies,
+                  FileUtils,
+                  PackageUtils,
+                  Stackage,
+                  SysCmd,
+                  Types,
+                  Paths_cabal_rpm
+    Hs-Source-Dirs:     src
+    GHC-options:        -fwarn-missing-signatures -Wall
+    Extensions:         CPP
