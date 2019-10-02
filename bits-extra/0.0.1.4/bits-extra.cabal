@@ -1,0 +1,94 @@
+cabal-version:      2.2
+
+name:               bits-extra
+version:            0.0.1.4
+synopsis:           Useful bitwise operations
+description:        Please see the README on Github at <https://github.com/haskell-works/bits-extra#readme>
+category:           Data, Bit
+homepage:           https://github.com/haskell-works/bits-extra#readme
+bug-reports:        https://github.com/haskell-works/bits-extra/issues
+author:             John Ky
+maintainer:         newhoggy@gmail.com
+copyright:          2018-2019 John Ky
+license:            BSD-3-Clause
+license-file:       LICENSE
+tested-with:        GHC == 8.8.1, GHC == 8.6.5, GHC == 8.4.4, GHC == 8.2.2
+build-type:         Simple
+extra-source-files:
+    ChangeLog.md
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/haskell-works/bits-extra
+
+flag bmi2
+  description: Enable bmi2 instruction set
+  manual: False
+  default: False
+
+common base               { build-depends: base               >= 4.8        && < 5      }
+common criterion          { build-depends: criterion          >= 1.3        && < 1.6    }
+common ghc-prim           { build-depends: ghc-prim           >= 0.5        && < 0.6    }
+common hedgehog           { build-depends: hedgehog           >= 0.5.3      && < 1.1    }
+common hspec              { build-depends: hspec              >= 2.4        && < 2.8    }
+common hw-hedgehog        { build-depends: hw-hedgehog        >= 0.1        && < 0.2    }
+common hw-hspec-hedgehog  { build-depends: hw-hspec-hedgehog  >= 0.1        && < 0.2    }
+common vector             { build-depends: vector             >= 0.12       && < 0.13   }
+
+common config
+  default-language:   Haskell2010
+  ghc-options:        -Wall
+  if (flag(bmi2)) && (impl(ghc >= 8.4.1))
+    ghc-options: -mbmi2 -msse4.2
+    cpp-options: -DBMI2_ENABLED
+
+library
+  import:   base, config
+          , ghc-prim
+          , vector
+  hs-source-dirs:     src
+  ghc-options:        -O2
+  autogen-modules:    Paths_bits_extra
+  exposed-modules:
+      Data.Bits.BitSize
+      Data.Bits.Pdep
+      Data.Bits.Pdep.Slow
+      Data.Bits.Pext
+      Data.Bits.Pext.Slow
+  other-modules:
+      Data.Bits.Pdep.Prim
+      Data.Bits.Pext.Prim
+      Paths_bits_extra
+
+test-suite bits-extra-test
+  import:   base, config
+          , ghc-prim
+          , hedgehog
+          , hspec
+          , hw-hedgehog
+          , hw-hspec-hedgehog
+  type:               exitcode-stdio-1.0
+  main-is:            Spec.hs
+  hs-source-dirs:     test
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N
+  autogen-modules:    Paths_bits_extra
+  build-depends:      bits-extra
+  build-tool-depends: hspec-discover:hspec-discover
+  other-modules:
+      Data.Bits.PdepSpec
+      Data.Bits.PextSpec
+      Paths_bits_extra
+
+benchmark bench
+  import:   base, config
+          , criterion
+          , ghc-prim
+          , vector
+  type:               exitcode-stdio-1.0
+  main-is:            Main.hs
+  other-modules:      Paths_bits_extra
+  autogen-modules:    Paths_bits_extra
+  hs-source-dirs:     bench
+  ghc-options:        -O2
+  build-depends:      bits-extra
