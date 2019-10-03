@@ -1,0 +1,189 @@
+cabal-version:  2.2
+
+name:           hw-rankselect
+version:        0.13.3.0
+synopsis:       Rank-select
+description:    Please see README.md
+category:       Data, Bit, Succinct Data Structures, Data Structures
+homepage:       http://github.com/haskell-works/hw-rankselect#readme
+bug-reports:    https://github.com/haskell-works/hw-rankselect/issues
+author:         John Ky
+maintainer:     newhoggy@gmail.com
+copyright:      2016-2019 John Ky
+license:        BSD-3-Clause
+license-file:   LICENSE
+tested-with:    GHC == 8.8.1, GHC == 8.6.5, GHC == 8.4.4
+build-type:     Simple
+extra-source-files:
+    README.md
+    data/README.md
+    data/sample-000.idx
+
+source-repository head
+  type: git
+  location: https://github.com/haskell-works/hw-rankselect
+
+flag bmi2
+  description: Enable bmi2 instruction set
+  manual: False
+  default: False
+
+common base                 { build-depends: base                 >= 4.11       && < 5      }
+
+common QuickCheck           { build-depends: QuickCheck           >= 2.10       && < 2.14   }
+common bytestring           { build-depends: bytestring           >= 0.10       && < 0.11   }
+common conduit              { build-depends: conduit              >= 1.2        && < 1.4    }
+common criterion            { build-depends: criterion            >= 1.1        && < 1.6    }
+common deepseq              { build-depends: deepseq              >= 1.4        && < 1.5    }
+common directory            { build-depends: directory            >= 1.2        && < 1.5    }
+common generic-lens         { build-depends: generic-lens         >= 1.2.0.1    && < 1.3    }
+common hedgehog             { build-depends: hedgehog             >= 1.0        && < 1.1    }
+common hspec                { build-depends: hspec                >= 2.4        && < 3      }
+common hw-balancedparens    { build-depends: hw-balancedparens    >= 0.2.2.0    && < 0.4    }
+common hw-bits              { build-depends: hw-bits              >= 0.4.0.0    && < 0.8    }
+common hw-fingertree        { build-depends: hw-fingertree        >= 0.1.1.0    && < 1.2    }
+common hw-hedgehog          { build-depends: hw-hedgehog          >= 0.1.0.1    && < 0.2    }
+common hw-hspec-hedgehog    { build-depends: hw-hspec-hedgehog    >= 0.1        && < 0.2    }
+common hw-prim              { build-depends: hw-prim              >= 0.6.2.23   && < 0.7    }
+common hw-rankselect-base   { build-depends: hw-rankselect-base   >= 0.2.0.0    && < 0.4    }
+common lens                 { build-depends: lens                 >= 4          && < 5      }
+common mmap                 { build-depends: mmap                 >= 0.5        && < 0.6    }
+common mtl                  { build-depends: mtl                  >= 2.2        && < 2.3    }
+common optparse-applicative { build-depends: optparse-applicative >= 0.11       && < 0.16   }
+common resourcet            { build-depends: resourcet            >= 1.1        && < 1.3    }
+common transformers         { build-depends: transformers         >= 0.4        && < 0.6    }
+common vector               { build-depends: vector               >= 0.12       && < 0.13   }
+
+common config
+  default-language: Haskell2010
+  if (impl(ghc >= 8.0.1))
+    ghc-options: -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  if (flag(bmi2)) && (impl(ghc >=8.4.1))
+    ghc-options: -mbmi2
+    cpp-options: -DBMI2_ENABLED
+  ghc-options:   -O2 -Wall -msse4.2
+
+common hw-rankselect
+  build-depends:    hw-rankselect
+
+library
+  import:             base, config
+                    , deepseq
+                    , hw-balancedparens
+                    , hw-bits
+                    , hw-fingertree
+                    , hw-prim
+                    , hw-rankselect-base
+                    , vector
+  exposed-modules:    HaskellWorks.Data.RankSelect.BitSeq
+                      HaskellWorks.Data.RankSelect.CsPoppy
+                      HaskellWorks.Data.RankSelect.CsPoppy0
+                      HaskellWorks.Data.RankSelect.CsPoppy1
+                      HaskellWorks.Data.RankSelect.CsPoppy.Internal.Alpha0
+                      HaskellWorks.Data.RankSelect.CsPoppy.Internal.Alpha1
+                      HaskellWorks.Data.RankSelect.CsPoppy.Internal.CsInterleaved
+                      HaskellWorks.Data.RankSelect.CsPoppy.Internal.Lookup
+                      HaskellWorks.Data.RankSelect.CsPoppy.Internal.Nice
+                      HaskellWorks.Data.RankSelect.CsPoppy.Internal.Reference
+                      HaskellWorks.Data.RankSelect.CsPoppy.Internal.Vector
+                      HaskellWorks.Data.RankSelect.Internal.BitSeq
+                      HaskellWorks.Data.RankSelect.Internal.List
+                      HaskellWorks.Data.RankSelect.Internal.Word
+                      HaskellWorks.Data.RankSelect.Poppy512
+  other-modules:      Paths_hw_rankselect
+  autogen-modules:    Paths_hw_rankselect
+  hs-source-dirs:     src
+
+library hw-rankselect-gen
+  import:             base, config
+                    , deepseq
+                    , hedgehog
+                    , hspec
+                    , hw-prim
+                    , vector
+  exposed-modules:    HaskellWorks.Data.RankSelect.Gen
+                      Paths_hw_rankselect
+  build-depends:      hw-rankselect
+  hs-source-dirs:     gen
+  autogen-modules:    Paths_hw_rankselect
+
+executable hw-rankselect
+  import:             base, config
+                    , directory
+                    , generic-lens
+                    , hw-bits
+                    , hw-prim
+                    , hw-rankselect
+                    , hw-rankselect-base
+                    , lens
+                    , mmap
+                    , mtl
+                    , optparse-applicative
+                    , vector
+  main-is:            Main.hs
+  other-modules:      App.Commands
+                      App.Commands.Build
+                      App.Commands.Options.Type
+                      App.Commands.SelectAll
+                      App.Commands.UnitTest
+                      App.Commands.Validate
+                      Paths_hw_rankselect
+  autogen-modules:    Paths_hw_rankselect
+  hs-source-dirs:     app
+  default-extensions: OverloadedStrings TupleSections
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N
+
+test-suite hw-rankselect-test
+  import:             base, config
+                    , QuickCheck
+                    , directory
+                    , hedgehog
+                    , hspec
+                    , hw-bits
+                    , hw-hedgehog
+                    , hw-hspec-hedgehog
+                    , hw-prim
+                    , hw-rankselect
+                    , hw-rankselect-base
+                    , mmap
+                    , transformers
+                    , vector
+  type:               exitcode-stdio-1.0
+  main-is:            Spec.hs
+  other-modules:      HaskellWorks.Data.RankSelect.BasicGen
+                      HaskellWorks.Data.RankSelect.BinarySearchSpec
+                      HaskellWorks.Data.RankSelect.BitSeqSpec
+                      HaskellWorks.Data.RankSelect.CsPoppy.InternalSpec
+                      HaskellWorks.Data.RankSelect.CsPoppySpec
+                      HaskellWorks.Data.RankSelect.Gen
+                      HaskellWorks.Data.RankSelect.InternalSpec
+                      HaskellWorks.Data.RankSelect.Poppy512Spec
+                      HaskellWorks.Data.RankSelect.SimpleSpec
+                      HaskellWorks.Data.RankSelect.SpecCommon
+                      HaskellWorks.Data.RankSelect.ValidateSpec
+                      Test.Common
+                      Paths_hw_rankselect
+  autogen-modules:    Paths_hw_rankselect
+  hs-source-dirs:     test
+  build-tool-depends: hspec-discover:hspec-discover
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N
+
+benchmark bench
+  import:             base, config
+                    , bytestring        
+                    , conduit
+                    , criterion
+                    , directory
+                    , hw-bits
+                    , hw-prim
+                    , hw-rankselect-base
+                    , mmap
+                    , resourcet
+                    , vector
+  build-depends:      hw-rankselect
+  type:               exitcode-stdio-1.0
+  main-is:            Main.hs
+  autogen-modules:    Paths_hw_rankselect
+  other-modules:      Paths_hw_rankselect
+  hs-source-dirs:     bench
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N
