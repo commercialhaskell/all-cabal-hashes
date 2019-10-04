@@ -1,0 +1,112 @@
+cabal-version: 2.2
+name: mptcp-pm
+version: 0.0.2
+license: GPL-3.0-only
+license-file: LICENSE
+build-type: Simple
+Maintainer:  teto
+Category:   Network
+Synopsis: A work in progress Multipath TCP path manager
+Homepage:   https://github.com/teto/netlink_pm
+Description:
+  Multipath TCP (www.multipath-tcp.org) starting from version 0.95 provides a 
+  netlink path manager module. This package implements the userspace part to allow
+  userspace daemons to control MPTCP behavior.
+Extra-source-files:
+  headers/*.h README.md CHANGELOG
+
+Source-repository head
+  type:       git
+  location:   https://github.com/teto/netlink_pm
+
+
+Flag Dev {
+  Description: Develop with a local netlink library
+  Default:     True
+}
+
+
+-- iproute/network-info bad
+-- bitset, very interesting but broken
+-- aeson to (de)serialize to json
+-- brittany for formatting (does not work)
+-- use containers for Data.Set ?
+-- text is used to convert from string and in aeson
+-- http://hackage.haskell.org/package/bitset-1.4.8/docs/Data-BitSet-Word.html
+common shared-properties
+    build-depends: base >= 4.12 && < 4.20, optparse-applicative,
+      containers, bytestring, fast-logger, process, cereal, ip,
+       netlink >= 1.1.1.0, bytestring-conversion, c2hsc, text, hslogger
+       -- for merge
+       , aeson
+       , aeson-pretty
+       , aeson-extra
+       -- to help with merging json content
+       , unordered-containers
+       -- to create temp folder/files
+       , temporary
+       , filepath
+       -- haddocset lookds kinda unmaintained, won't work with ghc 8.5
+       -- , haddocset
+       -- , bitset
+       -- haskus-binary
+    default-language: Haskell2010
+    -- -fno-warn-unused-imports 
+    -- -fforce-recomp  makes it build twice
+    ghc-options: -Wall -fno-warn-unused-binds -fno-warn-unused-matches -threaded -fprof-auto -rtsopts
+
+    if flag(Dev)
+        build-depends: netlink>= 1.1.1.1
+    -- for the generated.hsc , c2hs seems good to generate headers
+    Build-tools:       hsc2hs, c2hs
+    -- apparently this just helps getting a better error messages
+    Includes:          tcp_states.h, linux/sock_diag.h, linux/inet_diag.h, linux/mptcp.h
+    Other-modules:     Net.SockDiag, Net.Tcp, Net.Mptcp, Net.IPAddress,
+      Net.Mptcp.PathManager, Net.Mptcp.Constants, Net.SockDiag.Constants, Net.Tcp.Constants
+      , Net.Mptcp.PathManager.Default
+    -- TODO try to pass it from CLI instead , Net.TcpInfo
+    include-dirs:    headers
+    autogen-modules: Net.Mptcp.Constants, Net.SockDiag.Constants, Net.Tcp.Constants
+
+
+
+-- monitor new mptcp connections
+-- and delegate the behavior to a monitor
+executable mptcp-pm
+    import: shared-properties
+    -- ghc-options: -prof
+    main-is: hs/daemon.hs
+    hs-source-dirs: .
+
+--  MyCustomLibrary
+-- library
+--     Build-tools:       hsc2hs, c2hs
+--     ghc-options: -Wall -fno-warn-unused-binds -fno-warn-unused-matches
+--     default-language: Haskell2010
+--     -- apparently this just helps getting a better error messages
+--     Includes:          tcp_states.h, linux/sock_diag.h, linux/inet_diag.h
+--     include-dirs: . , headers
+
+
+-- Test-Suite test
+--   -- 2 types supported, exitcode is based on ... exit codes ....
+--   type:               exitcode-stdio-1.0
+--   main-is:            test/Main.hs
+--   -- test-module:       Detailed
+--   hs-source-dirs:     .
+--   default-language: Haskell2010
+--   -- import: shared-properties
+--   Build-tools:       hsc2hs, c2hs
+--   Includes:          tcp_states.h, linux/sock_diag.h, linux/inet_diag.h
+--   Other-modules:     Net.SockDiag, Net.Mptcp, Net.IPAddress, Net.Mptcp.Constants, Net.SockDiag.Constants, 
+--                     Net.SockDiag.Constants, Net.Tcp.Constants
+--   autogen-modules: Net.Mptcp.Constants, Net.SockDiag.Constants
+--   include-dirs:      headers
+--   build-depends:      base >=4.12 && <4.20
+--                      , HUnit
+--                      , netlink
+--                      , cereal
+--                      , ip
+--                      , bytestring
+--                      , containers
+--                      , aeson
