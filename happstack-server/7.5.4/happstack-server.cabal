@@ -1,0 +1,146 @@
+Name:                happstack-server
+Version:             7.5.4
+Synopsis:            Web related tools and services.
+Description:         Happstack Server provides an HTTP server and a rich set of functions for routing requests, handling query parameters, generating responses, working with cookies, serving files, and more. For in-depth documentation see the Happstack Crash Course <http://happstack.com/docs/crashcourse/index.html>
+License:             BSD3
+License-file:        COPYING
+Author:              Happstack team, HAppS LLC
+Maintainer:          Happstack team <happs@googlegroups.com>
+homepage:            http://happstack.com
+Category:            Web, Happstack
+Build-Type:          Simple
+Cabal-Version:       >= 1.10
+Extra-Source-Files:  tests/Happstack/Server/Tests.hs README.md
+tested-with:         GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.2, GHC==8.0.1, GHC==8.2.2, GHC==8.4.1, GHC==8.6.3
+
+source-repository head
+    type:     git
+    location: https://github.com/Happstack/happstack-server.git
+
+Flag template_haskell
+    Description: Template Haskell is available on this system
+    Default: True
+    Manual: False
+
+flag network-uri
+    description: Get Network.URI from the network-uri package
+    default: True
+
+Library
+  Default-language:    Haskell2010
+  Exposed-modules:
+                       Happstack.Server
+                       Happstack.Server.Auth
+                       Happstack.Server.Cookie
+                       Happstack.Server.Compression
+                       Happstack.Server.Client
+                       Happstack.Server.Error
+                       Happstack.Server.FileServe
+                       Happstack.Server.FileServe.BuildingBlocks
+                       Happstack.Server.I18N
+                       Happstack.Server.Internal.Compression
+                       Happstack.Server.Internal.Cookie
+                       Happstack.Server.Internal.Handler
+                       Happstack.Server.Internal.Types
+                       Happstack.Server.Internal.Listen
+                       Happstack.Server.Internal.LowLevel
+                       Happstack.Server.Internal.LogFormat
+                       Happstack.Server.Internal.MessageWrap
+                       Happstack.Server.Internal.Multipart
+                       Happstack.Server.Internal.RFC822Headers
+                       Happstack.Server.Internal.Socket
+                       Happstack.Server.Internal.TimeoutIO
+                       Happstack.Server.Internal.TimeoutManager
+                       Happstack.Server.Internal.TimeoutSocket
+                       Happstack.Server.Internal.Monads
+                       Happstack.Server.Monads
+                       Happstack.Server.Proxy
+                       Happstack.Server.Response
+                       Happstack.Server.Routing
+                       Happstack.Server.RqData
+                       Happstack.Server.SURI
+                       Happstack.Server.SimpleHTTP
+                       Happstack.Server.Types
+                       Happstack.Server.Validation
+  Other-modules:
+                       Happstack.Server.Internal.Clock
+                       Happstack.Server.Internal.LazyLiner
+                       Happstack.Server.Internal.SocketTH
+                       Happstack.Server.SURI.ParseURI
+                       Paths_happstack_server
+
+  if flag(network-uri)
+     build-depends:    network     >  2.6 && < 2.9,
+                       network-uri >= 2.6 && < 2.7
+  else
+     build-depends:    network               < 2.6
+  Build-Depends:       base                   >= 4    && < 5,
+                       base64-bytestring      == 1.0.*,
+                       blaze-html             >= 0.5  && < 0.10,
+                       bytestring,
+                       containers,
+                       directory              >=1.2,
+                       exceptions,
+                       extensible-exceptions,
+                       filepath,
+                       hslogger               >= 1.0.2,
+                       html,
+                       monad-control          >= 0.3  && < 1.1,
+                       mtl                    >= 2    && < 2.3,
+                       old-locale,
+                       parsec                            < 4,
+                       process,
+                       semigroups             >= 0.16,
+                       sendfile               >= 0.7.1 && < 0.8,
+                       system-filepath        >= 0.3.1,
+                       syb,
+                       text                   >= 0.10  && < 1.3,
+                       template-haskell                   < 2.15,
+                       time,
+                       threads                >= 0.5,
+                       transformers           >= 0.1.3 && < 0.6,
+                       transformers-base      >= 0.4   && < 0.5,
+                       transformers-compat    >= 0.3   && < 0.7,
+                       utf8-string            >= 0.3.4 && < 1.1,
+                       xhtml,
+                       zlib
+
+  if flag(template_haskell)
+    cpp-options:       -DTEMPLATE_HASKELL
+    other-extensions:  TemplateHaskell
+
+  hs-source-dirs:      src
+
+  if !os(windows)
+     Build-Depends:    unix
+     cpp-options:      -DUNIX
+
+  Default-Extensions:  OverlappingInstances
+  Other-Extensions:    DeriveDataTypeable, MultiParamTypeClasses,
+                       TypeFamilies, FlexibleContexts,
+                       FlexibleInstances, UndecidableInstances,
+                       ScopedTypeVariables, TypeSynonymInstances, PatternGuards
+                       CPP, ForeignFunctionInterface
+  ghc-options:         -Wall -fwarn-tabs
+  -- The policy is to support GHC versions no older than the GHC stable
+  -- branch that was used by the latest Haskell Platform release
+  -- available 18 months ago. In order to avoid people spending time
+  -- keeping the build working for older versions, we tell Cabal that
+  -- it shouldn't allow builds with them.
+  if impl(ghc < 7.0)
+    buildable: False
+
+Test-Suite happstack-server-tests
+  Default-language:    Haskell2010
+  Type: exitcode-stdio-1.0
+  Main-Is: Test.hs
+  Other-Modules: Happstack.Server.Tests
+  GHC-Options: -threaded
+  hs-source-dirs: tests
+  Build-depends: HUnit,
+                 base >= 4    && < 5,
+                 bytestring,
+                 containers,
+                 happstack-server,
+                 parsec < 4,
+                 zlib
