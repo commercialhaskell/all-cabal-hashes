@@ -1,0 +1,136 @@
+name: fast-tags
+version: 2.0.0
+cabal-version: >= 1.8
+build-type: Simple
+synopsis: Fast incremental vi and emacs tags.
+description:
+    Yet another tags program.  Like hasktags, it uses its own parser rather
+    than haskell-src or haskell-src-exts, so it's fast.  It understands
+    hsc and literate haskell.
+    .
+    In addition, it will load an existing tags file and merge generated tags.
+    .
+    The intent is to bind it to vim's BufWrite autocommand to automatically
+    keep the tags file up to date.  This only works for files changed by the
+    editor of course, so there are separate git hooks to update on pulls etc.
+    .
+    With the --fully_qualified flag and a fancy vim function, it can
+    disambiguate tags based on their qualification, even if it's locally
+    renamed.  So M.x will find  A.B.x if you import A.B as M.
+    .
+    To see the configuration examples, you probably have to get the source via
+    cabal unpack or git clone.
+    .
+    Limitations:
+    .
+    - Not using a real haskell parser means there is likely to be dark
+    corners that don't parse right.
+    .
+    - Code has to be indented \"properly\", so brace and semicolon style with
+    strange dedents will probably confuse it.
+
+category: Haskell, Development
+license: BSD3
+license-file: LICENSE
+author: Evan Laforge
+maintainer: Evan Laforge <qdunkan@gmail.com>
+stability: stable
+tested-with:
+    GHC ==7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.1
+extra-source-files:
+    README.md
+    changelog.md
+    src/*.hs
+    tools/README.md
+    tools/init-tags
+    tools/post-checkout
+    tools/post-merge
+    tools/qualified_tag.py
+    tools/vimrc
+
+homepage: https://github.com/elaforge/fast-tags
+source-repository head
+    type: git
+    location: git://github.com/elaforge/fast-tags.git
+
+flag profile
+    description: add -auto-all
+    default: False
+    manual: True
+
+library
+    build-depends:
+        Cabal,
+        array,
+        base >= 3 && < 5,
+        bytestring,
+        containers,
+        deepseq,
+        filepath,
+        mtl >=2.1,
+        -- text 0.11.1.12 has a bug.
+        text (> 0.11.1.12 || < 0.11.1.12),
+        transformers,
+        vector,
+        void
+    build-tools: alex
+    exposed-modules:
+        FastTags.Cabal
+        FastTags.Emacs
+        FastTags.LensBlaze
+        FastTags.Lexer
+        FastTags.LexerM
+        FastTags.LexerTypes
+        FastTags.Tag
+        FastTags.Token
+        FastTags.Util
+        FastTags.Vim
+    hs-source-dirs: src
+    ghc-options: -Wall -fno-warn-name-shadowing -O2
+    if flag(profile)
+        ghc-prof-options: -Wall -fno-warn-name-shadowing -auto-all
+
+executable fast-tags
+    main-is: src/FastTags/Main.hs
+    other-modules: Paths_fast_tags
+    build-depends:
+        base >= 3 && < 5, filepath, directory >=1.3.0.0,
+        -- text 0.11.1.12 has a bug.
+        text (> 0.11.1.12 || < 0.11.1.12),
+        async,
+        deepseq,
+        fast-tags
+    -- cabal emits a warning about -main-is, but there doesn't seem to
+    -- any alternative.  Unnaming FastTags.Main means I lose
+    -- -Wunused-top-binds, changing the name to Main means I lose ghci,
+    -- and adding a dummy Main means I have to export it from the
+    -- library.
+    ghc-options:
+        -main-is FastTags.Main
+        -O2
+        -Wall
+        -fno-warn-name-shadowing
+        -threaded
+        -rtsopts
+    if flag(profile)
+        ghc-prof-options:
+            -auto-all -Wall -fno-warn-name-shadowing -threaded
+
+test-suite test-fast-tags
+    type: exitcode-stdio-1.0
+    main-is: MainTest.hs
+    hs-source-dirs: tests
+    ghc-options:
+        -Wall
+        -fno-warn-name-shadowing
+        -fno-warn-type-defaults
+        -main-is MainTest
+    build-depends:
+        base >= 3 && < 5,
+        bytestring,
+        tasty,
+        tasty-hunit,
+        -- text 0.11.1.12 has a bug.
+        text (> 0.11.1.12 || < 0.11.1.12),
+        void,
+        fast-tags
