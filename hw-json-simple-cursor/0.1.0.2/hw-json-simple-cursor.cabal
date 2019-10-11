@@ -1,0 +1,151 @@
+cabal-version:  2.2
+
+name:                   hw-json-simple-cursor
+version:                0.1.0.2
+synopsis:               Memory efficient JSON parser
+description:            Memory efficient JSON parser. Please see README.md
+category:               Data
+homepage:               http://github.com/haskell-works/hw-json-simple-cursor#readme
+bug-reports:            https://github.com/haskell-works/hw-json-simple-cursor/issues
+author:                 John Ky
+maintainer:             newhoggy@gmail.com
+copyright:              2016-2019 John Ky
+license:                BSD-3-Clause
+license-file:           LICENSE
+tested-with:            GHC == 8.8.1, GHC == 8.6.5, GHC == 8.4.4, GHC == 8.2.2
+build-type:             Simple
+extra-source-files:     README.md
+                        corpus/5000B.json
+                        corpus/5000B.json.bp.idx
+                        corpus/5000B.json.ib.idx
+                        corpus/issue-0001.json
+                        corpus/issue-0001.json.bp.idx
+                        corpus/issue-0001.json.ib.idx
+                        corpus/issue-0001.md
+
+source-repository head
+  type: git
+  location: https://github.com/haskell-works/hw-json-simple-cursor
+
+flag bmi2
+  description:  Enable bmi2 instruction set
+  manual:       False
+  default:      False
+
+flag sse42
+  description:  Enable sse4.2 instruction set
+  manual:       False
+  default:      False
+
+common base                     { build-depends: base                     >= 4          && < 5      }
+
+common bytestring               { build-depends: bytestring               >= 0.10.6     && < 0.11   }
+common criterion                { build-depends: criterion                >= 1.4        && < 1.6    }
+common directory                { build-depends: directory                >= 1.3        && < 1.4    }
+common generic-lens             { build-depends: generic-lens             >= 1.1.0.0    && < 1.3    }
+common hedgehog                 { build-depends: hedgehog                 >= 0.6        && < 1.1    }
+common hspec                    { build-depends: hspec                    >= 2.4        && < 3      }
+common hw-balancedparens        { build-depends: hw-balancedparens        >= 0.3.0.0    && < 0.4    }
+common hw-bits                  { build-depends: hw-bits                  >= 0.7.0.5    && < 0.8    }
+common hw-hspec-hedgehog        { build-depends: hw-hspec-hedgehog        >= 0.1.0.4    && < 0.2    }
+common hw-json-simd             { build-depends: hw-json-simd             >= 0.1.0.2    && < 0.2    }
+common hw-parser                { build-depends: hw-parser                >= 0.1        && < 0.2    }
+common hw-prim                  { build-depends: hw-prim                  >= 0.6.2.28   && < 0.7    }
+common hw-rankselect            { build-depends: hw-rankselect            >= 0.13       && < 0.14   }
+common hw-rankselect-base       { build-depends: hw-rankselect-base       >= 0.3.2.1    && < 0.4    }
+common hw-simd                  { build-depends: hw-simd                  >= 0.1.1.2    && < 0.2    }
+common lens                     { build-depends: lens                     >= 4          && < 5      }
+common mmap                     { build-depends: mmap                     >= 0.5        && < 0.6    }
+common optparse-applicative     { build-depends: optparse-applicative     >= 0.14       && < 0.16   }
+common text                     { build-depends: text                     >= 1.2        && < 1.3    }
+common vector                   { build-depends: vector                   >= 0.12       && < 0.13   }
+common word8                    { build-depends: word8                    >= 0.1        && < 0.2    }
+
+common semigroups   { if impl(ghc <  8    ) { build-depends: semigroups     >= 0.16     && < 0.19 } }
+
+common config
+  default-language:     Haskell2010
+  ghc-options:          -Wall -O2 -msse4.2
+  if flag(sse42)
+    ghc-options:        -msse4.2
+  if flag(bmi2) && impl(ghc >= 8.4.1)
+    ghc-options:        -mbmi2 -msse4.2
+    cpp-options:        -DBMI2_ENABLED
+
+library
+  import:               base, config
+                      , bytestring
+                      , hw-balancedparens
+                      , hw-bits
+                      , hw-prim
+                      , hw-rankselect
+                      , hw-rankselect-base
+                      , vector
+                      , word8
+  hs-source-dirs:       src
+  other-modules:        Paths_hw_json_simple_cursor
+  autogen-modules:      Paths_hw_json_simple_cursor
+  exposed-modules:      HaskellWorks.Data.Json.Simple.Cursor
+                        HaskellWorks.Data.Json.Simple.Cursor.Fast
+                        HaskellWorks.Data.Json.Simple.Cursor.Internal.IbBp
+                        HaskellWorks.Data.Json.Simple.Cursor.Internal.ToIbBp
+                        HaskellWorks.Data.Json.Simple.Cursor.Internal.Word8
+                        HaskellWorks.Data.Json.Simple.Cursor.SemiIndex
+                        HaskellWorks.Data.Json.Simple.Cursor.Snippet
+
+executable hw-json
+  import:               base, config
+                      , bytestring
+                      , generic-lens
+                      , hw-balancedparens
+                      , hw-json-simd
+                      , hw-prim
+                      , hw-rankselect
+                      , hw-rankselect-base
+                      , lens
+                      , mmap
+                      , optparse-applicative
+                      , semigroups
+                      , text
+                      , vector
+  main-is:              Main.hs
+  hs-source-dirs:       app
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  build-depends:        hw-json-simple-cursor
+  other-modules:        App.Commands
+                        App.Commands.CreateIndex
+                        App.Commands.Types
+
+test-suite hw-json-test
+  import:               base, config
+                      , bytestring
+                      , hedgehog
+                      , hspec
+                      , hw-balancedparens
+                      , hw-bits
+                      , hw-hspec-hedgehog
+                      , hw-prim
+                      , hw-rankselect
+                      , hw-rankselect-base
+                      , vector
+  type:                 exitcode-stdio-1.0
+  main-is:              Spec.hs
+  build-depends:        hw-json-simple-cursor
+  hs-source-dirs:       test
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:   hspec-discover:hspec-discover
+  other-modules:        HaskellWorks.Data.Json.Simple.CursorSpec
+                        Paths_hw_json_simple_cursor
+
+benchmark bench
+  import:               base, config
+                      , bytestring
+                      , criterion
+                      , directory
+                      , mmap
+                      , semigroups
+  type:                 exitcode-stdio-1.0
+  main-is:              Main.hs
+  hs-source-dirs:       bench
+  build-depends:        hw-json-simple-cursor
+  other-modules:        Paths_hw_json_simple_cursor
