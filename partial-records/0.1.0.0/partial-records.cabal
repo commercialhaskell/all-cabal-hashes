@@ -1,0 +1,91 @@
+name:                partial-records
+version:             0.1.0.0
+synopsis:            Template haskell utilities for constructing records with
+  default values
+description:         .
+  If you have a datatype with a lot of default-able fields, e.g.
+  .
+  > data Foo =
+  >   { fld1 :: Maybe Int
+  >   , fld2 :: Maybe Char
+  >   , fld3 :: Word
+  >   }
+  .
+  and you want to avoid the the boilerplate of writing all the default values
+  every time you construct a record of this type, you could write a "default
+  value" of this type:
+  .
+  > defaultFoo :: Foo
+  > defaultFoo = Foo { fld1 = Nothing, fld2 = Nothing, fld3 = 0 }
+  .
+  You could then use record modification syntax to make necessary changes to
+  this value. But perhaps you can't/don't want to provide default values for
+  /all/ of the fields, but only some of them? You could implement a "default
+  smart constructor" that would take the non-optional arguments and then fill in
+  the optional ones like so:
+  .
+  > defaultFoo :: Word -> Foo
+  > defaultFoo x = Foo { fld1 = Nothing, fld2 = Nothing, fld3 = x }
+  .
+  But then you lose the benefit of record syntax: you can't name the fields
+  you're providing values for.
+  .
+  This package reconciles the two problems: with only a little bit of Template
+  Haskell it provides a way to construct a record with optional fields while
+  also letting you refer to the names of those fields. You make two splices:
+  .
+  > mkToPartial ''Foo
+  >   -- defines 'mkfld1', 'mkfld2', 'mkfld3'
+  > mkFromPartial "mkFoo" [t|Foo|] [|Foo { fld1 = Nothing, fld2 = Nothing }
+  >   |]
+  >   -- defines 'mkFoo'
+  .
+  And then you can use them like so:
+  .
+  > val :: Foo
+  > val = mkFoo
+  >   $ mkfld3 123
+  >   ? mkfld1 (Just 456)
+  > -- val = Foo { fld1 = Just 456, fld2 = Nothing, fld3 = 123 }
+  .
+  The Template Haskell splice lets you define default values for a subset of the
+  fields, and those defaults will be used when you call @mkFoo@. You can list
+  fields in any order, but if you omit a mandatory field (one that doesn't have
+  a default), that would be a type error at compile time.
+  .
+  You can make multiple 'Data.Partial.TH.mkFromPartial' splices, this is
+  occasionally useful for parameterized types, for example:
+  .
+  > data Bar a =
+  >   { bar1 :: Maybe Int
+  >   , bar2 :: a
+  >   }
+  > mkToPartial ''Bar
+  > mkFromPartial "mkBar" [t|forall a. Bar a|]
+  >   [|Bar { bar1 = Nothing }
+  >   |]
+  >   -- mkBar :: ... -> Bar a, and bar2 is a required field
+  > mkFromPartial "mkBarMaybe" [t|forall a. Bar (Maybe a)|]
+  >   [|Bar { bar1 = Nothing, bar2 = Nothing }
+  >   |]
+  >   -- mkBarMaybe :: ... -> Bar (Maybe a), and bar2 is an optional field
+homepage:            https://github.com/mniip/partial-records
+license:             BSD3
+license-file:        LICENSE
+author:              mniip
+maintainer:          mniip@mniip.com
+copyright:           (C) mniip 2019
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.10
+
+library
+  exposed-modules:       Data.Partial
+                       , Data.Partial.TH
+                       , Data.Partial.Utils
+  build-depends:         base >= 4.9 && <= 4.13
+                       , tagged >= 0.8
+                       , template-haskell >= 2.11
+                       , transformers >= 0.5
+  hs-source-dirs:      src
+  default-language:    Haskell2010
