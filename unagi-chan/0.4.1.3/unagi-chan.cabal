@@ -1,0 +1,237 @@
+name:                unagi-chan
+version:             0.4.1.3
+
+synopsis:            Fast concurrent queues with a Chan-like API, and more
+
+description:
+    This library provides implementations of concurrent FIFO queues (for both
+    general boxed and primitive unboxed values) that are fast, perform well
+    under contention, and offer a Chan-like interface. The library may be of
+    limited usefulness outside of x86 architectures where the fetch-and-add
+    instruction is not available.
+    .
+    We export several variations of our design; some support additional
+    functionality while others try for lower latency by removing features or
+    making them more restrictive (e.g. in the @Unboxed@ variants). 
+    .
+    - @Unagi@: a general-purpose near drop-in replacement for @Chan@.
+    .
+    - @Unagi.Unboxed@: like @Unagi@ but specialized for primitive types; this
+      may perform better if a queue grows very large.
+    .
+    - @Unagi.Bounded@: a bounded variant with blocking and non-blocking writes,
+      and other functionality where a notion of the queue's capacity is
+      required.
+    .
+    - @Unagi.NoBlocking@: lowest latency implementations for when blocking
+      reads aren't required.
+    .
+    - @Unagi.NoBlocking.Unboxed@: like @Unagi.NoBlocking@ but for primitive
+      types.
+    .
+    Some of these may be deprecated in the future if they are found to provide
+    little performance benefit, or no unique features; you should benchmark and
+    experiment with them for your use cases, and please submit pull requests
+    for additions to the benchmark suite that reflect what you find.
+    .
+    Here is an example benchmark measuring the time taken to concurrently write
+    and read 100,000 messages, with work divided amongst increasing number of
+    readers and writers, comparing against the top-performing queues in the
+    standard libraries. The inset graph shows a zoomed-in view on the
+    implementations here.
+    .
+    <<http://i.imgur.com/J5rLUFn.png>>
+    .
+    
+license:             BSD3
+license-file:        LICENSE
+author:              Brandon Simmons
+maintainer:          brandon.m.simmons@gmail.com
+category:            Concurrency
+build-type:          Simple
+cabal-version:       >=1.10
+-- currently uploaded to imgur; move to this eventually
+--extra-doc-files:     images/*.png
+--cabal-version:       >=1.18
+extra-source-files: CHANGELOG.markdown
+Tested-With: GHC ==7.8.4 || ==7.10.3 || ==8.0.2 || ==8.2.2 || ==8.4.4 || ==8.6.4 || ==8.8.1
+
+source-repository head   
+    type:     git
+    location: https://github.com/jberryman/unagi-chan.git
+    branch:   master
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Control.Concurrent.Chan.Unagi
+                     , Control.Concurrent.Chan.Unagi.Unboxed
+                     , Control.Concurrent.Chan.Unagi.Bounded
+                     , Control.Concurrent.Chan.Unagi.NoBlocking
+                     , Control.Concurrent.Chan.Unagi.NoBlocking.Unboxed
+
+  other-modules:       Control.Concurrent.Chan.Unagi.Internal
+                     , Control.Concurrent.Chan.Unagi.Unboxed.Internal
+                     , Control.Concurrent.Chan.Unagi.Bounded.Internal
+                     , Control.Concurrent.Chan.Unagi.NoBlocking.Internal
+                     , Control.Concurrent.Chan.Unagi.NoBlocking.Types
+                     , Control.Concurrent.Chan.Unagi.NoBlocking.Unboxed.Internal
+                     , Control.Concurrent.Chan.Unagi.Constants
+                     , Utilities
+                     , Data.Atomics.Counter.Fat
+
+  ghc-options:        -Wall -funbox-strict-fields
+  build-depends:       base >= 4.7 && < 5
+                     , atomic-primops >= 0.8
+                     , primitive>=0.5.3
+                     , ghc-prim
+  default-language:    Haskell2010
+  
+  if !arch(i386) && !arch(x86_64)
+    cpp-options: -DNOT_x86
+  -- TODO: more complete list of 64-bit archs:
+  if arch(x86_64)
+    cpp-options: -DIS_64_BIT
+
+  -- tryReadMVar is only available and non-broken on ghc >= 7.8.3
+  if impl(ghc >= 7.8.3)
+    cpp-options: -DTRYREADMVAR
+  
+-- TODO
+--   For v0,4:
+--   - More benchmarks, and test code we can analyze with ghc-events-analyze.
+--   - Explore faster single-threaded write (see #11)
+--   - Explore Stream interface for variants other than NoBlocking (see #11)
+--   - Experiments w/ new GHC 7.10 stuff, and at least make sure buildable
+--  -------
+--  - For GHC 7.10+
+--     - look at small arrays (w/out card-marking)
+--     - re-benchmark array creation and adjust next segment wait
+--  - Do a benchmark of multiple queues running in parallel, to see if we are
+--     affected by global allocator issues with pinned memory:
+--     http://thread.gmane.org/gmane.comp.lang.haskell.parallel/218
+--
+-- Possibly-similar prior work to look at:
+--
+--   - maybe implement "Fast Concurrent Queues for x86 Processors" by Morrison & Afek (non-blocking, probably more clever)
+--   - Also looks like a similar (but lockfree, as above) counter-based queue has been developed by FB:
+--       https://github.com/facebook/folly/blob/master/folly/MPMCQueue.h
+
+
+-- Please just build tests and run:
+--     $ time ./dist/build/test/test
+-- Doing `cabal test` takes forever for some reason.
+test-suite test
+  type: exitcode-stdio-1.0
+  ghc-options: -Wall -funbox-strict-fields
+  ghc-options: -O2  -rtsopts  -threaded 
+  -- NOTE: configure --enable-profiling overrides this:
+  ghc-options: -with-rtsopts=-N
+  ghc-options: -fno-ignore-asserts
+  -- for some hacks for Addr:
+  ghc-options: -fno-warn-orphans 
+  ghc-options: -fno-warn-missing-methods
+  -- I guess we need to put 'src' here to get access to Internal modules
+  hs-source-dirs: tests, src
+  main-is: Main.hs
+  other-modules:
+      Atomics
+    , Deadlocks
+    , DupChan
+    , Implementations
+    , IndexedMVar
+    , Smoke
+    , Unagi
+    , UnagiUnboxed
+    , UnagiBounded
+    , UnagiNoBlocking
+    , UnagiNoBlockingUnboxed
+  build-depends:       base
+                     , primitive>=0.5.3
+                     , atomic-primops >= 0.8
+                     , containers
+                     , ghc-prim
+  default-language:    Haskell2010
+  
+  -- These have to be copied from 'library' section too!
+  if !arch(i386) && !arch(x86_64)
+    cpp-options: -DNOT_x86
+  if arch(x86_64)
+    cpp-options: -DIS_64_BIT
+ 
+  if impl(ghc >= 7.8.3)
+    cpp-options: -DTRYREADMVAR
+
+-- compare benchmarks with Chan, TQueue, and (eventually) lockfree-queue?
+flag compare-benchmarks
+  default: False
+  manual:  True
+
+benchmark single
+  type:               exitcode-stdio-1.0
+  ghc-options:        -Wall -O2 -threaded -funbox-strict-fields -fforce-recomp -rtsopts
+  hs-source-dirs:     benchmarks
+  default-language:   Haskell2010
+  default-extensions: CPP
+  build-depends: base
+               , unagi-chan
+               , criterion
+  if flag(compare-benchmarks)
+      cpp-options: -DCOMPARE_BENCHMARKS
+      build-depends: stm
+                -- , lockfree-queue
+
+  main-is:        single.hs
+  ghc-options:    -with-rtsopts=-N1
+
+-- To run comparison benchmark used in graph above, run:
+--     $ cabal configure --enable-benchmarks -fcompare-benchmarks
+--     $ cabal bench multi --benchmark-option=-omulti3.html --benchmark-option='Demo'
+benchmark multi
+  type:               exitcode-stdio-1.0
+  ghc-options:        -Wall -O2 -threaded -funbox-strict-fields -fforce-recomp -rtsopts
+  hs-source-dirs:     benchmarks
+  default-language:   Haskell2010
+  default-extensions: CPP
+  build-depends: base
+               , unagi-chan
+               , criterion
+  if flag(compare-benchmarks)
+      cpp-options: -DCOMPARE_BENCHMARKS
+      build-depends: stm
+                -- , lockfree-queue
+
+  main-is:       multi.hs
+  ghc-options:   -with-rtsopts=-N
+  build-depends: async
+
+
+-- flag dev
+--   default: False
+--   manual: True
+
+-- for profiling, checking out core, etc
+-- executable dev-example
+--  -- for n in `find dist/build/dev-example/dev-example-tmp -name '*dump-simpl'`; do cp $n "core-example/$(basename $n).$(git rev-parse --abbrev-ref HEAD)"; done
+--  if !flag(dev)
+--    buildable: False
+--  else
+--    build-depends:       
+--        base
+--      , stm
+--      , unagi-chan
+--
+--  ghc-options: -ddump-to-file -ddump-simpl -dsuppress-module-prefixes -dsuppress-uniques -ddump-core-stats -ddump-inlinings
+--  ghc-options: -O2  -rtsopts  
+--  
+--  -- Either do threaded for eventlogging and simple timing...
+--  ghc-options: -threaded -eventlog
+--  -- and run e.g. with +RTS -N -l
+--
+--  -- ...or do non-threaded runtime
+--  --ghc-prof-options: -fprof-auto
+--  --Relevant profiling RTS settings:  -xt
+--  -- TODO also check out +RTS -A10m, and look at output of -sstderr
+--
+--  hs-source-dirs: core-example
+--  main-is: Main.hs
+--  default-language:    Haskell2010
