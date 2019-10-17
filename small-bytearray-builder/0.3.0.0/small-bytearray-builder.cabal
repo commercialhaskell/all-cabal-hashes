@@ -1,0 +1,101 @@
+cabal-version: 2.2
+name: small-bytearray-builder
+version: 0.3.0.0
+synopsis: Serialize to a small byte arrays
+description:
+  This is similar to the builder facilities provided by
+  `Data.ByteString.Builder`. It is intended to be used in
+  situations where the following apply:
+  .
+  * An individual entity will be serialized as a small
+    number of bytes (less than 512).
+  .
+  * A large number (more than 32) of entities will be serialized
+    one after another without anything between them.
+  .
+  Unlike builders from the `bytestring` package, these builders
+  do not track their state when they run out of space. A builder
+  that runs out of space simply aborts and is rerun at the beginning
+  of the next chunk. This strategy for building is suitable for most
+  CSVs and several line protocols (carbon, InfluxDB, etc.).
+  
+homepage: https://github.com/andrewthad/small-bytearray-builder
+bug-reports: https://github.com/andrewthad/small-bytearray-builder/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Andrew Martin
+maintainer: andrew.thaddeus@gmail.com
+copyright: 2019 Andrew Martin
+category: Data
+extra-source-files: CHANGELOG.md
+
+flag checked
+  manual: True
+  description: Add bounds-checking to primitive array operations
+  default: False
+
+library
+  exposed-modules:
+    Data.Bytes.Chunks
+    Data.ByteArray.Builder
+    Data.ByteArray.Builder.Unsafe
+    Data.ByteArray.Builder.Bounded
+    Data.ByteArray.Builder.Bounded.Unsafe
+  build-depends:
+    , base >=4.12.0.0 && <5
+    , byteslice >=0.1 && <0.2
+    , primitive-offset >=0.2 && <0.3
+    , run-st >=0.1 && <0.2
+    , bytestring >=0.10.8.2 && <0.11
+    , text-short >=0.1.3 && <0.2
+    , natural-arithmetic >=0.1 && <0.2
+  if flag(checked)
+    build-depends: primitive-checked >= 0.7 && <0.8
+  else
+    build-depends: primitive >= 0.7 && <0.8
+  ghc-options: -Wall -O2
+  hs-source-dirs: src
+  default-language: Haskell2010
+
+test-suite test
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test, common
+  main-is: Main.hs
+  ghc-options: -O2 -Wall
+  other-modules:
+    HexWord64
+    Word16Tree
+  build-depends:
+    , QuickCheck >=2.13.1 && <2.14
+    , base >=4.12.0.0 && <5
+    , byteslice
+    , bytestring
+    , natural-arithmetic
+    , primitive
+    , small-bytearray-builder
+    , tasty >=1.2.3 && <1.3
+    , tasty-hunit >=0.10.0.2 && <0.11
+    , tasty-quickcheck >=0.10.1 && <0.11
+    , text >=1.2 && <1.3
+    , vector
+
+benchmark bench
+  type: exitcode-stdio-1.0
+  build-depends:
+    , base
+    , gauge >= 0.2.4
+    , natural-arithmetic
+    , primitive
+    , small-bytearray-builder
+    , text-short
+    , byteslice
+  ghc-options: -Wall -O2
+  default-language: Haskell2010
+  hs-source-dirs: bench, common
+  main-is: Main.hs
+  other-modules:
+    Cell
+    HexWord64
+    SimpleCsv
+    Word16Tree
