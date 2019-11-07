@@ -1,0 +1,88 @@
+name:                hgrev
+version:             0.2.4
+synopsis:            Compile Mercurial (hg) version info into Haskell code
+license:             BSD3
+license-file:        LICENSE
+author:              Luke Hoersten
+maintainer:          luke@bitnomial.com
+copyright:           Bitnomial, Inc. (c) 2016
+category:            Development
+build-type:          Simple
+cabal-version:       >=1.10
+homepage:            https://github.com/bitnomial/hgrev
+bug-reports:         https://github.com/bitnomial/hgrev/issues
+
+description:
+  [Overview]
+  .
+  `hgrev` provides two modules:
+  .
+  * `Development.HgRev` - <https://mercurial.selenic.com Mercurial (hg)> Haskell API
+  .
+  * `Development.HgRev.TH` - Template Haskell splice to compile version info into Haskell code
+  .
+  Use @$(hgRevStateTH defFormat)@ with Template Haskell enabled to insert the
+  formatted version string.
+  .
+  [Requirements]
+  .
+  `hgrev` requires the `hg` binary version 3.2 or greater is installed and available on the system.
+  `Development.HgRev.HgRev` and `Development.HgRev.HgState` are obtained via two
+  separate calls to `hg` because working directory state isn't available programmatically.
+  .
+  [Usage Example]
+  .
+  > module Example where
+  >
+  > import           Data.Monoid          ((<>))
+  > import           Data.Text            (Text, pack)
+  > import           Development.HgRev.TH (defFormat, hgRevStateTH, jsonFormat)
+  > import           Options.Applicative  (Parser, ParserInfo, execParser, fullDesc,
+  >                                        help, helper, info, infoOption, long,
+  >                                        progDesc, short)
+  >
+  > main :: IO ()
+  > main = execParser parserInfo >> return ()
+  >
+  > verSwitch :: Parser (a -> a)
+  > verSwitch =
+  >     infoOption ("HG rev: " <> $(hgRevStateTH defFormat))
+  >     $  long "version"
+  >     <> short 'v'
+  >     <> help "Display version information"
+  >
+  > jsonSwitch :: Parser (a -> a)
+  > jsonSwitch =
+  >     infoOption $(hgRevStateTH jsonFormat)
+  >     $  long "json"
+  >     <> short 'J'
+  >     <> help "Display JSON version information"
+  >
+  > parserInfo :: ParserInfo (a -> a)
+  > parserInfo = info (helper <*> verSwitch <* jsonSwitch) fullDesc
+  >
+  .
+  Check out the <https://hackage.haskell.org/package/gitrev gitrev> package for similar git functionality.
+
+
+extra-source-files: Example.hs
+                  , README.md
+
+source-repository head
+  type: git
+  location: git://github.com/bitnomial/hgrev.git
+
+library
+  exposed-modules: Development.HgRev
+                 , Development.HgRev.TH
+
+  build-depends: aeson            >= 0.8  && < 1.5
+               , base             >= 4.7  && < 4.14
+               , bytestring       >= 0.10 && < 0.11
+               , directory        >= 1.2  && < 1.4
+               , filepath         >= 1.4  && < 1.5
+               , process          >= 1.2  && < 1.7
+               , template-haskell >= 2.10 && < 2.16
+
+  hs-source-dirs:      src
+  default-language:    Haskell2010
