@@ -1,0 +1,100 @@
+name:                prometheus
+version:             2.1.3
+synopsis:            Prometheus Haskell Client
+homepage:            http://github.com/bitnomial/prometheus
+bug-reports:         http://github.com/bitnomial/prometheus/issues
+license:             BSD3
+license-file:        LICENSE
+author:              Luke Hoersten
+maintainer:          luke@bitnomial.com, opensource@bitnomial.com
+copyright:           Bitnomial, Inc. (c) 2016-2018
+category:            Metrics, Monitoring, Web, System
+build-type:          Simple
+cabal-version:       >=1.10
+
+description:
+  [Prometheus Haskell Client]
+  .
+  A simple and modern, type safe, performance focused, idiomatic Haskell client
+  for <http://prometheus.io Prometheus> monitoring. Specifically there is no
+  use of unsafe IO or manual ByteString construction from lists of
+  bytes. Batteries-included web server.
+  .
+  A key design element of this library is that the RegistryT monad transformer
+  is only required for registering new time series. Once the time series is
+  registered, new data samples may just be added in the IO monad.
+  .
+  Note: Version 0.* supports Prometheus v1.0 and version 2.* supports Prometheus v2.0.
+  .
+  [Usage Example]
+  .
+  > module Example where
+  >
+  > import           Control.Monad.IO.Class                         (liftIO)
+  > import           System.Metrics.Prometheus.Http.Scrape          (serveHttpTextMetricsT)
+  > import           System.Metrics.Prometheus.Concurrent.RegistryT
+  > import           System.Metrics.Prometheus.Metric.Counter       (inc)
+  > import           System.Metrics.Prometheus.MetricId
+  >
+  > main :: IO ()
+  > main = runRegistryT $ do
+  >     -- Labels can be defined as lists or added to an empty label set
+  >     connectSuccessGauge <- registerGauge "example_connections" (fromList [("login", "success")])
+  >     connectFailureGauge <- registerGauge "example_connections" (addLabel "login" "failure" mempty)
+  >     connectCounter <- registerCounter "example_connection_total" mempty
+  >     latencyHistogram <- registerHistogram "example_round_trip_latency_ms" mempty [10, 20..100]
+  >
+  >     liftIO $ inc connectCounter -- increment a counter
+  >
+  >     -- [...] pass metric handles to the rest of the app
+  >
+  >     serveHttpTextMetricsT 8080 ["metrics"] -- http://localhost:8080/metric server
+  >
+  .
+  [Advanced Usage]
+  .
+  A `Registry` and `StateT`-based `RegistryT` are available for unit testing or generating lists
+  of `[IO a]` actions that can be `sequenced` and returned from pure code to be applied.
+
+
+extra-source-files: Example.hs
+                  , README.md
+
+library
+  hs-source-dirs: src
+  default-language: Haskell2010
+
+  ghc-options: -Wall -fwarn-tabs -fno-warn-unused-do-bind
+
+  exposed-modules: System.Metrics.Prometheus.Concurrent.Registry
+                 , System.Metrics.Prometheus.Concurrent.RegistryT
+                 , System.Metrics.Prometheus.Encode.Text
+                 , System.Metrics.Prometheus.Encode.Text.Histogram
+                 , System.Metrics.Prometheus.Encode.Text.MetricId
+                 , System.Metrics.Prometheus.Http.Push
+                 , System.Metrics.Prometheus.Http.Scrape
+                 , System.Metrics.Prometheus.Metric
+                 , System.Metrics.Prometheus.Metric.Counter
+                 , System.Metrics.Prometheus.Metric.Gauge
+                 , System.Metrics.Prometheus.Metric.Histogram
+                 , System.Metrics.Prometheus.Metric.Summary
+                 , System.Metrics.Prometheus.MetricId
+                 , System.Metrics.Prometheus.Registry
+                 , System.Metrics.Prometheus.RegistryT
+
+  build-depends: base           >= 4.9  && < 4.14
+               , atomic-primops >= 0.8  && < 0.9
+               , bytestring     >= 0.10 && < 0.11
+               , containers     >= 0.5  && < 0.7
+               , http-client    >= 0.4  && < 0.7
+               , http-client-tls >= 0.3  && < 0.4
+               , http-types     >= 0.8  && < 0.13
+               , network-uri    >= 2.5  && < 2.7
+               , text           >= 1.2  && < 1.3
+               , transformers   >= 0.4  && < 0.6
+               , wai            >= 3.2  && < 3.3
+               , warp           >= 3.2  && < 3.5
+
+source-repository head
+  type:     git
+  location: https://github.com/bitnomial/prometheus
