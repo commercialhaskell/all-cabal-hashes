@@ -1,0 +1,238 @@
+Cabal-Version: 2.2
+Name:          llvm-ffi
+Version:       3.9.0
+License:       BSD-3-Clause
+License-File:  LICENSE
+Synopsis:      FFI bindings to the LLVM compiler toolkit.
+Description:
+  FFI bindings to the LLVM compiler toolkit.
+  .
+  Installation cannot be done fully automatically.
+  It would require Cabal code that is bound to certain Cabal versions
+  and is prone to fail.
+  We give several non-automatic ways
+  that also allow you to choose a particular LLVM version.
+  .
+  First possibility is to point Cabal
+  to the LLVM installation directories manually.
+  On Ubuntu this would look like this:
+  .
+  > cabal install --extra-include-dirs=/usr/lib/llvm-3.9/include --extra-lib-dirs=/usr/lib/llvm-3.9/lib llvm-ffi
+  .
+  You can store such paths permanently in a @pkg-config@ file like @llvm.pc@.
+  The optimal way would be if LLVM installations or GNU/Linux distributions
+  would contain such a file, but they don't.
+  Instead, you may generate it using the @llvm-pkg-config@ package
+  or write one manually.
+  Then you run
+  .
+  > cabal install -fpkgConfig
+  .
+  We try to stay up to date with LLVM releases.
+  The current version of this package is compatible with LLVM 3.4-3.9.
+  Please understand that the package may or may not work
+  against older LLVM releases.
+  .
+  Warning for inplace builds:
+  Re-configuring the package using, say -fllvm307,
+  and re-buildung it might result in corrupt code.
+  You must make sure that the stuff in @cbits@ is re-compiled.
+  Cabal or GHC may forget about that.
+  You are safe if you run @cabal clean@.
+Author:        Henning Thielemann, Bryan O'Sullivan, Lennart Augustsson
+Maintainer:    Henning Thielemann <llvm@henning-thielemann.de>
+Homepage:      http://haskell.org/haskellwiki/LLVM
+Stability:     experimental
+Category:      Compilers/Interpreters, Code Generation
+Tested-With:   GHC==7.4.2, GHC==7.6.3, GHC==7.8.4, GHC==8.0.2, GHC==8.2.2
+Build-Type:    Simple
+
+Extra-Source-Files:
+  include/support.h
+  tool/ltrace.config
+  tool/ltrace.readme
+  flatpak/llvm-3.8.1.json
+  flatpak/llvm-3.9.1.json
+
+Flag developer
+  Description: developer mode - warnings let compilation fail
+  Manual: True
+  Default: False
+
+Flag buildExamples
+  Description: Build example executables
+  Manual: True
+  Default: False
+
+Flag pkgConfig
+  Description: use pkgconfig (llvm.pc) instead of extra-libraries
+  Default: False
+
+Flag specificPkgConfig
+  Description: use llvm-3.x.pc instead of llvm.pc
+  Default: True
+
+Flag llvm304
+  Description: use LLVM-3.4 instead of latest supported LLVM
+  Default: False
+
+Flag llvm305
+  Description: use LLVM-3.5 instead of latest supported LLVM
+  Default: False
+
+Flag llvm306
+  Description: use LLVM-3.6 instead of latest supported LLVM
+  Default: False
+
+Flag llvm307
+  Description: use LLVM-3.7 instead of latest supported LLVM
+  Default: False
+
+Flag llvm308
+  Description: use LLVM-3.8 instead of latest supported LLVM
+  Default: False
+
+Source-Repository head
+  Type:     darcs
+  Location: http://hub.darcs.net/thielema/llvm-ffi/
+
+Source-Repository this
+  Tag:      3.9.0
+  Type:     darcs
+  Location: http://hub.darcs.net/thielema/llvm-ffi/
+
+Library
+  Build-Depends:
+    enumset >=0.0.5 && <0.1,
+    base >= 3 && < 5
+
+  Hs-Source-Dirs: src
+  GHC-Options: -Wall -fwarn-missing-import-lists
+  Default-Language: Haskell2010
+
+  If flag(developer)
+    GHC-Options: -Werror
+
+  Exposed-Modules:
+      LLVM.FFI.Analysis
+      LLVM.FFI.BitReader
+      LLVM.FFI.BitWriter
+      LLVM.FFI.Core
+      LLVM.FFI.ExecutionEngine
+      LLVM.FFI.Support.Host
+      LLVM.FFI.Target
+      LLVM.FFI.Transforms.IPO
+      LLVM.FFI.Transforms.PassManagerBuilder
+      LLVM.FFI.Transforms.Scalar
+      LLVM.FFI.Transforms.Vectorize
+      LLVM.Target.Native
+
+  Other-modules:
+      LLVM.FFI.Base
+      LLVM.Target.ARM
+      LLVM.Target.CppBackend
+      LLVM.Target.Hexagon
+      LLVM.Target.MSP430
+      LLVM.Target.Mips
+      LLVM.Target.NVPTX
+      LLVM.Target.PowerPC
+      LLVM.Target.Sparc
+      LLVM.Target.X86
+      LLVM.Target.XCore
+
+  If flag(llvm304)
+    If flag(pkgConfig)
+      If flag(specificPkgConfig)
+        PkgConfig-Depends: llvm-3.4
+      Else
+        PkgConfig-Depends: llvm == 3.4.*
+    Else
+      Extra-Libraries: LLVM-3.4
+    CC-Options: -DHS_LLVM_VERSION=304
+    Cxx-Options: -DHS_LLVM_VERSION=304
+    CPP-Options: -DHS_LLVM_VERSION=304
+  Else
+    If flag(llvm305)
+      If flag(pkgConfig)
+        If flag(specificPkgConfig)
+          PkgConfig-Depends: llvm-3.5
+        Else
+          PkgConfig-Depends: llvm == 3.5.*
+      Else
+        Extra-Libraries: LLVM-3.5
+      CC-Options: -DHS_LLVM_VERSION=305
+      Cxx-Options: -DHS_LLVM_VERSION=305
+      CPP-Options: -DHS_LLVM_VERSION=305
+    Else
+      If flag(llvm306)
+        If flag(pkgConfig)
+          If flag(specificPkgConfig)
+            PkgConfig-Depends: llvm-3.6
+          Else
+            PkgConfig-Depends: llvm == 3.6.*
+        Else
+          Extra-Libraries: LLVM-3.6
+        CC-Options: -DHS_LLVM_VERSION=306
+        Cxx-Options: -DHS_LLVM_VERSION=306
+        CPP-Options: -DHS_LLVM_VERSION=306
+      Else
+        If flag(llvm307)
+          If flag(pkgConfig)
+            If flag(specificPkgConfig)
+              PkgConfig-Depends: llvm-3.7
+            Else
+              PkgConfig-Depends: llvm == 3.7.*
+          Else
+            Extra-Libraries: LLVM-3.7
+          CC-Options: -DHS_LLVM_VERSION=307
+          Cxx-Options: -DHS_LLVM_VERSION=307
+          CPP-Options: -DHS_LLVM_VERSION=307
+        Else
+          If flag(llvm308)
+            If flag(pkgConfig)
+              If flag(specificPkgConfig)
+                PkgConfig-Depends: llvm-3.8
+              Else
+                PkgConfig-Depends: llvm == 3.8.*
+            Else
+              Extra-Libraries: LLVM-3.8
+            CC-Options: -DHS_LLVM_VERSION=308
+            Cxx-Options: -DHS_LLVM_VERSION=308
+            CPP-Options: -DHS_LLVM_VERSION=308
+          Else
+            If flag(pkgConfig)
+              If flag(specificPkgConfig)
+                PkgConfig-Depends: llvm-3.9
+              Else
+                PkgConfig-Depends: llvm == 3.9.*
+            Else
+              Extra-Libraries: LLVM-3.9
+            CC-Options: -DHS_LLVM_VERSION=309
+            Cxx-Options: -DHS_LLVM_VERSION=309
+            CPP-Options: -DHS_LLVM_VERSION=309
+
+  CC-Options: -DHAVE_LLVM_SUPPORT_DYNAMICLIBRARY_H=1
+  CPP-Options: -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
+  CPP-Options: -D__STDC_LIMIT_MACROS
+  Include-Dirs: include
+  Extra-Libraries: stdc++
+  Cxx-Options: -std=c++0x -std=c++11
+  Cxx-Sources:
+    cbits/support.cpp
+
+Executable llvm-ffi-example
+  If flag(buildExamples)
+    Build-Depends:
+      llvm-ffi,
+      utility-ht >=0.0.9 && <0.1,
+      base
+  Else
+    Buildable: False
+
+  If flag(developer)
+    GHC-Options: -Werror
+
+  Hs-Source-Dirs: example
+  GHC-Options: -Wall
+  Default-Language: Haskell2010
+  Main-Is: JIT.hs
