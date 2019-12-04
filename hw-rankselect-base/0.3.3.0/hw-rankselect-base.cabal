@@ -1,0 +1,110 @@
+cabal-version: 2.2
+
+name:                   hw-rankselect-base
+version:                0.3.3.0
+synopsis:               Rank-select base
+description:            Please see README.md
+category:               Data, Bit, Succinct Data Structures, Data Structures
+homepage:               http://github.com/haskell-works/hw-rankselect-base#readme
+bug-reports:            https://github.com/haskell-works/hw-rankselect-base/issues
+author:                 John Ky
+maintainer:             newhoggy@gmail.com
+copyright:              2016-2019 John Ky
+license:                BSD-3-Clause
+license-file:           LICENSE
+tested-with:            GHC == 8.8.1, GHC == 8.6.5, GHC == 8.4.4, GHC == 8.2.2
+build-type:             Simple
+extra-source-files:     README.md
+
+source-repository head
+  type: git
+  location: https://github.com/haskell-works/hw-rankselect-base
+
+flag bmi2
+  description: Enable bmi2 instruction set
+  manual: False
+  default: False
+
+common base                           { build-depends: base                           >= 4.8        && < 5      }
+
+common QuickCheck                     { build-depends: QuickCheck                     >= 2.10       && < 2.14   }
+common bits-extra                     { build-depends: bits-extra                     >= 0.0.0.4    && < 0.1    }
+common bitvec                         { build-depends: bitvec                         >= 1.0        && < 1.1    }
+common criterion                      { build-depends: criterion                      >= 1.2        && < 1.6    }
+common hedgehog                       { build-depends: hedgehog                       >= 0.6        && < 1.1    }
+common hspec                          { build-depends: hspec                          >= 2.2        && < 3      }
+common hw-bits                        { build-depends: hw-bits                        >= 0.7.1.0    && < 0.8    }
+common hw-hedgehog                    { build-depends: hw-hedgehog                    >= 0.1        && < 0.2    }
+common hw-hspec-hedgehog              { build-depends: hw-hspec-hedgehog              >= 0.1        && < 0.2    }
+common hw-int                         { build-depends: hw-int                         >= 0.0.0.1    && < 0.1    }
+common hw-prim                        { build-depends: hw-prim                        >= 0.5.0.5    && < 0.7    }
+common hw-string-parse                { build-depends: hw-string-parse                >= 0.0.0.2    && < 0.1    }
+common vector                         { build-depends: vector                         >= 0.12       && < 0.13   }
+
+common config
+  default-language:     Haskell2010
+  ghc-options:          -Wall -fwarn-tabs -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates -O2 -msse4.2
+  if (flag(bmi2)) && (impl(ghc >=8.4.1))
+    ghc-options: -mbmi2 -msse4.2
+    cpp-options: -DBMI2_ENABLED
+
+library
+  import:               base, config
+                      , bits-extra
+                      , bitvec
+                      , hw-bits
+                      , hw-int
+                      , hw-prim
+                      , hw-string-parse
+                      , vector
+  exposed-modules:      HaskellWorks.Data.RankSelect.Base
+                        HaskellWorks.Data.RankSelect.Base.Internal
+                        HaskellWorks.Data.RankSelect.Base.Rank
+                        HaskellWorks.Data.RankSelect.Base.Rank0
+                        HaskellWorks.Data.RankSelect.Base.Rank1
+                        HaskellWorks.Data.RankSelect.Base.Select
+                        HaskellWorks.Data.RankSelect.Base.Select0
+                        HaskellWorks.Data.RankSelect.Base.Select1
+  other-modules:        Paths_hw_rankselect_base
+  autogen-modules:      Paths_hw_rankselect_base
+  hs-source-dirs:       src
+
+test-suite hw-rankselect-base-test
+  import:               base, config
+                      , QuickCheck
+                      , bits-extra
+                      , bitvec
+                      , hedgehog
+                      , hspec
+                      , hw-bits
+                      , hw-hedgehog
+                      , hw-hspec-hedgehog
+                      , hw-prim
+                      , vector
+  type:                 exitcode-stdio-1.0
+  main-is:              Spec.hs
+  other-modules:        HaskellWorks.Data.RankSelect.Base.InternalSpec
+                        HaskellWorks.Data.RankSelect.Base.Rank0Spec
+                        HaskellWorks.Data.RankSelect.Base.Rank1Spec
+                        HaskellWorks.Data.RankSelect.Base.Select0Spec
+                        HaskellWorks.Data.RankSelect.Base.Select1Spec
+                        Paths_hw_rankselect_base
+  autogen-modules:      Paths_hw_rankselect_base
+  hs-source-dirs:       test
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  build-depends:        hw-rankselect-base
+  build-tool-depends:   hspec-discover:hspec-discover
+
+benchmark bench
+  import:               base, config
+                      , bits-extra
+                      , criterion
+                      , hw-bits
+                      , hw-prim
+                      , vector
+  type:                 exitcode-stdio-1.0
+  main-is:              Main.hs
+  other-modules:        Paths_hw_rankselect_base
+  autogen-modules:      Paths_hw_rankselect_base
+  hs-source-dirs:       bench
+  build-depends:        hw-rankselect-base
