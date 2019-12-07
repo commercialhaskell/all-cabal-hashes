@@ -1,0 +1,140 @@
+cabal-version: 2.4
+name: tptp
+version: 0.1.1.0
+synopsis: A parser and a pretty printer for the TPTP language
+description:
+  <http://www.tptp.org TPTP> (Thousands of Problems for Theorem Provers)
+  is the standard language of problems, proofs, and models, used by automated
+  theorem provers.
+  .
+  This library provides definitions of data types, a
+  <https://hackage.haskell.org/package/prettyprinter pretty printer> and an
+  <https://hackage.haskell.org/package/attoparsec attoparsec> parser for the
+  CNF, FOF, TFF0 and TFF1 subsets of the TPTP language.
+homepage: https://github.com/aztek/tptp
+bug-reports: https://github.com/aztek/tptp/issues
+license: GPL-3.0-only
+license-file: LICENSE
+author: Evgenii Kotelnikov
+maintainer: evgeny.kotelnikov@gmail.com
+category: Language, Parsing, Pretty Printer, Theorem Provers, Formal Methods
+tested-with:
+  GHC == 7.8.4,
+  GHC == 7.10.3,
+  GHC == 8.0.2,
+  GHC == 8.2.2,
+  GHC == 8.4.4,
+  GHC == 8.6.5,
+  GHC == 8.8.1
+
+extra-source-files:
+  CHANGELOG.md
+  test/*.hs
+  test/**/*.hs
+  test-data/szs/**/*.s
+  test-data/tptp/**/*.ax
+  test-data/tptp/**/*.p
+  test-data/tstp/**/*.s
+
+source-repository head
+  type: git
+  location: git://github.com/aztek/tptp.git
+
+flag Werror
+  default: False
+  manual: True
+  description: Build with -Werror
+
+library
+  hs-source-dirs: src
+  default-language: Haskell2010
+  exposed-modules:
+    Data.TPTP
+    Data.TPTP.Parse.Combinators
+    Data.TPTP.Parse.Text
+    Data.TPTP.Parse.Text.Lazy
+    Data.TPTP.Pretty
+  ghc-options:
+    -Wall
+  if flag(Werror)
+    ghc-options: -Werror
+  build-depends:
+    base          >= 4.5    && < 5.0,
+    text          >= 1.2.3  && < 1.3,
+    attoparsec    >= 0.13.2 && < 0.14,
+    scientific    >= 0.3.6  && < 0.4,
+    prettyprinter >= 1.2.1  && < 1.5
+  if impl(ghc < 8)
+    ghc-options:
+      -fwarn-incomplete-record-updates -fwarn-incomplete-uni-patterns
+    build-depends:
+      semigroups  >= 0.16.1 && < 0.19
+  if impl(ghc >= 8)
+    ghc-options:
+      -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns
+      -Wredundant-constraints
+
+test-suite quickcheck-spec
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/QuickCheckSpec
+  default-language: Haskell2010
+  main-is: Main.hs
+  other-modules:
+    Generators
+    Normalizers
+  ghc-options:
+    -Wall -threaded
+  if flag(Werror)
+    ghc-options: -Werror
+  build-depends:
+    base,
+    text,
+    attoparsec,
+    scientific,
+    prettyprinter,
+    generic-random >= 1.2.0.0 && < 1.3,
+    QuickCheck     >= 2.4     && < 3.0,
+    tptp
+  if impl(ghc < 8)
+    build-depends:
+      semigroups
+  if impl(ghc < 8.2)
+    build-depends:
+      bifunctors   >= 3.0.1   && < 6
+
+test-suite unit-tests
+  type: detailed-0.9
+  hs-source-dirs: test
+  default-language: Haskell2010
+  test-module: UnitTests
+  ghc-options:
+    -Wall -threaded
+  if flag(Werror)
+    ghc-options: -Werror
+  -- TODO: Workaround the pesky bug in ghc 8.0
+  -- https://stackoverflow.com/q/39310043/1344648
+  if (impl(ghc >= 8.0.0)) && (impl(ghc < 8.1.0))
+    buildable: False
+  build-depends:
+    base,
+    text,
+    Cabal     >= 1.16.0,
+    extra     >= 1.4.4 && < 1.7,
+    directory >= 1.2.5 && < 1.4,
+    tptp
+
+test-suite doctests
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/DocTests
+  default-language: Haskell2010
+  main-is: Main.hs
+  ghc-options:
+    -Wall -threaded
+  if flag(Werror)
+    ghc-options: -Werror
+  -- TODO: Make it work
+  buildable: False
+  build-depends:
+    base,
+    QuickCheck,
+    doctest
