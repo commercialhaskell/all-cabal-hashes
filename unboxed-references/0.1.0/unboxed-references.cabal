@@ -1,0 +1,119 @@
+cabal-version:      2.2
+category:           Data
+build-type:         Simple
+
+name:               unboxed-references
+synopsis:           A library for reference cells backed by unboxed-vectors
+version:            0.1.0
+
+author:             Callan McGill
+maintainer:         callan.mcgill@gmail.com
+homepage:           https://github.com/Boarders/unboxed-references
+bug-reports:        https://github.com/Boarders/unboxed-references/issues
+copyright:          2019
+license:            BSD-3-Clause
+description:
+    .
+    This package contains an interface to references backed by
+    unboxed vectors
+    .
+    For an example of how to use it:
+    .
+    >
+    >   module Main where
+    >   
+    >   import           Data.STRef.Unboxed
+    >   import           Control.Monad.ST
+    >   
+    >   main :: IO ()
+    >   main =
+    >     do
+    >       print counter
+    >       print mySum
+    >       print strictModify
+    >   
+    >   -- |
+    >   -- Runs a for loop each time modifying the reference cell to add
+    >   -- one.
+    >   counter :: Int
+    >   counter =
+    >    runST $
+    >      do
+    >        ref <- newSTRefU 0
+    >        for_ [1..100] $ modifySTRefU ref (+ 1)
+    >        readSTRefU ref
+    >   -- |
+    >   -- Runs a for loop to add all the numbers between 1 and 10.
+    >   mySum :: Int
+    >   mySum =
+    >     runST $
+    >       do
+    >         ref <- newSTRefU 0
+    >         for_ [1..10] $ \i -> modifySTRefU ref (+ i)
+    >         readSTRefU ref
+    >   -- |
+    >   -- This shows that modifySTRefU is strict in its argument.
+    >   strictModify :: Int
+    >   strictModify =
+    >     runST $
+    >       do
+    >         ref <- newSTRefU 0
+    >         modifySTRefU ref (\_ -> Unsafe.unsafePerformIO $ print "Got here!" >> pure 10)
+    >         writeSTRefU ref 42
+    >          readSTRefU ref
+    >
+    .
+    This gives the following:
+    .
+    @
+    > main
+    100
+    55
+    "Got here!"
+    42
+    @
+
+extra-source-files: CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/Boarders/unboxed-references
+
+
+Library
+
+  hs-source-dirs:   src
+
+  ghc-options:      -Wall
+                    -fexpose-all-unfoldings
+                    -fspecialize-aggressively
+                    -Wincomplete-patterns
+
+  build-depends:    base        >= 4.12.0.0 && < 4.14
+                  , vector      >= 0.12.0   && < 0.13
+
+  exposed-modules:  Data.STRef.Unboxed
+
+  other-modules:
+
+  default-language: Haskell2010
+
+
+Executable example
+
+  main-is:          Example.hs
+
+  hs-source-dirs:   src
+
+  ghc-options:      -Wall
+                    -fexpose-all-unfoldings
+                    -fspecialize-aggressively
+                    -Wincomplete-patterns
+
+  other-modules: Data.STRef.Unboxed
+
+  build-depends:    unboxed-references
+                  , base        >= 4.12.0.0 && < 4.14
+                  , vector      >= 0.12.0   && < 0.13
+
+  default-language: Haskell2010
