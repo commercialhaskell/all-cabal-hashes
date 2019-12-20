@@ -1,0 +1,154 @@
+Cabal-Version:       2.4
+Name:                schedule
+Version:             0.1.0.0
+Synopsis:            Pure deterministic scheduled computations
+Description:
+  Schedule computations to run later, in a pure and deterministic way.
+  .
+  This library is a pure alternative to "System.Timeout" suitable for IO-bound
+  non-blocking computations. "System.Timeout" has a few issues that are at-odds
+  with a Haskell or purely functional paradigm: (1) it is not deterministic,
+  (2) the timeout state is not serialisable, and (3) the timeout functionality
+  must be shared between unrelated components, making it harder to design
+  components that are easily decomposable and reusable.
+  .
+  This library solves these issues by implementing all schedule and timeout
+  logic as a pure deterministic computation, with callbacks represented in
+  defunctionalised serialisable form. The interface with the runtime execution
+  environment is minimal: a simple source of clock inputs similar to other
+  inputs such as network traffic or user commands, which can either be an
+  IO-based impure "real" runtime, or a pure "mock" one e.g. that replays
+  previous inputs to reproduce previous outputs.
+  .
+  This library does /no pre-emption/ e.g. by sending interrupts or asynchronous
+  exceptions, so it is probably /not suitable/ for blocking computations. To be
+  clear, things will /work/, but clock inputs will be delivered only after the
+  blocking is over. A workaround is to separate the blocking computations from
+  your main computation, arrange to have these run externally (e.g. in worker
+  threads) with the results being sent back to your main computation via some
+  pure abstract input interface, similar to how we deliver clock inputs.
+  .
+  If this is not suitable and you absolutely need pre-emption, then you'll need
+  a richer runtime interface than the one expected by this library; luckily the
+  Haskell runtime itself is such an example. In other words, simply use other
+  existing IO-based utilities for setting timeouts, that typically rely on
+  concurrency or asynchronous exceptions. But then, you'll have to figure out
+  your own way of overcoming the issues mentioned in the first paragraph.
+  .
+  The original motivation for this library comes from implementing secure
+  communications protocols and decentralised distributed systems. In these
+  contexts one must often set local timeouts for remote events that may or may
+  not happen in the future, or periodically synchronise local views of shared
+  data with remote peers. Most operations are IO-bound and can be written to be
+  non-blocking; the main exception is heavy cryptography which can be delegated
+  to worker threads as described above. Of course, this library is not tied to
+  these use-cases and is a general replacement for "System.Timeout".
+  .
+  See "Control.Monad.Schedule" for the main monad-based API of this library.
+  .
+  See "Control.Arrow.Schedule" for the main arrow-based API of this library.
+  .
+  See "Control.Clock.IO" for various ways of combining clock inputs with other
+  inputs and injecting them into your pure computations.
+  .
+  See @Control.Schedule.*@ for higher-level utilities that one often wants to
+  use on top of a timeout primitive, such as futures and monitors.
+  .
+  See unit tests for example usage.
+Homepage:            https://github.com/infinity0/hs-schedule
+Bug-Reports:         https://github.com/infinity0/hs-schedule/issues
+License:             GPL-3.0-or-later
+License-File:        LICENSE.GPL-3
+Author:              Ximin Luo
+Maintainer:          infinity0@pwned.gg
+Copyright:           2016-2019 Ximin Luo
+Category:            Control, Schedule, Delay, Time, Timeout
+Tested-With:         GHC >= 8.6
+Extra-Source-Files:  CHANGELOG.md
+
+Source-Repository head
+  Type: git
+  Location: https://github.com/infinity0/hs-schedule
+
+Flag dev
+  Description: Set compile flags for development
+  Default:     False
+  Manual:      True
+
+Common generic
+  Default-Language: Haskell2010
+  Build-Depends: base >= 4 && < 5,
+  GHC-Options:
+    -Wall
+    -Wno-unused-matches
+    -Wredundant-constraints
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+  if flag(dev)
+    GHC-Options:
+      -Werror
+      -O2
+    -- some optimisations cause memory leaks; switch on -O2 and profiling so we
+    -- can detect this during development so it doesn't cause surprises later
+    GHC-Prof-Options:
+      -fprof-auto
+
+Library
+  Import: generic
+  Build-Depends:
+      extra
+    -- for Data.Rsv.*
+    , containers
+    , lens
+    , text
+    -- for Control.Clock.System
+    , async
+    , safe
+    , stm
+    , time                    >= 1.5
+    , system-time-monotonic   >= 0.2
+    -- for Control.Monad.Primitive.*
+    , primitive
+    -- for Data.Schedule.Applied
+    , transformers
+  HS-Source-Dirs: src
+  Exposed-Modules:
+      Control.Clock
+    , Control.Clock.IO
+    , Control.Arrow.Schedule
+    , Control.Monad.Schedule
+    , Control.Monad.Primitive.Extra
+    , Control.Schedule.Future
+    , Data.Schedule
+    , Data.Schedule.Internal
+    -- the below modules are exposed for testing only
+    , Data.Rsv.Common
+    , Data.Rsv.RMMap
+
+Test-Suite doctests
+  Import: generic
+  GHC-Options: -threaded
+  Build-Depends:
+      doctest
+    , schedule
+  HS-Source-Dirs: test
+  Type: exitcode-stdio-1.0
+  Main-Is: DocTests.hs
+
+Test-Suite unit
+  Import: generic
+  GHC-Options: -threaded
+  Build-Depends:
+      tasty
+    , tasty-quickcheck
+    , tasty-hunit
+    , checkers
+    , primitive
+    , transformers
+    , schedule
+  HS-Source-Dirs: test
+  Type: exitcode-stdio-1.0
+  Main-Is: UnitTests.hs
+  Other-Modules:
+      Control.Monad.ScheduleTest
+    , Data.Rsv.Example
