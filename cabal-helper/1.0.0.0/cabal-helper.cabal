@@ -1,0 +1,224 @@
+cabal-version:       2.2
+name:                cabal-helper
+version:             1.0.0.0
+synopsis:
+ Give Haskell development tools access to Cabal project environment
+description:
+ The purpose of the @cabal-helper@ library is to give Haskell development
+ tools access to the same environment which build tools such as @cabal@ and
+ @stack@ normally provide to the compiler.
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Daniel Gröber <cabal-helper@dxld.at>
+maintainer:          cabal-helper@dxld.at
+category:            Distribution
+build-type:          Simple
+extra-source-files:  README.md
+                     src/CabalHelper/Runtime/*.hs
+
+                     tests/*.hs
+                     tests/stack-resolvers
+                     tests/cabal-versions
+
+                     tests/exelib/*.hs
+                     tests/exelib/*.cabal
+                     tests/exelib/packages.list
+                     tests/exelib/stack.yaml
+                     tests/exelib/lib/*.hs
+
+                     tests/exeintlib/*.hs
+                     tests/exeintlib/*.cabal
+                     tests/exeintlib/packages.list
+                     tests/exeintlib/stack.yaml
+                     tests/exeintlib/lib/*.hs
+                     tests/exeintlib/intlib/*.hs
+
+                     tests/fliblib/*.hs
+                     tests/fliblib/*.cabal
+                     tests/fliblib/packages.list
+                     tests/fliblib/stack.yaml
+                     tests/fliblib/lib/*.hs
+
+                     tests/bkpregex/*.hs
+                     tests/bkpregex/*.cabal
+                     tests/bkpregex/packages.list
+                     tests/bkpregex/stack.yaml
+                     tests/bkpregex/regex-example/*.hs
+                     tests/bkpregex/regex-indef/*.hs
+                     tests/bkpregex/regex-indef/*.hsig
+                     tests/bkpregex/regex-types/Regex/*.hs
+                     tests/bkpregex/str-impls/Str/*.hs
+
+                     tests/multipkg/packages.list
+                     tests/multipkg/pkg-oot/*.cabal
+                     tests/multipkg/pkg-oot/*.hs
+                     tests/multipkg/proj/*.cabal
+                     tests/multipkg/proj/*.hs
+                     tests/multipkg/proj/cabal.project
+                     tests/multipkg/proj/pkg-a/*.cabal
+                     tests/multipkg/proj/pkg-a/*.hs
+                     tests/multipkg/proj/pkg-b/*.cabal
+                     tests/multipkg/proj/pkg-b/*.hs
+                     tests/multipkg/proj/stack.yaml
+
+
+source-repository head
+  type:     git
+  location: https://github.com/DanielG/cabal-helper.git
+
+flag dev
+  description: Build development components
+  default:     False
+  manual:      True
+
+
+common extensions
+  default-language:    Haskell2010
+  default-extensions:  NondecreasingIndentation
+                       ImplicitParams
+                       NamedFieldPuns RecordWildCards
+                       FlexibleContexts
+                       ConstraintKinds
+  other-extensions:    TemplateHaskell
+
+common build-deps
+  build-depends:       base             < 5    && >= 4.9.1.0
+                     , Cabal            < 3.1  && >= 3.0
+                                     || < 2.5  && >= 2.0
+                                     || < 1.26 && >= 1.24.2.0
+                     , cabal-plan       < 0.6  && >= 0.5.0.0
+                     , clock            < 0.8  && >= 0.7.2
+                     , containers       < 1    && >= 0.5.7.1
+                     , bytestring       < 0.11 && >= 0.10.8.1
+                     , directory        < 1.4  && >= 1.3.0.0
+                     , filepath         < 1.5  && >= 1.4.1.1
+                     , mtl              < 2.3  && >= 2.0
+                     , process          < 1.7  && >= 1.4.3.0
+                     , semigroups       < 0.19 && >= 0.18
+                     , semigroupoids    < 5.4  && >= 5.2
+                     , SHA              < 1.7  && >= 1.6.4.4
+                     , text             < 1.3  && >= 1.0.0.0
+                     , template-haskell < 2.15 && >= 2.11.1.0
+                     , temporary        < 1.3  && >= 1.2.1
+                     , time             < 1.9  && >= 1.6.0.1
+                     , transformers     < 0.6  && >= 0.5.2.0
+                     , utf8-string      < 1.1  && >= 1.0.1.1
+  if os(windows)
+    build-depends:     Win32            < 2.9  && >= 2.5.4.1
+  else
+    build-depends:     unix             < 2.8  && >= 2.7.2.1
+  build-depends:       unix-compat      < 0.6  && >= 0.4.3.1
+
+  if flag(dev)
+    ghc-options:       -Wall
+
+
+library c-h-internal
+  import:             build-deps, extensions
+  exposed-modules:
+                       CabalHelper.Compiletime.Cabal
+                       CabalHelper.Compiletime.CompPrograms
+                       CabalHelper.Compiletime.Compat.Environment
+                       CabalHelper.Compiletime.Compat.Version
+                       CabalHelper.Compiletime.Compat.Parsec
+                       CabalHelper.Compiletime.Compile
+                       CabalHelper.Compiletime.Data
+                       CabalHelper.Compiletime.Log
+                       CabalHelper.Compiletime.Process
+                       CabalHelper.Compiletime.Program.CabalInstall
+                       CabalHelper.Compiletime.Program.Stack
+                       CabalHelper.Compiletime.Program.GHC
+                       CabalHelper.Compiletime.Sandbox
+                       CabalHelper.Compiletime.Types
+                       CabalHelper.Compiletime.Types.RelativePath
+                       CabalHelper.Runtime.Compat
+                       CabalHelper.Runtime.HelperMain
+                       CabalHelper.Shared.Common
+                       CabalHelper.Shared.InterfaceTypes
+  other-modules:
+                       Paths_cabal_helper
+  autogen-modules:
+                       Paths_cabal_helper
+  exposed-modules:
+                       Symlink
+  if os(windows)
+    hs-source-dirs:    os/win
+  else
+    hs-source-dirs:    os/posix
+  hs-source-dirs:      src
+
+library
+  import:              build-deps, extensions
+  exposed-modules:     Distribution.Helper
+                       Distribution.Helper.Discover
+  other-modules:
+                       Paths_cabal_helper
+  autogen-modules:
+                       Paths_cabal_helper
+  hs-source-dirs:      lib
+  build-depends:       c-h-internal
+
+test-suite compile-test
+  import:              build-deps, extensions
+  type:                exitcode-stdio-1.0
+  main-is:             CompileTest.hs
+  hs-source-dirs:      tests
+  ghc-options:         -Wall
+  build-depends:       c-h-internal
+
+test-suite programs-test
+  import:              build-deps, extensions
+  type:                exitcode-stdio-1.0
+  main-is:             ProgramsTest.hs
+  hs-source-dirs:      tests
+  ghc-options:         -Wall
+  build-depends:       c-h-internal
+                     , pretty-show
+
+test-suite ghc-session
+  import:              build-deps, extensions
+  type:                exitcode-stdio-1.0
+  main-is:             GhcSession.hs
+  hs-source-dirs:      tests
+  ghc-options:         -Wall
+  build-depends:       ghc              < 8.7  && >= 8.0.2
+                     , ghc-paths        < 0.2  && >= 0.1.0.9
+                     , pretty-show      < 1.9  && >= 1.8.1
+                     , cabal-helper
+                     , c-h-internal
+
+test-suite examples
+  import:              build-deps, extensions
+  type:                exitcode-stdio-1.0
+  main-is:             Examples.hs
+  hs-source-dirs:      tests
+  ghc-options:         -Wall
+  build-depends:       cabal-helper
+
+executable cabal-helper-main
+  default-language:    Haskell2010
+  default-extensions:  NondecreasingIndentation
+  main-is:             CabalHelper/Runtime/Main.hs
+  hs-source-dirs:      src
+  other-modules:
+                       CabalHelper.Runtime.HelperMain
+                       CabalHelper.Runtime.Compat
+                       CabalHelper.Shared.Common
+                       CabalHelper.Shared.InterfaceTypes
+                       CabalHelper.Shared.Common
+
+  -- This component is usually built at runtime but during development it's
+  -- convinient to build it via cabal
+  if flag(dev)
+    buildable:         True
+  else
+    buildable:         False
+
+  ghc-options:         -Wall -fno-warn-unused-imports
+  build-depends:       base             < 5    && >= 4.9.1.0
+                     , Cabal
+                     , containers
+                     , bytestring
+                     , filepath
+                     , directory
+                     , ghc-prim
