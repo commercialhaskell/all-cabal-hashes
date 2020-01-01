@@ -1,0 +1,120 @@
+name:           pomaps
+version: 0.1.0.0
+synopsis:       Maps and sets of partial orders
+category:       Data Structures
+homepage:       https://github.com/sgraf812/pomaps#readme
+bug-reports:    https://github.com/sgraf812/pomaps/issues
+author:         Sebastian Graf <sgraf1337@gmail.com>
+maintainer:     Sebastian Graf <sgraf1337@gmail.com>
+license:        MIT
+license-file:   LICENSE.md
+build-type:     Simple
+cabal-version:  >= 1.10
+tested-with:    GHC ==8.8.1 || ==8.6.5 || ==8.4.4 || ==8.2.2
+
+extra-source-files:
+    CHANGELOG.md
+    LICENSE.md
+    stack.yaml
+
+description:
+  Maps (and sets) indexed by keys satisfying <https://hackage.haskell.org/package/lattices/docs/Algebra-PartialOrd.html#t:PartialOrd PartialOrd>.
+  .
+  The goal is to provide asymptotically better data structures than simple association lists or lookup tables.
+  Asymptotics depend on the partial order used as keys, its width /w/ specifically (the size of the biggest anti-chain).
+  .
+  For partial orders of great width, this package won't provide any benefit over using association lists, so benchmark for your use-case!
+
+source-repository head
+  type: git
+  location: https://github.com/sgraf812/pomaps
+
+flag no-lattices
+  description: Don't depend on the lattices package and extract the PartialOrd class.
+  default: False
+
+library
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      base >= 4.6.0.0 && < 4.14
+    -- oneShot
+    , ghc-prim >= 0.4 && < 0.6
+    , deepseq >= 1.1 && < 1.5
+    -- We depend on the internal modules of containers,
+    -- so we have to track development really close.
+    -- Data.Map.Internal is only available since 0.5.9,
+    -- of which 0.5.9.2 is the first safe version
+    , containers >= 0.5.9.2 && <= 0.6.2.1
+  if !flag(no-lattices)
+    build-depends:
+      -- We need PartialOrd instances for ()
+      lattices >= 1.7
+  exposed-modules:
+      Data.POMap.Internal
+      Data.POMap.Lazy
+      Data.POMap.Strict
+      Data.POSet
+      Data.POSet.Internal
+  if flag(no-lattices)
+    hs-source-dirs:
+      lattices
+    exposed-modules:
+      Algebra.PartialOrd
+  default-language: Haskell2010
+  other-extensions: TypeApplications
+
+test-suite unittests
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      tests
+  ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
+  build-depends:
+      base
+    , containers >= 0.5.9.2
+    , pomaps
+    , tasty >= 0.11
+    , tasty-hspec >= 1.1
+    , tasty-quickcheck
+    , ChasingBottoms
+  if !flag(no-lattices)
+    build-depends:
+      lattices
+  other-modules:
+      Data.POMap.Arbitrary
+      Data.POMap.Divisibility
+      Data.POMap.Properties
+      Data.POMap.Strictness
+  default-language: Haskell2010
+
+test-suite doctests
+  type: exitcode-stdio-1.0
+  main-is: doctest-driver.hs
+  hs-source-dirs:
+      tests
+  ghc-options: -threaded
+  build-depends:
+      base >4 && <5
+    , doctest
+    , Glob
+  default-language:   Haskell2010
+
+benchmark pomaps-benchmarks
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      bench
+  ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
+  build-depends:
+      base
+    , pomaps
+    , criterion
+    , deepseq
+    , random
+    , vector
+  if !flag(no-lattices)
+    build-depends:
+      lattices
+  default-language: Haskell2010
