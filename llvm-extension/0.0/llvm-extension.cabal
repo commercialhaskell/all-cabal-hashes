@@ -1,0 +1,101 @@
+Cabal-Version:  2.2
+Name:           llvm-extension
+Version:        0.0
+License:        BSD-3-Clause
+License-File:   LICENSE
+Author:         Henning Thielemann <haskell@henning-thielemann.de>
+Maintainer:     Henning Thielemann <haskell@henning-thielemann.de>
+Homepage:       https://wiki.haskell.org/LLVM
+Category:       Compilers/Interpreters, Code Generation
+Synopsis:       Processor specific intrinsics for the llvm interface
+Description:
+  The Low-Level Virtual-Machine is a compiler back-end with optimizer.
+  You may also call it a high-level portable assembler.
+  LLVM provides processor specific instructions via so-called intrinsics.
+  This package allows you to use such instructions,
+  while also defining fallbacks for older versions of a processor
+  and different architectures.
+  .
+  We provide an auto-generated list of intrinsics
+  for special SSE+AVX instructions on the X86 target.
+  On x86 architectures we depend on the cpuid package
+  for automatic detection of available features.
+  This works when using JIT or native compilation,
+  but it fails for cross-compilation.
+  .
+  Formerly, this package was part of the @llvm-extra@ package.
+  But the names of intrinsics change between LLVM versions without notification.
+  Intrinsics for processor specific instructions are considered a last resort.
+  In current LLVM versions all functions I needed so far
+  are available as generic intrinsics.
+Stability:      Experimental
+Tested-With:    GHC==7.4.2, GHC==7.8.4
+Tested-With:    GHC==8.4.4, GHC==8.6.5, GHC==8.8.1
+Build-Type:     Simple
+Extra-Source-Files:
+  Makefile
+
+Flag buildTools
+  description: Build intrinsic translator
+  default:     False
+
+Flag cpuid
+  description: Use CPUID for host feature detection if available on the architecture
+  default:     True
+
+Source-Repository this
+  Tag:         0.0
+  Type:        darcs
+  Location:    http://hub.darcs.net/thielema/llvm-extension/
+
+Source-Repository head
+  Type:        darcs
+  Location:    http://hub.darcs.net/thielema/llvm-extension/
+
+Library
+  Build-Depends:
+    llvm-extra >=0.9 && <0.10,
+    llvm-tf >=9.0 && <9.1,
+    tfp >=1.0 && <1.1,
+    non-empty >=0.2.1 && <0.4,
+    containers >=0.1 && <0.7,
+    transformers >=0.1.1 && <0.6,
+    utility-ht >=0.0.11 && <0.1,
+    prelude-compat >=0.0 && <0.0.1,
+    base >=3 && <5
+
+  If (arch(i386) || arch(x86_64)) && flag(cpuid)
+    Build-Depends:
+      unsafe >=0.0 && <0.1,
+      cpuid >=0.2.3 && <0.3
+    Hs-Source-Dirs: x86/cpuid
+  Else
+    -- Instead of calling the cpuid instruction directly
+    -- we may ask LLVM's Subtarget detection.
+    -- This would also enable cross compilation.
+    -- However in LLVM-2.6 this is only available in the C++ interface.
+    Hs-Source-Dirs: x86/none
+
+  Default-Language: Haskell98
+  GHC-Options: -Wall
+  Hs-source-dirs: src
+  Exposed-Modules:
+    LLVM.Extra.Extension
+    LLVM.Extra.Extension.X86
+    LLVM.Extra.ExtensionCheck.X86
+  Other-Modules:
+    LLVM.Extra.Extension.X86Auto
+
+Executable prepare-intrinsics
+  If flag(buildTools)
+    Build-Depends:
+      parsec >=2.1 && <3.2,
+      containers >=0.1 && <0.7,
+      transformers,
+      utility-ht >=0.0.1 && <0.1,
+      base >=3 && <5
+  Else
+    Buildable: False
+  Default-Language: Haskell98
+  GHC-Options: -Wall
+  Main-Is: src/PrepareIntrinsics.hs
