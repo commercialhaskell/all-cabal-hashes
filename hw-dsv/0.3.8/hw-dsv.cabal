@@ -1,0 +1,249 @@
+cabal-version: 2.2
+
+name:                   hw-dsv
+version:                0.3.8
+synopsis:               Unbelievably fast streaming DSV file parser
+description:            Please see the README on Github at <https://github.com/haskell-works/hw-dsv#readme>
+category:               Text, CSV, SIMD, Succinct Data Structures, Data Structures
+homepage:               https://github.com/haskell-works/hw-dsv#readme
+bug-reports:            https://github.com/haskell-works/hw-dsv/issues
+author:                 John Ky
+maintainer:             newhoggy@gmail.com
+copyright:              2018-2019 John Ky
+license:                BSD-3-Clause
+license-file:           LICENSE
+tested-with:            GHC == 8.8.1, GHC == 8.6.5, GHC == 8.4.4, GHC == 8.2.2
+build-type:             Simple
+extra-source-files:     README.md
+                        ChangeLog.md
+                        data/bench/data-0001000.csv
+
+source-repository head
+  type: git
+  location: https://github.com/haskell-works/hw-dsv
+
+flag avx2
+  description: Enable avx2 instruction set
+  manual: False
+  default: False
+
+flag bmi2
+  description: Enable bmi2 instruction set
+  manual: False
+  default: False
+
+flag sse42
+  description: Enable SSE 4.2 optimisations.
+  manual: False
+  default: True
+
+common base                     { build-depends: base                     >= 4.7        && < 5      }
+
+common appar                    { build-depends: appar                    >= 0.1.8      && < 0.2    }
+common bits-extra               { build-depends: bits-extra               >= 0.0.1.2    && < 0.1    }
+common bytestring               { build-depends: bytestring               >= 0.10       && < 0.11   }
+common cassava                  { build-depends: cassava                  >= 0.5.1.0    && < 0.6    }
+common criterion                { build-depends: criterion                >= 1.4.1.0    && < 1.6    }
+common deepseq                  { build-depends: deepseq                  >= 1.4        && < 1.5    }
+common directory                { build-depends: directory                >= 1.2.2      && < 1.4    }
+common doctest                  { build-depends: doctest                  >= 0.16.2     && < 0.17   }
+common doctest-discover         { build-depends: doctest-discover         >= 0.2        && < 0.3    }common generic-lens         { build-depends: generic-lens         >= 1.2.0.1    && < 1.3    }
+common ghc-prim                 { build-depends: ghc-prim                 >= 0.4        && < 0.6    }
+common hedgehog                 { build-depends: hedgehog                 >= 0.5        && < 1.1    }
+common hspec                    { build-depends: hspec                    >= 2.4        && < 3      }
+common hw-bits                  { build-depends: hw-bits                  >= 0.7.0.2    && < 0.8    }
+common hw-ip                    { build-depends: hw-ip                    >= 2.3.4.2    && < 2.4    }
+common hw-hspec-hedgehog        { build-depends: hw-hspec-hedgehog        >= 0.1.0.4    && < 0.2    }
+common hw-prim                  { build-depends: hw-prim                  >= 0.6.2.14   && < 0.7    }
+common hw-rankselect            { build-depends: hw-rankselect            >= 0.12.0.2   && < 0.14   }
+common hw-rankselect-base       { build-depends: hw-rankselect-base       >= 0.3.2.0    && < 0.4    }
+common hw-simd                  { build-depends: hw-simd                  >= 0.1.1.3    && < 0.2    }
+common lens                     { build-depends: lens                     >= 4.15       && < 5      }
+common mmap                     { build-depends: mmap                     >= 0.5.9      && < 0.6    }
+common optparse-applicative     { build-depends: optparse-applicative     >= 0.13       && < 0.16   }
+common resourcet                { build-depends: resourcet                >= 1.1        && < 1.3    }
+common text                     { build-depends: text                     >= 1.2.2      && < 2.0    }
+common vector                   { build-depends: vector                   >= 0.12.0.1   && < 0.13   }
+common weigh                    { build-depends: weigh                    >= 0.0.6      && < 0.1    }
+
+common semigroups               {  if (!impl(ghc >= 8.0.1)) { build-depends: semigroups   >= 0.8.4  && <  0.19  } }
+common transformers             {  if (!impl(ghc >= 8.0.1)) { build-depends: transformers >= 0.4    && <  0.6   } }
+
+common config
+  default-language:     Haskell2010
+  ghc-options:          -O2 -Wall
+  if flag(sse42)
+    ghc-options:        -msse4.2
+    cc-options:         -msse4.2
+  if flag(bmi2)
+    cc-options:         -mbmi2 -DBMI2_ENABLED
+  if flag(avx2)
+    cc-options:         -mavx2 -DAVX2_ENABLED
+  if (impl(ghc >=8.0.1))
+    ghc-options:        -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  if (flag(avx2)) && (impl(ghc >=8.4.1))
+    ghc-options:        -mbmi2 -msse4.2
+    cpp-options:        -DBMI2_ENABLED -DAVX2_ENABLED
+  if (flag(bmi2)) && (impl(ghc >=8.4.1))
+    ghc-options:        -mbmi2 -msse4.2
+
+common hw-dsv
+  build-depends:        hw-dsv
+
+library
+  import:               base, config
+                      , bits-extra
+                      , bytestring
+                      , deepseq
+                      , ghc-prim
+                      , hw-bits
+                      , hw-prim
+                      , hw-rankselect
+                      , hw-rankselect-base
+                      , hw-simd
+                      , semigroups
+                      , transformers
+                      , vector
+  exposed-modules:
+                        HaskellWorks.Data.Dsv.Internal.Bits
+                        HaskellWorks.Data.Dsv.Internal.Broadword
+                        HaskellWorks.Data.Dsv.Internal.Char
+                        HaskellWorks.Data.Dsv.Internal.Char.Word64
+                        HaskellWorks.Data.Dsv.Internal.Vector
+                        HaskellWorks.Data.Dsv.Lazy.Cursor
+                        HaskellWorks.Data.Dsv.Lazy.Cursor.Internal
+                        HaskellWorks.Data.Dsv.Lazy.Cursor.Lazy
+                        HaskellWorks.Data.Dsv.Lazy.Cursor.Strict
+                        HaskellWorks.Data.Dsv.Lazy.Cursor.Type
+                        HaskellWorks.Data.Dsv.Strict.Cursor
+                        HaskellWorks.Data.Dsv.Strict.Cursor.Internal
+                        HaskellWorks.Data.Dsv.Strict.Cursor.Internal.Reference
+                        HaskellWorks.Data.Dsv.Strict.Cursor.Type
+  other-modules:        Paths_hw_dsv
+  autogen-modules:      Paths_hw_dsv
+  hs-source-dirs:       src
+
+executable hw-dsv
+  import:               base, config
+                      , appar
+                      , bits-extra
+                      , bytestring
+                      , deepseq
+                      , generic-lens
+                      , ghc-prim
+                      , hedgehog
+                      , hw-bits
+                      , hw-ip
+                      , hw-prim
+                      , hw-rankselect
+                      , hw-rankselect-base
+                      , hw-simd
+                      , lens
+                      , optparse-applicative
+                      , resourcet
+                      , semigroups
+                      , text
+                      , transformers
+                      , vector
+  main-is:              Main.hs
+  other-modules:        App.Char
+                        App.Commands
+                        App.Commands.CreateIndex
+                        App.Commands.Generate
+                        App.Commands.IndexWord8s
+                        App.Commands.Options.Parse
+                        App.Commands.Options.Type
+                        App.Commands.QueryLazy
+                        App.Commands.QueryStrict
+                        App.Commands.RangeJoin
+                        App.Data.ColumnDesc
+                        App.Data.RangeJoinColumn
+                        App.Data.List
+                        App.Gen
+                        App.IO
+  hs-source-dirs:       app
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  build-depends:        hw-dsv
+
+test-suite hw-dsv-space
+  import:               base, config
+                      , bits-extra
+                      , bytestring
+                      , cassava
+                      , deepseq
+                      , ghc-prim
+                      , hw-bits
+                      , hw-prim
+                      , hw-rankselect
+                      , hw-rankselect-base
+                      , hw-simd
+                      , vector
+                      , weigh
+  type:                 exitcode-stdio-1.0
+  main-is:              Space.hs
+  build-depends:        hw-dsv
+  hs-source-dirs:       weigh
+  build-tool-depends:   hspec-discover:hspec-discover
+
+test-suite hw-dsv-test
+  import:               base, config
+                      , bits-extra
+                      , bytestring
+                      , deepseq
+                      , directory
+                      , ghc-prim
+                      , hedgehog
+                      , hspec
+                      , hw-bits
+                      , hw-hspec-hedgehog
+                      , hw-prim
+                      , hw-rankselect
+                      , hw-rankselect-base
+                      , hw-simd
+                      , text
+                      , vector
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  build-depends:        hw-dsv
+  type:                 exitcode-stdio-1.0
+  main-is:              Spec.hs
+  other-modules:        HaskellWorks.Data.Dsv.BroadwordSpec
+                        HaskellWorks.Data.Dsv.Gen
+                        HaskellWorks.Data.Dsv.Lazy.CursorSpec
+                        HaskellWorks.Data.Dsv.Strict.Cursor.InternalSpec
+                        HaskellWorks.Data.DsvSpec
+  hs-source-dirs:       test
+  build-tool-depends:   hspec-discover:hspec-discover
+
+benchmark bench
+  import:               base, config
+                      , bits-extra
+                      , bytestring
+                      , cassava
+                      , criterion
+                      , deepseq
+                      , directory
+                      , ghc-prim
+                      , hw-bits
+                      , hw-prim
+                      , hw-rankselect
+                      , hw-rankselect-base
+                      , hw-simd
+                      , mmap
+                      , vector
+  type:                 exitcode-stdio-1.0
+  main-is:              Main.hs
+  hs-source-dirs:       bench
+  ghc-options:          -msse4.2
+  build-depends:        hw-dsv
+
+test-suite doctest
+  import:               base, config
+                      , doctest
+                      , doctest-discover
+                      , hw-dsv
+  default-language:     Haskell2010
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -threaded
+  main-is:              DoctestDriver.hs
+  HS-Source-Dirs:       doctest
+  build-tool-depends:   doctest-discover:doctest-discover
