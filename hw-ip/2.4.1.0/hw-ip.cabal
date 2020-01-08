@@ -1,0 +1,137 @@
+cabal-version: 2.4
+
+name:                   hw-ip
+version:                2.4.1.0
+license:                BSD-3-Clause
+license-file:           LICENSE
+copyright:              2018-2019 John Ky, David Turnbull, Jian Wan
+maintainer:             newhoggy@gmail.com
+author:                 John Ky,
+                        David Turnbull,
+                        Jian Wan
+homepage:               https://github.com/haskell-works/hw-ip#readme
+bug-reports:            https://github.com/haskell-works/hw-ip/issues
+synopsis:               Library for manipulating IP addresses and CIDR blocks
+description:            Library for manipulating IP addresses and CIDR blocks. Please see README.md
+category:               Network
+tested-with:            GHC == 8.8.1, GHC == 8.6.5, GHC == 8.4.4, GHC == 8.2.2
+build-type:             Simple
+extra-source-files:     README.md
+
+source-repository head
+    type: git
+    location: https://github.com/haskell-works/hw-ip
+
+common base                     { build-depends: base                     >= 4          && < 5      }
+
+common appar                    { build-depends: appar                    >= 0.1.8      && < 0.2    }
+common binary                   { build-depends: binary                   >= 0.8        && < 0.9    }
+common bytestring               { build-depends: bytestring               >= 0.10.6     && < 0.11   }
+common containers               { build-depends: containers               >= 0.5        && < 0.7    }
+common doctest                  { build-depends: doctest                  >= 0.16.2     && < 0.17   }
+common doctest-discover         { build-depends: doctest-discover         >= 0.2        && < 0.3    }
+common generic-lens             { build-depends: generic-lens             >= 1.1.0.0    && < 1.3    }
+common hedgehog                 { build-depends: hedgehog                 >= 0.6        && < 1.1    }
+common hspec                    { build-depends: hspec                    >= 2.4.4      && < 2.8    }
+common hw-bits                  { build-depends: hw-bits                  >= 0.7        && < 0.8    }
+common hw-hspec-hedgehog        { build-depends: hw-hspec-hedgehog        >= 0.1.0.2    && < 0.2    }
+common iproute                  { build-depends: iproute                  >= 1.7.3      && < 1.8    }
+common lens                     { build-depends: lens                     >= 4          && < 5      }
+common optparse-applicative     { build-depends: optparse-applicative     >= 0.14       && < 0.16   }
+common text                     { build-depends: text                     >= 1.2.3.1    && < 1.3    }
+
+common semigroups   { if impl(ghc <  8    ) { build-depends: semigroups   >= 0.16       && < 0.19   } }
+
+common config
+  default-language:     Haskell2010
+  ghc-options:          -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+
+common hw-ip
+  build-depends:        hw-ip
+
+common hw-ip-gen
+  build-depends:        hw-ip-gen
+
+library
+  import:               base, config
+                      , appar
+                      , containers
+                      , generic-lens
+                      , hw-bits
+                      , iproute
+                      , text
+  exposed-modules:      HaskellWorks.Data.Network.Ip
+                        HaskellWorks.Data.Network.Ip.Internal.Appar
+                        HaskellWorks.Data.Network.Ip.Ip
+                        HaskellWorks.Data.Network.Ip.Ipv4
+                        HaskellWorks.Data.Network.Ip.Ipv6
+                        HaskellWorks.Data.Network.Ip.Range
+                        HaskellWorks.Data.Network.Ip.SafeEnum
+                        HaskellWorks.Data.Network.Ip.Validity
+                        HaskellWorks.Data.Network.Ip.Word128
+  hs-source-dirs:       src
+  other-modules:        Paths_hw_ip
+  autogen-modules:      Paths_hw_ip
+
+executable hw-ip
+  import:               base, config
+                      , appar
+                      , binary
+                      , bytestring
+                      , generic-lens
+                      , hw-ip
+                      , lens
+                      , optparse-applicative
+                      , semigroups
+                      , text
+  other-modules:        App.Commands
+                        App.Commands.RangeStats
+                        App.Commands.TextToWord
+                        App.Commands.Types
+  main-is:              Main.hs
+  hs-source-dirs:       app
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+
+library hw-ip-gen
+  import:               base, config
+                      , hedgehog
+                      , hw-bits
+                      , hw-ip
+                      , text
+  exposed-modules:      HaskellWorks.Data.Network.Gen
+  hs-source-dirs:       gen
+
+test-suite hw-ip-test
+  import:               base, config
+                      , appar
+                      , generic-lens
+                      , hedgehog
+                      , hspec
+                      , hw-bits
+                      , hw-hspec-hedgehog
+                      , hw-ip
+                      , hw-ip-gen
+                      , text
+  other-modules:        HaskellWorks.Data.Network.IpBlockSpec
+                        HaskellWorks.Data.Network.IpSpec
+                        HaskellWorks.Data.Network.Ipv4Spec
+                        HaskellWorks.Data.Network.Ipv6Spec
+                        HaskellWorks.Data.Network.RangeSpec
+                        HaskellWorks.Data.Network.Word128Spec
+  type:                 exitcode-stdio-1.0
+  main-is:              Spec.hs
+  hs-source-dirs:       test
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:   hspec-discover:hspec-discover
+
+test-suite doctest
+  import:               base, config
+                      , doctest
+                      , doctest-discover
+                      , hw-ip
+  default-language:     Haskell2010
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -threaded
+  main-is:              DoctestDriver.hs
+  HS-Source-Dirs:       doctest
+  build-tool-depends:   doctest-discover:doctest-discover
