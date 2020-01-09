@@ -1,0 +1,233 @@
+name:         bindings-GLFW
+version:      3.3.1.0
+category:     Graphics
+
+author:       Brian Lewis <brian@lorf.org>
+maintainer:   Brian Lewis <brian@lorf.org>
+            , Schell Scivally <efsubenovex@gmail.com>
+            , Javier Jaramago <jaramago.fernandez.javier@gmail.com>
+            , Pavel Krajcevski <krajcevski@gmail.com>
+
+license:      BSD3
+license-file: LICENSE
+
+synopsis:     Low-level bindings to GLFW OpenGL library
+description:
+  Low-level bindings to GLFW (<http://www.glfw.org/>), an open source,
+  multi-platform library for creating windows with OpenGL contexts and managing
+  input and events.
+  .
+  The binding is to GLFW 3.3, released 2019-04-15
+  (<http://www.glfw.org/Version-3.3-released.html>
+  <http://www.glfw.org/changelog.html>).
+  .
+  /These bindings are too low-level for normal use./ For higher-level bindings,
+  see GLFW-b (<http://hackage.haskell.org/package/GLFW-b>).
+  .
+  If you've used GLFW before, you were probably using 2.7.x. There are some
+  significant differences in 3.x.x. Please see the transition guide
+  (<http://www.glfw.org/docs/3.3/moving.html>).
+
+cabal-version: >= 1.10
+build-type:    Simple
+
+--------------------------------------------------------------------------------
+
+extra-source-files:
+  README.md
+
+  glfw/deps/glad/*.h
+  glfw/deps/mingw/*.h
+
+  glfw/include/GLFW/*.h
+
+  glfw/src/*.c
+  glfw/src/*.h
+  glfw/src/*.m
+
+--------------------------------------------------------------------------------
+
+flag system-GLFW
+  description: Use the system-wide GLFW instead of the bundled copy.
+  default: False
+
+flag MacOSXUseChdir
+  description:
+    Mac OS X only. Determines whether 'init' changes the current directory of
+    bundled applications to the 'Contents/Resources' directory.
+  default: True
+
+flag MacOSXUseMenubar
+  description:
+    Mac OS X only. Determines whether the first call to 'createWindow' sets up
+    a minimal menu bar.
+  default: True
+
+flag MacOSXUseRetina
+  description:
+    Mac OS X only. Determines whether windows use the full resolution of
+    Retina displays (recommended).
+  default: True
+
+flag X
+  description:
+    Linux only. Determines whether to target the X11 display server.
+  default: True
+
+flag Wayland
+  description:
+    Linux only. Determines whether to target the Wayland display server.
+  default: False
+
+flag OSMesa
+  description:
+    Linux only. Determines whether or not to use the Mesa 3D rendering context.
+  default: False
+
+flag ExposeNative
+  description:
+    Whether or not to use the native access functions. You most likely do not
+    want to do this. You may if you're coding for the Rift, perhaps.
+  default: False
+
+--------------------------------------------------------------------------------
+
+library
+  default-language: Haskell2010
+
+  ghc-options: -Wall
+  if impl(ghc >= 6.8)
+    ghc-options: -fwarn-tabs
+
+  cc-options: -DNDEBUG
+
+  exposed-modules:
+    Bindings.GLFW
+
+  build-tools:
+    hsc2hs
+
+  build-depends:
+    base          < 5,
+    bindings-DSL == 1.0.*
+
+  if flag(system-glfw)
+    pkgconfig-depends:
+      glfw3 == 3.3.*
+  else
+    include-dirs:
+      glfw/include/GLFW
+      glfw/include/
+      glfw/deps
+      glfw/src
+
+    c-sources:
+      glfw/src/context.c
+      glfw/src/egl_context.c
+      glfw/src/init.c
+      glfw/src/input.c
+      glfw/src/monitor.c
+      glfw/src/osmesa_context.c
+      glfw/src/vulkan.c
+      glfw/src/window.c
+      glfw/deps/glad_gl.c
+      glfw/deps/glad_vulkan.c
+
+    if os(linux) || os(freebsd)
+      c-sources:
+        glfw/src/glx_context.c
+        glfw/src/xkb_unicode.c
+        glfw/src/linux_joystick.c
+        glfw/src/posix_time.c
+        glfw/src/posix_thread.c
+      if flag(X)
+        cc-options: -DBINDINGS_GLFW_USE_X11 -D_GLFW_X11
+        c-sources:
+          glfw/src/x11_init.c
+          glfw/src/x11_monitor.c
+          glfw/src/x11_window.c
+      if flag(Wayland)
+        cc-options: -DBINDINGS_GLFW_USE_WAYLAND -D_GLFW_WAYLAND
+        c-sources:
+          glfw/src/wl_init.c
+          glfw/src/wl_monitor.c
+          glfw/src/wl_window.c
+      if flag(OSMesa)
+        cc-options: -DBINDINGS_GLFW_USE_OSMESA -D_GLFW_OSMESA
+        c-sources:
+          glfw/src/null_init.c
+          glfw/src/null_joystick.c
+          glfw/src/null_monitor.c
+          glfw/src/null_window.c
+
+      extra-libraries:
+        GL
+        X11
+        Xi
+        Xrandr
+        Xxf86vm
+        Xcursor
+        Xinerama
+        pthread
+
+    if os(darwin)
+      c-sources:
+         glfw/src/cocoa_time.c
+         glfw/src/posix_thread.c
+         glfw/src/cocoa_init.m
+         glfw/src/cocoa_joystick.m
+         glfw/src/cocoa_monitor.m
+         glfw/src/cocoa_window.m
+         glfw/src/nsgl_context.m
+      cc-options: -D_GLFW_COCOA
+      if !flag(MacOSXUseChdir)
+        cc-options: -UGLFW_USE_CHDIR
+      if !flag(MacOSXUseMenubar)
+        cc-options: -UGLFW_USE_MENUBAR
+      if !flag(MacOSXUseRetina)
+        cc-options: -UGLFW_USE_RETINA
+      frameworks: AGL Cocoa OpenGL IOKit CoreFoundation CoreVideo
+
+    if os(mingw32)
+      include-dirs:
+        glfw/deps
+      c-sources:
+        glfw/src/win32_init.c
+        glfw/src/win32_joystick.c
+        glfw/src/win32_monitor.c
+        glfw/src/win32_time.c
+        glfw/src/win32_window.c
+        glfw/src/win32_thread.c
+        glfw/src/wgl_context.c
+      extra-libraries:
+        opengl32
+        Gdi32
+      cc-options: -D_GLFW_WIN32
+
+  if flag(ExposeNative)
+    cc-options: -DExposeNative
+--------------------------------------------------------------------------------
+
+test-suite main
+  default-language: Haskell2010
+
+  ghc-options: -Wall
+  if impl(ghc >= 6.8)
+    ghc-options: -fwarn-tabs
+
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  frameworks: AGL Cocoa OpenGL IOKit CoreFoundation CoreVideo
+
+  build-depends:
+    bindings-GLFW,
+    HUnit                >= 1.3 && <1.7,
+    base                  < 5,
+    test-framework       == 0.8.*,
+    test-framework-hunit == 0.3.*
+
+--------------------------------------------------------------------------------
+
+source-repository head
+  type:     git
+  location: git://github.com/bsl/bindings-GLFW.git
