@@ -1,0 +1,96 @@
+cabal-version: 2.2
+name: pan-os-syslog
+version: 0.1.0.0
+synopsis: Parse syslog traffic from PAN-OS
+description:
+  Parse syslog traffic from PAN-OS. The data types in this library are
+  optimized for decoding logs, not for creating them. On consumer-grade
+  hardware, the benchmark suite demonstrates that 500-byte traffic logs are
+  parsed in under one microsecond. Contributions are welcome. This project's
+  goals are:
+  .
+  * Support as many PAN-OS syslog types as possible: traffic,
+    threat, hip-match, etc.
+  .
+  * Support as many versions of PAN-OS as possible: 8.0, 8.1, 9.0, etc.
+  .
+  * High performance. This library strives to avoid unneeded allocations.
+    Some allocations cannot be avoided. For example, it is necessary to
+    allocate space for the results. 
+  .
+  * Do a minimum amount of useful work on each field. The reasoning is
+    that users will typically discard most of the fields, so there is
+    no point wasting clock cycles doing unneeded work. Its hard to define
+    what this is precisely. Roughly, the rule this library follows is that
+    integral fields are parsed as @Word64@, and non-integral fields are
+    @Bytes@. This library does not attempt to validate hostnames, URIs, etc.
+  .
+  A good way to think about this library is that it is kind of like
+  a tokenizer. It is the first step when parsing PAN-OS logs into
+  some application-specific data type. There almost certainly needs
+  to be a second step to decodes fields that are actually of interest
+  to an application. This second step may involve validating URIs,
+  splitting the user domain and user name, etc.
+homepage: https://github.com/layer-3-communications/palo-alto-syslog
+bug-reports: https://github.com/layer-3-communications/palo-alto-syslog/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Andrew Martin
+maintainer: amartin@layer3com.com
+copyright: 2019 Layer 3 Communications
+category: Network
+extra-source-files: CHANGELOG.md
+
+library
+  exposed-modules:
+    Panos.Syslog
+    Panos.Syslog.System
+    Panos.Syslog.Traffic
+    Panos.Syslog.Threat
+    Panos.Syslog.Unsafe
+  build-depends:
+    , base >=4.12.0.0 && <5
+    , byteslice >=0.1.3 && <0.3
+    , bytesmith >=0.3.1 && <0.4
+    , chronos >=1.0.6 && <1.1
+    , ip >=1.6 && <1.8
+    , primitive >=0.7 && <0.8
+    , primitive-addr >=0.1.0.2 && <2
+    , run-st >=0.1 && <0.2
+  hs-source-dirs: src
+  ghc-options: -Wall -O2
+  default-language: Haskell2010
+
+test-suite test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test, common
+  main-is: Main.hs
+  other-modules:
+    Sample
+  build-depends:
+    , base
+    , pan-os-syslog
+    , primitive
+    , byteslice
+  ghc-options: -Wall -O2
+  default-language: Haskell2010
+
+benchmark bench
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules: Sample
+  hs-source-dirs:
+      bench
+    , common
+  build-depends:
+    , base
+    , byteslice
+    , gauge
+    , primitive
+    , pan-os-syslog
+  ghc-options: -O2 -Wall
+  default-language: Haskell2010
+
+source-repository head
+  type: git
+  location: git://github.com/layer-3-communications/pan-os-syslog.git
