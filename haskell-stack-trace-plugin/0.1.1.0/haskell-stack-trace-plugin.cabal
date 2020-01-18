@@ -1,0 +1,78 @@
+cabal-version:      2.4
+name:               haskell-stack-trace-plugin
+version:            0.1.1.0
+synopsis:           haskell-stack-trace-plugin
+description:
+  This plugin allow implicitly add HasCallStack class to every top-level function for all module. Hence, we can to get completely continuous call stack.
+
+homepage:           https://github.com/waddlaw/haskell-stack-trace-plugin
+bug-reports:
+  https://github.com/waddlaw/haskell-stack-trace-plugin/issues
+
+license:            MIT
+license-file:       LICENSE
+author:             Shinya Yamaguchi
+maintainer:         ingronze@gmail.com
+copyright:          2018-2020 Shinya Yamaguchi
+category:           Compiler Plugin, Development, Debug
+build-type:         Simple
+extra-source-files:
+  CHANGELOG.md
+  Readme.md
+
+tested-with:        GHC ==8.6.5
+
+source-repository head
+  type:     git
+  location: git://github.com/waddlaw/haskell-stack-trace-plugin
+
+flag dev
+  description: Turn on development settings.
+  manual:      True
+  default:     False
+
+common common-opts
+  build-depends:    base ^>=4.12
+  default-language: Haskell2010
+
+library
+  import:          common-opts
+  hs-source-dirs:  src
+  build-depends:   ghc ^>=8.6
+  exposed-modules: StackTrace.Plugin
+
+  if flag(dev)
+    ghc-options:
+      -Wall -Werror -Wcompat -Wincomplete-uni-patterns
+      -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances
+      -Wno-missing-home-modules
+
+  -- -Wincomplete-record-updates
+  else
+    ghc-options: -O2 -Wall
+
+test-suite test
+  import:             common-opts
+  main-is:            Spec.hs
+  hs-source-dirs:     test
+  type:               exitcode-stdio-1.0
+  build-depends:
+    , bytestring     ^>=0.10
+    , hspec          ^>=2.7
+    , typed-process  ^>=0.2.6
+
+  build-tool-depends: hspec-discover:hspec-discover ^>=2.7
+  other-modules:      StackTrace.PluginSpec
+
+  if flag(dev)
+    ghc-options: -Wall -Werror
+
+  else
+    ghc-options: -O2 -Wall
+
+executable example
+  import:         common-opts
+  main-is:        Main.hs
+  hs-source-dirs: example
+  ghc-options:    -fplugin=StackTrace.Plugin
+  build-depends:  haskell-stack-trace-plugin
