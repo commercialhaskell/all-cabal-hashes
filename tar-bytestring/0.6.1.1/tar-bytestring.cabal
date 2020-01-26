@@ -1,0 +1,169 @@
+name:            tar-bytestring
+version:         0.6.1.1
+license:         BSD3
+license-file:    LICENSE
+author:          Duncan Coutts <duncan@community.haskell.org>
+                 Bjorn Bringert <bjorn@bringert.net>
+maintainer:      Julian Ospald <hasufell@posteo.de>
+bug-reports:     https://github.com/hasufell/tar-bytestring/issues
+copyright:       2007 Bjorn Bringert <bjorn@bringert.net>
+                 2008-2016 Duncan Coutts <duncan@community.haskell.org>
+                 2020 Julian Ospald <hasufell@posteo.de>
+category:        Codec
+synopsis:        Reading, writing and manipulating ".tar" archive files.
+description:     Fork of 'tar' package, which currently breaks
+                 Unicode filepaths, by utilizing ByteString.Char8.
+
+                 This library is for working with \"@.tar@\" archive files. It
+                 can read and write a range of common variations of archive
+                 format including V7, POSIX USTAR and GNU formats.
+                 .
+                 It provides support for packing and unpacking portable
+                 archives. This makes it suitable for distribution but not
+                 backup because details like file ownership and exact
+                 permissions are not preserved.
+                 .
+                 It also provides features for random access to archive
+                 content using an index.
+build-type:      Simple
+cabal-version:   >=1.8
+extra-source-files: changelog.md
+tested-with:     GHC==8.6.5
+
+source-repository head
+  type: git
+  location: https://github.com/hasufell/tar-bytestring.git
+
+library
+  if os(windows)
+    build-depends: unbuildable<0
+    buildable: False
+  build-depends: base             >= 4.12   && < 5,
+                 bytestring       >= 0.10,
+                 array                         < 0.6,
+                 time             >= 1.8,
+                 containers       >= 0.2    && < 0.7,
+                 deepseq          >= 1.1    && < 1.5,
+                 hpath-directory  >= 0.13   && < 0.14,
+                 hpath-filepath   >= 0.10.2 && < 0.11,
+                 safe-exceptions  >= 0.1,
+                 unix,
+                 word8
+
+  if !impl(ghc >= 8.0)
+    build-depends: semigroups == 0.18.*
+
+  exposed-modules:
+    Codec.Archive.Tar
+    Codec.Archive.Tar.Entry
+    Codec.Archive.Tar.Check
+    Codec.Archive.Tar.Index
+
+  other-modules:
+    Codec.Archive.Tar.Types
+    Codec.Archive.Tar.Read
+    Codec.Archive.Tar.Write
+    Codec.Archive.Tar.Pack
+    Codec.Archive.Tar.Unpack
+    Codec.Archive.Tar.Index.StringTable
+    Codec.Archive.Tar.Index.IntTrie
+
+  other-extensions:
+    BangPatterns
+    CPP
+    DeriveDataTypeable
+    GeneralizedNewtypeDeriving
+    PatternGuards
+    ScopedTypeVariables
+
+  ghc-options: -Wall -fno-warn-unused-imports -O2 -fspec-constr-recursive=16 -fmax-worker-args=16
+
+test-suite properties
+  if os(windows)
+    build-depends: unbuildable<0
+    buildable: False
+  type:          exitcode-stdio-1.0
+  build-depends: base             >= 4.12 && < 5,
+                 bytestring       >= 0.10,
+                 array,
+                 containers,
+                 deepseq,
+                 time             >= 1.8,
+                 bytestring-handle,
+                 QuickCheck       == 2.*,
+                 tasty            >= 0.10,
+                 tasty-quickcheck >= 0.8,
+                 hpath-directory  >= 0.13.0 && < 0.14,
+                 hpath-filepath   >= 0.10.2 && < 0.11,
+                 safe-exceptions  >= 0.1,
+                 unix,
+                 word8
+
+  if !impl(ghc >= 8.0)
+    build-depends: semigroups == 0.18.*
+
+  hs-source-dirs: . test
+
+  main-is: test/Properties.hs
+  cpp-options: -DTESTS
+
+  other-modules:
+    Codec.Archive.Tar.Index
+    Codec.Archive.Tar.Index.StringTable
+    Codec.Archive.Tar.Index.IntTrie
+
+  -- shared w/ lib:tar component
+  other-modules:
+    Codec.Archive.Tar
+    Codec.Archive.Tar.Check
+    Codec.Archive.Tar.Pack
+    Codec.Archive.Tar.Read
+    Codec.Archive.Tar.Types
+    Codec.Archive.Tar.Unpack
+    Codec.Archive.Tar.Write
+
+  other-extensions:
+    CPP
+    BangPatterns,
+    DeriveDataTypeable
+    ScopedTypeVariables
+
+  ghc-options: -fno-ignore-asserts
+
+benchmark bench
+  if os(windows)
+    build-depends: unbuildable<0
+    buildable: False
+  type:          exitcode-stdio-1.0
+  hs-source-dirs: . bench
+  main-is:       bench/Main.hs
+  build-depends: base             >= 4.12 && < 5,
+                 bytestring       >= 0.10,
+                 time,
+                 array,
+                 containers,
+                 deepseq,
+                 time,
+                 criterion        >= 1.0,
+                 hpath-directory  >= 0.13   && < 0.14,
+                 hpath-filepath   >= 0.10.2 && < 0.11,
+                 safe-exceptions  >= 0.1,
+                 unix,
+                 word8
+
+
+  if !impl(ghc >= 8.0)
+    build-depends: semigroups == 0.18.*
+
+  -- shared w/ lib:tar component
+  other-modules:
+    Codec.Archive.Tar
+    Codec.Archive.Tar.Check
+    Codec.Archive.Tar.Index
+    Codec.Archive.Tar.Index.IntTrie
+    Codec.Archive.Tar.Index.StringTable
+    Codec.Archive.Tar.Pack
+    Codec.Archive.Tar.Read
+    Codec.Archive.Tar.Types
+    Codec.Archive.Tar.Unpack
+    Codec.Archive.Tar.Write
