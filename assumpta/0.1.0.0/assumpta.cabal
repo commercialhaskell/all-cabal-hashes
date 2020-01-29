@@ -1,0 +1,139 @@
+cabal-version: 1.12
+
+name:           assumpta
+version:        0.1.0.0
+synopsis:       An SMTP client library
+description:    An SMTP client library,
+                which allows you to send email via
+                an SMTP server.
+                .
+                For further details, please see the README on GitHub at
+                <https://github.com/phlummox/assumpta#readme>.
+category:       Network
+homepage:       https://github.com/phlummox/assumpta#readme
+bug-reports:    https://github.com/phlummox/assumpta/issues
+author:         phlummox
+maintainer:     phlummox2@gmail.com
+copyright:      2020 phlummox
+license:        BSD2
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+    CONTRIBUTE.md
+    DEVELOPMENT.md
+    TODO.md
+    examples/simple-client-session-bs.hs
+    examples/simple-client-session-text.hs
+    scripts/stack-test.sh
+    stack-lts-12.26.yaml
+
+source-repository head
+  type: git
+  location: https://github.com/phlummox/assumpta
+
+-- This enables (or disables) tests that rely on
+-- "stack": just the example compilation
+-- test, at the moment.
+-- You can enable these tests from stack using
+-- `--flag assumpta-core:stack-based-tests`
+flag stack-based-tests
+  description: enable tests requiring stack
+  manual: True
+  default: False
+
+flag warnmore
+  description: Enable plenty of ghc warning flags
+  manual: True
+  default: True
+
+library
+  exposed-modules:
+      Network.Mail.Assumpta.Internal.Net
+      Network.Mail.Assumpta.ByteString
+      Network.Mail.Assumpta.Text
+      Network.Mail.Assumpta.String
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.0 && <5
+    , assumpta-core == 0.1.*
+    , bytestring
+    , connection
+    , data-default
+    , exceptions
+    , mime-mail
+    , mtl
+    , text
+    , transformers
+  if flag(warnmore)
+    if impl(ghc >= 8.0.1)
+      ghc-options:
+        -Wall -Wcompat -Wincomplete-record-updates
+        -Wincomplete-uni-patterns -Wredundant-constraints
+        -Wno-name-shadowing -Wno-orphans -fwarn-tabs
+    else
+      ghc-options:
+        -Wall
+  default-language: Haskell2010
+
+
+
+test-suite hspec-tests
+  type: exitcode-stdio-1.0
+  main-is: hspec-tests.hs
+  other-modules:
+      Network.Mail.Assumpta.ByteStringSpec
+  hs-source-dirs:
+      test-hspec
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      QuickCheck
+    , assumpta
+    , base >=4.0 && <5
+    , assumpta-core
+    , bytestring
+    , hspec
+    , network < 3
+    , quickcheck-io
+  if flag(warnmore)
+    if impl(ghc >= 8.0.1)
+      ghc-options:
+        -Wall -Wcompat -Wincomplete-record-updates
+        -Wincomplete-uni-patterns -Wredundant-constraints
+        -Wno-name-shadowing -Wno-orphans -fwarn-tabs
+    else
+      ghc-options:
+        -Wall
+  default-language: Haskell2010
+
+-- **
+-- - Only works with stack
+-- - requires STACK_RESOLVER env var to be set
+test-suite compile-examples
+  type: exitcode-stdio-1.0
+  main-is: compile-examples.hs
+  hs-source-dirs:
+      test-other
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  if !(flag(stack-based-tests))
+    buildable: False
+  else
+    build-depends:
+        assumpta
+      , assumpta-core
+      , base >=4.0 && <5
+      , filepath
+      , shelly
+      , text
+  if flag(warnmore)
+    if impl(ghc >= 8.0.1)
+      ghc-options:
+        -Wall -Wcompat -Wincomplete-record-updates
+        -Wincomplete-uni-patterns -Wredundant-constraints
+        -Wno-name-shadowing -Wno-orphans -fwarn-tabs
+    else
+      ghc-options:
+        -Wall
+  default-language: Haskell2010
