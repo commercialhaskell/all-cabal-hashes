@@ -1,0 +1,154 @@
+name:                   verbosity
+version:                0.4.0.0
+synopsis:               Simple enum that encodes application verbosity.
+description:
+  Simple enum that encodes application verbosity with various useful instances.
+
+homepage:               https://github.com/trskop/verbosity
+bug-reports:            https://github.com/trskop/verbosity/issues
+license:                BSD3
+license-file:           LICENSE
+author:                 Peter Trško
+maintainer:             peter.trsko@gmail.com
+copyright:              (c) 2015-2020 Peter Trško
+category:               Data
+build-type:             Simple
+cabal-version:          >=1.10
+
+-- Examples require lens package in addition to this packackage's dependencies.
+-- When using sandbox it is possible to use `cabal repl` to test examples by
+-- using following command:
+--
+--     cabal repl --ghc-options='-iexample -package lens -package optparse-applicative'
+--
+-- It's also possible to use `stack repl`:
+--
+--     stack repl --ghci-options='-package lens -package optparse-applicative'
+extra-source-files:
+    ChangeLog.md
+  , README.md
+  , dhall/Verbosity/Type
+  , dhall/Verbosity/fold
+  , example/Example/ConfigGenericLens.hs
+  , example/Example/ConfigHandWrittenInstance.hs
+  , example/Example/ConfigTH.hs
+  , example/Main/Options.hs
+
+flag pedantic
+  description:          Pass additional warning flags to GHC.
+  default:              False
+  manual:               True
+
+flag binary
+  description:          Derive instances for Binary type class.
+  default:              True
+
+flag deepseq
+  description:          Define instance for NFData type class.
+  default:              True
+
+flag cereal
+  description:          Define instance for Serialize type class.
+  default:              False
+
+flag safecopy
+  description:          Define instance for SafeCopy type class.
+  default:              False
+
+flag lattices
+  description:          Define instances for JoinSemiLattice, MeetSemiLattice,
+                        BoundedJoinSemiLattice, BoundedMeetSemiLattice,
+                        Lattice, and BoundedLattice.
+  default:              False
+
+flag dhall
+  description:          Define Verbosity instance for (Dhall) Interpret type
+                        class. Implies `ghc-generics` flag as well.
+  default:              True
+
+flag serialise
+  description:          Define instance for `Serialise` type class.
+  default:              True
+
+library
+  hs-source-dirs:       src
+  exposed-modules:      Data.Verbosity, Data.Verbosity.Class
+
+  default-language:     Haskell2010
+  other-extensions:
+      BangPatterns
+    -- ^ With -fdeepseq
+    , CPP
+    , DefaultSignatures
+    , DeriveAnyClass
+    -- ^ With -fdhall
+    , DeriveDataTypeable
+    , DeriveGeneric
+    , DerivingStrategies
+    , FlexibleContexts
+    , FlexibleInstances
+    , KindSignatures
+    , LambdaCase
+    , NoImplicitPrelude
+    , TemplateHaskell
+    -- ^ With -fsafecopy
+    , TypeOperators
+
+  -- Version 4.10 of base was bundled with GHC 8.2, which is the first version
+  -- that supports DerivingStrategies.
+  build-depends:        base >=4.10 && <5
+                      , generic-lens >=1.0.0.2 && <3
+  ghc-options:          -Wall -Wcompat
+
+  if flag(pedantic)
+    ghc-options:        -Wimplicit-prelude
+                        -Wmissing-export-lists
+                        -Wredundant-constraints
+                        -Wcompat
+                        -Werror
+
+  if flag(binary)
+    build-depends:      binary >=0.5 && <0.11
+    cpp-options:        -DDECLARE_BINARY_INSTANCE
+
+  if flag(deepseq)
+    cpp-options:        -DDECLARE_NFDATA_INSTANCE
+    build-depends:      deepseq >=1.1.0.0 && <2
+    -- Prior to version 1.1.0.0 there was DeepSeq class instead of NFData.
+
+  if flag(cereal)
+    cpp-options:        -DDECLARE_SERIALIZE_INSTANCE
+    build-depends:      cereal >=0.1 && <0.6
+
+  if flag(safecopy)
+    cpp-options:        -DDECLARE_SAFECOPY_INSTANCE
+    build-depends:      safecopy >=0.5 && <0.11
+    -- Version 0.5 introduced:
+    --
+    --   deriveSafeCopy :: Version a -> Name -> Name -> Q [Dec]
+    --
+    -- It's type signature hadn't changed since. Latest version of safecopy at
+    -- the moment of writing this is 0.9.1.
+
+  if flag(lattices)
+    cpp-options:        -DDECLARE_LATTICE_INSTANCES
+    build-depends:      lattices >=1.4 && <3
+
+  if flag(dhall)
+    cpp-options:        -DDECLARE_DHALL_INSTANCES
+    build-depends:      dhall >=1.23.0 && <2
+    -- Version 1.22.0 supported Dhall Standard 7.0.0, however, it failed to
+    -- deserialise new-style enums properly, which was fixed in version 1.23.0.
+
+  if flag(serialise)
+    cpp-options:        -DDECLARE_SERIALISE_INSTANCE
+    build-depends:      serialise >=0.2.1 && <1
+
+source-repository head
+  type:                 git
+  location:             git://github.com/trskop/verbosity
+
+source-repository this
+  type:                 git
+  location:             git://github.com/trskop/verbosity.git
+  tag:                  0.4.0.0
