@@ -1,0 +1,73 @@
+cabal-version: 2.0
+name:          hstar
+version:       0.1.0.0
+license:       BSD3
+license-file:  LICENSE
+copyright:     Copyright: (c) 2019-2020 Vanessa McHale
+maintainer:    vamchale@gmail.com
+author:        Vanessa McHale
+synopsis:      Haskell version of tar CLI utility
+description:
+    Haskell implementation of the tar utility, demonstrating backpack
+
+category:      Codec, Tar, Archive
+build-type:    Simple
+
+source-repository head
+    type:     git
+    location: https://github.com/vmchale/archive-backpack
+    subdir:   hstar
+
+flag development
+    description: Enable `-Werror`
+    default:     False
+    manual:      True
+
+flag pure
+    description: Use Haskell backend instead of libarchive
+    default:     False
+
+executable hstar
+    main-is:            Main.hs
+    build-tool-depends: cpphs:cpphs -any
+    hs-source-dirs:     src
+    other-modules:
+        Compression
+        Paths_hstar
+        Version
+
+    autogen-modules:    Paths_hstar
+    default-language:   Haskell2010
+    ghc-options:
+        -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates
+        -Wredundant-constraints -Widentities -Wmissing-export-lists
+
+    build-depends:
+        base >=4.11 && <5,
+        archive-sig >=0.2.1.2,
+        optparse-applicative -any,
+        bytestring -any,
+        lzma -any,
+        bz2 >=1.0.0.0,
+        zlib -any,
+        zstd -any,
+        lz4-hs >=0.1.1.0,
+        lzlib >=1.0.1.0
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+    if flag(pure)
+        build-depends: archive-tar -any
+
+    else
+        build-depends: archive-libarchive -any
+
+    if flag(pure)
+        mixins: archive-tar (Archive.Tar as Archive)
+
+    else
+        mixins: archive-libarchive (Archive.FFI as Archive)
+
+    if flag(development)
+        ghc-options: -Werror
