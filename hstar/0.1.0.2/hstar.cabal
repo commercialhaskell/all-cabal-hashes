@@ -1,0 +1,95 @@
+cabal-version:      2.0
+name:               hstar
+version:            0.1.0.2
+license:            BSD3
+license-file:       LICENSE
+copyright:          Copyright: (c) 2019-2020 Vanessa McHale
+maintainer:         vamchale@gmail.com
+author:             Vanessa McHale
+synopsis:           Haskell version of tar CLI utility
+description:
+    Haskell implementation of the tar utility, demonstrating backpack
+
+category:           Codec, Tar, Archive
+build-type:         Simple
+extra-source-files:
+    CHANGELOG.md
+    README.md
+
+source-repository head
+    type:     git
+    location: https://github.com/vmchale/archive-backpack
+    subdir:   hstar
+
+flag development
+    description: Enable `-Werror`
+    default:     False
+    manual:      True
+
+flag pure
+    description: Use Haskell backend instead of libarchive
+    default:     False
+
+flag tar-bytestring
+    description: Use tar-bytestring
+    default:     False
+
+flag with-brotli
+    description: Enable brotli compression support
+
+executable hstar
+    main-is:            Main.hs
+    build-tool-depends: cpphs:cpphs -any
+    hs-source-dirs:     src
+    other-modules:
+        Compression
+        Paths_hstar
+        Version
+
+    autogen-modules:    Paths_hstar
+    default-language:   Haskell2010
+    ghc-options:
+        -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates
+        -Wredundant-constraints -Widentities -Wmissing-export-lists
+
+    build-depends:
+        base >=4.11 && <5,
+        archive-sig >=0.2.1.2,
+        optparse-applicative -any,
+        bytestring -any,
+        lzma -any,
+        bz2 >=1.0.0.0,
+        zlib -any,
+        zstd -any,
+        lz4-hs >=0.1.1.0,
+        lzlib >=1.0.1.0
+
+    if flag(with-brotli)
+        build-depends: brotli -any
+
+    if flag(with-brotli)
+        cpp-options: -DBROTLI
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+    if flag(pure)
+        build-depends: archive-tar -any
+
+    if flag(tar-bytestring)
+        build-depends: archive-tar-bytestring -any
+
+    if (!flag(pure) && !flag(tar-bytestring))
+        build-depends: archive-libarchive -any
+
+    if flag(pure)
+        mixins: archive-tar (Archive.Tar as Archive)
+
+    if flag(tar-bytestring)
+        mixins: archive-tar-bytestring (Archive.Tar as Archive)
+
+    if (!flag(pure) && !flag(tar-bytestring))
+        mixins: archive-libarchive (Archive.FFI as Archive)
+
+    if flag(development)
+        ghc-options: -Werror
