@@ -1,0 +1,183 @@
+cabal-version: 2.4
+name: neuron
+-- This version must be in sync with what's in Default.dhall
+version: 0.4.0.0
+license: BSD-3-Clause
+copyright: 2020 Sridhar Ratnakumar
+maintainer: srid@srid.ca
+author: Sridhar Ratnakumar
+category: Web
+homepage: https://neuron.zettel.page
+bug-reports: https://github.com/srid/neuron/issues
+synopsis:
+  Haskell meets Zettelkasten, for your plain-text delight.
+description:
+  neuron is a system for managing your plain-text Zettelkasten notes.
+extra-source-files:
+  README.md
+  CHANGELOG.md
+data-files:
+  src-js/search.js
+  src-bash/neuron-search
+  src-dhall/Config/*.dhall
+
+source-repository head
+    type: git
+    location: https://github.com/srid/neuron
+
+flag ghcid
+    default: False
+    manual: True
+
+common ghc-common
+  ghc-options:
+    -Wall
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+
+common library-common
+  import: ghc-common
+  default-language: Haskell2010
+  build-depends:
+    base >=4.12 && < 4.14,
+    aeson,
+    mtl,
+    text,
+    time,
+    relude,
+    filepath,
+    algebraic-graphs >= 0.5,
+    parser-combinators,
+    containers,
+    filepattern,
+    mmark,
+    megaparsec
+
+library
+  import: library-common
+  hs-source-dirs: src/lib
+  exposed-modules:
+    Neuron.Zettelkasten.ID
+    Neuron.Zettelkasten.Zettel
+    Neuron.Zettelkasten.Zettel.Meta
+    Text.Megaparsec.Simple
+    Data.TagTree
+    Data.PathTree
+    Data.Graph.Labelled
+    Data.Graph.Labelled.Type
+    Data.Graph.Labelled.Algorithm
+    Data.Graph.Labelled.Build
+
+-- A trick to make ghcid reload if library dependencies change
+-- https://haskell.zettel.page/2012605.html
+common app-common
+  import: library-common
+  hs-source-dirs: src/app src/lib
+  default-language: Haskell2010
+  build-depends:
+    base >=4.12 && < 4.14,
+    aeson,
+    clay -any,
+    mtl,
+    containers,
+    directory,
+    exceptions,
+    file-embed,
+    gitrev,
+    lucid -any,
+    optparse-applicative,
+    pandoc,
+    relude,
+    rib ^>=0.10,
+    shake -any,
+    time,
+    text,
+    mmark,
+    mmark-ext,
+    modern-uri,
+    foldl,
+    filepath,
+    dhall >= 1.30,
+    which,
+    unix,
+    megaparsec >= 8.0,
+    dependent-sum,
+    dependent-sum-template,
+    aeson-gadt-th,
+    data-default,
+    uuid,
+    shake,
+    with-utf8
+  if (!flag(ghcid))
+    autogen-modules:
+      Paths_neuron
+    other-modules:
+      Data.Graph.Labelled
+      Data.Graph.Labelled.Algorithm
+      Data.Graph.Labelled.Build
+      Data.Graph.Labelled.Type
+      Data.PathTree
+      Data.Structured.Breadcrumb
+      Data.TagTree
+      Neuron.CLI
+      Neuron.CLI.New
+      Neuron.CLI.Rib
+      Neuron.CLI.Search
+      Neuron.CLI.Types
+      Neuron.Config
+      Neuron.Config.Alias
+      Neuron.Version
+      Neuron.Version.RepoVersion
+      Neuron.Web.Generate
+      Neuron.Web.Route
+      Neuron.Web.Theme
+      Neuron.Web.View
+      Neuron.Zettelkasten.Connection
+      Neuron.Zettelkasten.Error
+      Neuron.Zettelkasten.Graph
+      Neuron.Zettelkasten.Graph.Type
+      Neuron.Zettelkasten.ID
+      Neuron.Zettelkasten.ID.Scheme
+      Neuron.Zettelkasten.Query
+      Neuron.Zettelkasten.Query.Error
+      Neuron.Zettelkasten.Query.Eval
+      Neuron.Zettelkasten.Query.Parser
+      Neuron.Zettelkasten.Query.Theme
+      Neuron.Zettelkasten.Query.View
+      Neuron.Zettelkasten.Zettel
+      Neuron.Zettelkasten.Zettel.Meta
+      Paths_neuron
+      Text.MMark.Extension.ReplaceLink
+      Text.MMark.Extension.SetTableClass
+      Text.MMark.MarkdownLink
+      Text.Megaparsec.Simple
+      Text.URI.Util
+
+test-suite neuron-test
+  import: app-common
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Spec.hs
+  build-depends:
+    base >=4.12 && < 4.14,
+    relude,
+    hspec,
+    QuickCheck,
+    time
+  default-language:    Haskell2010
+  if (!flag(ghcid))
+    other-modules:
+      Data.PathTreeSpec
+      Data.TagTreeSpec
+      Neuron.Config.AliasSpec
+      Neuron.VersionSpec
+      Neuron.Zettelkasten.ID.SchemeSpec
+      Neuron.Zettelkasten.IDSpec
+      Neuron.Zettelkasten.Query.ParserSpec
+      Neuron.Zettelkasten.ZettelSpec
+
+-- The executable stanza should always be at the end. The other project will
+-- strip it to avoid non-core dependencies.
+executable neuron
+  import: app-common
+  main-is: Main.hs
