@@ -1,0 +1,103 @@
+cabal-version: 2.2
+name: blake3
+version: 0.1.1
+license: Apache-2.0
+license-file: LICENSE
+extra-source-files: README.md CHANGELOG.md
+author: Renzo Carbonara
+maintainer: renλren.zone
+copyright: Copyright (c) Renzo Carbonara 2020
+category: Cryptography
+build-type: Simple
+synopsis: BLAKE3 hashing algorithm
+description: Bindings to the official fast BLAKE3 implementations in assembly
+             and C, with support for AVX-512, AVX2 and SSE 4.1.
+homepage: https://github.com/k0001/hs-blake3
+bug-reports: https://github.com/k0001/hs-blake3/issues
+tested-with: GHC == 8.6.5, GHC == 8.8.3
+extra-source-files:
+  cbits/*.h
+  cbits/README.md
+  cbits/LICENSE
+
+flag avx512
+  description: Enable AVX-512 instructions
+  default: True
+  manual: True
+
+flag avx2
+  description: Enable AVX2 instructions
+  default: True
+  manual: True
+
+flag sse41
+  description: Enable SSE 4.1 instructions
+  default: True
+  manual: True
+
+common basic
+  default-language: Haskell2010
+  ghc-options: -Wall -Werror=incomplete-patterns
+  build-depends:
+    base == 4.*,
+    memory
+
+library
+  import: basic
+  hs-source-dirs: lib
+  exposed-modules:
+    BLAKE3
+    BLAKE3.IO
+    BLAKE3.Raw
+  cc-options: -O3
+  include-dirs: cbits/
+  c-sources:
+    cbits/blake3.c
+    cbits/blake3_dispatch.c
+    cbits/blake3_portable.c
+
+  -- AVX-512 support
+  if flag(avx512)
+    if arch(x86_64) && (os(linux) || os(darwin))
+      c-sources: cbits/blake3_avx512_x86-64_unix.S
+    elif arch(x86_64) && os(windows)
+      c-sources: cbits/blake3_avx512_x86-64_windows_gnu.S
+    else
+      c-sources: cbits/blake3_avx512.c
+  else
+    cc-options: -DBLAKE3_NO_AVX512
+
+  -- AVX2 support
+  if flag(avx2)
+    if arch(x86_64) && (os(linux) || os(darwin))
+      c-sources: cbits/blake3_avx2_x86-64_unix.S
+    elif arch(x86_64) && os(windows)
+      c-sources: cbits/blake3_avx2_x86-64_windows_gnu.S
+    else
+      c-sources: cbits/blake3_avx2.c
+  else
+    cc-options: -DBLAKE3_NO_AVX2
+
+  -- AVX2 support
+  if flag(sse41)
+    if arch(x86_64) && (os(linux) || os(darwin))
+      c-sources: cbits/blake3_sse41_x86-64_unix.S
+    elif arch(x86_64) && os(windows)
+      c-sources: cbits/blake3_sse41_x86-64_windows_gnu.S
+    else
+      c-sources: cbits/blake3_sse41.c
+  else
+    cc-options: -DBLAKE3_NO_SSE41
+
+
+test-suite test
+  import: basic
+  ghc-options: -Wall -Werror=incomplete-patterns -O2
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends:
+    blake3,
+    memory,
+    tasty,
+    tasty-hunit,
