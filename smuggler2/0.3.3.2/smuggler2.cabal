@@ -1,0 +1,145 @@
+cabal-version:      3.0
+name:               smuggler2
+version:            0.3.3.2
+synopsis:
+  GHC Source Plugin that helps to minimise imports and generate explicit exports
+
+description:
+  == Usage
+  Add @smuggler2@ to the build dependencies of your project.
+  .
+  Then add the following to ghc-options: @-fplugin=Smuggler2.Plugin@. See the
+  README <https://hackage.haskell.org/package/smuggler2> for more details
+  and options.
+
+homepage:           https://github.com/jrp2014/smuggler2
+bug-reports:        https://github.com/jrp2014/smuggler2/issues
+license:            MPL-2.0
+license-file:       LICENSE
+author:             jrp2014, Dmitrii Kovanikov, Veronika Romashkina
+maintainer:         jrp2014
+copyright:          2020 jrp2014, Dmitrii Kovanikov
+category:           Development, Refactoring, Compiler Plugin
+build-type:         Simple
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+  TODO.md
+
+extra-source-files:
+  test/tests/*.hs
+  Makefile
+  Setup.hs
+  weeder.dhall
+
+-- wildcards are allowed only in the basename
+--test/tests/*.*-golden
+
+tested-with:        GHC ==8.6.5 || ==8.8.3 || ==8.10.1
+
+flag debug
+  description: Enable debugging support
+  default:     False
+  manual:      True
+
+flag threaded
+  description: Build with support for multithreaded execution
+  default:     True
+  manual:      True
+
+source-repository head
+  type:     git
+  location: https://github.com/jrp2014/smuggler2
+
+common common-options
+  -- test these bounds
+  build-depends:      base >=4.9 && <4.16
+
+  -- -O2 gives a nearly 10% speed improvement
+  ghc-options:
+    -O2 -Wall -Wextra -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wcompat -Widentities
+    -Wredundant-constraints -fhide-source-paths
+
+  if impl(ghc >=8.10.0)
+    ghc-options: -Wunused-packages -fwrite-ide-info
+
+  if flag(debug)
+    ghc-options: -ddump-minimal-imports
+    cpp-options: -DDEBUG
+
+  default-language:   Haskell2010
+
+  -- Most of these are unnecessary
+  default-extensions:
+    DeriveGeneric
+    GeneralizedNewtypeDeriving
+    InstanceSigs
+    LambdaCase
+    OverloadedStrings
+    RecordWildCards
+    ScopedTypeVariables
+    StandaloneDeriving
+    TypeApplications
+
+common executable-options
+  ghc-options: -rtsopts
+
+  if flag(debug)
+    ghc-options: -debug
+
+  if flag(threaded)
+    ghc-options: -threaded -with-rtsopts=-N
+
+library
+  import:          common-options
+  hs-source-dirs:  src
+  exposed-modules:
+    Smuggler2.Anns
+    Smuggler2.Exports
+    Smuggler2.Imports
+    Smuggler2.Options
+    Smuggler2.Parser
+    Smuggler2.Plugin
+
+  other-modules:   Paths_smuggler2
+  autogen-modules: Paths_smuggler2
+  build-depends:
+    , containers      ^>=0.6.0
+    , directory       ^>=1.3.3
+    , filepath        ^>=1.4.2
+    , ghc             >=8.6.5 && <8.11
+    , ghc-exactprint  ^>=0.6.3
+    , syb             ^>=0.7.1
+
+  if flag(debug)
+    build-depends: text
+
+executable ghc-smuggler2
+  import:         common-options
+  import:         executable-options
+  hs-source-dirs: app
+  main-is:        Main.hs
+  build-depends:
+    , ghc-paths      ^>=0.1.0
+    , typed-process  ^>=0.2.6
+
+test-suite smuggler2-test
+  import:         common-options
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  build-depends:
+    , containers
+    , directory
+    , filepath
+    , ghc-paths
+    , smuggler2
+    , tasty
+    , tasty-golden   ^>=2.3.4
+    , typed-process
+
+  main-is:        Test.hs
+  ghc-options:    -rtsopts
+
+  if flag(threaded)
+    ghc-options: -threaded -with-rtsopts=-N
