@@ -1,0 +1,149 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 2c8109092a14882df219b99da03aea13b68292c07f409a58fa68028d6f263eb1
+
+name:           hasql-queue
+version:        1.0.1
+synopsis:       A PostgreSQL backed queue
+description:    This module utilize PostgreSQL to implement a durable queue for efficently processing arbitrary payloads which can be represented as JSON.
+                .
+                Typically a producer would enqueue a new payload as part of larger database
+                transaction
+                .
+                >  createAccount userRecord = do
+                >     'runDBTSerializable' $ do
+                >        createUserDB userRecord
+                >        'enqueueDB' "queue_schema" $ makeVerificationEmail userRecord
+                .
+                In another thread or process, the consumer would drain the queue.
+                .
+                >   forever $ do
+                >     -- Attempt get a payload or block until one is available
+                >     payload <- lock "queue" conn
+                >
+                >     -- Perform application specifc parsing of the payload value
+                >     case fromJSON $ pValue payload of
+                >       Success x -> sendEmail x -- Perform application specific processing
+                >       Error err -> logErr err
+                >
+                >     -- Remove the payload from future processing
+                >     dequeue "queue" conn $ pId payload
+                >
+                > To support multiple queues in the same database, the API expects a table name string
+                > to determine which queue tables to use.
+category:       Web
+homepage:       https://github.com/jfischoff/postgresql-queue#readme
+bug-reports:    https://github.com/jfischoff/postgresql-queue/issues
+author:         Jonathan Fischoff
+maintainer:     jonathangfischoff@gmail.com
+copyright:      2020 Jonathan Fischoff
+license:        BSD3
+license-file:   LICENSE
+tested-with:    GHC ==8.8.1
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/jfischoff/postgresql-queue
+
+library
+  exposed-modules:
+      Hasql.Queue.Internal
+      Hasql.Queue.IO
+      Hasql.Queue.Migrate
+      Hasql.Queue.Session
+  other-modules:
+      Paths_hasql_queue
+  hs-source-dirs:
+      src
+  default-extensions: OverloadedStrings LambdaCase RecordWildCards TupleSections GeneralizedNewtypeDeriving QuasiQuotes ScopedTypeVariables TypeApplications AllowAmbiguousTypes
+  ghc-options: -Wall -Wno-unused-do-bind -Wno-unused-foralls
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , exceptions
+    , hasql
+    , hasql-notifications
+    , here
+    , monad-control
+    , random
+    , stm
+    , text
+    , time
+    , transformers
+  default-language: Haskell2010
+
+executable benchmark
+  main-is: Main.hs
+  other-modules:
+      Paths_hasql_queue
+  hs-source-dirs:
+      benchmarks
+  default-extensions: OverloadedStrings LambdaCase RecordWildCards TupleSections GeneralizedNewtypeDeriving QuasiQuotes ScopedTypeVariables TypeApplications AllowAmbiguousTypes
+  ghc-options: -Wall -Wno-unused-do-bind -Wno-unused-foralls -O2 -threaded -rtsopts -with-rtsopts=-N -g2
+  build-depends:
+      aeson
+    , async
+    , base >=4.7 && <5
+    , base64-bytestring
+    , bytestring
+    , cryptohash-sha1
+    , exceptions
+    , hasql
+    , hasql-notifications
+    , hasql-queue
+    , here
+    , monad-control
+    , random
+    , resource-pool
+    , stm
+    , text
+    , time
+    , tmp-postgres
+    , transformers
+  default-language: Haskell2010
+
+test-suite unit-tests
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Database.Hasql.Queue.IOSpec
+      Database.Hasql.Queue.SessionSpec
+      Paths_hasql_queue
+  hs-source-dirs:
+      test
+  default-extensions: OverloadedStrings LambdaCase RecordWildCards TupleSections GeneralizedNewtypeDeriving QuasiQuotes ScopedTypeVariables TypeApplications AllowAmbiguousTypes
+  ghc-options: -Wall -Wno-unused-do-bind -Wno-unused-foralls -O2 -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , async
+    , base >=4.7 && <5
+    , base64-bytestring
+    , bytestring
+    , cryptohash-sha1
+    , exceptions
+    , hasql
+    , hasql-notifications
+    , hasql-queue
+    , here
+    , hspec
+    , hspec-core
+    , hspec-expectations-lifted
+    , monad-control
+    , random
+    , resource-pool
+    , split
+    , stm
+    , text
+    , time
+    , tmp-postgres
+    , transformers
+  default-language: Haskell2010
