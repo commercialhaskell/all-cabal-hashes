@@ -1,0 +1,218 @@
+cabal-version: 1.24
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 5ac460c3766d27889d7b32a2cbe50446f113a5403dec5125affc436d900f452d
+
+name:           rounded-hw
+version:        0.1.0.0
+synopsis:       Directed rounding for built-in floating types
+description:    Please see the README on GitHub at <https://github.com/minoki/rounded-hw#readme>
+category:       Numeric, Math
+homepage:       https://github.com/minoki/rounded-hw#readme
+bug-reports:    https://github.com/minoki/rounded-hw/issues
+author:         ARATA Mizuki
+maintainer:     minorinoki@gmail.com
+copyright:      2020 ARATA Mizuki
+license:        BSD3
+license-file:   LICENSE
+tested-with:    GHC == 8.6.5, GHC == 8.8.3
+build-type:     Custom
+extra-source-files:
+    README.md
+    ChangeLog.md
+    cbits/rounded-common.inl
+    cbits/rounded-avx512.inl
+    cbits/interval-prim-x86_64-sse2.S
+
+source-repository head
+  type: git
+  location: https://github.com/minoki/rounded-hw
+
+custom-setup
+  setup-depends:
+      Cabal >=1.24
+    , base >=4.7
+
+flag avx512
+  description: Use AVX512 EVEX encoding
+  manual: True
+  default: False
+
+flag c99
+  description: Restrict use of platform-dependent features (e.g. SSE2) and only use C99 features
+  manual: True
+  default: False
+
+flag float128
+  description: Support Float128
+  manual: True
+  default: False
+
+flag ghc-prim
+  description: Use GHC's "foreign import prim" on the supported platform
+  manual: True
+  default: True
+
+flag pure-hs
+  description: Disable FFI
+  manual: True
+  default: False
+
+flag x87-long-double
+  description: Support x87 "long double"
+  manual: True
+  default: True
+
+library
+  exposed-modules:
+      Numeric.Rounded.Hardware
+      Numeric.Rounded.Hardware.Backend
+      Numeric.Rounded.Hardware.Backend.ViaRational
+      Numeric.Rounded.Hardware.Class
+      Numeric.Rounded.Hardware.Internal
+      Numeric.Rounded.Hardware.Interval
+      Numeric.Rounded.Hardware.Interval.Class
+      Numeric.Rounded.Hardware.Interval.NonEmpty
+      Numeric.Rounded.Hardware.Rounding
+      Numeric.Rounded.Hardware.Vector.Storable
+      Numeric.Rounded.Hardware.Vector.Unboxed
+  other-modules:
+      Numeric.Rounded.Hardware.Internal.Rounding
+      Numeric.Rounded.Hardware.Internal.Class
+      Numeric.Rounded.Hardware.Internal.Constants
+      Numeric.Rounded.Hardware.Internal.Conversion
+      Numeric.Rounded.Hardware.Internal.FloatUtil
+      Numeric.Rounded.Hardware.Internal.RoundedResult
+      Numeric.Rounded.Hardware.Internal.Show
+      Numeric.Rounded.Hardware.Backend.Default
+      Numeric.Rounded.Hardware.Interval.ElementaryFunctions
+  hs-source-dirs:
+      src
+  build-depends:
+      array
+    , base >=4.12 && <5
+    , deepseq
+    , integer-logarithms
+    , primitive
+    , tagged
+    , vector
+  if !flag(pure-hs)
+    exposed-modules:
+        Numeric.Rounded.Hardware.Backend.C
+    other-modules:
+        FFIWrapper.Float
+        FFIWrapper.Double
+    cpp-options: -DUSE_FFI
+    c-sources:
+        cbits/rounded.c
+  if flag(c99)
+    cc-options: -DUSE_C99
+  if flag(avx512)
+    cc-options: -DUSE_AVX512 -mavx512f
+  if !flag(pure-hs) && !flag(c99) && flag(ghc-prim) && impl(ghc) && arch(x86_64)
+    exposed-modules:
+        Numeric.Rounded.Hardware.Backend.FastFFI
+    cpp-options: -DUSE_GHC_PRIM
+    if flag(avx512)
+      c-sources:
+          cbits/interval-prim-x86_64-avx512.S
+    else
+      c-sources:
+          cbits/interval-prim-x86_64.S
+  if flag(x87-long-double) && (arch(i386) || arch(x86_64))
+    other-modules:
+        Numeric.Rounded.Hardware.Backend.X87LongDouble
+    cpp-options: -DUSE_X87_LONG_DOUBLE
+    c-sources:
+        cbits/rounded-x87longdouble.c
+    build-depends:
+        long-double
+  if flag(float128)
+    other-modules:
+        Numeric.Rounded.Hardware.Backend.Float128
+    cpp-options: -DUSE_FLOAT128
+    c-sources:
+        cbits/rounded-float128.c
+    build-depends:
+        float128
+  default-language: Haskell2010
+
+test-suite rounded-hw-doctests
+  type: exitcode-stdio-1.0
+  main-is: doctests.hs
+  other-modules:
+      Paths_rounded_hw
+  build-depends:
+      array
+    , base >=4.12 && <5
+    , deepseq
+    , doctest >=0.8
+    , integer-logarithms
+    , primitive
+    , vector
+  default-language: Haskell2010
+
+test-suite rounded-hw-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      ConstantsSpec
+      FloatUtilSpec
+      FromIntegerSpec
+      FromRationalSpec
+      IntervalArithmeticSpec
+      RoundedArithmeticSpec
+      ShowFloatSpec
+      Util
+      VectorSpec
+      Paths_rounded_hw
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      QuickCheck
+    , array
+    , base >=4.12 && <5
+    , deepseq
+    , hspec
+    , integer-logarithms
+    , primitive
+    , random
+    , rounded-hw
+    , vector
+  if flag(x87-long-double) && (arch(i386) || (arch(x86_64) && !os(windows)))
+    other-modules:
+        X87LongDoubleSpec
+    cpp-options: -DTEST_X87_LONG_DOUBLE
+    build-depends:
+        long-double
+  if flag(float128)
+    other-modules:
+        Float128Spec
+    cpp-options: -DTEST_FLOAT128
+    build-depends:
+        float128
+  default-language: Haskell2010
+
+benchmark rounded-hw-benchmark
+  type: exitcode-stdio-1.0
+  main-is: Benchmark.hs
+  other-modules:
+      Conversion
+      IGA
+      Paths_rounded_hw
+  hs-source-dirs:
+      benchmark
+  build-depends:
+      array
+    , base >=4.12 && <5
+    , deepseq
+    , gauge
+    , integer-logarithms
+    , primitive
+    , rounded-hw
+    , vector
+  default-language: Haskell2010
