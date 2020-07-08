@@ -1,0 +1,86 @@
+cabal-version: 2.2
+name:          hsinspect-lsp
+version:       0.0.5
+synopsis:      LSP interface over the hsinspect binary.
+license:       GPL-3.0-or-later
+license-file:  LICENSE
+author:        Tseen She
+maintainer:    Tseen She
+copyright:     2020 Tseen She
+tested-with:   GHC ^>=8.4.4 || ^>=8.6.5 || ^>=8.8.3
+category:      Building
+description:   Inspect @.hs@ files using the ghc api over LSP.
+
+source-repository head
+  type:     git
+  location: https://gitlab.com/tseenshe/hsinspect.git
+
+-- https://www.haskell.org/cabal/users-guide/cabal-projectindex.html
+
+flag ghcflags
+  description: Generate .ghc.flags files during compilation
+  manual:      True
+  default:     False
+
+common deps
+  build-depends:
+    , aeson         ^>=1.4.6.0
+    , base          >=4.11    && <5
+    , bytestring
+    , cache         ^>=0.1.3.0
+    , directory
+    , extra         ^>=1.7.1
+    , filepath
+    , ghc
+    , ghc-paths
+    , hslogger
+    , process
+    , text
+    , transformers
+
+  ghc-options:      -Wall -Werror=missing-home-modules -Werror=orphans
+  default-language: Haskell2010
+
+  if flag(ghcflags)
+    ghc-options:        -fplugin GhcFlags.Plugin
+    build-depends:      ghcflags
+    build-tool-depends: hsinspect:hsinspect -any
+
+executable hsinspect-lsp
+  import:         deps
+  hs-source-dirs: exe
+  main-is:        Main.hs
+  ghc-options:    -rtsopts -threaded -with-rtsopts=-N8
+  build-depends:
+    , data-default
+    , haskell-lsp           ^>=0.22.0.0
+    , hsinspect-lsp
+    , mtl
+    , stm
+    , unordered-containers
+
+library
+  import:          deps
+  hs-source-dirs:  library
+
+  -- cabal-fmt: expand library
+  exposed-modules:
+    HsInspect.LSP.Context
+    HsInspect.LSP.HsInspect
+    HsInspect.LSP.Impl
+    HsInspect.LSP.Util
+
+test-suite test
+  import:             deps
+  hs-source-dirs:     test
+  type:               exitcode-stdio-1.0
+  main-is:            Driver.hs
+
+  -- cabal-fmt: expand test -Driver
+  other-modules:      HsInspect.LSP.HsInspectSpec
+  build-depends:
+    , hsinspect-lsp
+    , hspec          ^>=2.7.1
+
+  build-tool-depends: hspec-discover:hspec-discover ^>=2.7.1
+  ghc-options:        -rtsopts -threaded -with-rtsopts=-N8
