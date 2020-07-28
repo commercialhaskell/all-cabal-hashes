@@ -1,0 +1,131 @@
+Name:                matlab
+Version:             0.3.0.0
+Cabal-Version:       >= 1.10
+Author:              Dylan Simon, Ben Sherman, Brandon Barker
+Maintainer:          Brandon Barker <brandon.barker@cornell.edu>
+License:             BSD3
+License-file:        LICENSE
+Synopsis:            Matlab bindings and interface
+Description:
+  This package aims to provide a comprehensive interface to the 
+  MathWorks MATLAB(R) libraries and native data structures, including
+  complete matrix access, MAT-format files, linking and execution of 
+  runtime libraries and engine.  Requires MATLAB for full functionality 
+  or an installed Matlab Component Runtime (MCR). This has been tested
+  with MATLAB R2014a and might work with others.
+  .
+  [/Installation/]
+  You will probably need add some arguments that point Cabal to your MATLAB
+  installation. For example, on a Linux system, it may look like this:
+  .
+  > cabal install --extra-lib-dirs="/usr/local/MATLAB/R2014a/bin/glnxa64/" --extra-include-dirs="/usr/local/MATLAB/R2014a/extern/include/"
+Category:            Foreign,Math
+Bug-reports:         https://github.com/bmsherman/haskell-matlab/issues
+
+build-type:          Custom
+tested-with:         GHC == 8.6.5
+extra-source-files:  src/Makefile src/hsmatlab.m src/hsmatlab.c src/hsc_sym.h
+                     test/Makefile test/runtime.hs 
+                     test/generic.hs test/mtest.m test/hsmli.hs
+                     test/Test/Engine.hs
+
+Flag Engine
+  Description:       Enable Matlab engine (spawned eng process) support
+  default:           True
+Flag Runtime
+  Description:       Enable Matlab runtime (linked library) support
+  default:           False
+
+library
+  default-language:   Haskell2010
+  Build-depends:      base >= 4.0 && < 4.16,
+                      array >= 0.5 && < 0.6,
+                      filepath >= 1.4 && < 1.5,
+                      path >= 0.6 && < 0.7,
+                      profunctors >= 5.3 && < 5.4,
+                      Cabal >= 2.1 && < 2.5
+  Exposed-modules:    Foreign.Matlab,
+                      Foreign.Matlab.Types,
+                      Foreign.Matlab.Array,
+                      Foreign.Matlab.Array.Auto,
+                      Foreign.Matlab.Array.MArray,
+                      Foreign.Matlab.Array.IMX,
+                      Foreign.Matlab.Array.Able,
+                      Foreign.Matlab.Engine.Wrappers,
+                      Foreign.Matlab.MAT
+  Other-modules:      Foreign.Matlab.Optics
+                      Foreign.Matlab.Util,
+                      Foreign.Matlab.Internal
+  default-extensions: ForeignFunctionInterface,
+                      MultiParamTypeClasses,
+                      FunctionalDependencies,
+                      FlexibleInstances
+  ghc-options:        -Wall -fno-warn-name-shadowing
+  include-dirs:       src/
+  extra-libraries:    mx, mat
+
+  if flag(runtime)
+      build-tools:     mcc
+      Build-depends:   unix  >= 2.7 && < 2.8
+      Exposed-modules: Foreign.Matlab.Runtime, Foreign.Matlab.Runtime.Generic
+
+  if flag(engine)
+    Exposed-modules:  Foreign.Matlab.Engine
+    Build-depends:    containers >= 0.6 && < 0.7
+    extra-libraries:  eng
+
+Source-repository head
+  Type:     git
+  Location: git://github.com/bmsherman/haskell-matlab.git
+
+Source-repository this
+  Type:     git
+  Location: git://github.com/bmsherman/haskell-matlab/releases/tag/0.3.0.0.git
+  Tag:      0.3.0.0
+
+-- test-suite matlab-test
+--   type: exitcode-stdio-1.0
+--   main-is: Spec.hs
+--   other-modules:
+--       Test.Engine
+--   hs-source-dirs:
+--       test
+--   ghc-options: -threaded -rtsopts -with-rtsopts=-N
+--   build-depends:
+--       base >= 4 && <5
+--     , filepath
+--     , matlab
+--     , turtle >= 1.5
+--   default-language: Haskell2010
+--   extra-libraries: eng, mx, mat
+
+executable matlab-engine-test
+  main-is: SpecEngine.hs
+  other-modules:
+      Test.Engine
+      Test.Util
+      Test.UtilTemplate
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -fno-ignore-asserts
+  build-depends:
+      base
+    , exceptions >= 0.10 && < 0.11
+    , filepath
+    , matlab
+    , path
+    , template-haskell >= 2.14 && < 2.15
+    , text >= 1.2 && < 1.3
+  default-language: Haskell2010
+  extra-libraries: eng, mx, mat
+
+executable haskell-hello
+  main-is: SpecHello.hs
+  other-modules:
+  hs-source-dirs:
+      hello
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base
+  default-language: Haskell2010
+  extra-libraries:
