@@ -1,0 +1,131 @@
+cabal-version:       2.4
+name:                stackcollapse-ghc
+version:             0.0.1.3
+synopsis:            Program to fold GHC prof files into flamegraph input
+description:         Program to fold GHC prof files into flamegraph input
+
+                     The reasons why this package exists despite other packages with similar functionality (not including the NIH syndrome) boil down to:
+                     .
+                     * it does only one thing (stack collapsing), so it's up to the user to install flamegraph scripts, pass options etc (in my eyes it's not a limitation, on the contrary),
+                     .
+                     * output control: annotations (color profiles), extending traces from a configured set of modules with the source locations or toggling qualified names,
+                     .
+                     * precise ticks and/or bytes with @-p@ reports,
+                     .
+                     * it's fast
+                     
+                     .
+                     = Basic usage
+                     .
+                     == Visualize ticks
+                     .
+
+                     If you have a detailed prof file (@-P@ RTS option)
+                     .
+                     > stackcollapse-ghc prof_file | flamegraph.pl --title 'Example' --subtitle 'Time' --countname ticks > path_to_svg
+                     .
+
+                     If you have a standard prof file (@-p@ RTS option)
+                     .
+                     > stackcollapse-ghc -p prof_file | flamegraph.pl --title 'Example' --subtitle 'Time' --countname ticks > path_to_svg
+                     .
+
+                     . 
+                     == Visualize allocations
+                     . 
+                     If you have a detailed prof file (@-P@ RTS option)
+                     .
+                     > stackcollapse-ghc --alloc prof_file | flamegraph.pl --title 'Example' --subtitle 'Bytes allocated' --countname bytes > path_to_svg
+                     .
+
+                     If you have a standard prof file (@-p@ RTS option)
+                     .
+                     > stackcollapse-ghc --alloc -p prof_file | flamegraph.pl --title 'Example' --subtitle 'Bytes allocated' --countname bytes > path_to_svg
+                     .
+
+                     See the full [README](https://github.com/marcin-rzeznicki/stackcollapse-ghc) for details.
+homepage:            https://github.com/marcin-rzeznicki/stackcollapse-ghc
+bug-reports:         https://github.com/marcin-rzeznicki/stackcollapse-ghc/issues
+license:             GPL-3.0-only
+license-file:        LICENSE
+author:              Marcin Rzeźnicki
+maintainer:          Marcin Rzeźnicki <marcin.rzeznicki@gmail.com>
+copyright:           2020 Marcin Rzeźnicki
+category:            Profiling
+build-type:          Simple
+extra-source-files:  test/prof_files/*.prof
+extra-doc-files:     README.md
+                     CHANGELOG.md
+tested-with:         GHC == 8.6.5
+                     GHC == 8.8.2
+                     GHC == 8.8.3
+                     GHC == 8.10.1
+
+source-repository head
+  type:                git
+  location:            https://github.com/marcin-rzeznicki/stackcollapse-ghc.git
+
+common common-options
+  build-depends:       base >= 4.12.0.0 && < 4.15,
+                       bytestring >= 0.10.8
+  
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -fdefer-typed-holes
+  if impl(ghc >= 8.0)
+    ghc-options:       -Wredundant-constraints
+  if impl(ghc >= 8.2)
+    ghc-options:       -fhide-source-paths
+  if impl(ghc >= 8.4)
+    ghc-options:       -Wmissing-export-lists
+                       -Wpartial-fields
+  if impl(ghc >= 8.8)
+    ghc-options:       -Wmissing-deriving-strategies
+
+  default-language:    Haskell2010
+
+common common-sources
+  hs-source-dirs:      src
+  other-modules:       Config
+                       UserModule
+                       Trace
+                       Format
+                       CallTree
+                       CallTreeBuilder
+                       Profiles
+                       StackCollapse
+  build-depends:       text >= 1.2.3.0,
+                       containers >= 0.6.0.1,
+                       rosezipper ==0.2,
+                       foldl >= 1.4.6 && < 1.5,
+                       transformers ==0.5.6.*,
+                       recursion-schemes >= 5.2 && < 5.3,
+                       safe ==0.3.*,
+                       extra
+
+executable stackcollapse-ghc
+  import:              common-options,
+                       common-sources
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -threaded
+                       -O2
+                       -rtsopts
+                       -with-rtsopts=-N
+
+test-suite stackcollapse-ghc-test
+  import:              common-options,
+                       common-sources
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  other-modules:       Helpers
+  build-depends:       hspec-golden >= 0.1.0.2 && < 0.1.1,
+                       hspec,
+                       utf8-string ^>=1.0.1
+  ghc-options:         -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
