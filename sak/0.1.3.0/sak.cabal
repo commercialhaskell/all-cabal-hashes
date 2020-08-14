@@ -1,0 +1,92 @@
+cabal-version:      1.18
+name:               sak
+version:            0.1.3.0
+license:            BSD3
+license-file:       LICENSE
+copyright:          Copyright: (c) 2020 Vanessa McHale
+maintainer:         vamchale@gmail.com
+author:             Vanessa McHale
+bug-reports:        https://hub.darcs.net/vmchale/sak/issues
+synopsis:           Compression command-line tool
+description:
+    sak is a command-line tool that detects and handles various compression formats
+
+category:           CommandLine, Compression
+build-type:         Simple
+data-files:         man/sak.1
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+    type:     darcs
+    location: https://hub.darcs.net/vmchale/sak
+
+flag with-brotli
+    description:
+        Build with support for brotli encoding/decoding (disable this to statically link)
+
+    default:     False
+
+flag with-snappy
+    description: Build with support for snappy encoding/decoding
+    default:     False
+
+executable sak
+    main-is:            Main.hs
+    build-tool-depends: cpphs:cpphs -any
+    hs-source-dirs:     src
+    other-modules:
+        Version
+        Version.Foreign
+        Compression
+        Compression.Level
+        Compression.Type
+        Info
+        Detect
+        Paths_sak
+
+    autogen-modules:    Paths_sak
+    default-language:   Haskell2010
+    ghc-options:        -Wall -threaded -rtsopts "-with-rtsopts=-N -qg"
+    build-depends:
+        base >=4.9 && <5,
+        lzlib >=1.0.7.0,
+        bz2 >=0.1.1.0,
+        zlib -any,
+        zstd -any,
+        lzma -any,
+        lz4-hs >=0.1.4.0,
+        optparse-applicative -any,
+        filepath -any,
+        bytestring -any,
+        directory >=1.3.1.0,
+        parallel-io -any,
+        lzo >=0.1.1.0,
+        unix-compat -any
+
+    if flag(with-snappy)
+        build-depends: snappy-lazy -any
+
+    if flag(with-snappy)
+        cpp-options: -DSNAPPY
+
+    if flag(with-brotli)
+        build-depends: brotli -any
+
+    if flag(with-brotli)
+        cpp-options: -DBROTLI
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
