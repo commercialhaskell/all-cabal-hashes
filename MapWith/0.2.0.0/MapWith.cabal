@@ -1,0 +1,96 @@
+name:                MapWith
+version:             0.2.0.0
+
+synopsis:            mapWith: like fmap, but with additional parameters (isFirst, isLast, etc).
+category:            Combinators
+maintainer:          dj112358@outlook.com
+
+description:         fmap over Traversables (including lists), but pass additional parameters to the map function, such as
+                     isFirst, isLast, prevElt, nextElt, index from start or end, custom params.
+                     For examples see https://github.com/davjam/MapWith/blob/master/doc/examples.hs
+homepage:            https://github.com/davjam/MapWith#readme
+
+license:             BSD3
+license-file:        LICENSE
+author:              David James
+copyright:           (c) David James, 2020.
+
+build-type:          Simple
+tested-with:         GHC==8.0.2, GHC==8.4.3, GHC==8.8.3, GHC==8.10.1
+extra-source-files:  ChangeLog.md
+                     README.md
+
+cabal-version:       >=1.10
+
+source-repository head
+  type:              git
+  location:          https://github.com/davjam/MapWith.git
+
+library
+  exposed-modules:     MapWith
+                       CurryTF
+  hs-source-dirs:      src
+  ghc-options:         -Wall
+  other-extensions:    ExistentialQuantification
+  default-language:    Haskell2010
+  build-depends:       base >= 4.9.1 && < 4.15
+
+Test-Suite test-MapWith
+  main-is:             MapWithTest.hs
+  Other-modules:       MapWith
+                       CurryTF
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      src test
+  default-language:    Haskell2010
+  build-depends:       base
+
+Test-Suite test-CurryTF
+  main-is:             CurryTFTest.hs
+  Other-modules:       CurryTF
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      src test
+  default-language:    Haskell2010
+  build-depends:       base
+
+--without -fno-prof-auto, SCCs are added to too many functions and then prevent inlining from happening (which gives bad results for uncurryN)
+--supposedly I can control this with a cabal.project file - but so far cabal doesn't seem to pick it up, and none of the options 
+--here (https://cabal.readthedocs.io/en/latest/cabal-project.html?highlight=cabal.project.local#cfg-field-profiling-detail) seem to be quite what I want.
+--So adding SCCs explicitly (per https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/profiling.html#inserting-cost-centres-by-hand)
+
+--cabal bench tuning --ghc-options="-O2 -ddump-simpl -dsuppress-all -ddump-to-file -fno-prof-auto"
+--cabal bench tuning --ghc-options="-O2 -ddump-rule-firings -fno-prof-auto"
+--cabal bench tuning --ghc-options="-O2 -fno-prof-auto" --benchmark-options="+RTS -P -hd"
+--hp2ps -e8in -c tuning.hp
+benchmark tuning
+  main-is:             Tuning.hs
+  Other-modules:       MapWith
+                       CurryTF
+  hs-source-dirs:      src perf
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base
+
+--cabal bench benchmarks --ghc-options="-O2 -funfolding-use-threshold=150 -fno-prof-auto" --benchmark-options="+RTS -p -RTS" --benchmark-option="100000000 19"
+--cabal bench benchmarks --ghc-options="-O2 -funfolding-use-threshold=150 -fno-prof-auto" --benchmark-options="+RTS -P -hd -xt -RTS" --benchmark-option="1000000 19" 
+--hp2ps -e8in -c benchmarks.hp
+benchmark benchmarks
+  main-is:             BechmarksPerf.hs
+  Other-modules:       MapWith
+                       CurryTF
+                       Benchmarks
+  hs-source-dirs:      src perf
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base
+
+--cabal bench BenchmarksSimpl --ghc-options="-O2 -ddump-simpl -dsuppress-all -ddump-to-file -fno-prof-auto"
+--cabal bench BenchmarksSimpl --ghc-options="-O2 -ddump-rule-firings -fno-prof-auto"
+benchmark BenchmarksSimpl
+  main-is:             BechmarksSimpl.hs
+  Other-modules:       MapWith
+                       CurryTF
+                       Benchmarks
+  hs-source-dirs:      src perf
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base
