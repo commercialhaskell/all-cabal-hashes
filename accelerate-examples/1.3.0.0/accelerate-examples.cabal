@@ -1,0 +1,827 @@
+name:                   accelerate-examples
+version:                1.3.0.0
+cabal-version:          >=1.10
+tested-with:            GHC >= 8.6
+build-type:             Simple
+
+synopsis:               Examples using the Accelerate library
+description:
+  Example programs using the Accelerate library. The aim is for this package to
+  evolve and be useful for both performance and regression testing.
+  .
+  Refer to the main /Accelerate/ package for more information:
+  <http://hackage.haskell.org/package/accelerate>
+  .
+
+license:                BSD3
+license-file:           LICENSE
+author:                 The Accelerate Team
+maintainer:             Trevor L. McDonell <trevor.mcdonell@gmail.com>
+homepage:               https://github.com/AccelerateHS/accelerate-examples
+bug-reports:            https://github.com/AccelerateHS/accelerate/issues
+
+category:               Accelerate
+stability:              Experimental
+
+extra-source-files:
+    README.md
+    data/matrices/README.md
+    examples/canny/README.md
+    examples/fluid/README.md
+    examples/hashcat/README.md
+    examples/kmeans/README.md
+    examples/mandelbrot/README.md
+    examples/pagerank/README.md
+    examples/ray/README.md
+
+-- Flags that control features of the benchmark programs
+--
+flag gui
+  description:          Enable gloss-based GUIs, where applicable. If not
+                        enabled, the application always runs in benchmark mode.
+  default:              True
+
+flag ekg
+  description:          Enable EKG remote monitoring server at <http://localhost:8000>
+  default:              True
+
+flag codespeed
+  description:          Enable upload of results to benchmark server
+  default:              False
+
+-- Flags that control which Accelerate backends that are linked against
+--
+flag llvm-cpu
+  description:          Enable the LLVM backend for multicore CPUs
+  default:              True
+
+flag llvm-ptx
+  description:          Enable the LLVM PTX backend for NVIDIA GPUs
+  default:              True
+
+-- Flags to specify which programs to build
+--
+flag smvm
+  description:          Sparse-matrix vector multiplication benchmark
+  default:              True
+
+flag crystal
+  description:          A visualisation of a sum of waves in a plane
+  default:              True
+
+flag tunnel
+  description:          The slit-scan effect creating a Doctor Who time vortex
+  default:              True
+
+flag canny
+  description:          Canny edge detection benchmark
+  default:              True
+
+flag mandelbrot
+  description:          A Mandelbrot fractal benchmark
+  default:              True
+
+flag julia
+  description:          An interactive julia-set simulator
+  default:              True
+
+flag fluid
+  description:          An interactive particle-based fluid simulation
+  default:              True
+
+flag nbody
+  description:          Simulation of gravitational attraction between solid particles
+  default:              True
+
+flag smoothlife
+  description:          A cellular automata simulation
+  default:              True
+
+flag hashcat
+  description:          A "password recovery" application for MD5 cracking
+  default:              True
+
+flag fft
+  description:          Simple FFT-based high/low-pass image filtering
+  default:              True
+
+flag pagerank
+  description:          Implementation of the PageRank algorithm
+  default:              True
+
+flag quicksort
+  description:          Implementation of the QuickSort algorithm
+  default:              True
+
+flag ray
+  description:          A simple real-time ray tracer
+  default:              True
+
+flag kmeans
+  description:          An implementation of k-means clustering in a plane
+  default:              True
+
+
+-- Test harness
+-- ------------
+
+library
+  default-language:     Haskell2010
+  hs-source-dirs:       lib
+  build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , ansi-wl-pprint                  >= 0.6
+        , containers                      >= 0.5
+        , criterion                       >= 1.0
+        , directory                       >= 1.1
+        , fclabels                        >= 2.0
+        , HUnit                           >= 1.2
+        , QuickCheck                      >= 2.7
+        , test-framework                  >= 0.5
+        , test-framework-hunit            >= 0.3
+        , test-framework-quickcheck2      >= 0.2
+
+  exposed-modules:
+        Data.Array.Accelerate.Examples.Internal
+
+  Other-modules:
+        Data.Array.Accelerate.Examples.Internal.Backend
+        Data.Array.Accelerate.Examples.Internal.Criterion
+        Data.Array.Accelerate.Examples.Internal.Criterion.Config
+        Data.Array.Accelerate.Examples.Internal.Interactive
+        Data.Array.Accelerate.Examples.Internal.Monitoring
+        Data.Array.Accelerate.Examples.Internal.ParseArgs
+        Data.Array.Accelerate.Examples.Internal.Report
+        Data.Array.Accelerate.Examples.Internal.TestFramework
+        Data.Array.Accelerate.Examples.Internal.TestFramework.Config
+        Data.Array.Accelerate.Examples.Internal.Util
+
+  ghc-options:          -O2 -Wall
+  ghc-prof-options:     -caf-all -auto-all
+
+  if flag(gui)
+    CPP-options:        -DACCELERATE_ENABLE_GUI
+
+  if flag(llvm-cpu)
+    CPP-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:
+        accelerate-llvm-native            >= 1.3
+
+  if flag(llvm-ptx)
+    CPP-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:
+        accelerate-llvm-ptx               >= 1.3
+
+  if flag(ekg)
+    CPP-options:        -DACCELERATE_ENABLE_EKG
+
+  if flag(codespeed)
+    CPP-options:        -DACCELERATE_ENABLE_CODESPEED
+    build-depends:
+          aeson                           >= 0.8
+        , bytestring                      >= 0.10
+        , HTTP                            >= 4000.2
+        , http-types                      >= 0.8
+        , network                         >= 2.5
+        , process                         >= 1.0
+        , statistics                      >= 0.13
+        , template-haskell                >= 2.2
+        , text                            >= 0.11
+        , time                            >= 1.4
+
+    other-modules:
+        Data.Array.Accelerate.Examples.Internal.Codespeed
+        Data.Array.Accelerate.Examples.Internal.TH
+
+
+-- Sparse matrix vector multiplication
+-- -----------------------------------
+
+executable accelerate-smvm
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/smvm
+  main-is:              Main.hs
+  other-modules:        Config Matrix SMVM
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if impl(ghc >= 7.6)
+    ghc-options:        -fsimpl-tick-factor=130
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(smvm)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , accelerate-io-vector            >= 0.1
+        , fclabels                        >= 2.0
+        , matrix-market-attoparsec        >= 0.1
+        , mwc-random                      >= 0.8
+        , scientific                      >= 0.3
+        , vector                          >= 0.7
+        , vector-algorithms               >= 0.4
+
+
+-- A quasicrystal demo as the sum of waves in a plane
+-- --------------------------------------------------
+
+executable accelerate-crystal
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/crystal
+  main-is:              Main.hs
+  other-modules:        Config
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(crystal)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , colour-accelerate               >= 0.1
+        , fclabels                        >= 2.0
+        , gloss-raster-accelerate         >= 2.0
+
+
+-- The slit-scan effect creating a Doctor Who time vortex
+-- ------------------------------------------------------
+
+executable accelerate-tunnel
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/tunnel
+  main-is:              Main.hs
+  other-modules:        Config
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(tunnel)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , fclabels                        >= 2.0
+        , gloss-raster-accelerate         >= 2.0
+        , lens-accelerate                 >= 0.1
+        , linear-accelerate               >= 0.3
+
+
+-- Image edge detection
+-- --------------------
+
+executable accelerate-canny
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/canny/src-acc
+  main-is:              Main.hs
+  other-modules:        Config Canny Wildfire
+
+  ghc-options:
+        -Wall
+        -threaded
+        -O2
+        -fmax-simplifier-iterations=20
+        -fsimplifier-phases=3
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(canny)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , accelerate-io-bmp               >= 0.1
+        , accelerate-io-repa              >= 0.1
+        , colour-accelerate               >= 0.1
+        , fclabels                        >= 2.0
+        , repa                            >= 3.1
+        , repa-io                         >= 3.1
+        , vector                          >= 0.7
+
+
+-- A simple mandelbrot generator
+-- -----------------------------
+
+executable accelerate-mandelbrot
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/mandelbrot
+  main-is:              Main.hs
+  other-modules:        Config Mandel World
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(mandelbrot)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , accelerate-io-bmp               >= 0.1
+        , colour-accelerate               >= 0.1
+        , fclabels                        >= 2.0
+        , gloss                           >= 1.7
+        , gloss-accelerate                >= 2.0
+
+
+-- A julia set generator
+-- ---------------------
+
+executable accelerate-julia
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/julia
+  main-is:              Main.hs
+  other-modules:        Config Julia Palette World
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(julia)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , colour-accelerate               >= 0.1
+        , fclabels                        >= 2.0
+        , gloss                           >= 1.7
+        , gloss-accelerate                >= 2.0
+
+
+-- A stable fluid simulation
+-- -------------------------
+
+executable accelerate-fluid
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/fluid/src-acc
+  main-is:              Main.hs
+  other-modules:        Config Event Fluid Type World
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(fluid)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , accelerate-io                   >= 1.3
+        , accelerate-io-bmp               >= 0.1
+        , bmp                             >= 1.2
+        , colour-accelerate               >= 0.1
+        , fclabels                        >= 2.0
+        , gloss                           >= 1.9
+        , gloss-rendering                 >= 1.9
+
+
+-- Simulation of gravitational attraction between solid particles
+-- --------------------------------------------------------------
+
+executable accelerate-nbody
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/n-body
+  main-is:              Main.hs
+  other-modules:
+        Common.Body
+        Common.Tree
+        Common.Type
+        Common.World
+        Config
+        Gloss.Draw
+        Gloss.Event
+        Gloss.Simulate
+        Random.Position
+        Solver.BarnsHut
+        Solver.Naive1
+        Solver.Naive2
+        Test
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(nbody)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , fclabels                        >= 2.0
+        , gloss                           >= 1.7
+        , lens-accelerate                 >= 0.1
+        , linear-accelerate               >= 0.3
+        , mwc-random                      >= 0.8
+        , mwc-random-accelerate           >= 0.1
+
+
+-- A celular automata
+-- ------------------
+
+executable accelerate-smoothlife
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/smoothlife
+  main-is:              Main.hs
+  other-modules:
+        Config
+        Gloss.Draw
+        Gloss.Event
+        Gloss.Simulate
+        Random.Splat
+        SmoothLife
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(smoothlife)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , accelerate-fft                  >= 1.3
+        , colour-accelerate               >= 0.1
+        , fclabels                        >= 2.0
+        , gloss                           >= 1.7
+        , gloss-accelerate                >= 2.0
+        , mwc-random                      >= 0.8
+        , mwc-random-accelerate           >= 0.1
+
+
+-- A "password recovery" tool
+-- --------------------------
+
+executable accelerate-hashcat
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/hashcat
+  main-is:              Main.hs
+  other-modules:        Config Digest MD5
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(hashcat)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , bytestring                      >= 0.9
+        , bytestring-lexing               >= 0.5
+        , cereal                          >= 0.3
+        , criterion                       >= 1.0
+        , criterion-measurement           >= 0.1
+        , fclabels                        >= 2.0
+        , mwc-random                      >= 0.8
+
+
+-- FFT examples
+-- ------------
+
+executable accelerate-fft
+  default-language:     Haskell2010
+  main-is:              Main.hs
+  hs-source-dirs:       examples/fft/src-acc
+  other-modules:        Config HighPass FFT
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(fft)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , accelerate-fft                  >= 1.3
+        , accelerate-io-bmp               >= 0.1
+        , colour-accelerate               >= 0.1
+        , fclabels                        >= 2.0
+        , filepath                        >= 1.0
+
+-- PageRank
+-- --------
+
+executable accelerate-pagerank
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/pagerank
+  main-is:              Main.hs
+  other-modules:
+        Config
+        Count
+        Load
+        Page
+        Progress
+        Rank
+        Step
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(pagerank)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , accelerate-io-vector            >= 0.1
+        , bytestring                      >= 0.9.2
+        , containers                      >= 0.4.2
+        , directory                       >= 1.1
+        , fclabels                        >= 1.0
+        , vector                          >= 0.9
+        , vector-algorithms               >= 0.5.4
+
+-- QuickSort
+-- ---------
+
+executable accelerate-quicksort
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/quicksort
+  main-is:              Main.hs
+  other-modules:
+        Config
+        QuickSort
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(quicksort)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , array                           >= 0.5.2
+        , fclabels                        >= 1.0
+        , random
+
+-- Ray tracer
+-- ----------
+
+executable accelerate-ray
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/ray
+  main-is:              Main.hs
+  other-modules:
+        Common.Type
+        Config
+        Gloss.Draw
+        Gloss.Event
+        Ray.Intersect
+        Ray.Trace
+        Scene.Light
+        Scene.Object
+        Scene.State
+        Scene.World
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(ray)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , colour-accelerate               >= 0.1
+        , fclabels                        >= 1.0
+        , gloss                           >= 1.8
+        , gloss-accelerate                >= 2.0
+        , gloss-raster-accelerate         >= 2.0
+        , lens-accelerate                 >= 0.1
+        , linear-accelerate               >= 0.3
+
+
+-- K-means
+-- -------
+
+executable accelerate-kmeans
+  default-language:     Haskell2010
+  hs-source-dirs:       examples/kmeans
+  main-is:              Main.hs
+  other-modules:        Config Kmeans
+
+  ghc-options:
+        -Wall
+        -threaded
+        -eventlog
+        -rtsopts
+        -with-rtsopts=-n2M
+        -with-rtsopts=-A64M
+        -with-rtsopts=-qg
+
+  ghc-prof-options:
+        -auto-all
+
+  if flag(ekg)
+    ghc-options:        -with-rtsopts=-T
+
+  if !flag(kmeans)
+    buildable:          False
+  else
+    build-depends:
+          base                            >= 4.7 && < 5
+        , accelerate                      == 1.3.*
+        , accelerate-examples
+        , binary                          >= 0.7
+        , directory                       >= 1.1
+        , fclabels                        >= 1.0
+        , normaldistribution
+        , random
+
+
+source-repository head
+  type:                 git
+  location:             https://github.com/AccelerateHS/accelerate-examples
+
+source-repository this
+  type:                 git
+  tag:                  v1.3.0.0
+  location:             https://github.com/AccelerateHS/accelerate-examples
+
+-- vim: nospell

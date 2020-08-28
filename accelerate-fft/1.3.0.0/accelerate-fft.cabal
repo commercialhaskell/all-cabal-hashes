@@ -1,0 +1,176 @@
+name:                   accelerate-fft
+version:                1.3.0.0
+cabal-version:          >= 1.10
+tested-with:            GHC >= 7.10
+build-type:             Simple
+
+synopsis:               FFT using the Accelerate library
+description:
+  Rank-polymorphic discrete Fourier transform (DFT), computed with a fast
+  Fourier transform (FFT) algorithm using the Accelerate library. Note that
+  optimised implementations are available via foreign libraries (enabled by
+  default).
+  .
+  Refer to the main /Accelerate/ package for more information:
+  <http://hackage.haskell.org/package/accelerate>
+  .
+
+license:                BSD3
+license-file:           LICENSE
+author:                 The Accelerate Team
+maintainer:             Trevor L. McDonell <trevor.mcdonell@gmail.com>
+homepage:               https://github.com/AccelerateHS/accelerate-fft
+bug-reports:            https://github.com/AccelerateHS/accelerate/issues
+
+category:               Accelerate, Math
+stability:              Experimental
+
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+flag llvm-ptx
+  Description:          Use CUFFT-based implementation in the LLVM.PTX backend
+  Default:              True
+
+flag llvm-cpu
+  Description:          Use FFTW-based implementation in the LLVM.Native backend
+  Default:              True
+
+
+library
+  build-depends:
+        base                    >= 4.9  && < 5
+      , accelerate              >= 1.3
+      , bytestring              >= 0.9
+      , lens-accelerate         >= 0.2
+
+  exposed-modules:
+      Data.Array.Accelerate.Math.FFT
+      Data.Array.Accelerate.Math.DFT
+      Data.Array.Accelerate.Math.DFT.Centre
+      Data.Array.Accelerate.Math.DFT.Roots
+
+      -- Internals
+      Data.Array.Accelerate.Math.FFT.Type
+
+  other-modules:
+      Data.Array.Accelerate.Math.FFT.Adhoc
+      Data.Array.Accelerate.Math.FFT.Mode
+
+  hs-source-dirs:       src
+  default-language:     Haskell2010
+
+  ghc-options:
+      -O2
+      -Wall
+      -funbox-strict-fields
+
+  if flag(llvm-cpu)
+    cpp-options:        -DACCELERATE_LLVM_NATIVE_BACKEND
+    build-depends:
+        accelerate-llvm         >= 1.3
+      , accelerate-llvm-native  >= 1.3
+      , carray                  >= 0.1.5
+      , fft                     >= 0.1.8
+
+    other-modules:
+      Data.Array.Accelerate.Math.FFT.LLVM.Native
+      Data.Array.Accelerate.Math.FFT.LLVM.Native.Base
+      Data.Array.Accelerate.Math.FFT.LLVM.Native.Ix
+
+  if flag(llvm-ptx)
+    cpp-options:        -DACCELERATE_LLVM_PTX_BACKEND
+    build-depends:
+        accelerate-llvm         >= 1.3
+      , accelerate-llvm-ptx     >= 1.3
+      , containers              >= 0.5
+      , hashable                >= 1.0
+      , unordered-containers    >= 0.2
+      , cuda                    >= 0.5
+      , cufft                   >= 0.9
+      , file-embed              >= 0.0.10
+      , mtl                     >= 2.2
+
+    other-modules:
+      Data.Array.Accelerate.Math.FFT.LLVM.PTX
+      Data.Array.Accelerate.Math.FFT.LLVM.PTX.Base
+      Data.Array.Accelerate.Math.FFT.LLVM.PTX.Plans
+
+  -- Don't add the extensions list here. Instead, place individual LANGUAGE
+  -- pragmas in the files that require a specific extension. This means the
+  -- project loads in GHCi, and avoids extension clashes.
+  --
+  -- Extensions:
+
+
+test-suite test-llvm-native
+  type:                 exitcode-stdio-1.0
+  default-language:     Haskell2010
+  hs-source-dirs:       test
+  main-is:              TestNative.hs
+  ghc-options:          -main-is TestNative
+
+  if !flag(llvm-cpu)
+    buildable: False
+
+  build-depends:
+        base                    >= 4.9  && < 5
+      , accelerate
+      , accelerate-fft
+      , accelerate-llvm-native
+      , hedgehog                >= 0.5
+      , tasty                   >= 0.11
+      , tasty-hedgehog          >= 0.1
+
+  ghc-options:
+        -Wall
+        -threaded
+        -rtsopts
+
+  other-modules:
+      Test.FFT
+      Test.Base
+      Test.ShowType
+
+
+test-suite test-llvm-ptx
+  type:                 exitcode-stdio-1.0
+  default-language:     Haskell2010
+  hs-source-dirs:       test
+  main-is:              TestPTX.hs
+  ghc-options:          -main-is TestPTX
+
+  if !flag(llvm-ptx)
+    buildable: False
+
+  build-depends:
+        base                    >= 4.9  && < 5
+      , accelerate
+      , accelerate-fft
+      , accelerate-llvm-ptx
+      , hedgehog                >= 0.5
+      , tasty                   >= 0.11
+      , tasty-hedgehog          >= 0.1
+
+  ghc-options:
+        -Wall
+        -threaded
+        -rtsopts
+
+  other-modules:
+      Test.FFT
+      Test.Base
+      Test.ShowType
+
+
+source-repository head
+  type:                 git
+  location:             git://github.com/AccelerateHS/accelerate-fft.git
+
+source-repository this
+  type:                 git
+  tag:                  v1.3.0.0
+  location:             git://github.com/AccelerateHS/accelerate-fft.git
+
+-- vim: nospell
