@@ -1,0 +1,86 @@
+name:                primal
+version:             0.1.0.0
+synopsis:            Primeval world of Haskell.
+description:         Please see the README on GitHub at <https://github.com/lehins/primal#readme>
+homepage:            https://github.com/lehins/primal
+license:             BSD3
+license-file:        LICENSE
+author:              Alexey Kuleshevich
+maintainer:          alexey@kuleshevi.ch
+copyright:           2020 Alexey Kuleshevich
+category:            Algorithms
+build-type:          Simple
+extra-source-files:  README.md
+                   , CHANGELOG.md
+cabal-version:       1.18
+tested-with:         GHC == 8.4.3
+                   , GHC == 8.4.4
+                   , GHC == 8.6.3
+                   , GHC == 8.6.4
+                   , GHC == 8.6.5
+                   , GHC == 8.8.1
+                   , GHC == 8.8.2
+                   , GHC == 8.10.1
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Control.Prim.Concurrent
+                     , Control.Prim.Eval
+                     , Control.Prim.Exception
+                     , Control.Prim.Monad
+                     , Control.Prim.Monad.Throw
+                     , Control.Prim.Monad.Unsafe
+                     , Data.Prim
+                     , Data.Prim.Atom
+                     , Data.Prim.Atomic
+                     , Data.Prim.Class
+                     , Data.Prim.StableName
+                     , Foreign.Prim
+                     , Foreign.Prim.Ptr
+                     , Foreign.Prim.StablePtr
+                     , Foreign.Prim.WeakPtr
+
+  other-modules:       Control.Prim.Monad.Internal
+                     , Foreign.Prim.C
+                     , Foreign.Prim.C.Atomic
+                     , Foreign.Prim.C.LtGHC802
+                     , Foreign.Prim.C.LtGHC806
+                     , Foreign.Prim.Cmm
+  build-depends:       base >= 4.8 && < 5
+                     , deepseq
+                     , transformers
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  c-sources: cbits/primal.c
+           , cbits/primal_atomic.c
+           , cbits/primal_stg.cmm
+  cc-options: -Wno-sync-nand
+  if impl(ghc < 8.6)
+     c-sources: cbits/primal_compat.c
+     if impl(ghc < 8.4)
+        build-depends: ghc-prim
+        if impl(ghc < 8.2)
+           include-dirs: cbits
+           install-includes: primal_compat.h
+  if !os(solaris)
+      cc-options: -ftree-vectorize
+  if arch(i386) || arch(x86_64)
+      cc-options: -msse2
+
+test-suite doctests
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   tests
+  main-is:          doctests.hs
+  build-depends: base
+               , doctest >=0.15
+               , primal
+               , template-haskell
+  default-language:    Haskell2010
+  ghc-options:        -Wall
+                      -threaded
+
+
+source-repository head
+  type:     git
+  location: https://github.com/lehins/primal
