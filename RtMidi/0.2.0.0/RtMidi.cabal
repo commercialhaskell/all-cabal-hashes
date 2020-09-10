@@ -1,0 +1,120 @@
+name:                RtMidi
+version:             0.2.0.0
+synopsis:            Haskell wrapper for RtMidi, the lightweight, cross-platform MIDI I/O library.
+description:         Please see the README on GitHub at <https://github.com/riottracker/RtMidi#readme>
+category:            Sound
+build-type:          Simple
+author:              kohlrabi, Eric Conlon
+license-file:        LICENSE
+homepage:            https://github.com/riottracker/RtMidi
+maintainer:          ejconlon@gmail.com
+extra-source-files:  README.md
+                     rtmidi/rtmidi_c.h
+                     rtmidi/RtMidi.h
+                     examples/callback.hs
+                     examples/playback.hs
+                     examples/poll.hs
+                     examples/query.hs
+cabal-version:       >=1.10
+license:             MIT
+
+Flag alsa {
+  Description:  Enable ALSA sequencer api
+  Default:      True
+}
+
+Flag jack {
+  Description:  Enable JACK api
+  Default:      False
+}
+
+Flag core {
+  Description:  Enable CoreMIDI api
+  Default:      True
+}
+
+-- TODO(ejconlon) Add windows support
+-- Flag mm {
+--   Description:  Enable Windows Multimedia Library api
+--   Default:      False
+-- }
+
+
+library
+  exposed-modules:     Sound.RtMidi
+  other-modules:       Sound.RtMidi.Foreign
+  build-depends:       base >=4.9 && <4.15
+                     , unliftio-core >= 0.1.2.0 && < 1
+  default-language:    Haskell2010
+  include-dirs:        rtmidi
+  extra-libraries:     stdc++
+  c-sources:           rtmidi/RtMidi.cpp
+                       rtmidi/rtmidi_c.cpp
+  if flag(alsa) && os(linux)
+    cc-options:       -D__LINUX_ALSA__
+    extra-libraries:  asound pthread
+  if flag(jack) && (os(linux) || os(darwin))
+    cc-options:       -D__UNIX_JACK__
+    extra-libraries:  jack
+  if flag(core) && os(darwin)
+    cc-options:       -D__MACOSX_CORE__
+    frameworks:       CoreMIDI CoreAudio CoreFoundation
+    -- NOTE(ejconlon) This is to make the c ffi wrapper actually catch
+    -- the c++ exceptions instead of simply aborting.
+    -- Cribbed from https://github.com/fpco/inline-c/pull/89
+    -- avoid https://gitlab.haskell.org/ghc/ghc/issues/11829
+    ld-options:        -Wl,-keep_dwarf_unwind
+    ghc-options:       -pgmc=clang++
+  -- TODO(ejconlon) Add windows support
+
+executable rtmidi-callback
+  main-is:            callback.hs
+  hs-source-dirs:     examples
+  build-depends:
+      base
+    , RtMidi
+  default-language:   Haskell2010
+  ghc-options: -threaded -rtsopts
+
+executable rtmidi-playback
+  main-is:            playback.hs
+  hs-source-dirs:     examples
+  build-depends:
+      base
+    , RtMidi
+  default-language:   Haskell2010
+  ghc-options: -threaded -rtsopts
+
+executable rtmidi-poll
+  main-is:            poll.hs
+  hs-source-dirs:     examples
+  build-depends:
+      base
+    , RtMidi
+  default-language:   Haskell2010
+  ghc-options: -threaded -rtsopts
+
+executable rtmidi-query
+  main-is:            query.hs
+  hs-source-dirs:     examples
+  build-depends:
+      base
+    , RtMidi
+  default-language:   Haskell2010
+  ghc-options: -threaded -rtsopts
+
+test-suite rtmidi-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test
+  build-depends:
+      base
+    , RtMidi
+    , tasty >= 1.2.3 && < 2
+    , tasty-hunit >= 0.10.0.2 && < 1
+  default-language:   Haskell2010
+  ghc-options: -threaded -rtsopts
+
+source-repository head
+  type:     git
+  location: https://github.com/riottracker/RtMidi
