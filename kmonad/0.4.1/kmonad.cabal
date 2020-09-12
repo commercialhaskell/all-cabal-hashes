@@ -1,0 +1,103 @@
+cabal-version:      2.2
+name:               kmonad
+version:            0.4.1
+license:            MIT
+license-file:       LICENSE
+maintainer:         janssen.dhj@gmail.com
+author:             David Janssen
+synopsis:           Advanced keyboard remapping utility
+description:
+    KMonad is a cross-platform command-line utility that runs as a daemon. It
+    captures keyboard input (exactly how depends on the OS) and remaps it. The
+    mapping is highly configurable, and provides options like (transparent) layer
+    overlays, tap-mod buttons, multi-tap buttons, leader-key style buttons, and
+    keyboard macros. Functionality heavily inspired by the QMK-firmware.
+
+category:           Application
+build-type:         Simple
+extra-source-files: changelog.md
+
+library
+    exposed-modules:
+        Data.LayerStack
+        Data.MultiMap
+        KMonad.Action
+        KMonad.App
+        KMonad.App.BEnv
+        KMonad.App.Dispatch
+        KMonad.App.Hooks
+        KMonad.App.Keymap
+        KMonad.App.Sluice
+        KMonad.Args
+        KMonad.Args.Cmd
+        KMonad.Args.Parser
+        KMonad.Args.Joiner
+        KMonad.Args.Types
+        KMonad.Button
+        KMonad.Keyboard
+        KMonad.Keyboard.Keycode
+        KMonad.Keyboard.ComposeSeq
+        KMonad.Keyboard.IO
+        KMonad.Prelude
+        KMonad.Util
+
+    hs-source-dirs:     src
+    default-language:   Haskell2010
+    default-extensions:
+        ConstraintKinds DeriveFunctor DeriveGeneric DeriveTraversable
+        FlexibleContexts FlexibleInstances FunctionalDependencies
+        GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses
+        MultiWayIf NoImplicitPrelude OverloadedStrings RankNTypes
+        TemplateHaskell TupleSections TypeFamilies
+
+    ghc-options:        -Wall -Wno-name-shadowing -Wno-unused-imports
+    build-depends:
+        base >=4.12.0.0 && <4.13,
+        cereal >=0.5.8.1 && <0.6,
+        lens >=4.17.1 && <4.18,
+        megaparsec >=7.0.5 && <7.1,
+        mtl >=2.2.2 && <2.3,
+        optparse-applicative >=0.14.3.0 && <0.15,
+        resourcet >=1.2.2 && <1.3,
+        rio >=0.1.14.0 && <0.2,
+        time >=1.8.0.2 && <1.9,
+        unliftio >=0.2.12 && <0.3
+
+    if os(linux)
+        exposed-modules:
+            KMonad.Keyboard.IO.Linux.DeviceSource
+            KMonad.Keyboard.IO.Linux.Types
+            KMonad.Keyboard.IO.Linux.UinputSink
+
+        c-sources:       c_src/keyio.c
+        build-depends:   unix >=2.7.2.2 && <2.8
+
+    if os(windows)
+        exposed-modules:
+            KMonad.Keyboard.IO.Windows.LowLevelHookSource
+            KMonad.Keyboard.IO.Windows.SendEventSink
+            KMonad.Keyboard.IO.Windows.Types
+
+        c-sources:       c_src/keyio_win.c
+        build-depends:   Win32 >=2.6.1.0 && <2.7
+
+    if os(osx)
+        exposed-modules:
+            KMonad.Keyboard.IO.Mac.IOKitSource
+            KMonad.Keyboard.IO.Mac.KextSink
+            KMonad.Keyboard.IO.Mac.Types
+
+        cxx-options:     -std=c++14
+        frameworks:      CoreFoundation IOKit
+        cxx-sources:     c_src/mac/keyio_mac.cpp
+        extra-libraries: c++
+        build-depends:   unix >=2.7.2.2 && <2.8
+
+executable kmonad
+    main-is:          Main.hs
+    hs-source-dirs:   app
+    default-language: Haskell2010
+    ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+    build-depends:
+        base >=4.12.0.0 && <4.13,
+        kmonad -any
