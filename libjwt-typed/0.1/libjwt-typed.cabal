@@ -1,0 +1,171 @@
+cabal-version:       2.4
+name:                libjwt-typed
+version:             0.1
+synopsis:            A Haskell implementation of JSON Web Token (JWT)
+description:         A Haskell implementation of JSON Web Token (JWT)
+                     .
+                     = Key features
+                     .
+                     == Type-safety
+                     .
+                     Above Haskell standard type-safety, the library keeps track of public and private claim names and types. There are no user-facing @HashMap@s in this library! 
+                     A type of a JWT token might be: @Jwt '["user_name" ->> Text, "is_root" ->> Bool, "user_id" ->> UUID, "created" ->> UTCTime, "accounts" ->> NonEmpty (UUID, Text)] ('SomeNs "https://example.com")@.
+
+                     From information encoded with precise types, it automatically derives encoders and decoders. It can also work with generic representations such as records.
+                     .
+                     == Speed and robustness
+                     .
+                     @libjwt-typed@ uses [libjwt](https://github.com/benmcollins/libjwt) for low-level functionality. @libjwt@ delegates cryptographic work to either @GnuTLS@ or @OpenSSL@.
+                     This way, not only the most performance-sensitive features work lightning fast, they are also extremely reliable.
+                     Besides, the library does not depend on any JSON library like @aeson@, but it implements the necessary JSON processing in C via [jsmn](https://github.com/zserge/jsmn) - which makes it even faster. Benchmarking shows that it can be over 10 times faster than other Haskell JWT libraries.
+                     .
+                     == Ease of use
+                     .
+                     The library is designed for frictionless use.
+                     It can be easily extended, e.g. to add support for new types or to use custom JSON encodings compatible with other libraries you may already use in your project. Most instances can be derived automatically.
+                     The compilation errors are designed to be informational, i.e. you get @Claim "user_name" does not exist in this claim set@ from GHC, not some 3 page long instance resolution output.
+                     .
+                     = Installation
+                     .
+                     You must have [libjwt](https://github.com/benmcollins/libjwt) (preferrably the latest version) installed on your system and visible to the linker.
+                     .
+                     @libjwt-typed@ links to it at compile time. 
+                     You can configure @libjwt@ with @GnuTLS@ or @OpenSSL@
+                     .
+                     Please see the full [README](https://github.com/marcin-rzeznicki/libjwt-typed) or browse the docs for more details.
+homepage:            https://github.com/marcin-rzeznicki/libjwt-typed
+bug-reports:         https://github.com/marcin-rzeznicki/libjwt-typed/issues
+license:             MPL-2.0
+license-files:       LICENSE
+                     src/cbits/jsmn/LICENSE
+author:              Marcin Rzeźnicki
+maintainer:          Marcin Rzeźnicki <marcin.rzeznicki@gmail.com>
+copyright:           2020 Marcin Rzeźnicki
+category:            Web
+build-type:          Simple
+extra-source-files:  src/cbits/jsmn/jsmn.h
+                     src/cbits/jsmn/Makefile
+extra-doc-files:     README.md
+                     CHANGELOG.md
+tested-with:         GHC == 8.8.3
+                     GHC == 8.10.1
+
+source-repository head
+  type:                git
+  location:            https://github.com/marcin-rzeznicki/libjwt-typed.git
+
+common common-options
+  build-depends:       base >= 4.13.0.0 && < 4.15,
+                       bytestring ^>= 0.10.10.0,
+                       exceptions ==0.10.4,
+                       either ^>= 5.0.1.1,
+                       transformers ^>= 0.5.6.2,
+                       uuid >= 1.3,
+                       text >= 1.2.3.2 && < 1.2.5,
+                       time >=1.9 && < 1.10,
+                       monad-time ==0.3.*,
+                       data-default >= 0.2 && < 1.0,
+                       extra ^>= 1.7,
+  
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -fdefer-typed-holes
+  if impl(ghc >= 8.0)
+    ghc-options:       -Wredundant-constraints
+  if impl(ghc >= 8.2)
+    ghc-options:       -fhide-source-paths
+  if impl(ghc >= 8.4)
+    ghc-options:       -Wmissing-export-lists
+                       -Wpartial-fields
+  if impl(ghc >= 8.8)
+    ghc-options:       -Wmissing-deriving-strategies
+
+  default-language:    Haskell2010
+
+library
+  import:              common-options
+  hs-source-dirs:      src
+  build-depends:       unordered-containers ^>= 0.2.10.0,
+                       utf8-string ^>= 1.0.1.1,
+                       proxied ==0.3.*,
+                       casing ^>= 0.1.4.1,
+                       case-insensitive >= 1.2.0.0
+  exposed-modules:     Web.Libjwt
+                       Libjwt.Jwt
+                       Libjwt.Exceptions
+                       Libjwt.Header
+                       Libjwt.RegisteredClaims
+                       Libjwt.Payload
+                       Libjwt.JwtValidation
+                       Libjwt.ASCII
+                       Libjwt.NumericDate
+                       Libjwt.Flag
+                       Libjwt.PrivateClaims
+                       Libjwt.Classes
+                       Libjwt.Encoding
+                       Libjwt.Decoding
+                       Libjwt.Keys
+                       Libjwt.JsonByteString
+                       Libjwt.FFI.Jwt
+  other-modules:       Libjwt.FFI.Jsmn
+                       Libjwt.FFI.Libjwt
+                       Web.Libjwt.Tutorial
+  cc-options:          -DJSMN_STATIC 
+                       -DJSMN_PARENT_LINKS 
+                       -DJSMN_STRICT 
+                       -march=native 
+                       -mtune=native 
+                       -O2 
+                       -fno-plt
+  include-dirs:        src/cbits/jsmn
+  c-sources:           src/cbits/HsJsonTokenizer.c
+  extra-libraries:     jwt
+
+test-suite libjwt-typed-test
+  import:              common-options
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  other-modules:       Env
+                       Generators
+                       Properties
+                       Interop.JWTHelpers
+                       Interop.JWTEncoding
+                       Interop.JWTDecoding
+  build-depends:       libjwt-typed,
+                       jwt >= 0.10.0,
+                       containers,
+                       aeson,
+                       hspec ==2.7.*,
+                       hspec-core ==2.7.*,
+                       QuickCheck >= 2.13.2 && < 2.15,
+                       quickcheck-instances >= 0.3.14
+  ghc-options:         -threaded
+                       -rtsopts
+                       "-with-rtsopts=-N -A64m -n4m -ki2k"
+
+benchmark libjwt-typed-benchmark
+  import:              common-options
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      bench
+  main-is:             Benchmarks.hs
+  other-modules:       Env
+                       Algorithms
+                       Benchmarks.Libjwt
+                       Benchmarks.Jose
+                       Benchmarks.Data
+  build-depends:       libjwt-typed,
+                       criterion,
+                       QuickCheck >= 2.13.2 && < 2.15,
+                       jose >= 0.8.3,
+                       lens,
+                       aeson,
+                       unordered-containers,
+                       deepseq >= 1.4.4.0
+  ghc-options:         -O2
+                       -threaded
+                       -rtsopts
+                       "-with-rtsopts=-N -s -ki2k -A512m -n32m"
