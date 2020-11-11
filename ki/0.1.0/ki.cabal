@@ -1,0 +1,153 @@
+cabal-version: 3.0
+
+author: Mitchell Rosen
+bug-reports: https://github.com/mitchellwrosen/ki/issues
+category: Concurrency
+copyright: Copyright (C) 2020 Mitchell Rosen
+homepage: https://github.com/mitchellwrosen/ki
+license: BSD-3-Clause
+license-file: LICENSE
+maintainer: Mitchell Rosen <mitchellwrosen@gmail.com>
+name: ki
+stability: experimental
+synopsis: A lightweight, structured concurrency library
+version: 0.1.0
+
+description:
+  A lightweight, structured-concurrency library.
+
+  This package comes in two variants:
+
+  * "Ki" exposes the most stripped-down variant; start here.
+
+  * "Ki.Implicit" extends "Ki" with an implicit context that's used to
+    propagate soft cancellation signals.
+
+      Using this variant comes at a cost:
+
+        * You must manually add constraints to propagate the implicit context to
+          where it's needed.
+
+        * To remain warning-free, you must delete the implicit context constraints
+          where they are no longer needed.
+
+    If you don't need soft-cancellation, there is no benefit to using this
+    variant, and you should stick with "Ki".
+
+  Because you'll only ever need one variant at a time, I recommend using a
+  <https://www.haskell.org/cabal/users-guide/developing-packages.html#pkg-field-mixins mixin stanza>
+  to rename one module to @Ki@ while hiding the others. This also simplifies the
+  process of upgrading from "Ki.Implicit" to "Ki" if necessary.
+
+  @
+  mixins: ki (Ki.Implicit as Ki)
+  @
+
+extra-source-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type: git
+  location: https://github.com/mitchellwrosen/ki.git
+
+common component
+  default-extensions:
+    AllowAmbiguousTypes
+    BlockArguments
+    ConstraintKinds
+    DeriveAnyClass
+    DeriveDataTypeable
+    DeriveFunctor
+    DeriveGeneric
+    DerivingStrategies
+    DuplicateRecordFields
+    ExistentialQuantification
+    GeneralizedNewtypeDeriving
+    ImplicitParams
+    LambdaCase
+    NamedFieldPuns
+    NoImplicitPrelude
+    RankNTypes
+    RoleAnnotations
+    ScopedTypeVariables
+    ViewPatterns
+  default-language: Haskell2010
+  ghc-options:
+    -Weverything
+    -Wno-all-missed-specialisations
+    -Wno-implicit-prelude
+    -Wno-missed-specialisations
+    -Wno-missing-import-lists
+    -Wno-safe
+    -Wno-unsafe
+  if impl(ghc >= 8.10)
+    ghc-options:
+      -Wno-missing-safe-haskell-mode
+      -Wno-prepositive-qualified-module
+
+flag test
+  description: Internal flag used by DejaFu test suite
+  default: False
+  manual: True
+
+library
+  import: component
+  build-depends:
+    base >= 4.12.0.0 && < 4.15,
+    containers,
+    stm,
+  exposed-modules:
+    Ki,
+    Ki.Implicit,
+    Ki.Internal,
+  hs-source-dirs: src
+  other-modules:
+    Ki.CancelToken
+    Ki.Concurrency
+    Ki.Context
+    Ki.Ctx
+    Ki.Debug
+    Ki.Duration
+    Ki.Prelude
+    Ki.Scope
+    Ki.ScopeClosing
+    Ki.Thread
+    Ki.ThreadFailed
+    Ki.Timeout
+  if flag(test)
+    build-depends:
+      concurrency ^>= 1.11.0.0,
+      dejafu ^>= 2.4.0.0,
+    cpp-options: -DTEST
+  else
+    build-depends:
+      atomic-primops,
+
+test-suite dejafu-tests
+  import: component
+  build-depends:
+    base,
+    concurrency,
+    dejafu,
+    ki,
+  ghc-options: -rtsopts -threaded
+  hs-source-dirs: test/dejafu-tests
+  main-is: DejaFuTests.hs
+  other-modules:
+    DejaFuTestUtils
+  type: exitcode-stdio-1.0
+
+test-suite unit-tests
+  import: component
+  build-depends:
+    base,
+    ki,
+    stm,
+  ghc-options: -rtsopts -threaded
+  hs-source-dirs: test/unit-tests
+  main-is: Tests.hs
+  other-modules:
+    TestUtils
+  type: exitcode-stdio-1.0
+
