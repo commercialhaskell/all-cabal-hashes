@@ -1,0 +1,142 @@
+Cabal-Version:       2.4
+Name:                mutable-lens
+Version:             0.4.1.0
+Synopsis:            Interoperate mutable references with regular lens
+Description:
+  Use mutable references as lens, compose them with other lens, and run them.
+  .
+  You may have heard of lens being described as "functional" or "first-class"
+  references, with some nice properties such as composition. However the
+  equivalence is more than just abstract - mutable references can be readily
+  converted into lens form, interoperable with other pure lens. This makes use
+  of the fact that "mutability" in a high-level language focusing on purity, is
+  really just an alias for a pure state monad that is treated specially by the
+  runtime system. A mutable reference over a value of type @a@ with world state
+  of type @s@, *is* therefore an actual @Lens s s a a@. There is no need for
+  handwaving or connotative language, the isomorphism is direct and concrete.
+  .
+  This package demonstrates this isomorphism, converting between the two forms.
+  You then have access to the whole of the lens ecosystem and its compositional
+  properties, and use them with mutable references without other special-cased
+  shims or mutable-specific abstractions.
+  .
+  Uniformity of API is another major benefit - if you want to switch to a
+  different reference type, you only have to change your type definitions and
+  imports, you don't have to change all @readSomeVar@ to @readOtherVar@,
+  @writeSomeVar@ to @writeOtherVar@, or was it @putOtherVar@, and does the
+  @atomicModifyVar@ function take a @s -> (a, s)@ or a @s -> (s, a)@ again?
+  .
+  A word of warning: this package has not been optimised for performance, and
+  currently only supports GHC. We would certainly welcome contributions in
+  these areas, if you are interested in running this code in production. On the
+  other hand for what it's worth, our initial benchmarks suggest that the
+  performance degradation is not signficant - ~13% with -O2 in a program that
+  reads and writes to references and does no other useful work. In a real
+  program that does other useful work, this number will be smaller.
+  .
+  See unit tests for example usage, e.g.
+  <https://github.com/infinity0/hs-mutable-lens/tree/master/test/Control/Lens/MutableTest.hs MutableTest>
+Homepage:            https://github.com/infinity0/hs-mutable-lens
+Bug-Reports:         https://github.com/infinity0/hs-mutable-lens/issues
+License:             Apache-2.0
+License-File:        LICENSE.Apache-2
+Author:              Ximin Luo
+Maintainer:          infinity0@pwned.gg
+Copyright:           2020 Ximin Luo
+category:            Data, Lenses, Generics
+Tested-With:         GHC >= 8.10.1
+Extra-Source-Files:  CHANGELOG.md
+
+Source-Repository head
+  Type: git
+  Location: https://github.com/infinity0/hs-mutable-lens
+
+Flag dev
+  Description:
+    Set compile flags for development.
+  Default:     False
+  Manual:      True
+
+Flag release
+  Description:
+    Set compile flags for release-checking. Users don't need this.
+  Default:     False
+  Manual:      True
+
+Common generic
+  Default-Language: Haskell2010
+  Build-Depends: base >= 4 && < 5,
+  GHC-Options:
+    -Wall
+    -Wcompat
+    -Wno-unused-matches
+    -Wredundant-constraints
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wunused-packages
+  if flag(dev)
+    GHC-Options:
+      -O2
+    -- some optimisations cause memory leaks; switch on -O2 and profiling so we
+    -- can detect this during development so it doesn't cause surprises later
+    GHC-Prof-Options:
+    -- note: adding -fprof-auto gives unfair benchmark results with profiling,
+    -- since many more SCCs are added for our code than for GHC native refs.
+  if flag(release)
+    GHC-Options:
+      -Werror
+
+Common executable
+  GHC-Options:
+    -threaded
+  if flag(dev)
+    GHC-Options:
+      -rtsopts
+
+Library
+  Import: generic
+  Build-Depends:
+      base >=4.12.0.0 && <5
+    , lens
+    , primitive
+    , stm
+  HS-Source-Dirs: src
+  Exposed-Modules:
+      Control.Lens.Mutable
+    , Control.Lens.Mutable.Internal
+    , Control.Lens.Mutable.Types
+
+Test-Suite doctests
+  Import: generic, executable
+  Build-Depends:
+      doctest
+  HS-Source-Dirs: test
+  Type: exitcode-stdio-1.0
+  Main-Is: DocTests.hs
+
+Test-Suite unit
+  Import: generic, executable
+  Build-Depends:
+      tasty
+    , tasty-hunit
+    , containers
+    , lens
+    , mutable-lens
+    , primitive
+    , stm
+    , transformers
+  HS-Source-Dirs: test
+  Type: exitcode-stdio-1.0
+  Main-Is: UnitTests.hs
+  Other-Modules:
+      Control.Lens.MutableTest
+
+Benchmark basic-benchmark
+  Import: generic, executable
+  Build-Depends:
+      mutable-lens
+    , extra >= 1.7
+    , primitive
+  HS-Source-Dirs: test
+  Type: exitcode-stdio-1.0
+  Main-Is: BasicBenchmark.hs
