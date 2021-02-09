@@ -1,0 +1,141 @@
+cabal-version: 3.0
+name:          generic-labels
+version:       0.1.0.1
+author:        Sam Derbyshire
+maintainer:    Sam Derbyshire
+build-type:    Simple
+license:       BSD-3-Clause
+homepage:      https://github.com/sheaf/generic-labels
+bug-reports:   https://github.com/sheaf/generic-labels/issues
+category:      Data, Generics, Records
+extra-source-files:
+  changelog.md
+
+synopsis: Generically extract and replace collections of record fields
+
+description:
+
+  Handle various conversion operations between record types,
+  such as projecting out a collection of fields from a record,
+  or plugging in values for a subset of the fields of a larger record.
+
+  Works both with built-in Haskell records, as well as explicitly labelled types
+  @ ( #label := value ) :: ( "label" := Type ) @.
+
+  Project out a smaller record using @project@:
+  
+  @
+    data IBXD x = IBXD { i :: Int, b :: Bool, x :: x, d :: Double }
+      deriving stock Generic
+    data XI x = XI { x :: c, i :: Int }
+      deriving stock Generic
+  @
+  
+  Plug in a subset of fields using @inject@:
+
+  @
+    xi_into_ibxd :: XI x -> IBXD x -> IBXD x
+    xi_into_ibxd = inject
+  @
+  
+  Create a record out of two collections of arguments using @adapt@:
+  
+  @
+    xi_plus_bd_makes_ibxd :: XI x -> ( "b" := Bool, "d" := Double ) -> IBXD x
+    xi_plus_bd_makes_ibxd = adapt
+  @
+
+  See also the library's [readme](https://github.com/sheaf/generic-labels/blob/master/readme.md).
+
+source-repository head
+  type:     git
+  location: git://github.com/sheaf/generic-labels
+
+common common
+
+  build-depends:
+    base
+      >= 4.14 && < 4.17
+
+  default-language:
+    Haskell2010
+
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wno-unticked-promoted-constructors
+
+  default-extensions:
+    DataKinds
+    DerivingStrategies
+    FlexibleContexts
+    FlexibleInstances
+    FunctionalDependencies
+    NoStarIsType
+    PatternSynonyms
+    PolyKinds
+    ScopedTypeVariables
+    --StandaloneKindSignatures -- currently unsupported by hackage
+    TypeApplications
+    TypeFamilyDependencies
+    TypeOperators
+
+common generic-lens-core
+
+  build-depends:
+    generic-lens-core
+      >= 2.0 && < 2.2
+
+library
+
+  import:
+    common, generic-lens-core
+
+  hs-source-dirs:
+    src
+
+  exposed-modules:
+    Data.Generic.Labels
+    Data.Generic.Labels.Internal
+    Data.Generic.Labels.Internal.Errors
+    Data.Label
+
+  other-modules:
+    Data.Type.Error
+    Data.Type.List
+    Data.Type.Maybe
+    Data.Type.Multiplicity
+
+test-suite generic-labels-test
+
+  import:
+    common
+
+  type:
+    detailed-0.9
+
+  build-depends:
+    , generic-labels
+    , Cabal
+        >= 3.0 && < 3.5
+    , inspection-testing
+        >= 0.4 && < 0.5
+
+  hs-source-dirs:
+    test
+
+  test-module:
+    Inspection
+
+  other-modules:
+    ShouldCompile.Adapt.RRR
+    ShouldCompile.Adapt.TTR
+    ShouldCompile.Adapt.TTT
+    ShouldCompile.Adapt.SingletonArg
+    ShouldCompile.Adapt.SingletonArgOpt
+    ShouldCompile.Adapt.SingletonOpt
+    ShouldCompile.Inject.Basic
+    ShouldCompile.Project.Basic
+    ShouldCompile.Project.PolymorphicR
+    ShouldCompile.Project.PolymorphicT
+
