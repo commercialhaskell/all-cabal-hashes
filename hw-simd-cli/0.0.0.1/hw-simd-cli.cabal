@@ -1,0 +1,140 @@
+cabal-version: 2.2
+
+name:                   hw-simd-cli
+version:                0.0.0.1
+synopsis:               SIMD library
+description:            Please see the README on Github at <https://github.com/haskell-works/hw-simd-cli#readme>
+category:               Data, Bit, SIMD
+homepage:               https://github.com/haskell-works/hw-simd-cli#readme
+bug-reports:            https://github.com/haskell-works/hw-simd-cli/issues
+author:                 John Ky
+maintainer:             newhoggy@gmail.com
+copyright:              2018-2020 John Ky
+license:                BSD-3-Clause
+license-file:           LICENSE
+tested-with:            GHC == 8.10.2, GHC == 8.8.3, GHC == 8.6.5, GHC == 8.4.4
+build-type:             Simple
+extra-source-files:     ChangeLog.md
+                        README.md
+
+source-repository head
+  type: git
+  location: https://github.com/haskell-works/hw-simd-cli
+
+flag avx2
+  description: Enable avx2 instruction set
+  manual: False
+  default: False
+
+flag bmi2
+  description: Enable bmi2 instruction set
+  manual: False
+  default: False
+
+flag sse42
+  description: Enable SSE 4.2 optimisations.
+  manual: False
+  default: True
+
+common base                       { build-depends: base                       >= 4.11       && < 5      }
+
+common bits-extra               { build-depends: bits-extra                   >= 0.0.1.2    && < 0.1    }
+common bytestring               { build-depends: bytestring                   >= 0.10       && < 0.11   }
+common containers               { build-depends: containers                                             }
+common deepseq                  { build-depends: deepseq                      >= 1.4        && < 1.5    }
+common directory                { build-depends: directory                    >= 1.2        && < 1.4    }
+common doctest                  { build-depends: doctest                      >= 0.16.2     && < 0.19   }
+common doctest-discover         { build-depends: doctest-discover             >= 0.2        && < 0.3    }
+common generic-lens             { build-depends: generic-lens                 >= 1.2        && < 2.1    }
+common hw-bits                  { build-depends: hw-bits                      >= 0.7.0.2    && < 0.8    }
+common hw-prim                  { build-depends: hw-prim                      >= 0.6.2.8    && < 0.7    }
+common hw-rankselect-base       { build-depends: hw-rankselect-base           >= 0.3.2      && < 0.4    }
+common hw-simd                  { build-depends: hw-simd                      >= 0.1.0.0    && < 0.2    }
+common hw-simd-cli              { build-depends: hw-simd-cli                                            }
+common lens                     { build-depends: lens                                                   }
+common mmap                     { build-depends: mmap                         >= 0.5.9      && < 0.6    }
+common mtl                      { build-depends: mtl                                                    }
+common optparse-applicative     { build-depends: optparse-applicative                                   }
+common resourcet                { build-depends: resourcet                                              }
+common transformers             { build-depends: transformers                 >= 0.4        && < 0.6    }
+common vector                   { build-depends: vector                       >= 0.12.0.1   && < 0.13   }
+
+common config
+  ghc-options:          -Wall
+  default-language:     Haskell2010
+  if flag(sse42)
+    ghc-options:        -msse4.2
+  if (flag(bmi2)) && (impl(ghc >= 8.4.1))
+    ghc-options:        -mbmi2 -msse4.2
+  if (flag(avx2)) && (impl(ghc >= 8.4.1))
+    ghc-options:        -mbmi2 -msse4.2
+  if (impl(ghc >=8.0.1))
+    ghc-options:        -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+
+library
+  import:               base, config
+                      , bits-extra
+                      , bytestring
+                      , containers
+                      , deepseq
+                      , directory
+                      , generic-lens
+                      , hw-bits
+                      , hw-prim
+                      , hw-rankselect-base
+                      , hw-simd
+                      , lens
+                      , mmap
+                      , mtl
+                      , optparse-applicative
+                      , resourcet
+                      , vector
+  exposed-modules:      HaskellWorks.Simd.Cli.ChunkData
+                        HaskellWorks.Simd.Cli.Comparison
+                        HaskellWorks.Simd.Cli.CutCursor
+  other-modules:        Paths_hw_simd_cli
+  autogen-modules:      Paths_hw_simd_cli
+  hs-source-dirs:       src
+
+executable hw-simd
+  import:               base, config
+                      , bits-extra
+                      , bytestring
+                      , containers
+                      , deepseq
+                      , directory
+                      , generic-lens
+                      , hw-bits
+                      , hw-prim
+                      , hw-rankselect-base
+                      , hw-simd
+                      , hw-simd-cli
+                      , lens
+                      , mmap
+                      , mtl
+                      , optparse-applicative
+                      , resourcet
+                      , vector
+  main-is:              Main.hs
+  other-modules:        App.Char
+                        App.Commands
+                        App.Commands.Cat
+                        App.Commands.Chunks
+                        App.Commands.CmpEq8s
+                        App.Commands.Cut
+                        App.Commands.Options.Type
+                        App.Commands.Wc
+                        App.IO
+  hs-source-dirs:       app
+  ghc-options:          -O2 -threaded -rtsopts -with-rtsopts=-N
+
+test-suite doctest
+  import:               base, config
+                      , doctest
+                      , doctest-discover
+                      , bits-extra
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  main-is:              DoctestDriver.hs
+  HS-Source-Dirs:       doctest
+  build-tool-depends:   doctest-discover:doctest-discover
