@@ -1,0 +1,107 @@
+cabal-version:       2.4
+name:                network-packet-linux
+version:             0.1.1.0
+synopsis:            Types for working with Linux packet sockets
+description:
+    @network-packet-linux@ makes it possible to use
+    the [network package](https://hackage.haskell.org/package/network)
+    with Linux packet sockets. Packet sockets are described
+    in [packet (7)](https://man7.org/linux/man-pages/man7/packet.7.html).
+    .
+    === Usage
+    Combine functions from [Network.Socket.Address](https://hackage.haskell.org/package/network/docs/Network-Socket-Address.html#g:2) with types from "Network.Socket.Linux" in order to
+    work with packet sockets.
+    .
+    See the "Network.Socket.Linux" module documentation or @examples/ListenToInterface.hs@ for an example.
+    .
+    === About the package
+    As of version 3.0.0, the @network@ package provides a socket API that is
+    implemented in terms of the 'SocketAddress' typeclass.
+    @network-packet-linux@ provides 'SockAddrLl', a 'SocketAddress' instance
+    that corresponds to the @sockaddr_ll@ struct from @\<linux/if_packet.h\>@.
+    .
+    Additionally, @network-packet-linux@ provides some convenience types:
+    'ProtocolId' (an enumeration of the Ethernet protocol IDs defined in
+    @\<linux/if_ether.h\>@) and 'PacketType' (enumerating the packet types
+    defined in @\<linux/if_packet.h\>@).
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Mads Rolsdorph
+maintainer:          Mads Rolsdorph
+stability:           alpha
+homepage:            https://github.com/rolsdorph/network-packet-linux
+bug-reports:         https://github.com/rolsdorph/network-packet-linux/issues
+category:            Network
+build-type:          Configure
+extra-source-files:  cabal.project
+                     CHANGELOG.md
+                     configure configure.ac
+                     include/LinuxDef.h include/PacketLinuxConfig.h.in
+                     run_socketspec_namespaced.sh socketspec.sh setup_unixtest_interface.sh teardown_unixtest_interface.sh
+                     vendor/network/Network/Socket/ReadShow.hs
+                     vendor/network/tests/Network/Test/Common.hs
+                     vendor/network/LICENSE
+                     vendor/network/README
+
+source-repository head
+  type: git
+  location: git@github.com:rolsdorph/network-packet-linux.git
+
+library
+  hs-source-dirs:      . vendor/network
+  exposed-modules:     Network.Socket.Linux
+  other-modules:       Network.Socket.Linux.Types Network.Socket.ReadShow
+  other-extensions:    PatternSynonyms
+  build-depends:       base >= 4.12 && < 5,
+                       network^>=3.1.0,
+  include-dirs:        include
+  includes:            PacketLinuxConfig.h
+  build-tool-depends:  hsc2hs:hsc2hs
+  default-language:    Haskell2010
+
+test-suite listen-example
+  hs-source-dirs:      examples
+  main-is:             ListenToInterface.hs
+  type:                exitcode-stdio-1.0
+  build-depends:       base,
+                       bytestring,
+                       network,
+                       network-packet-linux
+  default-language:    Haskell2010
+
+-- These tests require CAP_NET_RAW and must therefore run as root, hence
+-- the separate test-suite
+test-suite socketspec
+  hs-source-dirs: test-socket vendor/network/tests
+  main-is: Spec.hs
+  other-modules: Network.Socket.Linux.LinuxSpec Network.Test.Common
+  type: exitcode-stdio-1.0
+  ghc-options: -Wall
+  build-tool-depends: hspec-discover:hspec-discover
+  build-depends:
+    base,
+    bytestring,
+    directory,
+    HUnit,
+    hspec,
+    QuickCheck,
+    network,
+    network-packet-linux
+  default-language:    Haskell2010
+
+test-suite typespec
+  hs-source-dirs: test-types
+  main-is: Spec.hs
+  other-modules: Network.Socket.Linux.TypeSpec
+  type: exitcode-stdio-1.0
+  ghc-options: -Wall
+  build-tool-depends: hspec-discover:hspec-discover
+  build-depends:
+    base,
+    bytestring,
+    HUnit,
+    hspec,
+    QuickCheck,
+    network,
+    network-packet-linux
+  default-language:    Haskell2010
