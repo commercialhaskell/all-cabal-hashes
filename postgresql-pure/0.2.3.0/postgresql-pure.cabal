@@ -1,0 +1,230 @@
+cabal-version: 2.2
+
+name: postgresql-pure
+version: 0.2.3.0
+synopsis: pure Haskell PostgreSQL driver
+description: pure Haskell PostgreSQL driver
+category: Database
+homepage: https://github.com/kakkun61/postgresql-pure
+bug-reports: https://github.com/kakkun61/postgresql-pure/issues
+author: Kazuki Okamoto
+maintainer: kazuki.okamoto@kakkun61.com
+copyright: 2021 Kazuki Okamoto (岡本和樹), 2019 IIJ Innovation Institute Inc.
+license: BSD-3-Clause
+license-file: LICENSE
+build-type: Custom
+extra-source-files: README.md
+                    ChangeLog.md
+                    template/Builder.hs
+                    template/BuilderItem.hs
+                    template/Parser.hs
+                    template/ParserItem.hs
+                    template/Length.hs
+                    template/LengthItem.hs
+
+source-repository head
+  type: git
+  location: https://github.com/kakkun61/postgresql-pure
+
+custom-setup
+  setup-depends: Cabal,
+                 base >= 4.12 && < 5,
+                 directory,
+                 filepath
+
+flag pure-md5
+  manual: False
+  default: False
+
+common common
+  build-depends: base >= 4.12 && < 5
+  ghc-options: -Wall
+               -Wcompat
+               -Wno-name-shadowing
+  default-language: Haskell2010
+
+library
+  import: common
+  exposed-modules: Database.HDBC.PostgreSQL.Pure
+                   Database.PostgreSQL.Pure
+                   Database.PostgreSQL.Pure.List
+                   Database.PostgreSQL.Pure.Oid
+                   Database.PostgreSQL.Pure.Parser
+  other-modules: Database.PostgreSQL.Pure.Internal.Connection
+                 Database.PostgreSQL.Pure.Internal.Data
+                 Database.PostgreSQL.Pure.Internal.Exception
+                 Database.PostgreSQL.Pure.Internal.MonadFail
+                 Database.PostgreSQL.Pure.Internal.Query
+                 Database.PostgreSQL.Pure.Internal.SocketIO
+                 Database.PostgreSQL.Simple.Time.Internal.Parser
+                 Database.PostgreSQL.Simple.Time.Internal.Printer
+                 Database.PostgreSQL.Pure.Internal.Builder
+                 Database.PostgreSQL.Pure.Internal.Parser
+                 Database.PostgreSQL.Pure.Internal.Length
+                 Paths_postgresql_pure
+  autogen-modules: Database.PostgreSQL.Pure.Internal.Builder
+                   Database.PostgreSQL.Pure.Internal.Parser
+                   Database.PostgreSQL.Pure.Internal.Length
+                   Paths_postgresql_pure
+  hs-source-dirs: src
+  default-extensions: Strict
+  ghc-options: -Wincomplete-uni-patterns
+               -Wincomplete-record-updates
+               -Wmonomorphism-restriction
+               -Wmissing-exported-signatures
+               -Wmissing-export-lists
+               -Wmissing-home-modules
+               -Widentities
+               -Wredundant-constraints
+               -Wpartial-fields
+               -Wno-name-shadowing
+               -Wmissing-import-lists
+  build-depends: HDBC,
+                 OneTuple,
+                 Only,
+                 attoparsec,
+                 base16-bytestring,
+                 bytestring,
+                 containers,
+                 convertible,
+                 data-default-class,
+                 deepseq,
+                 double-conversion,
+                 homotuple,
+                 list-tuple,
+                 memory,
+                 mtl,
+                 network,
+                 postgresql-binary,
+                 postgresql-placeholder-converter,
+                 pretty-hex,
+                 safe-exceptions,
+                 scientific,
+                 single-tuple,
+                 text,
+                 time,
+                 utf8-string
+  if flag(pure-md5)
+    cpp-options: -DPURE_MD5
+    build-depends: pureMD5
+  else
+    build-depends: cryptohash-md5
+
+test-suite doctest
+  import: common
+  type: exitcode-stdio-1.0
+  main-is: doctest.hs
+  hs-source-dirs: test-doctest
+  build-depends: doctest
+
+test-suite hdbc-postgresql
+  import: common
+  type: exitcode-stdio-1.0
+  main-is: runtests.hs
+  other-modules: SpecificDB
+                 SpecificDBTests
+                 Testbasics
+                 TestMisc
+                 Tests
+                 TestSbasics
+                 TestTime
+                 TestUtils
+  hs-source-dirs: test-hdbc-postgresql
+  default-extensions: Strict
+  ghc-options: -Wno-all
+  build-depends: HDBC,
+                 HUnit,
+                 containers,
+                 convertible,
+                 data-default-class,
+                 either-result,
+                 old-time,
+                 postgresql-placeholder-converter,
+                 postgresql-pure,
+                 time
+
+test-suite original
+  import: common
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules: Database.HDBC.PostgreSQL.PureSpec
+                 Database.PostgreSQL.Pure.ListSpec
+                 Database.PostgreSQL.PureSpec
+                 Test.Hspec.Core.Hooks.Extra
+  hs-source-dirs: test-original
+  build-depends: HDBC,
+                 Only,
+                 attoparsec,
+                 bytestring,
+                 data-default-class,
+                 homotuple,
+                 hspec,
+                 network,
+                 postgresql-pure,
+                 safe-exceptions,
+                 utf8-string
+  build-tool-depends: hspec-discover:hspec-discover
+
+test-suite relational-record
+  import: common
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules: DataSource
+                 DataSource.Pure
+                 Relation.Person
+                 Relation.Pure.Person
+  hs-source-dirs: test-relational-record
+  build-depends: HDBC-postgresql,
+                 HDBC-session,
+                 data-default-class,
+                 hspec,
+                 postgresql-pure,
+                 relational-query,
+                 relational-query-HDBC
+
+benchmark requests-per-second
+  import: common
+  type: exitcode-stdio-1.0
+  main-is: requests-per-second.hs
+  other-modules: RepeatThreadPool
+  hs-source-dirs: benchmark
+  build-depends: Only,
+                 bytestring,
+                 clock,
+                 data-default-class,
+                 deepseq,
+                 homotuple,
+                 optparse-applicative,
+                 postgresql-libpq,
+                 postgresql-pure,
+                 scientific,
+                 time
+  if !os(windows) && impl(ghc < 8.8.0)
+    build-depends: postgres-wire
+
+benchmark requests-per-second-constant
+  import: common
+  type: exitcode-stdio-1.0
+  main-is: requests-per-second-constant.hs
+  other-modules: RepeatThreadPool
+  hs-source-dirs: benchmark
+  build-depends: Only,
+                 attoparsec,
+                 bytestring,
+                 cassava,
+                 clock,
+                 data-default-class,
+                 deepseq,
+                 homotuple,
+                 hourglass,
+                 optparse-applicative,
+                 postgresql-libpq,
+                 postgresql-pure,
+                 postgresql-simple,
+                 postgresql-typed,
+                 random-shuffle,
+                 scientific,
+                 time,
+                 utf8-string
+  if !os(windows) && impl(ghc < 8.8.0)
+    build-depends: postgres-wire
