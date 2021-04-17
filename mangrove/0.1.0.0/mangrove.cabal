@@ -1,0 +1,223 @@
+cabal-version:      2.2
+
+name:               mangrove
+author:             Sam May
+category:           Web
+synopsis:           A parser for web documents according to the HTML5 specification.
+
+version:            0.1.0.0
+stability:          provisional
+maintainer:         sam@eitilt.life
+
+copyright:          © 2020-2021 Sam May
+license:            MPL-2.0
+license-file:       LICENSE
+
+extra-source-files: CHANGELOG.md
+                  , README.md
+                  , README.project.md
+data-dir:           data
+data-files:         entities.json
+
+homepage:           https://ag.eitilt.life/willow
+bug-reports:        mailto:ag@eitilt.life
+
+description:        `mangrove` provides HTML parsing for the Willow web
+                    browser suite.  As such, it has not necessarily been
+                    written with a broader audience in mind, but the resulting
+                    data structures should still be generic enough to serve as
+                    a general parsing library should you need HTML5
+                    compatibility (most likely, its codified error recovery
+                    algorithms); if you do use this for other projects, please
+                    do share any issues —or even just discomforts— that
+                    broader usage reveals.  Notably, however, `mangrove` makes
+                    no attempt to parse CSS, JavaScript, or to access linked
+                    files, leaving those tasks to other parts of the suite and
+                    merely generates a simple document tree from the markup.
+
+build-type:         Simple
+tested-with:        GHC ==8.2.2, GHC ==8.4.4, GHC ==8.6.5, GHC ==8.8.4, GHC ==8.10.3
+
+
+source-repository head
+  type:             darcs
+  location:         https://darcs.eitilt.life/willow
+  subdir:           mangrove
+
+source-repository this
+  type:             darcs
+  location:         https://darcs.eitilt.life/willow
+  subdir:           mangrove
+  tag:              v/html/0.1.0.0.
+
+
+source-repository head
+  type:             darcs
+  location:         https://hub.darcs.net/ag.eitilt/willow
+  subdir:           mangrove
+
+source-repository this
+  type:             darcs
+  location:         https://hub.darcs.net/ag.eitilt/willow
+  subdir:           mangrove
+  tag:              v/html/0.1.0.0.
+
+
+flag dev
+  description:      Trigger stricter behaviour for development
+  default:          False
+  manual:           True
+
+flag html5lib
+  default:          False
+  description:      Enable the html5lib tests, which require manually
+                    downloading the test data.
+
+flag wpt
+  default:          False
+  description:      Enable integration with web-platform-tests suite, greatly
+                    expanding the test surface at the expense of requiring the
+                    manual download of the (large) test data repository.
+
+
+common flags-ghc
+  if flag(dev)
+    ghc-options:    -Weverything
+                    -Wno-unrecognised-pragmas
+                    -Wno-implicit-prelude -Wno-missing-import-lists
+                    -Wno-missing-exported-signatures -Wno-missing-local-signatures
+                    -Wno-missed-specialisations -Wno-all-missed-specialisations
+                    -Wno-safe -Wno-unsafe
+                    -Wno-monomorphism-restriction
+    if impl(ghc >= 8.4.1)
+      ghc-options:  -Wno-missing-export-lists
+    if impl(ghc >= 8.8.1)
+      ghc-options:  -Wno-missing-deriving-strategies
+    if impl(ghc >= 8.10.1)
+      ghc-options:  -Wno-missing-safe-haskell-mode
+                    -Wno-prepositive-qualified-module
+  else
+    ghc-options:    -Wno-unrecognised-pragmas
+
+
+library
+  import:           flags-ghc
+  hs-source-dirs:   src
+  exposed-modules:  Web.Mangrove.Parse.Common.Error
+                  , Web.Mangrove.Parse.Encoding.Preprocess
+                  , Web.Mangrove.Parse.Tokenize
+                  , Web.Mangrove.Parse.Tree
+  other-modules:    Paths_mangrove
+                  , Web.Mangrove.Parse.Common.Character
+                  , Web.Mangrove.Parse.Tokenize.CData
+                  , Web.Mangrove.Parse.Tokenize.Character
+                  , Web.Mangrove.Parse.Tokenize.Common
+                  , Web.Mangrove.Parse.Tokenize.Comment
+                  , Web.Mangrove.Parse.Tokenize.Data
+                  , Web.Mangrove.Parse.Tokenize.Dispatcher
+                  , Web.Mangrove.Parse.Tokenize.Doctype
+                  , Web.Mangrove.Parse.Tokenize.RawText
+                  , Web.Mangrove.Parse.Tokenize.RCData
+                  , Web.Mangrove.Parse.Tokenize.PlainText
+                  , Web.Mangrove.Parse.Tokenize.ScriptData
+                  , Web.Mangrove.Parse.Tokenize.ScriptDataEscaped
+                  , Web.Mangrove.Parse.Tokenize.ScriptDataDoubleEscaped
+                  , Web.Mangrove.Parse.Tokenize.Tag
+                  , Web.Mangrove.Parse.Tree.AfterAfterBody
+                  , Web.Mangrove.Parse.Tree.AfterAfterFrameset
+                  , Web.Mangrove.Parse.Tree.AfterBody
+                  , Web.Mangrove.Parse.Tree.AfterFrameset
+                  , Web.Mangrove.Parse.Tree.AfterHead
+                  , Web.Mangrove.Parse.Tree.BeforeHead
+                  , Web.Mangrove.Parse.Tree.BeforeHtml
+                  , Web.Mangrove.Parse.Tree.Common
+                  , Web.Mangrove.Parse.Tree.Dispatcher
+                  , Web.Mangrove.Parse.Tree.Foreign
+                  , Web.Mangrove.Parse.Tree.InBody
+                  , Web.Mangrove.Parse.Tree.InCaption
+                  , Web.Mangrove.Parse.Tree.InCell
+                  , Web.Mangrove.Parse.Tree.InColumnGroup
+                  , Web.Mangrove.Parse.Tree.InFrameset
+                  , Web.Mangrove.Parse.Tree.InHead
+                  , Web.Mangrove.Parse.Tree.InHeadNoscript
+                  , Web.Mangrove.Parse.Tree.Initial
+                  , Web.Mangrove.Parse.Tree.InRow
+                  , Web.Mangrove.Parse.Tree.InSelect
+                  , Web.Mangrove.Parse.Tree.InSelectInTable
+                  , Web.Mangrove.Parse.Tree.InTable
+                  , Web.Mangrove.Parse.Tree.InTableBody
+                  , Web.Mangrove.Parse.Tree.InTableText
+                  , Web.Mangrove.Parse.Tree.InTemplate
+                  , Web.Mangrove.Parse.Tree.InText
+                  , Web.Mangrove.Parse.Tree.Patch
+                  , Web.Mangrove.Parse.Tree.Patch.Fold
+  autogen-modules:  Paths_mangrove
+  build-depends:    base >=4.10 && <4.15
+                  , willow
+                  , aeson <1.6
+                  , bytestring <0.11
+                  , containers <0.7
+                  , filepath <1.5
+                  , text <1.3
+                  , transformers <0.6
+                  , unordered-containers <0.3
+                  , utility-ht <0.1
+                  , vector <0.13
+  default-language: Haskell98
+  other-extensions: ApplicativeDo
+                  , CPP
+                  , FlexibleInstances
+                  , FunctionalDependencies
+                  , KindSignatures
+                  , MultiParamTypeClasses
+                  , OverloadedStrings
+                  , Trustworthy
+                  , UndecidableInstances
+
+test-suite html5lib
+  import:           flags-ghc
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  if !flag(html5lib)
+    buildable:      False
+  main-is:          Test/Mangrove/Html5Lib.hs
+  other-modules:    Paths_mangrove
+                  , Test.Mangrove.Html5Lib.Common
+                  , Test.Mangrove.Html5Lib.Tokenizer
+                  , Test.Mangrove.Html5Lib.Tokenizer.JSON
+                  , Test.Mangrove.Html5Lib.TreeConstruction
+                  , Test.Mangrove.Html5Lib.TreeConstruction.Parser
+  autogen-modules:  Paths_mangrove
+  build-depends:    base
+                  , mangrove
+                  , willow
+                  , aeson
+                  , bytestring
+                  , filepath
+                  , text
+                  , unordered-containers
+                  , vector
+                  , HUnit <1.7
+  default-language: Haskell98
+  other-extensions: CPP
+                  , OverloadedStrings
+
+test-suite unit
+  import:           flags-ghc
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Test/Mangrove/Unit.hs
+  other-modules:    Paths_mangrove
+                    Test.Mangrove.Unit.Common
+                  , Test.Mangrove.Unit.Tokenize
+                  , Test.Mangrove.Unit.Tokenize.Tag
+  autogen-modules:  Paths_mangrove
+  build-depends:    base
+                  , mangrove
+                  , bytestring
+                  , filepath
+                  , text
+                  , utility-ht
+                  , HUnit <1.7
+  default-language: Haskell98
+  other-extensions: OverloadedStrings

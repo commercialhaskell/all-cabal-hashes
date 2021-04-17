@@ -1,0 +1,235 @@
+cabal-version:      2.2
+
+name:               willow
+author:             Sam May
+category:           Web
+synopsis:           An implementation of the web Document Object Model, and its rendering.
+
+version:            0.1.0.0
+stability:          experimental
+maintainer:         sam@eitilt.life
+
+copyright:          © 2020-2021 Sam May
+license:            MPL-2.0
+license-file:       LICENSE
+
+extra-source-files: CHANGELOG.md
+                  , README.md
+                  , README.project.md
+data-dir:           data
+data-files:         *.index
+                  , encodings.json
+
+homepage:           https://ag.eitilt.life/willow
+bug-reports:        mailto:ag@eitilt.life
+
+description:        `willow` is the basis of a web browser suite, providing the
+                    underlying types to represent various documents found on
+                    the internet.  It does /not/ provide parsing algorithms for
+                    anything but the simplest filetypes, instead expecting them
+                    to be outsourced to other modules.
+
+build-type:         Simple
+tested-with:        GHC ==8.2.2, GHC ==8.4.4, GHC ==8.6.5, GHC ==8.8.4, GHC ==8.10.3
+
+
+source-repository head
+  type:             darcs
+  location:         https://darcs.eitilt.life/willow
+  subdir:           willow
+
+source-repository this
+  type:             darcs
+  location:         https://darcs.eitilt.life/willow
+  subdir:           willow
+  tag:              v/dom/0.1.0.0.
+
+
+flag dev
+  description:      Trigger stricter behaviour for development
+  default:          False
+  manual:           True
+
+flag html5lib
+  default:          False
+  description:      Enable the html5lib tests, which require manually
+                    downloading the test data.
+
+flag wpt
+  default:          False
+  description:      Enable integration with web-platform-tests suite, greatly
+                    expanding the test surface at the expense of requiring the
+                    manual download of the (large) test data repository.
+
+
+common flags-ghc
+  if flag(dev)
+    ghc-options:    -Weverything
+                    -Wno-unrecognised-pragmas
+                    -Wno-implicit-prelude -Wno-missing-import-lists
+                    -Wno-missing-exported-signatures -Wno-missing-local-signatures
+                    -Wno-missed-specialisations -Wno-all-missed-specialisations
+                    -Wno-safe -Wno-unsafe
+                    -Wno-monomorphism-restriction
+    if impl(ghc >= 8.4.1)
+      ghc-options:  -Wno-missing-export-lists
+    if impl(ghc >= 8.8.1)
+      ghc-options:  -Wno-missing-deriving-strategies
+    if impl(ghc >= 8.10.1)
+      ghc-options:  -Wno-missing-safe-haskell-mode
+                    -Wno-prepositive-qualified-module
+  else
+    ghc-options:    -Wno-unrecognised-pragmas
+
+
+library
+  import:           flags-ghc
+  hs-source-dirs:   src
+  exposed-modules:  Web.Willow.Common.Encoding
+                  , Web.Willow.Common.Encoding.Character
+                  , Web.Willow.Common.Encoding.Labels
+                  , Web.Willow.Common.Encoding.Sniffer
+                  , Web.Willow.Common.Parser
+                  , Web.Willow.Common.Parser.Switch
+                  , Web.Willow.Common.Parser.Util
+                  , Web.Willow.DOM
+  other-modules:    Paths_willow
+                  , Web.Willow.Common.Encoding.Big5
+                  , Web.Willow.Common.Encoding.Common
+                  , Web.Willow.Common.Encoding.EucJp
+                  , Web.Willow.Common.Encoding.EucKr
+                  , Web.Willow.Common.Encoding.GB
+                  , Web.Willow.Common.Encoding.Iso2022Jp
+                  , Web.Willow.Common.Encoding.ShiftJis
+                  , Web.Willow.Common.Encoding.SingleByte
+                  , Web.Willow.Common.Encoding.Utf8
+                  , Web.Willow.Common.Encoding.Utf16
+  autogen-modules:  Paths_willow
+  build-depends:    base >=4.10 && <4.15
+                  , aeson <1.6
+                  , bytestring <0.11
+                  , filepath <1.5
+                  , hashable <1.4
+                  , mtl <2.3
+                  , text <1.3
+                  , transformers <0.6
+                  , unordered-containers <0.3
+                  , utility-ht <0.1
+                  , vector <0.13
+  default-language: Haskell98
+
+test-suite html5lib
+  import:           flags-ghc
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  if !flag(html5lib)
+    buildable:      False
+  main-is:          Test/Willow/Html5Lib.hs
+  other-modules:    Paths_willow
+                  , Test.Willow.Html5Lib.Common
+                  , Test.Willow.Html5Lib.Encoding.Sniffer
+  autogen-modules:  Paths_willow
+  build-depends:    base
+                  , willow
+                  , bytestring
+                  , filepath
+                  , HUnit <1.7
+  default-language: Haskell98
+  other-extensions: CPP
+                  , OverloadedStrings
+
+test-suite property
+  import:           flags-ghc
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  if impl(ghc < 8.6.1)
+    -- hedgehog-classes requires base>=4.12.0.0
+    buildable:      False
+  main-is:          Test/Willow/Property.hs
+  other-modules:    Test.Willow.Property.Common
+                    Test.Willow.Property.DOM
+                    Test.Willow.Property.Parser
+                    Test.Willow.Property.Encoding
+                    Test.Willow.Property.Encoding.Big5
+                    Test.Willow.Property.Encoding.EucJp
+                    Test.Willow.Property.Encoding.EucKr
+                    Test.Willow.Property.Encoding.GB
+                    Test.Willow.Property.Encoding.ShiftJis
+                    Test.Willow.Property.Encoding.Utf8
+                    Test.Willow.Property.Encoding.Utf16
+  build-depends:    base
+                  , willow
+                  , bytestring
+                  , text
+                  , transformers
+                  , hedgehog <1.1
+                  , hedgehog-classes <0.3
+  default-language: Haskell98
+  other-extensions: CPP
+
+test-suite unit
+  import:           flags-ghc
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Test/Willow/Unit.hs
+  other-modules:    Paths_willow
+                    Test.Willow.Unit.Common
+                  , Test.Willow.Unit.Encoding
+                  , Test.Willow.Unit.Encoding.Common
+                  , Test.Willow.Unit.Encoding.Big5
+                  , Test.Willow.Unit.Encoding.EucJp
+                  , Test.Willow.Unit.Encoding.EucKr
+                  , Test.Willow.Unit.Encoding.GB
+                  , Test.Willow.Unit.Encoding.ShiftJis
+                  , Test.Willow.Unit.Encoding.SingleByte
+                  , Test.Willow.Unit.Encoding.Utf8
+  autogen-modules:  Paths_willow
+  build-depends:    base
+                  , willow
+                  , bytestring
+                  , filepath
+                  , text
+                  , HUnit <1.7
+  default-language: Haskell98
+  other-extensions: OverloadedStrings
+
+test-suite wpt
+  import:           flags-ghc
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  if flag (wpt)
+    cpp-options:    -DHAVE_WPT
+  main-is:          Test/Willow/WebPlatformTests.hs
+  other-modules:    Paths_willow
+                  , Test.Willow.WebPlatformTests.Manual.Common
+                  , Test.Willow.WebPlatformTests.Manual.Encoding
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.ApiBasics
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.ApiSurrogatesUtf8
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.Big5
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.ByteOrderMarks
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.Gb18030
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.Gbk
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.FatalSingleByte
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.FatalStreaming
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.Iso2022JpDecoder
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.Iso2022JpEncoder
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.TextDecoderUtf16Surrogates
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.TextEncoderUtf16Surrogates
+  autogen-modules:  Paths_willow
+  if flag(wpt)
+    other-modules:  Test.Willow.WebPlatformTests.Manual.CommonReader
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.ApiInvalidLabel
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.ApiReplacementEncodings
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.Fatal
+                  , Test.Willow.WebPlatformTests.Manual.Encoding.SingleByte
+  build-depends:    base
+                  , willow
+                  , bytestring
+                  , filepath
+                  , text
+                  , unordered-containers
+                  , aeson
+                  , HUnit <1.7
+  default-language: Haskell98
+  other-extensions: CPP
+                  , OverloadedStrings
