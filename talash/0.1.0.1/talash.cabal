@@ -1,0 +1,101 @@
+cabal-version:      2.4
+name:               talash
+version:            0.1.0.1
+
+-- A short (one-line) description of the package.
+synopsis: Line oriented fast enough text search
+
+-- A longer description of the package.
+description: .
+             This library provides searching a large number of candidates against a query using a given style. Two styles are provided. The default
+             is orderless style in which a match occurs if the words in the query all occur in the candidate regardless of the order of their occurrence.
+             A fuzzy style is also provided in which a candidate matches if all the characters of the query occur in it in order.
+             .
+             There is also a TUI searcher\/selector interface provided using a [brick](https:\/\/hackage.haskell.org\/package\/brick) app. Like an extremely
+             barebones version of @fzf@ and mostly intended to be a starting point that has to be configured according to the needs or else it can be embedded into other
+             applications to provide a selection interface.
+             .
+             There is also a piped searcher\/seeker provided in which searcher runs in the background and can be used by a seeker communicating with it using named
+             pipes.
+             .
+             The is also a demo executable for both the brick app and piped version that gets the candidates for the @stdin@. Use @talash help@ for usage information.
+             .
+             Some care has been taken to make the searcher performant. On my laptop searching using the tui app to search all files in my @\/usr\/local@ with
+             @60K@ items, the search results appear almost instantly. Searching among about @340K@ files in @\/usr\/share@ there is some but bearable lag
+             between the keypresses and the search results. While searching between @1264K@ files, that @fd@ finds from @\/@ there is a lag of a second or so
+             before the results appear. The three scenarios consume about @50 MiB@ , @130 MiB@ and @500 MiB@ of memory respectively which is almost entirely due
+             to the @Vector Text@ storing the candidates.
+             .
+             The nice string matching interface provided by [alfred-margaret](https:\/\/hackage.haskell.org\/package\/alfred-margaret) is responsible for a
+             big part of the performance. While [vector-sized](https:\/\/hackage.haskell.org\/package\/vector-sized) is responsible for most of memory
+             efficieny. Performance can potentially be further improved by using all the cores but it is good enough for my typical use cases of searching among
+             a few thousand or at most a few tens of thousands of candidates. As a result parallel matching is unlikely to be implemented.
+             .
+             The package is lightly maintained, bugs reports are welcome but any action on them will be slow. Patches are welcome for 1. bugfixes
+             2. simple performance improvements 3. Adding mouse bindings to tui 4. New search styles, especially a better fuzzy one, that matches each word in
+             the query fuzzily but the words themselves can be matched in any order (I am not sure what is a sensible implementation of this).
+
+-- A URL where users can report bugs.
+-- bug-reports:
+
+-- The license under which the package is released.
+license: GPL-3.0-only
+
+-- The package author(s).
+author: Rahguzar
+
+-- An email address to which users can send suggestions, bug reports, and patches.
+maintainer: aikrahguzar@gmail.com
+
+-- A copyright notice.
+-- copyright:
+category: search, tui
+extra-source-files: CHANGELOG.md
+
+library
+    exposed-modules:
+                    Talash.Brick
+                    Talash.Brick.Columns
+                    Talash.Core
+                    Talash.Files
+                    Talash.Piped
+
+    -- Modules included in this library but not exported.
+    other-modules: Talash.Internal Talash.Brick.Internal
+    default-extensions: DeriveGeneric OverloadedStrings NoImplicitPrelude BangPatterns TupleSections ScopedTypeVariables DeriveFunctor DataKinds KindSignatures
+    other-extensions: TemplateHaskell ExistentialQuantification RankNTypes
+    build-depends:base                    >=  4.14.1 && < 5,
+                  alfred-margaret         ^>= 1.1.1.0,
+                  brick                   >=  0.60 && < 0.70,
+                  bytestring              >=  0.10.10 && < 0.11,
+                  colorful-monoids        >=  0.2.1 && < 0.3,
+                  ghc-compact             >=  0.1.0 && < 0.3,
+                  containers              >=  0.6.2 && < 0.7,
+                  directory               >=  1.3.6 && < 1.4,
+                  intro                   ^>= 0.9.0.0,
+                  microlens               ^>= 0.4.12.0,
+                  microlens-th            ^>= 0.4.3.9,
+                  text                    ^>= 1.2.4.1,
+                  unix                    >=  2.7.2 && < 2.8,
+                  unordered-containers    >=  0.2.13 && < 0.3,
+                  vector                  ^>= 0.12.3.0,
+                  vector-algorithms       ^>= 0.8.0.4,
+                  vector-sized            >=  1.4.3 && < 1.5,
+                  vty                     ^>= 5.33
+
+    ghc-options:
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+executable talash
+    main-is:          Main.hs
+
+    -- Modules included in this executable, other than Main.
+    -- other-modules:
+    build-depends:
+        base                    >= 4.14.1 && < 5,
+        talash
+
+    ghc-options: -threaded -rtsopts
+    hs-source-dirs:   app
+    default-language: Haskell2010
