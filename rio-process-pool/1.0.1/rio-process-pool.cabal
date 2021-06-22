@@ -1,0 +1,180 @@
+cabal-version:  3.0
+name:           rio-process-pool
+version:        1.0.1
+description:    Please see the README on GitHub at <https://github.com/sheyll/rio-process-pool#readme>
+synopsis:       A library for process pools coupled with asynchronous message queues
+homepage:       https://github.com/sheyll/rio-process-pool#readme
+bug-reports:    https://github.com/sheyll/rio-process-pool/issues
+author:         Sven Heyll
+maintainer:     sven.heyll@gmail.com
+category:       Concurrency
+tested-with:    GHC==8.10.5,GHC==8.10.4,GHC==8.10.3
+copyright:      Copyright Sven Heyll
+license:        BSD-2-Clause
+license-file:   LICENSE
+build-type:     Simple
+
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/sheyll/rio-process-pool
+
+flag development
+  description: 
+    Configure a development version, i.e. -fprof-auto and -Werror
+  default: False
+  manual: True
+  
+common compiler-flags
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-uni-patterns
+    -Wincomplete-record-updates
+    -Wredundant-constraints
+    -Wmissing-export-lists
+    -Wpartial-fields
+    -Wmissing-deriving-strategies
+    -funbox-strict-fields
+    -Wno-missing-signatures
+    -fno-full-laziness
+  if flag(development)
+    ghc-options:
+      -Werror
+    ghc-prof-options:
+      -fprof-auto 
+  default-extensions:
+     AllowAmbiguousTypes,
+     BangPatterns,
+     BinaryLiterals,
+     ConstraintKinds,
+     DataKinds,
+     DefaultSignatures,
+     DeriveFoldable,
+     DeriveFunctor,
+     DeriveGeneric,
+     DeriveTraversable,
+     DerivingStrategies,
+     DerivingVia,
+     ExistentialQuantification,
+     FlexibleContexts,
+     FlexibleInstances,
+     FunctionalDependencies,
+     GADTs,
+     GeneralizedNewtypeDeriving,
+     InstanceSigs,
+     LambdaCase,
+     MultiParamTypeClasses,
+     MultiWayIf,
+     NamedFieldPuns,     
+     NoImplicitPrelude,
+     NumericUnderscores,
+     OverloadedStrings,
+     PatternGuards,
+     PolyKinds,
+     RankNTypes,
+     RecordWildCards,
+     ScopedTypeVariables,
+     StandaloneDeriving,
+     StrictData,
+     TupleSections,
+     TypeApplications,
+     TypeFamilies,
+     TypeInType,
+     TypeOperators,
+     TypeSynonymInstances,
+     ViewPatterns
+  other-extensions:
+    CPP,
+    DeriveAnyClass,
+    DeriveLift,
+    ForeignFunctionInterface,
+    ImplicitParams,
+    MagicHash,
+    PackageImports,
+    QuasiQuotes,
+    StaticPointers,
+    StrictData,
+    Strict,
+    TemplateHaskell,
+    TypeOperators,
+    UnboxedTuples,
+    UndecidableInstances,
+    UnliftedFFITypes
+
+common executable-flags
+  ghc-options:
+    -threaded
+    -rtsopts
+    "-with-rtsopts=-T -N -qa"
+  if flag(development)
+    ghc-prof-options: 
+      "-with-rtsopts=-T -xt -xc -Pa -hc -L256"
+    
+common deps
+  build-depends:
+      async >= 2 && <3,
+      base >= 4.14 && <5,
+      containers >=0.5.8 && <0.7,
+      data-default >= 0.7 && < 0.8,
+      hashable,
+      mtl,
+      QuickCheck,
+      rio,
+      text,
+      unliftio,
+      unliftio-messagebox >= 2.0.0 && < 3
+
+library
+  import: deps, compiler-flags
+  default-language: Haskell2010
+  hs-source-dirs:
+      src
+  exposed-modules:
+    RIO.ProcessPool,
+    RIO.ProcessPool.Broker,
+    RIO.ProcessPool.Pool
+  
+executable rio-process-pool-memleak-test
+  import: deps, compiler-flags, executable-flags
+  default-language: Haskell2010
+  main-is: Main.hs
+  hs-source-dirs: src-pool-memleak-test  
+  ghc-prof-options: 
+    "-with-rtsopts=-T -hy -pa -L256 -xt -N"
+  build-depends:
+    rio-process-pool
+  
+test-suite rio-process-pool-test
+  import: deps, compiler-flags, executable-flags
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: src-test
+  other-modules:
+    BrokerTest,
+    PoolTest,
+    Utils
+  build-depends:
+    base,
+    tasty,
+    tasty-html,
+    tasty-hunit,
+    tasty-quickcheck,
+    rio-process-pool,
+    atomic-primops,
+    HUnit
+              
+benchmark rio-process-pool-bench
+  import: deps, compiler-flags, executable-flags
+  type: exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is: Main.hs
+  hs-source-dirs: src-benchmark
+  build-depends:
+    rio-process-pool,
+    criterion
+              
