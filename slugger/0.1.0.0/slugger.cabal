@@ -1,0 +1,82 @@
+cabal-version:        3.0
+name:                 slugger
+version:              0.1.0.0
+synopsis:             Clean URI slugs for Haskell
+description:          Convert multi-language text to a US-ASCII, lowercase, hyphenated, URI-friendly "slug"
+homepage:             https://github.com/rpearce/slugger
+bug-reports:          https://github.com/rpearce/slugger/issues
+license:              BSD-3-Clause
+license-file:         LICENSE
+author:               Robert W. Pearce <me@robertwpearce.com>
+maintainer:           Robert W. Pearce <me@robertwpearce.com>
+copyright:            2021 Robert W. Pearce
+category:             Data, Text, Web
+extra-source-files:   CHANGELOG.md
+                    , README.md
+
+source-repository head
+  type:     git
+  location: git://github.com/rpearce/slugger.git
+
+flag ci
+  description: Use CI settings
+  default:     False
+  manual:      True
+
+flag dev
+  description: Use development settings
+  default:     False
+  manual:      True
+
+common lang
+    default-language: Haskell2010
+
+common deps
+    build-depends:
+        base     >= 4.8 && < 5
+      , text     >= 1   && < 1.3
+      , text-icu >= 0.7 && < 0.8
+
+common self-dep
+    build-depends: slugger
+
+common flags
+    if flag(ci)
+        ghc-options:
+            -Wall
+            -fwarn-incomplete-record-updates
+            -fwarn-incomplete-uni-patterns
+    else
+        ghc-options:
+            -Wall
+            -Wcompat
+            -Widentities
+            -Wincomplete-record-updates
+            -Wincomplete-uni-patterns
+            -Wpartial-fields
+            -Wredundant-constraints
+
+    if flag(dev)
+        ghc-options:
+            -Werror
+
+library
+    import:           lang, flags, deps
+    exposed-modules:  Data.String.Slugger
+                      Data.Text.Slugger
+    hs-source-dirs:   lib
+
+executable slugger
+    import:           lang, flags, deps, self-dep
+    main-is:          Main.hs
+    hs-source-dirs:   app
+    ghc-options:      -rtsopts
+                      -threaded
+                      -with-rtsopts=-N
+
+test-suite slugger-test
+    import:           lang, flags, deps, self-dep
+    main-is:          SluggerTest.hs
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    build-depends:    hspec >= 2 && < 3
