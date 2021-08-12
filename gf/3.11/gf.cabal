@@ -1,0 +1,407 @@
+name: gf
+version: 3.11
+
+cabal-version: 1.22
+build-type: Custom
+license: OtherLicense
+license-file: LICENSE
+category: Natural Language Processing, Compiler
+synopsis: Grammatical Framework
+description: GF, Grammatical Framework, is a programming language for multilingual grammar applications
+maintainer: John J. Camilleri <john@digitalgrammars.com>
+homepage: https://www.grammaticalframework.org/
+bug-reports: https://github.com/GrammaticalFramework/gf-core/issues
+tested-with: GHC==7.10.3, GHC==8.0.2, GHC==8.10.4
+
+data-dir: src
+extra-source-files:
+  WebSetup.hs
+  doc/Logos/gf0.png
+data-files:
+  www/*.html
+  www/*.css
+  www/P/*.png
+  www/gfse/*.html
+  www/gfse/*.css
+  www/gfse/*.js
+  www/gfse/P/*.png
+  www/gfse/P/*.jpg
+  www/js/*.js
+  www/minibar/*.html
+  www/minibar/*.css
+  www/minibar/*.js
+  www/minibar/*.png
+  www/syntax-editor/*.html
+  www/syntax-editor/*.css
+  www/syntax-editor/*.js
+  www/TransQuiz/*.html
+  www/TransQuiz/*.css
+  www/TransQuiz/*.js
+  www/TransQuiz/*.png
+  www/translator/*.html
+  www/translator/*.css
+  www/translator/*.js
+
+custom-setup
+  setup-depends:
+    base >= 4.9.1 && < 4.15,
+    Cabal >= 1.22.0.0,
+    directory >= 1.3.0 && < 1.4,
+    filepath >= 1.4.1 && < 1.5,
+    process >= 1.0.1.1 && < 1.7
+
+source-repository head
+  type: git
+  location: https://github.com/GrammaticalFramework/gf-core.git
+
+flag interrupt
+  Description: Enable Ctrl+Break in the shell
+  Default: True
+
+flag server
+  Description: Include --server mode
+  Default: True
+
+flag network-uri
+   description: Get Network.URI from the network-uri package
+   default: True
+
+--flag new-comp
+--  Description: Make -new-comp the default
+--  Default:     True
+
+flag c-runtime
+  Description: Include functionality from the C run-time library (which must be installed already)
+  Default: False
+
+library
+  default-language: Haskell2010
+  build-depends:
+    -- GHC 8.0.2 to GHC 8.10.4
+    array >= 0.5.1 && < 0.6,
+    base >= 4.9.1 && < 4.15,
+    bytestring >= 0.10.8 && < 0.11,
+    containers >= 0.5.7 && < 0.7,
+    exceptions >= 0.8.3 && < 0.11,
+    ghc-prim >= 0.5.0 && < 0.7,
+    mtl >= 2.2.1 && < 2.3,
+    pretty >= 1.1.3 && < 1.2,
+    random >= 1.1 && < 1.3,
+    utf8-string >= 1.0.1.1 && < 1.1,
+    -- We need transformers-compat >= 0.6.3, but that is only in newer snapshots where it is redundant.
+    transformers-compat >= 0.5.1.4 && < 0.7
+
+  if impl(ghc<8.0)
+    build-depends:
+      fail >= 4.9.0 && < 4.10
+
+  hs-source-dirs: src/runtime/haskell
+
+  other-modules:
+    -- not really part of GF but I have changed the original binary library
+    -- and we have to keep the copy for now.
+    Data.Binary
+    Data.Binary.Put
+    Data.Binary.Get
+    Data.Binary.Builder
+    Data.Binary.IEEE754
+
+--ghc-options: -fwarn-unused-imports
+--if impl(ghc>=7.8)
+--  ghc-options: +RTS -A20M -RTS
+  -- ghc-prof-options: -fprof-auto
+
+  exposed-modules:
+    PGF
+    PGF.Internal
+    PGF.Haskell
+
+  other-modules:
+    PGF.Data
+    PGF.Macros
+    PGF.Binary
+    PGF.Optimize
+    PGF.Printer
+    PGF.CId
+    PGF.Expr
+    PGF.Generate
+    PGF.Linearize
+    PGF.Morphology
+    PGF.Paraphrase
+    PGF.Parse
+    PGF.Probabilistic
+    PGF.SortTop
+    PGF.Tree
+    PGF.Type
+    PGF.TypeCheck
+    PGF.Forest
+    PGF.TrieMap
+    PGF.VisualizeTree
+    PGF.ByteCode
+    PGF.OldBinary
+    PGF.Utilities
+
+  if flag(c-runtime)
+    exposed-modules: PGF2
+    other-modules:
+      PGF2.FFI
+      PGF2.Expr
+      PGF2.Type
+      GF.Interactive2
+      GF.Command.Commands2
+    hs-source-dirs: src/runtime/haskell-bind
+    build-tools: hsc2hs
+    extra-libraries: pgf gu
+    c-sources: src/runtime/haskell-bind/utils.c
+    cc-options: -std=c99
+
+---- GF compiler as a library:
+
+  build-depends:
+    directory >= 1.3.0 && < 1.4,
+    filepath >= 1.4.1 && < 1.5,
+    haskeline >= 0.7.3 && < 0.9,
+    json >= 0.9.1 && < 0.11,
+    parallel >= 3.2.1.1 && < 3.3,
+    process >= 1.4.3 && < 1.7,
+    time >= 1.6.0 && < 1.10
+
+  hs-source-dirs: src/compiler
+  exposed-modules:
+    GF
+    GF.Support
+    GF.Text.Pretty
+    GF.Text.Lexing
+    GF.Grammar.Canonical
+
+  other-modules:
+    GF.Main
+    GF.Compiler
+    GF.Interactive
+
+    GF.Compile
+    GF.CompileInParallel
+    GF.CompileOne
+    GF.Compile.GetGrammar
+    GF.Grammar
+
+    GF.Data.Operations
+    GF.Infra.Option
+    GF.Infra.UseIO
+
+    GF.Command.Abstract
+    GF.Command.CommandInfo
+    GF.Command.Commands
+    GF.Command.CommonCommands
+    GF.Command.SourceCommands
+    GF.Command.Help
+    GF.Command.Importing
+    GF.Command.Interpreter
+    GF.Command.Messages
+    GF.Command.Parse
+    GF.Command.TreeOperations
+    GF.Compile.CFGtoPGF
+    GF.Compile.CheckGrammar
+    GF.Compile.Compute.Concrete
+    GF.Compile.Compute.Predef
+    GF.Compile.Compute.Value
+    GF.Compile.ExampleBased
+    GF.Compile.Export
+    GF.Compile.GenerateBC
+    GF.Compile.GeneratePMCFG
+    GF.Compile.GrammarToPGF
+    GF.Compile.Multi
+    GF.Compile.Optimize
+    GF.Compile.PGFtoHaskell
+    GF.Compile.PGFtoJava
+    GF.Haskell
+    GF.Compile.ConcreteToHaskell
+    GF.Compile.GrammarToCanonical
+    GF.Grammar.CanonicalJSON
+    GF.Compile.PGFtoJS
+    GF.Compile.PGFtoJSON
+    GF.Compile.PGFtoProlog
+    GF.Compile.PGFtoPython
+    GF.Compile.ReadFiles
+    GF.Compile.Rename
+    GF.Compile.SubExOpt
+    GF.Compile.Tags
+    GF.Compile.ToAPI
+    GF.Compile.TypeCheck.Abstract
+    GF.Compile.TypeCheck.Concrete
+    GF.Compile.TypeCheck.ConcreteNew
+    GF.Compile.TypeCheck.Primitives
+    GF.Compile.TypeCheck.TC
+    GF.Compile.Update
+    GF.Data.BacktrackM
+    GF.Data.ErrM
+    GF.Data.Graph
+    GF.Data.Graphviz
+    GF.Data.Relation
+    GF.Data.Str
+    GF.Data.Utilities
+    GF.Data.XML
+    GF.Grammar.Analyse
+    GF.Grammar.Binary
+    GF.Grammar.CFG
+    GF.Grammar.EBNF
+    GF.Grammar.BNFC
+    GF.Grammar.Grammar
+    GF.Grammar.Lexer
+    GF.Grammar.Lockfield
+    GF.Grammar.Lookup
+    GF.Grammar.Macros
+    GF.Grammar.Parser
+    GF.Grammar.PatternMatch
+    GF.Grammar.Predef
+    GF.Grammar.Printer
+    GF.Grammar.ShowTerm
+    GF.Grammar.Unify
+    GF.Grammar.Values
+    GF.Infra.BuildInfo
+    GF.Infra.CheckM
+    GF.Infra.Concurrency
+    GF.Infra.Dependencies
+    GF.Infra.GetOpt
+    GF.Infra.Ident
+    GF.Infra.Location
+    GF.Infra.SIO
+    GF.JavaScript.AbsJS
+    GF.JavaScript.PrintJS
+    GF.Quiz
+    GF.Speech.CFGToFA
+    GF.Speech.FiniteState
+    GF.Speech.GSL
+    GF.Speech.JSGF
+    GF.Speech.PGFToCFG
+    GF.Speech.PrRegExp
+    GF.Speech.RegExp
+    GF.Speech.SISR
+    GF.Speech.SLF
+    GF.Speech.SRG
+    GF.Speech.SRGS_ABNF
+    GF.Speech.SRGS_XML
+    GF.Speech.VoiceXML
+    GF.System.Catch
+    GF.System.Concurrency
+    GF.System.Console
+    GF.System.Directory
+    GF.System.Process
+    GF.System.Signal
+    GF.Text.Clitics
+    GF.Text.Coding
+    GF.Text.Transliterations
+    Paths_gf
+
+  if flag(c-runtime)
+    cpp-options: -DC_RUNTIME
+
+  if flag(server)
+    build-depends:
+      cgi >= 3001.3.0.2 && < 3001.6,
+      httpd-shed >= 0.4.0 && < 0.5,
+      network>=2.3 && <2.7
+    if flag(network-uri)
+      build-depends:
+        network-uri >= 2.6.1.0 && < 2.7,
+        network>=2.6 && <2.7
+    else
+      build-depends:
+        network >= 2.5 && <2.6
+
+    cpp-options: -DSERVER_MODE
+    other-modules:
+      GF.Server
+      PGFService
+      RunHTTP
+      SimpleEditor.Convert
+      SimpleEditor.JSON
+      SimpleEditor.Syntax
+      URLEncoding
+      CGI
+      CGIUtils
+      Cache
+      Fold
+      ExampleDemo
+      ExampleService
+    hs-source-dirs:
+      src/server
+      src/server/transfer
+      src/example-based
+
+  if flag(interrupt)
+    cpp-options: -DUSE_INTERRUPT
+    other-modules: GF.System.UseSignal
+  else
+    other-modules: GF.System.NoSignal
+
+  if impl(ghc>=7.8)
+    build-tools:
+      happy>=1.19,
+      alex>=3.1
+--  ghc-options: +RTS -A20M -RTS
+  else
+    build-tools:
+      happy,
+      alex>=3
+
+  ghc-options: -fno-warn-tabs
+
+  if os(windows)
+    build-depends:
+      Win32 >= 2.3.1.1 && < 2.7
+  else
+    build-depends:
+      terminfo >=0.4.0 && < 0.5,
+      unix >= 2.7.2 && < 2.8
+
+  if impl(ghc>=8.2)
+    ghc-options: -fhide-source-paths
+
+executable gf
+  hs-source-dirs: src/programs
+  main-is: gf-main.hs
+  default-language: Haskell2010
+  build-depends:
+    gf,
+    base
+  ghc-options: -threaded
+--ghc-options: -fwarn-unused-imports
+
+  if impl(ghc>=7.0)
+    ghc-options: -rtsopts -with-rtsopts=-I5
+    if impl(ghc<7.8)
+      ghc-options: -with-rtsopts=-K64M
+
+  -- ghc-prof-options: -auto-all
+
+  if impl(ghc>=8.2)
+    ghc-options: -fhide-source-paths
+
+-- executable pgf-shell
+-- --if !flag(c-runtime)
+--   buildable: False
+--   main-is: pgf-shell.hs
+--   hs-source-dirs: src/runtime/haskell-bind/examples
+--   build-depends:
+--     gf,
+--     base,
+--     containers,
+--     mtl,
+--     lifted-base
+--   default-language: Haskell2010
+--   if impl(ghc>=7.0)
+--     ghc-options: -rtsopts
+
+test-suite gf-tests
+  type: exitcode-stdio-1.0
+  main-is: run.hs
+  hs-source-dirs: testsuite
+  build-depends:
+    base >= 4.9.1 && < 4.15,
+    Cabal >= 1.8,
+    directory >= 1.3.0 && < 1.4,
+    filepath >= 1.4.1 && < 1.5,
+    process >= 1.4.3 && < 1.7
+  build-tool-depends: gf:gf
+  default-language: Haskell2010
