@@ -1,0 +1,206 @@
+cabal-version:      2.4
+name:               large-records
+version:            0.1.0.0
+synopsis:           Efficient compilation for large records, linear in the size of the record
+description:        For many reasons, the internal code generated for modules
+                    that contain records is quadratic in the number of record
+                    fields. For large records (more than 30 fields, say), this
+                    can become problematic, leading to large compilation times
+                    and high memory requirements for ghc. The large-records
+                    library provides a way to define records that is guaranteed
+                    to result in ghc core that is /linear/ in the number of
+                    record fields.
+bug-reports:        https://github.com/well-typed/large-records/issues
+license:            BSD-3-Clause
+author:             Edsko de Vries
+maintainer:         edsko@well-typed.com
+category:           Generics
+extra-source-files: CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/well-typed/large-records
+
+library
+    exposed-modules:    Data.Record.Generic
+                        Data.Record.Generic.Eq
+                        Data.Record.Generic.GHC
+                        Data.Record.Generic.JSON
+                        Data.Record.Generic.Lens.Micro
+                        Data.Record.Generic.LowerBound
+                        Data.Record.Generic.Rep
+                        Data.Record.Generic.Rep.Internal
+                        Data.Record.Generic.Show
+                        Data.Record.Generic.SOP
+                        Data.Record.Generic.Transform
+
+                        Data.Record.QQ.CodeGen
+                        Data.Record.QQ.CodeGen.HSE
+                        Data.Record.QQ.CodeGen.Parser
+                        Data.Record.QQ.Runtime.MatchHasField
+
+                        Data.Record.TH
+                        Data.Record.TH.CodeGen
+                        Data.Record.TH.CodeGen.Tree
+                        Data.Record.TH.Config.Options
+                        Data.Record.TH.Runtime
+
+                        Data.Record.Internal.CodeGen
+                        Data.Record.Internal.Naming
+                        Data.Record.Internal.Record
+                        Data.Record.Internal.Record.Parser
+                        Data.Record.Internal.Record.Resolution
+                        Data.Record.Internal.Record.Resolution.GHC
+                        Data.Record.Internal.Record.Resolution.Internal
+                        Data.Record.Internal.TH.Name
+                        Data.Record.Internal.TH.Util
+                        Data.Record.Internal.Util
+
+    build-depends:      base >=4.13 && < 4.15
+                      , aeson
+                      , containers
+                      , generics-sop
+                      , haskell-src-exts
+                      , haskell-src-meta
+                      , microlens
+                      , mtl
+                      , record-hasfield
+                      , sop-core
+                      , syb
+                      , template-haskell
+                      , text
+                      , vector
+    hs-source-dirs:     src
+    default-language:   Haskell2010
+    default-extensions: NoStarIsType
+    ghc-options:       -Wall
+                       -Wcompat
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wpartial-fields
+                       -Widentities
+                       -Wredundant-constraints
+                       -Wmissing-export-lists
+
+test-suite test-large-records
+    type:               exitcode-stdio-1.0
+    main-is:            TestLargeRecords.hs
+    other-modules:      Test.Record.Prop.Show
+                        Test.Record.Prop.Show.Regular
+                        Test.Record.Prop.Show.Large
+                        Test.Record.Prop.ToFromJSON
+                        Test.Record.Sanity.Derive
+                        Test.Record.Sanity.EqualFieldTypes
+                        Test.Record.Sanity.ErrorsAndWarnings
+                        Test.Record.Sanity.ErrorsAndWarnings.Stage1
+                        Test.Record.Sanity.Generics
+                        Test.Record.Sanity.GhcGenerics
+                        Test.Record.Sanity.HigherKinded
+                        Test.Record.Sanity.HKD
+                        Test.Record.Sanity.Laziness
+                        Test.Record.Sanity.Lens.Micro
+                        Test.Record.Sanity.OverloadingNoDRF
+                        Test.Record.Sanity.PatternMatch
+                        Test.Record.Sanity.QualifiedImports
+                        Test.Record.Sanity.QualifiedImports.A
+                        Test.Record.Sanity.QualifiedImports.B
+                        Test.Record.Sanity.RecordConstruction
+                        Test.Record.Sanity.Strictness
+                        Test.Record.Sanity.Transform
+                        Test.Record.Size.After.HK010
+                        Test.Record.Size.After.R0010
+                        Test.Record.Size.Before.Baseline
+                        Test.Record.Size.Before.R010
+                        Test.Record.Size.Infra
+                        Test.Record.Size.Sanity
+                        Test.Record.Util
+
+    build-depends:      base
+                      , aeson
+                      , generics-sop
+                      , json-sop
+                      , generic-deriving
+                       -- TODO: Remove:
+                      , ghc-dump-core
+                      , large-records
+                      , newtype
+                      , microlens
+                      , mtl
+                      , record-dot-preprocessor
+                      , record-hasfield
+                      , sop-core
+                      , tasty
+                      , tasty-hunit
+                      , tasty-quickcheck
+                      , template-haskell
+                      , transformers
+                      , vector
+                      , QuickCheck
+    build-tool-depends: record-dot-preprocessor:record-dot-preprocessor
+    hs-source-dirs:     test
+    default-language:   Haskell2010
+    ghc-options:       -Wall
+                       -Wcompat
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wpartial-fields
+                       -Widentities
+                       -- Needed for the AllZip tests
+                       -freduction-depth=2000
+
+    if flag(profile-allzip)
+      cpp-options: -DPROFILE_ALLZIP
+
+    if flag(use-ghc-dump)
+      cpp-options: -DUSE_GHC_DUMP
+      build-depends: ghc-dump-core
+
+    if flag(build-all-modules)
+      other-modules: Test.Record.Size.After.HK020
+                     Test.Record.Size.After.HK030
+                     Test.Record.Size.After.HK040
+                     Test.Record.Size.After.HK050
+                     Test.Record.Size.After.HK060
+                     Test.Record.Size.After.HK070
+                     Test.Record.Size.After.HK080
+                     Test.Record.Size.After.HK090
+                     Test.Record.Size.After.HK100
+                     Test.Record.Size.After.R0020
+                     Test.Record.Size.After.R0030
+                     Test.Record.Size.After.R0040
+                     Test.Record.Size.After.R0050
+                     Test.Record.Size.After.R0060
+                     Test.Record.Size.After.R0070
+                     Test.Record.Size.After.R0080
+                     Test.Record.Size.After.R0090
+                     Test.Record.Size.After.R0100
+                     Test.Record.Size.After.R0200
+                     Test.Record.Size.After.R0300
+                     Test.Record.Size.After.R0400
+                     Test.Record.Size.After.R0500
+                     Test.Record.Size.After.R0600
+                     Test.Record.Size.After.R0700
+                     Test.Record.Size.After.R0800
+                     Test.Record.Size.After.R0900
+                     Test.Record.Size.After.R1000
+                     Test.Record.Size.Before.R020
+                     Test.Record.Size.Before.R030
+                     Test.Record.Size.Before.R040
+                     Test.Record.Size.Before.R050
+                     Test.Record.Size.Before.R060
+                     Test.Record.Size.Before.R070
+                     Test.Record.Size.Before.R080
+                     Test.Record.Size.Before.R090
+                     Test.Record.Size.Before.R100
+
+Flag build-all-modules
+  Description: Build all test modules in Size
+  Default: False
+
+Flag use-ghc-dump
+  Description: use ghc-dump to output AST sizes
+  Default: False
+
+Flag profile-allzip
+  Description: Include experiment to verify size of AllZip is linear
+  Default: False
