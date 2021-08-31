@@ -1,0 +1,251 @@
+cabal-version: 3.0
+name: symantic-parser
+maintainer: mailto:~julm/symantic-parser@todo.hut.sourcephile.fr
+bug-reports: https://todo.hut.sourcephile.fr/~julm/symantic-parser
+homepage: https://git.hut.sourcephile.fr/~julm/symantic-parser
+author: Julien Moutinho <julm+symantic-parser@sourcephile.fr>
+copyright: Julien Moutinho <julm+symantic-parser@sourcephile.fr>
+license: AGPL-3.0-or-later
+license-file: LICENSES/AGPL-3.0-or-later.txt
+version: 0.2.1.20210803
+stability: experimental
+synopsis: Parser combinators statically optimized and staged via typed meta-programming
+description:
+  This is a work-in-progress experimental library to generate parsers,
+  leveraging Tagless-Final interpreters and Typed Template Haskell staging.
+
+  This is an alternative but less powerful/reviewed
+  implementation of [ParsleyHaskell](https://github.com/J-mie6/ParsleyHaskell).
+  See the paper by Jamie Willis, Nicolas Wu, and Matthew Pickering,
+  admirably well presented at ICFP-2020: [Staged Selective Parser Combinators](https://icfp20.sigplan.org/details/icfp-2020-papers/20/Staged-Selective-Parser-Combinators).
+category: Parsing
+build-type: Simple
+tested-with: GHC==9.0.1
+extra-doc-files:
+  ChangeLog.md
+  Hacking.md
+  ReadMe.md
+  ToDo.md
+extra-source-files:
+  cabal.project
+  default.nix
+  .envrc
+  flake.lock
+  flake.nix
+  Makefile
+  parsers/Parsers/Brainfuck/inputs/*.bf
+  shell.nix
+  tests/Golden/**/*.txt
+extra-tmp-files:
+
+source-repository head
+  type: git
+  location: https://git.hut.sourcephile.fr/~julm/symantic-parser
+
+flag dump-core
+  description: Dump GHC's Core in HTML
+  manual: True
+  default: False
+
+flag disable-ormolu-check
+  description: Remove ormolu from build-tool-depends.
+               Temporary hack while Nixpkgs' haskellPackages.ormolu remains broken.
+  manual: True
+  default: False
+
+common boilerplate
+  default-language: Haskell2010
+  default-extensions:
+    NoImplicitPrelude
+  ghc-options:
+    -Wall
+    -Wincomplete-uni-patterns
+    -Wincomplete-record-updates
+    -Wpartial-fields
+    -fprint-potential-instances
+
+library
+  import: boilerplate
+  hs-source-dirs: src
+  exposed-modules:
+    Language.Haskell.TH.HideName
+    Language.Haskell.TH.Show
+    Symantic.Parser
+    Symantic.Parser.Grammar
+    Symantic.Parser.Grammar.Combinators
+    Symantic.Parser.Grammar.ObserveSharing
+    Symantic.Parser.Grammar.Optimize
+    Symantic.Parser.Grammar.Production
+    Symantic.Parser.Grammar.View
+    Symantic.Parser.Grammar.Write
+    Symantic.Parser.Machine
+    Symantic.Parser.Machine.Generate
+    Symantic.Parser.Machine.Input
+    Symantic.Parser.Machine.Instructions
+    Symantic.Parser.Machine.Optimize
+    Symantic.Parser.Machine.Program
+    Symantic.Parser.Machine.View
+  default-extensions:
+    BangPatterns,
+    DataKinds,
+    FlexibleContexts,
+    FlexibleInstances,
+    GADTs,
+    GeneralizedNewtypeDeriving,
+    LambdaCase,
+    MultiParamTypeClasses,
+    NamedFieldPuns,
+    RankNTypes,
+    RecordWildCards,
+    ScopedTypeVariables,
+    TypeApplications,
+    TypeFamilies,
+    TypeOperators
+  build-depends:
+    base >=4.10 && <5,
+    array,
+    bytestring,
+    containers,
+    deepseq >= 1.4,
+    ghc-prim,
+    hashable,
+    -- For Language.Haskell.Ppr.Lib.pprExp
+    pretty >= 1.1,
+    symantic-base >= 0.2,
+    template-haskell >= 2.16,
+    text,
+    transformers,
+    unordered-containers
+
+library parsers
+  -- visibility: public
+  import: boilerplate
+  hs-source-dirs: parsers
+  exposed-modules:
+    Parsers.Brainfuck.Attoparsec
+    Parsers.Brainfuck.Handrolled
+    Parsers.Brainfuck.SymanticParser
+    Parsers.Brainfuck.SymanticParser.Grammar
+    Parsers.Brainfuck.Types
+    Parsers.Nandlang
+    Parsers.Playground
+    Parsers.Utils
+    Parsers.Utils.Handrolled
+    Parsers.Utils.Attoparsec
+    Parsers.Utils.Attoparsec.Text
+  default-extensions:
+    BangPatterns,
+    DefaultSignatures,
+    FlexibleContexts,
+    FlexibleInstances,
+    GeneralizedNewtypeDeriving,
+    LambdaCase,
+    MultiParamTypeClasses,
+    ScopedTypeVariables,
+    TypeApplications,
+    TypeFamilies,
+    TypeOperators
+  build-depends:
+    symantic-parser,
+    attoparsec >= 0.13,
+    base >= 4.10 && < 5,
+    bytestring >= 0.10,
+    containers >= 0.5.10.1,
+    deepseq >= 1.4,
+    directory >= 1.3,
+    filepath >= 1.4,
+    ghc-prim,
+    hashable >= 1.2.6,
+    megaparsec >= 9.0,
+    process >= 1.6,
+    strict >= 0.4,
+    symantic-base >= 0.2,
+    tasty >= 0.11,
+    tasty-golden >= 2.3,
+    template-haskell >= 2.16,
+    text >= 1.2,
+    transformers >= 0.4,
+    unix >= 2.7,
+    unordered-containers
+  -- ghc-options: -ddump-splices
+
+test-suite symantic-parser-tests
+  import: boilerplate
+  type: exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is: Main.hs
+  other-modules:
+    Golden
+    Golden.Grammar
+    Golden.Machine
+    Golden.Parser
+    Golden.Splice
+    Golden.Utils
+    Grammar
+    -- HUnit
+    -- QuickCheck
+    Paths_symantic_parser
+  autogen-modules:
+    Paths_symantic_parser
+  ghc-prof-options: -fexternal-interpreter
+  build-depends:
+    symantic-parser,
+    symantic-parser:parsers,
+    base >= 4.10 && < 5,
+    bytestring >= 0.10,
+    -- Needed for exported Data.Map.Internal
+    containers >= 0.5.10.1,
+    deepseq >= 1.4,
+    directory >= 1.3,
+    filepath >= 1.4,
+    hashable >= 1.2.6,
+    process >= 1.6,
+    strict >= 0.4,
+    tasty >= 0.11,
+    tasty-golden >= 2.3,
+    -- tasty-hunit,
+    template-haskell >= 2.16,
+    -- th-lift-instances >= 0.1.17,
+    -- temporary >= 1.3,
+    text >= 1.2,
+    -- time >= 1.9,
+    transformers >= 0.4,
+    -- QuickCheck >= 2.0,
+    -- tasty-quickcheck,
+    unix >= 2.7,
+    unordered-containers
+  if !flag(disable-ormolu-check)
+    build-tool-depends:
+      ormolu:ormolu >= 1.5
+  if flag(dump-core)
+    build-depends: dump-core
+    ghc-options: -fplugin=DumpCore
+
+benchmark symantic-parser-benchmark
+  import: boilerplate
+  type: exitcode-stdio-1.0
+  hs-source-dirs: benchmarks
+  main-is: Main.hs
+  default-language: Haskell2010
+  other-modules:
+    Brainfuck
+    Paths_symantic_parser
+  autogen-modules:
+    Paths_symantic_parser
+  default-extensions:
+  ghc-options: -fno-enable-th-splice-warnings
+  ghc-prof-options: -fexternal-interpreter
+  build-depends:
+    base >= 4.6 && < 5,
+    symantic-parser,
+    symantic-parser:parsers,
+    attoparsec >= 0.13,
+    bytestring >= 0.10,
+    containers >= 0.5,
+    criterion >= 1.5,
+    deepseq >= 1.4,
+    megaparsec >= 9.0,
+    random >= 1.1,
+    text >= 1.2,
+    template-haskell >= 2.16,
+    transformers >= 0.5
