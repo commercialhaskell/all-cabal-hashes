@@ -1,0 +1,237 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: acdf4e8362e54c7dabc311e213378ec098339936e11995a39c08d189594f7ece
+
+name:           dependent-literals-plugin
+version:        0.1.0.0
+synopsis:       Rewrites integer literals to a pseudo-dependently-typed form.
+description:    This plugin implements pseudo-dependently-typed integer literals.
+                .
+                This means the value of an integer literal is available at the type level,
+                and can be used for things like validation or type inference.  For example,
+                the 'SInt' instance refines unknown type-level 'Nat' variables to the
+                particular literal value, and the 'Fin' instance emits compile-time errors
+                for out-of-range values.  So, given
+                @mkVec :: SInt n -> (Fin n -> a) -> Vec n a@, @mkVec 4@ will have type
+                @(Fin 4 -> a) -> Vec 4 a@, and trying to type-check @4 :: Fin 4@ will report
+                a type error saying that @4@ is out of range.
+                .
+                Patterns get a similar treatment, too, so
+                @case (x :: SInt n) of { 1 -> Just Refl; _ -> Nothing } :: Maybe (n :~: 1)@
+                can type-check: the act of matching against 1 proved that the type-level @n@
+                was equal to 1, so 'Refl' can type-check as @n :~: 1@.
+                .
+                To use this, enable the extensions @DataKinds@, @FlexibleContexts@,
+                @ViewPatterns@, and @TypeApplications@, add @dependent-literals@ and
+                @dependent-literals-plugin@ to your package's dependencies, and add
+                @-fplugin=DependentLiterals.Plugin@ to @ghc-options@ to enable the plugin
+                globally, or use @OPTIONS_GHC@ pragmas to enable the plugin on a per-module
+                basis.  \"Normal\" integral types should still behave as normal, but literals
+                and numeric patterns will become supported for 'SInt' and 'Fin', and will
+                provide additional information to the type checker automatically.
+category:       Constraints
+homepage:       https://github.com/google/hs-dependent-literals#readme
+bug-reports:    https://github.com/google/hs-dependent-literals/issues
+author:         Andrew Pritchard <awpr@google.com>
+maintainer:     Andrew Pritchard <awpr@google.com>
+copyright:      2019-2021 Google LLC
+license:        Apache-2.0
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/google/hs-dependent-literals
+  subdir: dependent-literals-plugin
+
+flag error_message_tests
+  description: Enable tests that emit error messages for inspection.
+  manual: True
+  default: False
+
+library
+  exposed-modules:
+      DependentLiterals.Plugin
+  other-modules:
+      Paths_dependent_literals_plugin
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.12 && <4.16
+    , ghc >=8.6 && <9.1
+    , syb >=0.1 && <0.8
+  default-language: Haskell2010
+
+test-suite FinErrors-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      FinErrors
+  hs-source-dirs:
+      tests
+  default-extensions: NoStarIsType DataKinds FlexibleContexts ViewPatterns TypeApplications
+  ghc-options: -fplugin=DependentLiterals.Plugin
+  build-depends:
+      base >=4.12 && <4.16
+    , dependent-literals >=0.1 && <0.2
+    , dependent-literals-plugin
+    , fin-int >=0.1 && <0.2
+    , numeric-kinds >=0.1 && <0.2
+    , short-vec >=0.1 && <0.2
+    , sint >=0.1 && <0.2
+    , snumber >=0.1 && <0.2
+  if !flag(error_message_tests)
+    buildable: False
+  default-language: Haskell2010
+
+test-suite IntErrors-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      IntErrors
+  hs-source-dirs:
+      tests
+  default-extensions: NoStarIsType DataKinds FlexibleContexts ViewPatterns TypeApplications
+  ghc-options: -fplugin=DependentLiterals.Plugin
+  build-depends:
+      base >=4.12 && <4.16
+    , dependent-literals >=0.1 && <0.2
+    , dependent-literals-plugin
+    , fin-int >=0.1 && <0.2
+    , numeric-kinds >=0.1 && <0.2
+    , short-vec >=0.1 && <0.2
+    , sint >=0.1 && <0.2
+    , snumber >=0.1 && <0.2
+  if !flag(error_message_tests)
+    buildable: False
+  default-language: Haskell2010
+
+test-suite Plugin-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Deriving
+      DoubleNegation
+      FinLiterals
+      FinPatterns
+      FractionalLiterals
+      FractionalPatterns
+      IntLiterals
+      IntPatterns
+      PolyLiterals
+      SIntLiterals
+      SIntPatterns
+      TestUtils
+      SNumberLiterals
+      WithNegativeLiterals
+      WordLiterals
+      WordPatterns
+      VecExamples
+  hs-source-dirs:
+      tests
+  default-extensions: NoStarIsType DataKinds FlexibleContexts ViewPatterns TypeApplications
+  ghc-options: -fplugin=DependentLiterals.Plugin
+  build-depends:
+      base >=4.12 && <4.16
+    , dependent-literals >=0.1 && <0.2
+    , dependent-literals-plugin
+    , fin-int >=0.1 && <0.2
+    , numeric-kinds >=0.1 && <0.2
+    , short-vec >=0.1 && <0.2
+    , sint >=0.1 && <0.2
+    , snumber >=0.1 && <0.2
+  default-language: Haskell2010
+
+test-suite PolyErrors-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      PolyErrors
+  hs-source-dirs:
+      tests
+  default-extensions: NoStarIsType DataKinds FlexibleContexts ViewPatterns TypeApplications
+  ghc-options: -fplugin=DependentLiterals.Plugin
+  build-depends:
+      base >=4.12 && <4.16
+    , dependent-literals >=0.1 && <0.2
+    , dependent-literals-plugin
+    , fin-int >=0.1 && <0.2
+    , numeric-kinds >=0.1 && <0.2
+    , short-vec >=0.1 && <0.2
+    , sint >=0.1 && <0.2
+    , snumber >=0.1 && <0.2
+  if !flag(error_message_tests)
+    buildable: False
+  default-language: Haskell2010
+
+test-suite SIntErrors-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      SIntErrors
+  hs-source-dirs:
+      tests
+  default-extensions: NoStarIsType DataKinds FlexibleContexts ViewPatterns TypeApplications
+  ghc-options: -fplugin=DependentLiterals.Plugin
+  build-depends:
+      base >=4.12 && <4.16
+    , dependent-literals >=0.1 && <0.2
+    , dependent-literals-plugin
+    , fin-int >=0.1 && <0.2
+    , numeric-kinds >=0.1 && <0.2
+    , short-vec >=0.1 && <0.2
+    , sint >=0.1 && <0.2
+    , snumber >=0.1 && <0.2
+  if !flag(error_message_tests)
+    buildable: False
+  default-language: Haskell2010
+
+test-suite SNumberErrors-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      SNumberErrors
+  hs-source-dirs:
+      tests
+  default-extensions: NoStarIsType DataKinds FlexibleContexts ViewPatterns TypeApplications
+  ghc-options: -fplugin=DependentLiterals.Plugin
+  build-depends:
+      base >=4.12 && <4.16
+    , dependent-literals >=0.1 && <0.2
+    , dependent-literals-plugin
+    , fin-int >=0.1 && <0.2
+    , numeric-kinds >=0.1 && <0.2
+    , short-vec >=0.1 && <0.2
+    , sint >=0.1 && <0.2
+    , snumber >=0.1 && <0.2
+  if !flag(error_message_tests)
+    buildable: False
+  default-language: Haskell2010
+
+test-suite WordErrors-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      WordErrors
+  hs-source-dirs:
+      tests
+  default-extensions: NoStarIsType DataKinds FlexibleContexts ViewPatterns TypeApplications
+  ghc-options: -fplugin=DependentLiterals.Plugin
+  build-depends:
+      base >=4.12 && <4.16
+    , dependent-literals >=0.1 && <0.2
+    , dependent-literals-plugin
+    , fin-int >=0.1 && <0.2
+    , numeric-kinds >=0.1 && <0.2
+    , short-vec >=0.1 && <0.2
+    , sint >=0.1 && <0.2
+    , snumber >=0.1 && <0.2
+  if !flag(error_message_tests)
+    buildable: False
+  default-language: Haskell2010
