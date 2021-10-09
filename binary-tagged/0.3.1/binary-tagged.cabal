@@ -1,0 +1,137 @@
+cabal-version:      2.2
+name:               binary-tagged
+version:            0.3.1
+synopsis:           Tagged binary serialisation.
+category:           Data
+description:
+  Structurally tag binary serialisation stream.
+  .
+  Say you have:
+  .
+  Say you have a data type
+  .
+  @
+  data Record = Record
+  \  { _recordFields  :: HM.HashMap Text (Integer, ByteString)
+  \  , _recordEnabled :: Bool
+  \  }
+  \  deriving (Eq, Show, Generic)
+  .
+  instance @Binary@ Record
+  instance 'Structured' Record
+  @
+  .
+  then you can serialise and deserialise @Record@ values with a structure tag by simply
+  .
+  @
+  'structuredEncode' record :: LBS.ByteString
+  'structuredDecode' lbs    :: IO Record
+  @
+  .
+  If structure of @Record@ changes in between, deserialisation will fail early.
+  .
+  The overhead is next to non-observable.
+  .
+  @
+  benchmarking encode/Binary
+  time                 352.8 μs   (349.5 μs .. 355.9 μs)
+  .
+  benchmarking encode/Tagged
+  time                 350.8 μs   (349.0 μs .. 353.1 μs)
+  .
+  benchmarking decode/Binary
+  time                 346.8 μs   (344.7 μs .. 349.9 μs)
+  .
+  benchmarking decode/Tagged
+  time                 353.8 μs   (352.0 μs .. 355.8 μs)
+  @
+
+bug-reports:        https://github.com/phadej/binary-tagged/issues
+author:             Oleg Grenrus <oleg.grenrus@iki.fi>
+maintainer:         Oleg Grenrus <oleg.grenrus@iki.fi>
+license:            BSD-3-Clause
+license-file:       LICENSE
+build-type:         Simple
+tested-with:
+  GHC ==7.8.4
+   || ==7.10.3
+   || ==8.0.2
+   || ==8.2.2
+   || ==8.4.4
+   || ==8.6.5
+   || ==8.8.4
+   || ==8.10.4
+   || ==9.0.1
+
+extra-source-files: CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/phadej/binary-tagged
+  subdir:   binary-tagged
+
+library
+  hs-source-dirs:   src
+  ghc-options:      -Wall
+
+  -- we build on top of structured
+  build-depends:    structured >=0.1.1 && <0.1.2
+
+  -- Libraries bundled with GHC
+  build-depends:
+    , array       ^>=0.5.0.0
+    , base        >=4.7.0.2  && <4.16
+    , binary      >=0.7.1.0  && <0.10
+    , bytestring  ^>=0.10.4.0 || ^>=0.11
+    , containers  >=0.5.5.1  && <0.7
+
+  -- other dependencies
+  build-depends:
+    , base16-bytestring  ^>=0.1.1.6 || ^>=1.0.0.0
+    , tagged             ^>=0.8.6
+
+  exposed-modules:  Data.Binary.Tagged
+  default-language: Haskell2010
+
+test-suite binary-tagged-test
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  main-is:          Tests.hs
+  hs-source-dirs:   test
+  ghc-options:      -Wall
+  build-depends:
+    , base
+    , binary
+    , binary-instances      ^>=1
+    , binary-tagged
+    , bytestring
+    , QuickCheck            ^>=2.14
+    , quickcheck-instances
+    , singleton-bool        ^>=0.1.5
+    , tagged
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , transformers
+
+  other-modules:
+    Generators
+    Rec1
+    Rec2
+
+benchmark binary-tagged-bench
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  main-is:          Bench.hs
+  hs-source-dirs:   bench
+  ghc-options:      -Wall
+  build-depends:
+    , base
+    , binary
+    , binary-instances
+    , binary-tagged
+    , bytestring
+    , criterion
+    , deepseq
+    , text
+    , unordered-containers
