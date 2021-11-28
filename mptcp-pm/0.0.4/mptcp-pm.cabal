@@ -1,0 +1,179 @@
+cabal-version: 3.0
+name: mptcp-pm
+version: 0.0.4
+license: GPL-3.0-only
+license-file: LICENSE
+build-type: Simple
+Maintainer:  teto
+Category:   Network, Mptcp
+Synopsis: A Multipath TCP path manager
+Homepage:   https://github.com/teto/netlink_pm
+Description:
+  Multipath TCP (www.multipath-tcp.org) starting from version 0.95 provides a
+  netlink path manager module. This package implements the userspace component
+  in charge of controlling MPTCP subflow establishement and various behaviors.
+  It contains a set of function that is also used in [mptcpanalyzer](https://hackage.haskell.org/packages/).
+
+data-files:
+extra-source-files:
+  headers/*.h
+  headers/linux/*.h
+  README.md
+  CHANGELOG
+
+
+
+tested-with:         GHC == 8.10.7
+
+Source-repository head
+  type:       git
+  location:   https://github.com/teto/mptcp-pm
+
+Flag WithPolysemy {
+  Description: Add polysemy plugin
+  Default:     True
+}
+
+Flag Dev {
+  Description: Relax constraints
+  Default:     True
+}
+
+
+common shared-properties
+    default-language: Haskell2010
+    ghc-options:
+      -Wall -fno-warn-unused-binds -fno-warn-unused-matches -haddock
+    build-depends:
+      -- TODO remove that boundary
+      netlink >= 1.1.1.0
+      , formatting
+      , readable
+      , polysemy
+      , polysemy-log
+      , polysemy-log-co
+
+    default-extensions:
+        FlexibleContexts
+        , StrictData
+        , DataKinds
+        , FlexibleContexts
+        , GADTs
+        , LambdaCase
+        -- , OverloadedStrings
+        , PolyKinds
+        , RankNTypes
+        , ScopedTypeVariables
+        , TemplateHaskell
+        , TypeApplications
+        , TypeOperators
+        , TypeFamilies
+
+    if flag(WithPolysemy)
+        ghc-options: -fplugin=Polysemy.Plugin
+        build-depends: polysemy-plugin
+
+
+library
+    import: shared-properties
+    default-language: Haskell2010
+    -- for the .chs => c2hs
+    -- apparently this just helps getting a better error messages
+    Includes:
+        tcp_states.h
+      , linux/sock_diag.h
+      , linux/inet_diag.h
+      , linux/mptcp.h
+    -- TODO try to pass it from CLI instead , Net.TcpInfo
+    include-dirs:
+      headers
+    default-extensions:
+      DeriveGeneric
+    -- autogen-modules:
+    --     Net.Tcp.Constants
+    --   , Net.Mptcp.Constants
+    --   , Net.SockDiag.Constants
+    build-depends:
+        base >= 4.12
+      , containers
+      , readable
+      , bytestring
+      , process
+      , cereal
+      , enumset
+      , ip >= 1.7.3
+      , bytestring-conversion
+      , text
+      -- todo get rid of it
+      -- for liftIO
+      , mtl
+      -- for merge
+      , aeson
+      , aeson-pretty
+      , aeson-extra
+      -- to help with merging json content
+      , unordered-containers
+      -- to create temp folder/files
+      , transformers
+    hs-source-dirs:
+      src/
+    build-tool-depends:
+      c2hs:c2hs
+    Exposed-Modules:
+        Net.SockDiag
+      , Net.Tcp
+      , Net.Bitset
+      , Net.Tcp.Constants
+      , Net.Tcp.Definitions
+      , Net.Mptcp
+      , Net.Mptcp.Constants
+      , Net.Mptcp.PathManager
+      , Net.Mptcp.PathManager.Default
+      , Net.IPAddress
+      , Net.SockDiag.Constants
+      -- TODO let it high level
+
+
+-- monitor new mptcp connections
+-- and delegate the behavior to a monitor
+executable mptcp-manager
+    import: shared-properties
+    default-language: Haskell2010
+    build-depends:
+        aeson
+      , aeson-pretty
+      , aeson-extra
+      , base >= 4.12 && < 4.17
+      , bytestring
+      , containers
+      , mptcp-pm
+      , optparse-applicative
+      , transformers
+      -- , fast-logger
+      -- , hslogger
+      , ip
+      , text
+      , mtl
+      , cereal
+      , process
+      , temporary
+      , filepath
+      -- to use Simple module. Try to do without
+      , netlink >= 1.1.1.0
+    default-extensions: DeriveGeneric
+    main-is: Main.hs
+    hs-source-dirs: src/app
+    ghc-options: -threaded -rtsopts
+
+
+Test-Suite test-tcp
+  -- 2 types supported, exitcode is based on ... exit codes ....
+  type:               exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is:            Main.hs
+  hs-source-dirs:     test
+  ghc-options: -threaded -rtsopts
+  build-depends:      base >=4.12
+                     , HUnit
+                     , mptcp-pm
+                     , ip, text
