@@ -1,0 +1,200 @@
+cabal-version: 2.4
+name:          Allure
+-- The package version. See the Haskell package versioning policy (PVP)
+-- for standards guiding when and how versions should be incremented.
+-- http://www.haskell.org/haskellwiki/Package_versioning_policy
+-- PVP summary:+-+------- breaking API changes
+--             | |  +----- minor or non-breaking API additions
+--             | |  | +--- code changes with no API change
+version:       0.11.0.0
+synopsis:      Near-future Sci-Fi roguelike and tactical squad combat game
+description: Allure of the Stars is a near-future Sci-Fi roguelike
+             and tactical squad combat game. Binaries and the game manual
+             are available at the homepage. You can also try the game out
+             in the browser at <http://allureofthestars.com/play>.
+             .
+             Not a single image in this game. You have to imagine everything
+             yourself, like with a book (a grown-up book, without pictures).
+             Once you learn to imagine things, though, you can keep exploring
+             and mastering the world and making up stories for a long time.
+             .
+             The game is written in Haskell using the LambdaHack roguelike
+             game engine <http://hackage.haskell.org/package/LambdaHack>.
+             Please see the changelog file for recent improvements
+             and the issue tracker for short-term plans. Long term goals
+             are high replayability and auto-balancing through procedural
+             content generation and persistent content modification
+             based on player behaviour. Contributions are welcome.
+             .
+             This is a workaround .cabal file, flattened to eliminate
+             internal libraries until generating haddocks for them
+             is fixed. The original .cabal file is in .cabal.bkp file.
+homepage:      http://allureofthestars.com
+bug-reports:   http://github.com/AllureOfTheStars/Allure/issues
+license:       AGPL-3.0-or-later
+license-file:  COPYLEFT
+tested-with:   GHC==8.2.2, GHC==8.4.4, GHC==8.6.5, GHC==8.8.4, GHC==8.10.7,
+               GHC==9.0.1
+-- Enough files is included in the Hackage package to run CI and manual
+-- tests off it, to be presentable on Hackage and to create user-friendly
+-- binary packages.
+extra-source-files: GameDefinition/config.ui.default,
+                    GameDefinition/PLAYING.md,
+                    GameDefinition/fonts/16x16xw.woff,
+                    GameDefinition/fonts/16x16xw.bdf,
+                    GameDefinition/fonts/16x16x.fnt,
+                    GameDefinition/fonts/8x8xb.fnt,
+                    GameDefinition/fonts/8x8x.fnt,
+                    GameDefinition/fonts/BinarySansProLH-Regular.ttf.woff,
+                    GameDefinition/fonts/BinarySansProLH-Semibold.ttf.woff,
+                    GameDefinition/fonts/BinaryCodeProLH-Bold.ttf.woff,
+                    GameDefinition/fonts/DejaVuLGCSans.ttf.woff,
+                    GameDefinition/fonts/DejaVuLGCSans-Bold.ttf.woff,
+                    GameDefinition/fonts/Hack-Bold.ttf.woff
+extra-doc-files:    GameDefinition/InGameHelp.txt,
+                    README.md,
+                    CHANGELOG.md,
+                    LICENSE,
+                    COPYLEFT,
+                    CREDITS,
+                    cabal.project,
+                    cabal.project.LH.dir,
+                    Makefile
+author:        Andres Loeh, Mikolaj Konarski and others
+maintainer:    Mikolaj Konarski <mikolaj.konarski@funktory.com>
+category:      Game
+build-type:    Simple
+
+source-repository head
+  type:               git
+  location:           git://github.com/AllureOfTheStars/Allure.git
+
+flag with_expensive_assertions
+  description:        turn on expensive assertions of well-tested code
+  default:            False
+  manual:             True
+
+flag with_costly_optimizations
+  description:        turn on costly (mostly GHC heap size) optimizations (that give 15-25% speedup)
+  default:            True
+  manual:             True
+
+flag release
+  description:        prepare for a release (expose internal functions and types, etc.)
+  default:            True
+  manual:             True
+
+flag supportNodeJS
+  description:        compile so that the JS blob works in terminal with NodeJS
+  default:            True
+  manual:             True
+
+common options
+  default-language:   Haskell2010
+  default-extensions: MonoLocalBinds, ScopedTypeVariables, OverloadedStrings,
+                      BangPatterns, RecordWildCards, NamedFieldPuns, MultiWayIf,
+                      LambdaCase, DefaultSignatures, InstanceSigs,
+                      PatternSynonyms, StrictData, CPP, TypeApplications
+  other-extensions:   TemplateHaskell, MultiParamTypeClasses, RankNTypes,
+                      TypeFamilies, FlexibleContexts, FlexibleInstances,
+                      DeriveFunctor, FunctionalDependencies,
+                      GeneralizedNewtypeDeriving, TupleSections,
+                      DeriveFoldable, DeriveTraversable,
+                      ExistentialQuantification, GADTs, StandaloneDeriving,
+                      DataKinds, KindSignatures, DeriveGeneric, DeriveLift
+  ghc-options:        -Wall -Wcompat -Worphans -Wincomplete-uni-patterns -Wincomplete-record-updates -Wimplicit-prelude -Wmissing-home-modules -Widentities -Wredundant-constraints -Wmissing-export-lists -Wpartial-fields -Wunused-packages -Winvalid-haddock
+-- TODO: remove -Winvalid-haddock when added to -Wall in a GHC I use for haddock
+  ghc-options:        -fno-ignore-asserts
+
+  if flag(with_costly_optimizations)
+    ghc-options:        -fexpose-all-unfoldings -fspecialise-aggressively -fsimpl-tick-factor=200
+
+  if flag(with_expensive_assertions)
+    cpp-options:      -DWITH_EXPENSIVE_ASSERTIONS
+
+  if flag(release)
+    cpp-options:      -DEXPOSE_INTERNAL
+
+  ghcjs-options:      -DUSE_JSFILE
+
+  if !flag(supportNodeJS)
+    ghcjs-options:    -DREMOVE_TELETYPE
+
+common exe-options
+  ghc-options:        -rtsopts
+-- (Ignored by GHCJS) Minimize median lag at the cost of occasional bigger
+-- GC lag, which fortunately sometimes fits into idle time between turns):
+-- (Ignored by GHCJS) Avoid frequent GCs. Only idle-GC during a break in
+-- gameplay (5s), not between slow keystrokes.
+  ghc-options:        "-with-rtsopts=-A99m -I5"
+
+-- Haskell GC in GHCJS every 10s.
+  ghcjs-options:      -DGHCJS_GC_INTERVAL=10000
+-- This is the largest GHCJS_BUSY_YIELD value that does not cause dropped frames
+-- on my machine with default --maxFps.
+  ghcjs-options:      -DGHCJS_BUSY_YIELD=50
+  ghcjs-options:      -dedupe
+
+  if !flag(supportNodeJS)
+    ghcjs-options:    -DGHCJS_BROWSER
+
+library
+  import: options
+  hs-source-dirs:     GameDefinition, GameDefinition/game-src
+  exposed-modules:    Content.CaveKind
+                      Content.FactionKind
+                      Content.ItemKind
+                      Content.ItemKindEmbed
+                      Content.ItemKindActor
+                      Content.ItemKindOrgan
+                      Content.ItemKindBlast
+                      Content.ItemKindTemporary
+                      Content.ModeKind
+                      Content.PlaceKind
+                      Content.RuleKind
+                      Content.TileKind
+                      TieKnot
+                      Client.UI.Content.Input
+                      Client.UI.Content.Screen
+                      Implementation.MonadClientImplementation
+                      Implementation.MonadServerImplementation
+  other-modules:      Paths_Allure
+  autogen-modules:    Paths_Allure
+  build-depends:      ,LambdaHack >= 0.11.0.0 && < 0.11.1.0
+                      ,async
+                      ,base >= 4.10 && < 99
+                      ,enummapset
+                      ,file-embed >= 0.0.11
+                      ,filepath
+                      ,hsini
+                      ,ghc-compact
+                      ,optparse-applicative
+                      ,primitive
+                      ,splitmix
+                      ,template-haskell
+                      ,text
+                      ,th-lift-instances
+                      ,transformers
+
+executable Allure
+  import: options, exe-options
+  main-is:            GameDefinition/Main.hs
+  build-depends:      ,LambdaHack
+                      ,Allure
+                      ,async
+                      ,base
+                      ,filepath
+                      ,optparse-applicative
+
+test-suite test
+  import: options, exe-options
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Spec.hs
+  build-depends:      ,LambdaHack
+                      ,Allure
+                      ,base
+                      ,optparse-applicative
+                      ,tasty >= 1.0
+                      ,tasty-hunit
+                      ,text
