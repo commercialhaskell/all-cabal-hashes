@@ -1,0 +1,605 @@
+Name:               swish
+Version:            0.10.0.9
+Stability:          experimental
+License:            LGPL-2.1
+License-file:       LICENSE 
+Author:             Graham Klyne - GK@ninebynine.org
+Copyright:          (c) 2003, 2004 G. Klyne; 2009 Vasili I Galchin; 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 Doug Burke; All rights reserved.
+Maintainer:         dburke@cfa.harvard.edu
+Category:           Semantic Web
+Synopsis:           A semantic web toolkit. 
+
+Tested-With:        GHC==8.10.7
+Cabal-Version:      1.18
+Homepage:           https://gitlab.com/dburke/swish
+Bug-reports:        https://gitlab.com/dburke/swish/issues
+
+Description:        
+  Swish is a framework, written in the purely functional 
+  programming language Haskell, for performing deductions in 
+  RDF data using a variety of techniques. Swish is conceived 
+  as a toolkit for experimenting with RDF inference, and for 
+  implementing stand-alone RDF file processors (usable in 
+  similar style to CWM, but with a view to being extensible 
+  in declarative style through added Haskell function and data
+  value declarations). It explores Haskell as \"a scripting 
+  language for the Semantic Web\".
+  .
+  Swish is a work-in-progress, and currently incorporates:
+  .
+  * Turtle, Notation3 and NTriples input and output. The N3 support is
+    incomplete (no handling of @\@forAll@).
+  .
+  * RDF graph isomorphism testing and merging.
+  .
+  * Display of differences between RDF graphs.
+  .
+  * Inference operations in forward chaining, backward chaining and proof-checking modes.
+  .
+  * Simple Horn-style rule implementations, extendable through variable binding modifiers and filters.
+  .
+  * Class restriction rule implementation, primarily for datatype inferences.
+  .
+  * RDF formal semantics entailment rule implementation.
+  .
+  * Complete, ready-to-run, command-line and script-driven programs.
+  .
+  Changes are given in the <https://gitlab.com/dburke/swish/raw/master/CHANGELOG> file.
+  .
+  References:
+  .
+    - <http://www.ninebynine.org/RDFNotes/Swish/Intro.html>
+  .
+    - <http://www.ninebynine.org/Software/swish-0.2.1.html>
+  .
+    - CWM: <http://www.w3.org/2000/10/swap/doc/cwm.html>
+  .
+
+Build-Type:         Simple
+Extra-Source-Files: README.md
+                    CHANGELOG
+                    stack.yaml
+                    default.nix
+                    shell.nix
+                    .hlint.yaml
+Data-Files:         scripts/*.ss
+
+Source-repository head
+  type:     git
+  location: https://gitlab.com/dburke/swish.git
+
+-- Removed in 0.9.15 since I haven't been using it and it causes
+-- problems with 'cabal upload', since Cabal doesn't seem to recognize
+-- that -Werror is not on by default.
+--
+-- Flag  developer
+--   Description: Turn on developer flags
+--   Default:     False
+
+Flag  w3ctests
+  Description: Build the RunW3CTests application
+  Default:     False
+
+-- Prior to network-2.6, Network.URI was in network;
+-- for >= 2.6 it's in network-uri.
+--
+-- TODO: check; perhaps we don't need to install
+-- network if we have network-uri, particularly for the
+-- tests. If so, do we need network-uri < 2.6?
+--
+Flag network-uri
+  Description: Get Network.URI from the network-uri package
+  Default:     True
+
+Library
+   Default-Language:    Haskell2010
+   Build-Depends:
+      base >= 4.8 && < 4.16,
+      containers >= 0.5 && < 0.7,
+      directory >= 1.0 && < 1.4,
+      filepath >= 1.1 && < 1.5,
+      -- Early versions of hashable 1.2 are problematic
+      hashable (>= 1.1 && < 1.2) || (>= 1.2.0.6 && <1.5),
+      intern >= 0.8 && < 1.0,
+      mtl >= 2 && < 3,
+      -- old-locale is only needed if time < 1.5           
+      old-locale == 1.0.*, 
+      polyparse >= 1.6 && < 1.14,
+      text >= 0.11 && < 2.1,
+      -- I don't think 1.9.0 will work and it was quickly replaced
+      -- so do not support it           
+      time (>= 1.1 && < 1.9) || (>= 1.9.1 && < 1.14)
+
+   if flag(network-uri)
+     build-depends: network-uri >= 2.6 && < 2.8
+   else
+     build-depends: network-uri < 2.6
+                    , network >= 2.4 && < 2.6
+
+   if impl(ghc < 8.0.0)
+     ghc-options:
+        -Wall -fno-warn-orphans
+     build-depends: semigroups >= 0.16 && < 0.21
+   else
+     if impl(ghc < 8.8.0)
+       ghc-options:
+          -Wall -fno-warn-orphans -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances
+     else
+       ghc-options:
+          -Wall -fno-warn-orphans -Wcompat -Wnoncanonical-monad-instances
+
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
+
+   Hs-Source-Dirs: src/
+   Other-Modules:  Swish.RDF.Formatter.Internal
+
+   Exposed-Modules:
+      Data.Interned.URI
+      Data.Ord.Partial
+      Data.String.ShowLines
+      Network.URI.Ord
+      Swish
+      Swish.Commands
+      Swish.Datatype
+      Swish.GraphClass
+      Swish.GraphMatch
+      Swish.GraphMem
+      Swish.GraphPartition
+      Swish.Monad
+      Swish.Namespace
+      Swish.Proof
+      Swish.QName
+      Swish.RDF
+      Swish.RDF.BuiltIn
+      Swish.RDF.BuiltIn.Datatypes
+      Swish.RDF.BuiltIn.Rules
+      Swish.RDF.ClassRestrictionRule
+      Swish.RDF.Datatype
+      Swish.RDF.Datatype.XSD.Decimal
+      Swish.RDF.Datatype.XSD.Integer
+      Swish.RDF.Datatype.XSD.MapDecimal
+      Swish.RDF.Datatype.XSD.MapInteger
+      Swish.RDF.Datatype.XSD.String
+      Swish.RDF.Formatter.NTriples
+      Swish.RDF.Formatter.N3
+      Swish.RDF.Formatter.Turtle
+      Swish.RDF.Graph
+      Swish.RDF.GraphShowLines
+      Swish.RDF.Parser.NTriples
+      Swish.RDF.Parser.N3
+      Swish.RDF.Parser.Turtle
+      Swish.RDF.Parser.Utils
+      Swish.RDF.Proof
+      Swish.RDF.ProofContext
+      Swish.RDF.Query
+      Swish.RDF.Ruleset
+      Swish.RDF.VarBinding
+      Swish.RDF.Vocabulary
+      Swish.RDF.Vocabulary.DublinCore
+      Swish.RDF.Vocabulary.FOAF
+      Swish.RDF.Vocabulary.Geo
+      Swish.RDF.Vocabulary.OWL
+      Swish.RDF.Vocabulary.Provenance
+      Swish.RDF.Vocabulary.RDF
+      Swish.RDF.Vocabulary.SIOC
+      Swish.RDF.Vocabulary.XSD
+      Swish.Rule
+      Swish.Ruleset
+      Swish.Script
+      Swish.Utils.ListHelpers
+      Swish.VarBinding
+
+Test-Suite test-builtinmap
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:    BuiltInMapTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit >= 1.2 && < 1.7,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*
+
+Test-Suite test-graphpartition
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        GraphPartitionTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      semigroups,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*
+
+Test-Suite test-graph
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        GraphTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      hashable, 
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*
+
+Test-Suite test-nt
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        NTTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*,
+      text
+
+Test-Suite test-turtle
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        TurtleTest.hs
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*,
+      text
+
+   if flag(network-uri)
+     build-depends: network-uri
+   else
+     build-depends: network-uri
+                    , network
+
+Test-Suite test-n3parser
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        N3ParserTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*,
+      text
+
+   if flag(network-uri)
+     build-depends: network-uri
+   else
+     build-depends: network-uri
+                    , network
+
+Test-Suite test-n3formatter
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        N3FormatterTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*,
+      text
+
+   if flag(network-uri)
+     build-depends: network-uri
+   else
+     build-depends: network-uri
+                    , network
+
+Test-Suite test-rdfdatatypexsdinteger
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        RDFDatatypeXsdIntegerTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*,
+      text
+
+   if flag(network-uri)
+     build-depends: network-uri
+   else
+     build-depends: network-uri
+                    , network
+
+Test-Suite test-rdfgraph
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        RDFGraphTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      -- old-locale is only needed if time < 1.5           
+      old-locale,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*,
+      text,
+      time
+
+   if flag(network-uri)
+     build-depends: network-uri
+   else
+     build-depends: network-uri
+                    , network
+
+Test-Suite test-rdfproofcontext
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        RDFProofContextTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*,
+      text
+
+   if flag(network-uri)
+     build-depends: network-uri
+   else
+     build-depends: network-uri
+                    , network
+
+Test-Suite test-rdfproof
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        RDFProofTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*,
+      text
+
+   if flag(network-uri)
+     build-depends: network-uri
+   else
+     build-depends: network-uri
+                    , network
+
+Test-Suite test-rdfquery
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        RDFQueryTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*,
+      text
+
+   if flag(network-uri)
+     build-depends: network-uri
+   else
+     build-depends: network-uri
+                    , network
+
+Test-Suite test-rdfruleset
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        RDFRulesetTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*,
+      text
+
+   if flag(network-uri)
+     build-depends: network-uri
+   else
+     build-depends: network-uri
+                    , network
+
+Test-Suite test-varbinding
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        VarBindingTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*
+
+Test-Suite test-qname
+   type:       exitcode-stdio-1.0
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: tests/
+   Main-Is:        QNameTest.hs
+   Other-Modules:  TestHelpers
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   Build-Depends:
+      base,
+      containers,
+      HUnit,
+      swish,
+      test-framework,
+      test-framework-hunit == 0.3.*,
+      text
+
+   if flag(network-uri)
+     build-depends: network-uri
+   else
+     build-depends: network-uri
+                    , network
+
+ -- we do not have the data files to run this test
+ -- Executable         SwishTest
+ --   Main-Is:        tests/SwishTest.hs
+
+ -- How can we include data files that are only used for
+ -- benchmark/tests and do not get installed?
+ -- Benchmark            bench-ntriples
+ --    Type:             exitcode-stdio-1.0
+ --    Hs-Source-Dirs:   bench/
+ --    Other-Modules:    Paths_swish
+ --    Main-Is:          NTriples.hs
+ --    Build-Depends:    base,
+ --                      criterion,
+ --                      deepseq,
+ --                      network,
+ --                      swish,
+ --                      text
+ -- 
+ --    ghc-options:      -Wall -fno-warn-orphans
+
+Executable         Swish
+   Main-Is:        SwishApp.hs
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: app/ 
+   Other-Modules:  Paths_swish
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
+
+   Build-Depends:
+      base,
+      swish
+
+Executable         runw3ctests
+   Main-Is:        RunW3CTests.hs
+   Default-Language:    Haskell2010
+   Hs-Source-Dirs: app/ 
+   Other-Modules:  Paths_swish
+
+   ghc-options:
+      -Wall -fno-warn-orphans
+
+   -- if flag(developer)
+   --    ghc-options: -Werror
+   --    ghc-prof-options: -auto-all
+
+   if flag(w3ctests)
+     Build-Depends:
+        base,
+        containers,
+        directory,
+        filepath,
+        swish,
+        text
+
+     if flag(network-uri)
+       build-depends: network-uri
+     else
+       build-depends: network-uri
+                      , network
+
+   else
+     Buildable:   False
