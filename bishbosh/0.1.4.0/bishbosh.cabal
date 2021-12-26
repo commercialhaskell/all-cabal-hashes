@@ -1,0 +1,550 @@
+cabal-version: 2.4
+
+-- This file is part of BishBosh.
+--
+-- BishBosh is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- BishBosh is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with BishBosh.  If not, see <http://www.gnu.org/licenses/>.
+
+Name:		bishbosh
+Version:	0.1.4.0
+Copyright:	(C) 2018 Dr. Alistair Ward
+License:	GPL-3.0-or-later
+License-file:	LICENSE
+Author:		Dr. Alistair Ward
+Stability:	stable
+Synopsis:	Plays chess.
+Build-type:	Simple
+Description:	A chess-game which can be rendered in a terminal (emulator) in raw ASCII, or used as an engine by @xboard@.
+Category:	Game
+Tested-with:	GHC == 8.0, GHC == 8.2, GHC == 8.4, GHC == 8.6, GHC == 8.8, GHC == 8.10
+Homepage:	https://functionalley.com/BishBosh/bishbosh.html
+Maintainer:	mailto:bishbosh@functionalley.com
+Bug-reports:	mailto:bishbosh@functionalley.com
+
+-- Files which can be located by the application using 'Paths_bishbosh.datadir'.
+Data-files:
+    config/bishbosh.dtd
+    config/bishbosh.rng
+    config/CECP/*.xml
+    config/Raw/*.xml
+    config/*.xml
+    pgn/*.pgn
+    pgn/*.pgn.gz
+
+-- Files which are packaged, but not required at runtime.
+Extra-source-files:
+    .ghci
+    bishbosh.spec
+    changelog.markdown
+    copyright
+    makefile
+    man/man1/bishbosh.1
+    man/man1/duel.1
+    man/man5/bishbosh.5
+    README.markdown
+
+source-repository head
+    type:	git
+    location:	https://github.com/functionalley/BishBosh
+
+-- Whether to use unsafe array-indexing where possible.
+flag arrayunsafeat
+    Description:	Use unsafe array-indexing.
+    Manual:		True
+    Default:		True
+
+-- Automatically disabled when the required package isn't available.
+-- To force validation of the XML-configuration against the packaged DTD.
+-- Disable using:
+--	runhaskell Setup configure -f -hxtrelaxng --verbose;
+--	stack build --flag='bishbosh:-hxtrelaxng';
+flag hxtrelaxng
+    Description:	Link with package "hxt-relaxng" when available, for more precise specification of the XML-configuration than a traditional DTD.
+    Default:		True
+
+-- Compile using LLVM; requires the 'llc' & 'opt' tools (from 'llvm') to be on one's PATH.
+-- CAVEAT: build-time ~150 %, runtime ~97 % (i.e. slightly faster).
+-- Enable using:
+--	runhaskell Setup configure -f llvm --verbose.
+--	stack build --flag='bishbosh:llvm';
+flag llvm
+    Description:	Whether the 'llvm' compiler-backend has been installed and is required for code-generation.
+    Manual:		True
+    Default:		False
+
+-- Whether to use narrower numerical types than machine-defaults. CAVEAT: this option increases both the space allocated & the execution-time.
+flag narrownumbers
+    Description:	Use narrow numerical types.
+    Manual:		True
+    Default:		False
+
+-- Whether to wrap common types in 'newtype' for increased type-safety. CAVEAT: there's a small performance-penalty.
+flag newtypewrappers
+    Description:	Wrap common types in newtype for increased type-safety.
+    Manual:		True
+    Default:		False
+
+-- Automatically disabled when the required package isn't available.
+-- To access Parsec's more precise error-messages.
+-- Disable using:
+--	runhaskell Setup configure -f -polyparse --verbose;
+--	stack build --flag='bishbosh:-polyparse';
+flag polyparse
+    Description:	Link with package "polyparse" when available, rather than "parsec".
+    Default:		True
+
+-- Whether to use precise (rational) numeric types rather than faster floating-point.
+flag precisenumbers
+    Description:	Use precise rational numeric types.
+    Manual:		True
+    Default:		False
+
+-- Concurrency is used to implement Pondering, & parallelism is used when searching through archived games.
+flag threaded
+    Description:	Build for parallel runtime.
+    Manual:		True
+    Default:		True
+
+-- Whether to use unboxed types where possible; e.g. in arrays or in primitive arithmetic.
+flag unbox
+    Description:	Use unboxed types.
+    Manual:		True
+    Default:		True
+
+-- Automatically disabled when the required package isn't available.
+-- CAVEAT: on MS-Windows, it may be available but won't necessarily build; disable using 'runhaskell Setup configure -f -unix --verbose'.
+flag unix
+    Description:	Link with package "unix" when available.
+    Default:		True
+
+common commonStanza
+    Default-language:	Haskell2010
+
+    Build-depends:
+        base		== 4.*,
+        containers	^>= 0.6.2,
+        data-default	^>= 0.7.1,
+        filepath
+
+    GHC-options:	-Wall -Wredundant-constraints -fno-warn-tabs
+
+    if impl(ghc >= 7.0) && flag(llvm)
+        GHC-options:	-fllvm
+
+common exeStanza
+    Hs-source-dirs:	src-exe
+    GHC-options:	-O2
+    Autogen-modules:	Paths_bishbosh
+    Other-modules:	Paths_bishbosh
+    Build-depends:
+        bishbosh,
+        hxt	^>= 9.3.1
+
+common profStanza
+    if impl(ghc >= 7.4.1)
+        GHC-prof-options:	-fprof-auto -fprof-cafs
+
+        if flag(threaded)
+            GHC-prof-options:	-fno-prof-count-entries
+    else
+        GHC-prof-options:	-auto-all -caf-all
+
+common testStanza
+    Hs-source-dirs:	src-test
+    Build-depends:
+        array		>= 0.5.2.0,
+        bishbosh,
+        mtl		^>= 2.2.2,
+        random,
+        toolshed	^>= 0.18.0
+
+-- Hackage complains about the fragility resulting from new warnings added to ghc.
+--    if impl(ghc >= 6.8)
+--        GHC-options:	-Werror
+
+    if flag(polyparse)
+        Build-depends:	polyparse ^>= 1.13
+        CPP-Options:	-DUSE_POLYPARSE='L'
+    else
+        Build-depends:	parsec ^>= 3.1.14.0
+
+Library
+    Import:		commonStanza, profStanza
+    GHC-options:	-O2 -fno-warn-unused-top-binds
+    Hs-source-dirs:	src-lib
+
+    Exposed-modules:
+        BishBosh.Attribute.CaptureMoveSortAlgorithm
+        BishBosh.Attribute.MoveType
+        BishBosh.Attribute.Rank
+        BishBosh.Cartesian.Abscissa
+        BishBosh.Cartesian.Coordinates
+        BishBosh.Cartesian.Ordinate
+        BishBosh.Cartesian.Vector
+        BishBosh.Colour.ANSIColourCode
+        BishBosh.Colour.ColourScheme
+        BishBosh.Colour.LogicalColour
+        BishBosh.Colour.LogicalColourOfSquare
+        BishBosh.Colour.PhysicalColour
+        BishBosh.Component.Accountant
+        BishBosh.Component.CastlingMove
+        BishBosh.Component.EitherQualifiedMove
+        BishBosh.Component.Move
+        BishBosh.Component.Piece
+        BishBosh.Component.PieceSquareValueByCoordinates
+        BishBosh.Component.PieceSquareValueByCoordinatesByRank
+        BishBosh.Component.QualifiedMove
+        BishBosh.Component.Turn
+        BishBosh.Component.Zobrist
+        BishBosh.ContextualNotation.PGN
+        BishBosh.ContextualNotation.PGNComment
+        BishBosh.ContextualNotation.PGNDatabase
+        BishBosh.ContextualNotation.PositionHashQualifiedMoveTree
+        BishBosh.ContextualNotation.QualifiedMoveForest
+        BishBosh.ContextualNotation.StandardAlgebraic
+        BishBosh.Data.Bool
+        BishBosh.Data.Either
+        BishBosh.Data.Exception
+        BishBosh.Data.Foldable
+        BishBosh.Data.Integral
+        BishBosh.Data.List
+        BishBosh.Data.Num
+        BishBosh.Data.Ratio
+        BishBosh.Data.RoseTree
+        BishBosh.Direction.Diagonal
+        BishBosh.Direction.Direction
+        BishBosh.Direction.Horizontal
+        BishBosh.Direction.Parallel
+        BishBosh.Direction.Vertical
+        BishBosh.Evaluation.Fitness
+        BishBosh.Evaluation.PositionHashQuantifiedGameTree
+        BishBosh.Evaluation.QuantifiedGame
+        BishBosh.Input.CategorisedCommandLineOptions
+        BishBosh.Input.CECPFeatures
+        BishBosh.Input.CECPOptions
+        BishBosh.Input.CommandLineOption
+        BishBosh.Input.CriteriaWeights
+        BishBosh.Input.EvaluationOptions
+        BishBosh.Input.IOOptions
+        BishBosh.Input.NativeUIOptions
+        BishBosh.Input.Options
+        BishBosh.Input.PGNOptions
+        BishBosh.Input.PieceSquareTable
+        BishBosh.Input.RankValues
+        BishBosh.Input.SearchOptions
+        BishBosh.Input.StandardOpeningOptions
+        BishBosh.Input.UIOptions
+        BishBosh.Input.Verbosity
+        BishBosh.Metric.CriterionValue
+        BishBosh.Metric.CriterionWeight
+        BishBosh.Metric.RankValue
+        BishBosh.Metric.WeightedMeanAndCriterionValues
+        BishBosh.Model.Game
+        BishBosh.Model.GameTree
+        BishBosh.Model.MoveFrequency
+        BishBosh.Model.PositionHashTree
+        BishBosh.Notation.Figurine
+        BishBosh.Notation.ICCFNumeric
+        BishBosh.Notation.MoveNotation
+        BishBosh.Notation.Notation
+        BishBosh.Notation.PureCoordinate
+        BishBosh.Notation.Smith
+        BishBosh.Property.Arboreal
+        BishBosh.Property.Empty
+        BishBosh.Property.ExtendedPositionDescription
+        BishBosh.Property.FixedMembership
+        BishBosh.Property.ForsythEdwards
+        BishBosh.Property.Null
+        BishBosh.Property.Opposable
+        BishBosh.Property.Orientated
+        BishBosh.Property.Reflectable
+        BishBosh.Property.Rotatable
+        BishBosh.Property.SelfValidating
+        BishBosh.Property.ShowFloat
+        BishBosh.Property.Switchable
+        BishBosh.Rule.DrawReason
+        BishBosh.Rule.GameTerminationReason
+        BishBosh.Rule.Result
+        BishBosh.Search.AlphaBeta
+        BishBosh.Search.DynamicMoveData
+        BishBosh.Search.EphemeralData
+        BishBosh.Search.KillerMoves
+        BishBosh.Search.Search
+        BishBosh.Search.SearchState
+        BishBosh.Search.Transpositions
+        BishBosh.Search.TranspositionValue
+        BishBosh.State.Board
+        BishBosh.State.CastleableRooksByLogicalColour
+        BishBosh.State.CoordinatesByRankByLogicalColour
+        BishBosh.State.EnPassantAbscissa
+        BishBosh.State.InstancesByPosition
+        BishBosh.State.MaybePieceByCoordinates
+        BishBosh.State.Position
+        BishBosh.StateProperty.Censor
+        BishBosh.StateProperty.Hashable
+        BishBosh.StateProperty.Mutator
+        BishBosh.StateProperty.Seeker
+        BishBosh.StateProperty.View
+        BishBosh.State.TurnsByLogicalColour
+        BishBosh.Text.AutoComplete
+        BishBosh.Text.Case
+        BishBosh.Text.Encoding
+        BishBosh.Text.ShowColouredPrefix
+        BishBosh.Text.ShowList
+        BishBosh.Text.ShowPrefix
+        BishBosh.Time.GameClock
+        BishBosh.Time.StopWatch
+        BishBosh.Type.Count
+        BishBosh.Type.Crypto
+        BishBosh.Type.Length
+        BishBosh.Type.Mass
+        BishBosh.UI.Command
+        BishBosh.UI.PrintObject
+        BishBosh.UI.ReportObject
+        BishBosh.UI.SetObject
+
+    Build-depends:
+        array		>= 0.5.2.0,
+        deepseq		>= 1.4.3,
+        extra		^>= 1.7.4,
+        factory		^>= 0.3.1,
+        hxt		^>= 9.3.1,
+        mtl		^>= 2.2.2,
+        process		>= 1.6.4,
+        random,
+        time,
+        toolshed	^>= 0.18.0
+
+    if flag(arrayunsafeat)
+        CPP-Options:	-DUSE_ARRAY_UNSAFEAT
+
+    if flag(precisenumbers)
+        CPP-Options:	-DUSE_PRECISE_NUMBERS
+    elif flag(narrownumbers)
+        CPP-Options:	-DUSE_NARROW_NUMBERS
+
+    if flag(newtypewrappers)
+        CPP-Options:	-DUSE_NEWTYPE_WRAPPERS
+    elif flag(unbox)
+        CPP-Options:	-DUNBOX_TYPECOUNT_ARRAYS
+
+        if !flag(narrownumbers)
+            Build-depends:	ghc-prim
+            CPP-Options:	-DUSE_PRIMITIVE
+
+        if !flag(precisenumbers)
+            CPP-Options:	-DUNBOX_TYPEMASS_ARRAYS
+
+    if flag(polyparse)
+        Build-depends:		polyparse ^>= 1.13
+        CPP-Options:		-DUSE_POLYPARSE='L'
+        Exposed-modules:	BishBosh.Text.Poly
+    else
+        Build-depends:		parsec ^>= 3.1.14.0
+
+    if flag(threaded)
+        Build-depends:	parallel >= 3.0
+        CPP-Options:	-DPARALLELISE
+
+Executable bishbosh
+    Import:	commonStanza, exeStanza, profStanza
+    Main-is:	Main.hs
+
+    Other-modules:
+        BishBosh.Concurrent.Pondering
+        BishBosh.Play
+        BishBosh.State.ApplicationTerminationReason
+        BishBosh.State.PlayState
+        BishBosh.UI.CECP
+        BishBosh.UI.Raw
+
+    if flag(unix)
+        Other-modules:	BishBosh.Concurrent.SignalHandlers
+
+    Build-depends:
+        array		>= 0.5.2.0,
+        deepseq		^>= 1.4.1,
+        directory,
+        extra		^>= 1.7.4,
+        factory		^>= 0.3.1,
+        mtl		^>= 2.2.2,
+        random,
+        toolshed	^>= 0.18.0
+
+    if impl(ghc >= 7.0)
+        if flag(threaded)
+            GHC-options:	-rtsopts "-with-rtsopts=-N -H100M"
+
+        if impl(ghc >= 7.4.1)
+            GHC-prof-options:	-rtsopts -with-rtsopts=-H100M
+
+    if flag(hxtrelaxng)
+        Build-depends:	hxt-relaxng ^>= 9.1.5
+        CPP-Options:	-DUSE_HXTRELAXNG
+
+    if flag(threaded)
+        GHC-options:	-threaded
+
+-- N.B.: The Haskell package 'unix' may be available on MS-Windows, but building it will probably be laborious.
+    if flag(unix)
+        Other-modules:	BishBosh.Concurrent.SignalHandlers
+        Build-depends:	unix ^>= 2.7.2
+
+        CPP-Options:	-DUSE_UNIX
+
+-- This application coordinates a duel between two independently configured instances of 'bishbosh'.
+Executable duel
+    Import:	commonStanza, exeStanza
+    Main-is:	Duel.hs
+
+    Other-modules:
+        Duel.Data.Options
+        Duel.IO.Logger
+        Duel.Process.Handles
+        Duel.Process.Intermediary
+
+    Build-depends:	process >= 1.6.4
+
+    CPP-Options:	-DMOVE_NOTATION='S'
+
+-- Static unit-tests of the library.
+Test-Suite hunit-tests
+    Import:		commonStanza, testStanza
+    Main-is:		HUnit.hs
+    Type:		exitcode-stdio-1.0
+    Autogen-modules:	Paths_bishbosh
+
+    Other-modules:
+        BishBosh.Test.HUnit.Attribute.Rank
+        BishBosh.Test.HUnit.Cartesian.Coordinates
+        BishBosh.Test.HUnit.Cartesian.Vector
+        BishBosh.Test.HUnit.Colour.LogicalColour
+        BishBosh.Test.HUnit.Component.CastlingMove
+        BishBosh.Test.HUnit.Component.Move
+        BishBosh.Test.HUnit.Component.Piece
+        BishBosh.Test.HUnit.Component.Zobrist
+        BishBosh.Test.HUnit.ContextualNotation.PGN
+        BishBosh.Test.HUnit.ContextualNotation.PositionHashQualifiedMoveTree
+        BishBosh.Test.HUnit.ContextualNotation.StandardAlgebraic
+        BishBosh.Test.HUnit.Direction.Direction
+        BishBosh.Test.HUnit.Evaluation.Fitness
+        BishBosh.Test.HUnit.Input.Options
+        BishBosh.Test.HUnit.Model.Game
+        BishBosh.Test.HUnit.Model.GameTree
+        BishBosh.Test.HUnit.Model.PositionHashTree
+        BishBosh.Test.HUnit.Search.Search
+        BishBosh.Test.HUnit.State.Board
+        BishBosh.Test.HUnit.Text.AutoComplete
+        BishBosh.Test.HUnit.Time.GameClock
+        BishBosh.Test.HUnit.Time.StopWatch
+        Paths_bishbosh
+
+    Build-depends:
+        HUnit,
+        hxt	^>= 9.3.1
+
+--    CPP-Options:	-DUSE_BRATKO_KOPEC
+
+-- Random unit-tests of the library.
+Test-Suite quickcheck-tests
+    Import:	commonStanza, testStanza
+    Main-is:	QuickCheck.hs
+    Type:	exitcode-stdio-1.0
+
+    Other-modules:
+        BishBosh.Test.QuickCheck.Attribute.CaptureMoveSortAlgorithm
+        BishBosh.Test.QuickCheck.Attribute.MoveType
+        BishBosh.Test.QuickCheck.Attribute.Rank
+        BishBosh.Test.QuickCheck.Cartesian.Coordinates
+        BishBosh.Test.QuickCheck.Cartesian.Vector
+        BishBosh.Test.QuickCheck.Colour.LogicalColour
+        BishBosh.Test.QuickCheck.Component.Move
+        BishBosh.Test.QuickCheck.Component.Piece
+        BishBosh.Test.QuickCheck.Component.QualifiedMove
+        BishBosh.Test.QuickCheck.Component.Turn
+        BishBosh.Test.QuickCheck.Component.Zobrist
+        BishBosh.Test.QuickCheck.ContextualNotation.PGN
+        BishBosh.Test.QuickCheck.ContextualNotation.PGNComment
+        BishBosh.Test.QuickCheck.ContextualNotation.PositionHashQualifiedMoveTree
+        BishBosh.Test.QuickCheck.ContextualNotation.QualifiedMoveForest
+        BishBosh.Test.QuickCheck.ContextualNotation.StandardAlgebraic
+        BishBosh.Test.QuickCheck.Data.Foldable
+        BishBosh.Test.QuickCheck.Data.Integral
+        BishBosh.Test.QuickCheck.Direction.Direction
+        BishBosh.Test.QuickCheck.Evaluation.PositionHashQuantifiedGameTree
+        BishBosh.Test.QuickCheck.Input.CECPFeatures
+        BishBosh.Test.QuickCheck.Input.CECPOptions
+        BishBosh.Test.QuickCheck.Input.CriteriaWeights
+        BishBosh.Test.QuickCheck.Input.EvaluationOptions
+        BishBosh.Test.QuickCheck.Input.IOOptions
+        BishBosh.Test.QuickCheck.Input.NativeUIOptions
+        BishBosh.Test.QuickCheck.Input.Options
+        BishBosh.Test.QuickCheck.Input.PGNOptions
+        BishBosh.Test.QuickCheck.Input.PieceSquareTable
+        BishBosh.Test.QuickCheck.Input.SearchOptions
+        BishBosh.Test.QuickCheck.Input.RankValues
+        BishBosh.Test.QuickCheck.Input.StandardOpeningOptions
+        BishBosh.Test.QuickCheck.Input.UIOptions
+        BishBosh.Test.QuickCheck.Input.Verbosity
+        BishBosh.Test.QuickCheck.Metric.CriterionWeight
+        BishBosh.Test.QuickCheck.Model.Game
+        BishBosh.Test.QuickCheck.Model.GameTree
+        BishBosh.Test.QuickCheck.Model.MoveFrequency
+        BishBosh.Test.QuickCheck.Notation.Figurine
+        BishBosh.Test.QuickCheck.Notation.ICCFNumeric
+        BishBosh.Test.QuickCheck.Notation.MoveNotation
+        BishBosh.Test.QuickCheck.Notation.PureCoordinate
+        BishBosh.Test.QuickCheck.Notation.Smith
+        BishBosh.Test.QuickCheck.Rule.DrawReason
+        BishBosh.Test.QuickCheck.Rule.GameTerminationReason
+        BishBosh.Test.QuickCheck.Rule.Result
+        BishBosh.Test.QuickCheck.Search.KillerMoves
+        BishBosh.Test.QuickCheck.Search.Search
+        BishBosh.Test.QuickCheck.Search.SearchState
+        BishBosh.Test.QuickCheck.State.Board
+        BishBosh.Test.QuickCheck.State.CastleableRooksByLogicalColour
+        BishBosh.Test.QuickCheck.State.InstancesByPosition
+        BishBosh.Test.QuickCheck.State.Position
+        BishBosh.Test.QuickCheck.StateProperty.Censor
+        BishBosh.Test.QuickCheck.StateProperty.Hashable
+        BishBosh.Test.QuickCheck.StateProperty.Mutator
+        BishBosh.Test.QuickCheck.StateProperty.Seeker
+        BishBosh.Test.QuickCheck.StateProperty.View
+        BishBosh.Test.QuickCheck.State.TurnsByLogicalColour
+        BishBosh.Test.QuickCheck.Text.Encoding
+        BishBosh.Test.QuickCheck.Time.StopWatch
+        BishBosh.Test.QuickCheck.Type.Count
+        BishBosh.Test.QuickCheck.Type.Length
+        BishBosh.Test.QuickCheck.Type.Mass
+        BishBosh.Test.QuickCheck.UI.Command
+        BishBosh.Test.QuickCheck.UI.PrintObject
+        BishBosh.Test.QuickCheck.UI.ReportObject
+        BishBosh.Test.QuickCheck.UI.SetObject
+
+    Build-depends:
+        deepseq		^>= 1.4.1,
+        extra		^>= 1.7.4,
+        QuickCheck	^>= 2.13.2
+
+    if flag(newtypewrappers)
+        Other-modules:	BishBosh.Test.QuickCheck.Metric.RankValue
+        CPP-Options:	-DUSE_NEWTYPE_WRAPPERS
+
+    if flag(precisenumbers)
+        CPP-Options:	-DUSE_PRECISE_NUMBERS
+    elif flag(narrownumbers)
+        CPP-Options:	-DUSE_NARROW_NUMBERS
+
+    if flag(threaded)
+        GHC-options:	-threaded
+
