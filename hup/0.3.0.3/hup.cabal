@@ -1,0 +1,263 @@
+name:                hup
+version:             0.3.0.3
+synopsis:            Upload packages and/or documentation to a hackage server
+description:
+  Command-line application (plus an associated library) for uploading
+  Haskell packages or documentation to a hackage server.
+  .
+  Some sample command invocations:
+  @/hup packbuild/@ builds a source distribution @.tgz@
+  file, ready for uploading; @/hup packup somefile.tgz/@
+  uploads it to a hackage server (<https://hackage.haskell.org/>,
+  by default); and @/hup packboth/@ combines both steps.
+  .
+  Flags like @/[-c|--candidate]/@ allow you to upload a
+  candidate package instead.
+  .
+  Requires that @stack@ (<https://www.haskellstack.org>) be installed.
+  .
+  See the README for further details
+  (at <https://github.com/phlummox/hup#readme>)
+homepage:            https://github.com/phlummox/hup
+license:             BSD2
+license-file:        LICENSE
+author:              phlummox
+maintainer:          phlummox2@gmail.com
+copyright:           phlummox 2016-2021, others where indicated
+category:            Distribution, Web, Documentation
+build-type:          Simple
+tested-with:         GHC == 8.2.2, GHC == 8.6.5
+                     -- until shelly is fixed, more recent
+                     -- GHCs/versions of base won't build --
+                     -- see https://github.com/phlummox/hup/issues/7
+cabal-version:       >=1.10
+
+extra-source-files:
+    ChangeLog.md
+  , README.md
+  , stack-lts-3.yaml
+  , stack-lts-11.yaml
+  , stack-lts-14.yaml
+
+source-repository head
+  type:     git
+  location: https://github.com/phlummox/hup
+
+Flag EnableWebTests
+  Description: Enable tests that do a (pretty minimal) check by running an actual
+    Warp web server. (Slower to build and run than other tests.)
+  Default:     True
+  Manual:      True
+
+Flag ExtraGhcWarnings
+  Description: Enable extra ghc warnings
+  Default:     True
+  Manual:      True
+
+-- This enables (or disables) tests that rely on
+-- stack at runtime. (viz, tests using doctest.)
+-- You can enable these tests from stack using
+-- `--flag hup:BuildStackBasedTests`
+Flag BuildStackBasedTests
+  Description: Enable tests requiring stack
+  Manual:      True
+  Default:     False
+
+
+library
+  hs-source-dirs:      src
+  exposed-modules:
+      Distribution.Hup
+    , Distribution.Hup.BuildTar
+    , Distribution.Hup.Parse
+    , Distribution.Hup.Types
+    , Distribution.Hup.Upload
+  build-depends:
+      base >= 4.8 && < 5
+    , bytestring
+    , directory
+    , filepath
+    , http-client
+    , http-client-tls
+    , http-types
+    , mtl  >= 2.2.1
+    , split
+    , text < 2.0
+    , tar
+    , zlib
+  default-language:    Haskell2010
+  if flag(ExtraGhcWarnings)
+    if impl(ghc >= 8.0.1)
+      -- -new-style warn options, plus
+      -- can use a few new warnings
+      ghc-options:  -Wall
+                    -Wcompat
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wredundant-constraints
+                    -Wno-name-shadowing
+                    -Wno-orphans
+                    -Wno-type-defaults
+                    -fwarn-tabs
+    else
+      ghc-options:  -Wall
+                    -fno-warn-name-shadowing
+                    -fwarn-incomplete-record-updates
+                    -fwarn-incomplete-uni-patterns
+                    -fno-warn-type-defaults
+                    -fwarn-tabs
+    if impl(ghc >= 8.4)
+      ghc-options:  -Wmissing-export-lists
+                    -Wpartial-fields
+    if impl(ghc >= 8.8)
+      ghc-options:  -Wmissing-deriving-strategies
+
+
+executable hup
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  other-modules:
+      CmdArgs
+    , DefaultServerUrl
+    , Paths_hup
+    , SanityCheck
+    , Types
+    , Upload
+    , Stack
+    , DocBuilding
+  default-language:    Haskell2010
+  build-depends:
+      base
+    , bytestring
+    , directory
+    , lifted-base
+    , mtl
+    -- avoid versions of shelly that don't
+    -- build on Windows - see https://github.com/phlummox/hup/issues/7
+    , shelly >= 1.6.6 && < 1.8.0
+    , tagsoup
+    , text
+    , transformers
+    , hup
+    , cmdargs
+  ghc-options:    -threaded
+                  -rtsopts
+                  -with-rtsopts=-N
+  if flag(ExtraGhcWarnings)
+    if impl(ghc >= 8.0.1)
+      -- -new-style warn options, plus
+      -- can use a few new warnings
+      ghc-options:  -Wall
+                    -Wcompat
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wredundant-constraints
+                    -Wno-name-shadowing
+                    -Wno-orphans
+                    -Wno-type-defaults
+                    -fwarn-tabs
+    else
+      ghc-options:  -Wall
+                    -fno-warn-name-shadowing
+                    -fwarn-incomplete-record-updates
+                    -fwarn-incomplete-uni-patterns
+                    -fno-warn-type-defaults
+                    -fwarn-tabs
+    if impl(ghc >= 8.4)
+      ghc-options:  -Wmissing-export-lists
+                    -Wpartial-fields
+    if impl(ghc >= 8.8)
+      ghc-options:  -Wmissing-deriving-strategies
+
+
+test-suite hup-spec
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test-hspec
+  main-is:             Spec.hs
+  build-depends:
+      base
+    , bytestring
+    , filepath
+    , hspec-wai < 0.10
+    , http-client
+    , http-types
+    , hup
+    , hspec
+    , hspec-core
+    , QuickCheck
+    , scotty
+    , temporary
+    , text
+    , transformers
+    , wai
+    , wai-extra
+    , mtl
+  ghc-options:      -threaded
+                    -rtsopts
+                    -with-rtsopts=-N
+  if flag(ExtraGhcWarnings)
+    if impl(ghc >= 8.0.1)
+      -- -new-style warn options, plus
+      -- can use a few new warnings
+      ghc-options:  -Wall
+                    -Wcompat
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wredundant-constraints
+                    -Wno-name-shadowing
+                    -Wno-orphans
+                    -Wno-type-defaults
+                    -fwarn-tabs
+    else
+      ghc-options:  -Wall
+                    -fno-warn-name-shadowing
+                    -fwarn-incomplete-record-updates
+                    -fwarn-incomplete-uni-patterns
+                    -fno-warn-type-defaults
+                    -fwarn-tabs
+    if impl(ghc >= 8.4)
+      ghc-options:  -Wmissing-export-lists
+                    -Wpartial-fields
+    if impl(ghc >= 8.8)
+      ghc-options:  -Wmissing-deriving-strategies
+  default-language:    Haskell2010
+  other-modules:
+      Distribution.Hup.WebTest
+    , Distribution.Hup.ParseSpec
+    , Distribution.Hup.Parse.Test
+    , Distribution.Hup.UploadSpec
+    , Distribution.Hup.Upload.Test
+    , Distribution.Hup.Upload.MockWebApp
+  if flag(EnableWebTests)
+    build-depends:
+        network
+      , vector
+      -- ridiculous. With cabal 1.24 and ghc 8.0.1, (a) installing dependencies
+      -- fails if 'vector' isn't added here (despite it not being a direct
+      -- dependency) and (b) the build takes much longer than with, e.g.
+      -- ghc 7.10.3.
+      -- TODO: track down the problem sometime.
+      , warp
+    cpp-options:         -DWEB_TESTS
+
+-- **
+-- - Only runs using stack, so is disabled
+--   by default
+-- - Doesn't seem to run w/ lts-3 ... possibly
+--   a bug in doctest, who knows
+test-suite hup-doctest
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test-doctest
+  main-is:             DocTest.hs
+  if !(flag(BuildStackBasedTests))
+    buildable: False
+  else
+   build-depends:       base
+                      , hup
+                      , doctest
+                      , Glob
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+
+
