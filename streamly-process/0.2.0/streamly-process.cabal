@@ -1,0 +1,150 @@
+cabal-version:       2.2
+name:                streamly-process
+version:             0.2.0
+synopsis:            Use OS processes as stream transformation functions
+description:
+    Run operating system processes as stream source, sink or transformation
+    functions. Use them seamlessly in a streaming data pipeline in the same way
+    as any other Haskell functions.
+homepage:            https://streamly.composewell.com
+bug-reports:         https://github.com/composewell/streamly-process/issues
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Composewell Technologies
+maintainer:          streamly@composewell.com
+copyright:           Composewell Technologies
+category:            Streamly, Streaming, System
+stability:           Experimental
+tested-with:         GHC==9.2.1
+                   , GHC==9.0.1
+                   , GHC==8.10.5
+                   , GHC==8.8.4
+                   , GHC==8.6.5
+                   , GHC==8.4.4
+build-type:          Simple
+extra-source-files:
+  CHANGELOG.md
+  NOTICE
+  README.md
+  design/proposal.md
+  test/data/failExec.bat
+  test/data/failExec.sh
+  test/data/passExec.bat
+  test/data/passExec.sh
+  test/data/writeTrToError.bat
+  test/data/writeTrToError.sh
+
+source-repository head
+  type: git
+  location: https://github.com/composewell/streamly-process
+
+flag fusion-plugin
+  description: Use fusion plugin for benchmarks and executables
+  manual: True
+  default: False
+
+flag use-gauge
+  description: Use gauge instead of tasty-bench for benchmarking
+  manual: True
+  default: False
+
+common compile-options
+  default-language: Haskell2010
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wunrecognised-warning-flags
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+    -Wnoncanonical-monad-instances
+
+common optimization-options
+  ghc-options:
+    -O2
+    -fdicts-strict
+    -fspec-constr-recursive=16
+    -fmax-worker-args=16
+
+library
+  import: compile-options, optimization-options
+  hs-source-dirs: src
+  exposed-modules:
+    Streamly.System.Process
+    Streamly.Internal.System.Process
+  if !os(windows)
+    exposed-modules:
+      Streamly.Internal.System.Process.Posix
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wunrecognised-warning-flags
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+    -Wnoncanonical-monad-instances
+  build-depends:
+      base              >= 4.8   && < 5
+    , process           >= 1.0   && < 1.7
+    -- Uses internal APIs
+    , streamly          >= 0.8.1 && < 0.8.2
+    , exceptions        >= 0.8   && < 0.11
+  if !os(windows)
+    build-depends:
+      unix              >= 2.5   && < 2.8
+
+-------------------------------------------------------------------------------
+-- Benchmarks
+-------------------------------------------------------------------------------
+
+common threading-options
+  ghc-options:
+    -threaded
+    -with-rtsopts=-N
+
+benchmark Benchmark.System.Process
+  import: compile-options, optimization-options
+  if flag(fusion-plugin) && !impl(ghc < 8.6)
+    ghc-options: -fplugin Fusion.Plugin
+  type: exitcode-stdio-1.0
+  main-is: Benchmark/System/Process.hs
+  build-depends:
+      streamly-process
+    , base              >= 4.8   && < 5
+    , directory         >= 1.2.2 && < 1.4
+    , process           >= 1.0   && < 1.7
+    -- Uses internal APIs
+    , streamly          >= 0.8.1 && < 0.8.2
+
+  if flag(fusion-plugin) && !impl(ghc < 8.6)
+    build-depends:
+        fusion-plugin     >= 0.2   && < 0.3
+  if flag(use-gauge)
+    build-depends:  gauge >= 0.2.4 && < 0.3
+  else
+    build-depends:    tasty-bench >= 0.2.5 && < 0.4
+    mixins: tasty-bench
+      (Test.Tasty.Bench as Gauge
+      , Test.Tasty.Bench as Gauge.Main
+      )
+
+-------------------------------------------------------------------------------
+-- Test Suites
+-------------------------------------------------------------------------------
+
+test-suite Test.System.Process
+  import: compile-options, optimization-options, threading-options
+  type: exitcode-stdio-1.0
+  main-is: test/Streamly/System/Process.hs
+  build-depends:
+      streamly-process
+    , base              >= 4.8   && < 5
+    , directory         >= 1.2.2 && < 1.4
+    , exceptions        >= 0.8   && < 0.11
+    , hspec             >= 2.0   && < 3
+    , process           >= 1.0   && < 1.7
+    , QuickCheck        >= 2.10  && < 2.15
+    -- Uses internal APIs
+    , streamly          >= 0.8.1 && < 0.8.2
