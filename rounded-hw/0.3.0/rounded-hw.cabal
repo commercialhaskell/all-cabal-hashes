@@ -1,0 +1,211 @@
+cabal-version: 2.2
+
+name:           rounded-hw
+version:        0.3.0
+synopsis:       Directed rounding for built-in floating types
+description:    Please see the README on GitHub at <https://github.com/minoki/haskell-floating-point/tree/master/rounded-hw#readme>
+category:       Numeric, Math
+homepage:       https://github.com/minoki/haskell-floating-point#readme
+bug-reports:    https://github.com/minoki/haskell-floating-point/issues
+author:         ARATA Mizuki
+maintainer:     minorinoki@gmail.com
+copyright:      2020 ARATA Mizuki
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Custom
+tested-with:
+    GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.1
+extra-source-files:
+    README.md
+    ChangeLog.md
+    cbits/rounded-common.inl
+    cbits/rounded-avx512.inl
+    cbits/interval-prim-x86_64-sse2.S
+
+source-repository head
+  type: git
+  location: https://github.com/minoki/haskell-floating-point
+  subdir: rounded-hw
+
+-- Custom setup is required to allow assembly sources to #include "ghcconfig.h"
+custom-setup
+  setup-depends:
+      Cabal >=1.24
+    , base >=4.7
+
+flag pure-hs
+  description: Disable FFI
+  manual: True
+  default: False
+
+flag c99
+  description: Restrict use of platform-dependent features (e.g. SSE2) and only use C99 features
+  manual: True
+  default: False
+
+flag avx512
+  description: Use AVX512 EVEX encoding
+  manual: True
+  default: False
+
+flag ghc-prim
+  description: Use GHC's "foreign import prim" on the supported platform
+  manual: True
+  default: True
+
+flag x87-long-double
+  description: Support x87 "long double"
+  manual: True
+  default: True
+
+flag float128
+  description: Support Float128
+  manual: True
+  default: False
+
+common deps
+  build-depends:
+      array
+    , base >=4.12 && <5
+    , deepseq
+    , fp-ieee ==0.1.*
+    , primitive
+    , vector
+
+common options
+  ghc-options: -Wcompat
+
+library
+  import: deps, options
+  exposed-modules:
+      Numeric.Rounded.Hardware
+      Numeric.Rounded.Hardware.Backend
+      Numeric.Rounded.Hardware.Backend.ViaRational
+      Numeric.Rounded.Hardware.Class
+      Numeric.Rounded.Hardware.Internal
+      Numeric.Rounded.Hardware.Interval
+      Numeric.Rounded.Hardware.Interval.Class
+      Numeric.Rounded.Hardware.Interval.NonEmpty
+      Numeric.Rounded.Hardware.Rounding
+      Numeric.Rounded.Hardware.Vector.Storable
+      Numeric.Rounded.Hardware.Vector.Unboxed
+  other-modules:
+      Numeric.Rounded.Hardware.Internal.Rounding
+      Numeric.Rounded.Hardware.Internal.Class
+      Numeric.Rounded.Hardware.Internal.Constants
+      Numeric.Rounded.Hardware.Internal.Conversion
+      Numeric.Rounded.Hardware.Internal.FloatUtil
+      Numeric.Rounded.Hardware.Internal.Show
+      Numeric.Rounded.Hardware.Backend.Default
+      Numeric.Rounded.Hardware.Interval.ElementaryFunctions
+  hs-source-dirs:
+      src
+  build-depends:
+      tagged
+  ghc-options: -Wall
+  -- Use FFI when flag(pure-hs) is off
+  if !flag(pure-hs)
+    exposed-modules:
+        Numeric.Rounded.Hardware.Backend.C
+    other-modules:
+        FFIWrapper.Float
+        FFIWrapper.Double
+    cpp-options: -DUSE_FFI
+    c-sources:
+        cbits/rounded.c
+  -- flag(c99): Disable platform-dependent techniques and only use C99 fesetround
+  if flag(c99)
+    cc-options: -DUSE_C99
+  -- flag(avx512): Use AVX512 EVEX encoding
+  if flag(avx512)
+    cc-options: -DUSE_AVX512 -mavx512f
+  -- flag(ghc-prim): We support "foreign import prim" on GHC/x86_64
+  if !flag(pure-hs) && !flag(c99) && flag(ghc-prim) && impl(ghc) && arch(x86_64)
+    exposed-modules:
+        Numeric.Rounded.Hardware.Backend.FastFFI
+    cpp-options: -DUSE_GHC_PRIM
+    if flag(avx512)
+      c-sources:
+          cbits/interval-prim-x86_64-avx512.S
+    else
+      c-sources:
+          cbits/interval-prim-x86_64.S
+  -- flag(x87-long-double): Support LongDouble on x86
+  if flag(x87-long-double) && (arch(i386) || arch(x86_64))
+    other-modules:
+        Numeric.Rounded.Hardware.Backend.X87LongDouble
+    cpp-options: -DUSE_X87_LONG_DOUBLE
+    c-sources:
+        cbits/rounded-x87longdouble.c
+    build-depends:
+        long-double
+  -- flag(float128): Support Float128
+  if flag(float128)
+    other-modules:
+        Numeric.Rounded.Hardware.Backend.Float128
+    cpp-options: -DUSE_FLOAT128
+    c-sources:
+        cbits/rounded-float128.c
+    build-depends:
+        float128
+  default-language: Haskell2010
+
+test-suite rounded-hw-doctests
+  import: deps, options
+  type: exitcode-stdio-1.0
+  main-is: doctests.hs
+  build-depends:
+      doctest >=0.8
+  default-language: Haskell2010
+
+test-suite rounded-hw-test
+  import: deps, options
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      ConstantsSpec
+      FromIntegerSpec
+      FromRationalSpec
+      IntervalArithmeticSpec
+      RoundedArithmeticSpec
+      ShowFloatSpec
+      Util
+      VectorSpec
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      QuickCheck
+    , hspec
+    , random
+    , rounded-hw
+  if flag(x87-long-double) && (arch(i386) || (arch(x86_64) && !os(windows)))
+    -- Support for 80-bit long double is not good on Win64, so don't test
+    other-modules:
+        X87LongDoubleSpec
+    cpp-options: -DTEST_X87_LONG_DOUBLE
+    build-depends:
+        long-double
+  if flag(float128)
+    other-modules:
+        Float128Spec
+    cpp-options: -DTEST_FLOAT128
+    build-depends:
+        float128
+  default-language: Haskell2010
+
+benchmark rounded-hw-benchmark
+  import: deps, options
+  type: exitcode-stdio-1.0
+  main-is: Benchmark.hs
+  other-modules:
+      Conversion
+      IGA
+  hs-source-dirs:
+      benchmark
+  build-depends:
+      rounded-hw
+    , tasty-bench
+  mixins:
+      tasty-bench (Test.Tasty.Bench as Gauge, Test.Tasty.Bench as Gauge.Main, Test.Tasty.Bench as Gauge.Benchmark)
+  default-language: Haskell2010
