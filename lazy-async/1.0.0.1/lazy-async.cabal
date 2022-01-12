@@ -1,0 +1,118 @@
+cabal-version: 3.0
+
+name: lazy-async
+version: 1.0.0.1
+synopsis: Asynchronous actions that don't start right away
+
+description:
+
+    Sometimes we have a bunch of 'IO' actions that do things like
+    read files, make HTTP requests, or query a database. Some of the
+    information that these actions produce might not end up being
+    needed, depending on the breaks. In the interest of avoiding
+    unnecessary effort, we don't want to simply run all the actions
+    and collect their results upfront. We also don't want to simply
+    run an action right before its result is needed, because it might
+    be needed in more than one place, which opens the possibility of
+    unnecessarily running the same action more than once. In
+    situations like these, we use "LazyAsync".
+
+    Under the hood, an 'IO' action is turned into a @LazyAsync@ by
+    constructing two things: An @Async@ (from the @async@ package),
+    and a @TVar Bool@ (from the @stm@ package). The TVar, initialized
+    to @False@, indicates whether the action is wanted yet. The async
+    thread waits until the TVar turns @True@ and then runs the action.
+
+homepage:       https://github.com/typeclasses/lazy-async
+bug-reports:    https://github.com/typeclasses/lazy-async/issues
+author:         Chris Martin
+maintainer:     Chris Martin, Julie Moronuki
+copyright:      2021 Mission Valley Software LLC
+license:        MIT
+license-file:   license.txt
+category:       Concurrency
+build-type:     Simple
+
+extra-source-files: changelog.txt
+
+source-repository head
+  type: git
+  location: https://github.com/typeclasses/lazy-async
+
+common language
+    default-language:   Haskell2010
+    ghc-options:        -Wall
+    default-extensions: DeriveFoldable
+    default-extensions: DeriveFunctor
+    default-extensions: DeriveTraversable
+    default-extensions: ExistentialQuantification
+    default-extensions: FlexibleContexts
+    default-extensions: NoImplicitPrelude
+    default-extensions: StandaloneDeriving
+
+common dependencies
+    build-depends:      base              ^>= 4.14     || ^>= 4.15
+                                                       || ^>= 4.16
+    build-depends:      exceptions        ^>= 0.10.4
+    build-depends:      lifted-async      ^>= 0.10.0.6
+    build-depends:      monad-control     ^>= 1.0.2.3
+    build-depends:      rank2classes      ^>= 1.4.0.1
+    build-depends:      stm               ^>= 2.5
+    build-depends:      transformers      ^>= 0.5.6.2
+    build-depends:      transformers-base ^>= 0.4.5.1
+
+common test-language
+    import:             language
+    default-extensions: BlockArguments
+    default-extensions: OverloadedStrings
+    default-extensions: TemplateHaskell
+
+common test-dependencies
+    import:             dependencies
+    build-depends:      hedgehog          ^>= 1.0.4
+    build-depends:      lazy-async
+    build-depends:      optics-core       ^>= 0.3      || ^>= 0.4
+    build-depends:      optics-th         ^>= 0.3      || ^>= 0.4
+
+common test-modules
+    other-modules:      Test.Counter
+    other-modules:      Test.Exceptions
+    other-modules:      Test.General
+    other-modules:      Test.Optics
+    other-modules:      Test.Person
+
+common test
+    import:             test-language, test-dependencies, test-modules
+
+library
+    import:             language, dependencies
+    hs-source-dirs:     src
+    exposed-modules:    LazyAsync
+    other-modules:      LazyAsync.Actions
+    other-modules:      LazyAsync.Actions.Empty
+    other-modules:      LazyAsync.Actions.Memoize
+    other-modules:      LazyAsync.Actions.Merge
+    other-modules:      LazyAsync.Actions.Poll
+    other-modules:      LazyAsync.Actions.Pure
+    other-modules:      LazyAsync.Actions.Spawn
+    other-modules:      LazyAsync.Actions.Start
+    other-modules:      LazyAsync.Actions.StartWait
+    other-modules:      LazyAsync.Actions.Wait
+    other-modules:      LazyAsync.Libraries.Async
+    other-modules:      LazyAsync.Libraries.Rank2
+    other-modules:      LazyAsync.Orphans
+    other-modules:      LazyAsync.Prelude
+    other-modules:      LazyAsync.Types
+    other-modules:      LazyAsync.Types.Complex
+    other-modules:      LazyAsync.Types.LazyAsync
+    other-modules:      LazyAsync.Types.NoAlternative
+    other-modules:      LazyAsync.Types.Outcome
+    other-modules:      LazyAsync.Types.Resource
+    other-modules:      LazyAsync.Types.StartPoll
+    other-modules:      LazyAsync.Types.Status
+
+test-suite test
+    import:             test
+    hs-source-dirs:     test
+    type:               exitcode-stdio-1.0
+    main-is:            test.hs
