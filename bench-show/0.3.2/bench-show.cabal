@@ -1,0 +1,193 @@
+name:               bench-show
+version:            0.3.2
+license:            BSD3
+author:             Harendra Kumar
+maintainer:         harendra.kumar@gmail.com
+bug-reports:        https://github.com/composewell/bench-show/issues
+synopsis:           Show, plot and compare benchmark results
+description:
+  Generate text reports and graphical charts from the benchmark results generated
+  by @gauge@ or @criterion@ and stored in a CSV file. This tool is especially
+  useful when you have many benchmarks or if you want to compare benchmarks
+  across multiple packages. You can generate many interesting reports
+  including:
+  .
+  * Show individual reports for all the fields measured e.g. @time taken@, @peak
+    memory usage@, @allocations@, among many other fields measured by @gauge@
+  * Sort benchmark results on a specified criterion e.g. you may want to see the
+    biggest cpu hoggers or biggest memory hoggers on top
+  * Across two benchmark runs (e.g. before and after a change), show all the
+    operations that resulted in a regression of more than x% in descending
+    order, so that we can quickly identify and fix performance problems in our
+    application.
+  * Across two (or more) packages providing similar functionality, show all the
+    operations where the performance differs by more than 10%, so that we can
+    critically analyze the packages and choose the right one.
+  .
+  Quick Start: Use @gauge@ or @criterion@ to generate a @results.csv@ file, and
+  then use either the @bench-show@ executable or the library APIs to generate
+  textual or graphical reports.
+  .
+  @
+  $ bench-show report results.csv
+  $ bench-show graph results.csv output
+  @
+  .
+  @
+  report "results.csv"  Nothing defaultConfig
+  graph  "results.csv" "output" defaultConfig
+  @
+  .
+  There are many ways to present the reports, for example, you can show can
+  show % regression from a baseline in descending order textually as follows:
+  .
+  @
+  (time)(Median)(Diff using min estimator)
+  Benchmark streamly(0)(μs)(base) streamly(1)(%)(-base)
+  \--------- --------------------- ---------------------
+  zip                      644.33                +23.28
+  map                      653.36                 +7.65
+  fold                     639.96                -15.63
+  @
+  .
+  To show the same graphically:
+  .
+  <<src/docs/regression-percent-descending-median-time.svg>>
+  .
+  See the README and the "BenchShow.Tutorial" module for comprehensive
+  documentation.
+
+category:            Performance, Benchmarking
+homepage:            https://github.com/composewell/bench-show
+license-file:        LICENSE
+tested-with:         GHC==8.4.4
+                   , GHC==8.6.5
+                   , GHC==8.8.4
+                   , GHC==8.10.7
+                   , GHC==9.0.1
+copyright:           2017, 2018 Composewell Technologies
+stability:           Experimental
+build-type:          Simple
+cabal-version:       1.18
+
+extra-source-files:
+    Changelog.md
+    README.md
+    stack.yaml
+    test/results.csv
+    test/results.csvraw
+    test/results-doc.csv
+    test/results-doc-multi.csv
+
+    appveyor.yml
+    .github/workflows/packcheck.yml
+    .gitignore
+    TODO.md
+
+extra-doc-files:
+    docs/full-median-time.svg
+    docs/grouped-median-time.svg
+    docs/grouped-delta-median-time.svg
+    docs/grouped-percent-delta-coeff-time.svg
+    docs/grouped-percent-delta-median-time.svg
+    docs/grouped-percent-delta-sorted-median-time.svg
+    docs/grouped-single-estimator-coeff-time.svg
+    docs/regression-percent-descending-median-time.svg
+
+source-repository head
+    type: git
+    location: https://github.com/composewell/bench-show
+
+flag no-charts
+  description: Don't build the modules that provide charting functionality
+  manual: True
+  default: False
+
+flag no-colors
+  description: Use pretty printing without colors
+  manual: True
+  default: False
+
+library
+    hs-source-dirs:   lib
+    exposed-modules:  BenchShow.Internal.Analysis
+                    , BenchShow.Internal.Common
+                    , BenchShow.Internal.Report
+                    , BenchShow.Internal.Pretty
+    default-language: Haskell2010
+    default-extensions:
+        OverloadedStrings
+        RecordWildCards
+    ghc-options: -Wall
+    build-depends:
+          base              >= 4.8     && < 5
+        , csv               >= 0.1     && < 0.2
+        , filepath          >= 1.3     && < 1.5
+        , mwc-random        >= 0.13    && < 0.16
+        , directory         >= 1.2     && < 1.4
+        , transformers      >= 0.4     && < 0.7
+        , split             >= 0.2     && < 0.3
+        , statistics        >= 0.15    && < 0.17
+        , vector            >= 0.10    && < 0.13
+    if !flag(no-charts)
+      exposed-modules:      BenchShow
+                            BenchShow.Tutorial
+                            BenchShow.Internal.Graph
+      build-depends:
+          Chart             >= 1.6     && < 2
+        , Chart-diagrams    >= 1.6     && < 2
+    if !flag(no-colors)
+       build-depends:
+          ansi-wl-pprint    >= 0.6     && < 0.7
+    else
+       cpp-options: -DNO_COLORS
+
+executable bench-show
+  default-language: Haskell2010
+  hs-source-dirs: app
+  main-is: Main.hs
+  other-modules: Paths_bench_show
+  ghc-options: -Wall
+  build-depends:
+          base                 >= 4.8     && < 4.17
+        , optparse-applicative >= 0.14.2  && < 0.18
+        , optparse-simple      >= 0.1.0   && < 0.2
+        , bench-show
+  if flag(no-charts)
+    cpp-options: -DNO_CHARTS
+
+test-suite test
+    if flag(no-charts)
+      buildable: False
+    type: exitcode-stdio-1.0
+    default-language: Haskell2010
+    default-extensions:
+        OverloadedStrings
+        RecordWildCards
+    hs-source-dirs: test
+    main-is: Main.hs
+    ghc-options: -Wall
+
+    build-depends:
+          bench-show
+        , base              >= 4.8     && < 4.17
+        , split             >= 0.2     && < 0.3
+        , text              >= 1.1.1   && < 2.1
+        -- , typed-process     >= 0.1.0.0 && < 0.3
+
+test-suite doc
+    if flag(no-charts)
+      buildable: False
+    type: exitcode-stdio-1.0
+    default-language: Haskell2010
+    default-extensions:
+        OverloadedStrings
+        RecordWildCards
+    hs-source-dirs: test
+    main-is: Doc.hs
+    ghc-options: -Wall
+
+    build-depends:
+          bench-show
+        , base              >= 4.8 && < 4.17
+        , split             >= 0.2 && < 0.3
