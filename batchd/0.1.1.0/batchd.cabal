@@ -1,0 +1,278 @@
+name:                batchd
+version:             0.1.1.0
+synopsis:            Batch processing toolset for Linux / Unix
+description:         The batchd is a toolset for batch processing for Linux / Unix operating systems.
+                     It enables one to:
+                     .
+                     * Create and manage queues of tasks (batch jobs);
+                     .
+                     * Specify time periods (schedules) when jobs from each queue can be executed;
+                     .
+                     * Run batch jobs on localhost or on several machines one-by-one or in parallel.
+                     .
+                     The main concern of batchd are batch jobs, which are
+                     meant to take some time to execute (minutes to days) and
+                     consume a lot of computational power (probably whole
+                     power of the machine). Examples of such jobs are:
+                     .
+                     * Scientific calculations (physical modelling or numeric
+                       experiments on differential equations, for example);
+                     .
+                     * Building large software products from source code;
+                     .
+                     * Running integration test suites;
+                     .
+                     * Rendering complex 3D scenes or animations;
+                     .
+                     * Executing complex reports on large databases;
+                     .
+                     * Backups;
+                     .
+                     * and so on.
+                     .
+                     For more complete description, please refer to
+                     <https://github.com/portnov/batchd/blob/master/README.md README>
+                     and <https://github.com/portnov/batchd/wiki Wiki> on GitHub.
+
+Homepage:            https://github.com/portnov/batchd
+license:             BSD3
+license-file:        LICENSE
+author:              Ilya Portnov
+maintainer:          portnov84@rambler.ru
+-- copyright:           
+category:            System
+build-type:          Simple
+-- extra-source-files:  
+cabal-version:       >=1.10
+
+flag libvirt
+  description: Enable support of libvirt host controller
+  default: False
+
+flag docker
+  description: Enable support of docker host controller
+  default: False
+
+flag ec2
+  description: Enable support of AWS EC2 host controller
+  default: False
+
+flag linode
+  description: Enable support of Linode.com host conrtoller
+  default: False
+
+executable batchd
+  main-is:             batchd.hs
+  hs-source-dirs:      src/
+  other-modules:       Batchd.Common.Data
+        Batchd.Common.Schedule
+        Batchd.Daemon.Auth
+        Batchd.Daemon.Crypto
+        Batchd.Daemon.Database
+        Batchd.Daemon.Dispatcher
+        Batchd.Daemon.Executor
+        Batchd.Daemon.Manager
+        Batchd.Daemon.Hosts
+        Batchd.Daemon.SSH
+        Batchd.Daemon.Local
+        Batchd.Daemon.Schedule
+        Batchd.Common.Config
+        Batchd.Common.Types
+        Batchd.Daemon.Logging
+        Batchd.Daemon.Types
+        Batchd.Daemon.Monitoring
+        Batchd.Daemon.CmdLine
+  other-extensions:    TypeFamilies, DeriveDataTypeable, TemplateHaskell, StandaloneDeriving, RecordWildCards
+  build-depends:       base >=4.7 && <5.0,
+                       data-default >= 0.7.1,
+                       exceptions >= 0.8.3,
+                       conduit >= 1.2,
+                       conduit-extra >= 1.1,
+                       conduit-combinators >= 1.1,
+                       persistent >= 2.13.3.0,
+                       persistent-sqlite >= 2.2,
+                       persistent-postgresql >= 2.2,
+                       persistent-template >= 2,
+                       esqueleto >= 3.5,
+                       hsyslog >= 5,
+                       text-format-heavy >= 0.1.5.3,
+                       heavy-logger >= 0.3.2.2,
+                       heavy-logger-instances >= 0.1.2.0,
+                       localize >= 0.2,
+                       data-default >= 0.5,
+                       mtl >=2.2 && <2.3,
+                       unliftio-core >= 0.1.2.0,
+                       dates >=0.2 && <0.3,
+                       filepath >= 1.3,
+                       Glob >= 0.7.5,
+                       time >=1.4 && <1.10,
+                       syb >=0.6,
+                       containers >=0.5 && <0.7,
+                       unordered-containers >= 0.2,
+                       vector >= 0.12,
+                       resourcet >= 1.1.7,
+                       http-types >= 0.9,
+                       wai >= 3.0,
+                       wai-extra >= 3.0,
+                       wai-cors >= 0.2.5,
+                       wai-middleware-static >= 0.8.1,
+                       ekg-core >= 0.1.1.3,
+                       ekg-json >= 0.1.0.6,
+                       monad-metrics >= 0.2.1.2,
+                       wai-middleware-metrics >= 0.2.4,
+                       microlens >= 0.4.8.1,
+                       vault,
+                       scotty >= 0.12,
+                       warp >= 3.2,
+                       aeson >= 0.11,
+                       yaml >= 0.8.4,
+                       text >= 1.2,
+                       parsec >= 3.1,
+                       bytestring >= 0.10,
+                       optparse-applicative >= 0.14.3.0,
+                       process >= 1.2.3.0,
+                       libssh2 >= 0.2.0.8,
+                       libssh2-conduit >= 0.2.1,
+                       cryptonite >= 0.23,
+                       directory >= 1.1.3.1,
+                       th-lift >= 0.6,
+                       batchd-core >= 0.1.0.0
+  if flag(libvirt)
+    cpp-options: -DLIBVIRT
+    build-depends: batchd-libvirt
+
+  if flag(docker)
+    cpp-options: -DDOCKER
+    build-depends: batchd-docker
+
+  if flag(ec2)
+    cpp-options: -DAWSEC2
+    build-depends: batchd-amazonka
+
+  if flag(linode)
+    cpp-options: -DLINODE
+    build-depends: batchd-linode
+
+  ghc-options: -fwarn-unused-imports -fwarn-missing-signatures -threaded
+  default-language:    Haskell2010
+
+executable batchd-admin
+  main-is:             batchd-admin.hs
+  hs-source-dirs:      src/
+  other-modules:       
+        Batchd.Common.Data
+        Batchd.Common.Schedule
+        Batchd.Daemon.Auth
+        Batchd.Daemon.Crypto
+        Batchd.Daemon.Database
+        Batchd.Daemon.Schedule
+        Batchd.Common.Config
+        Batchd.Common.Types
+        Batchd.Daemon.Logging
+        Batchd.Daemon.Types
+        Batchd.Daemon.CmdLine
+  other-extensions:    TypeFamilies, DeriveDataTypeable, TemplateHaskell, StandaloneDeriving, RecordWildCards
+  build-depends:       base >=4.7 && <5.0,
+                       data-default >= 0.7.1,
+                       exceptions >= 0.8.3,
+                       persistent >= 2.2,
+                       persistent-sqlite >= 2.2,
+                       persistent-postgresql >= 2.2,
+                       persistent-template >= 2,
+                       esqueleto >= 3.5,
+                       hsyslog >= 5,
+                       heavy-logger >= 0.3.2.2,
+                       heavy-logger-instances >= 0.1.2.0,
+                       text-format-heavy >= 0.1.5.3,
+                       localize >= 0.2,
+                       mtl >=2.2 && <2.3,
+                       unliftio-core >= 0.1.2.0,
+                       dates >=0.2 && <0.3,
+                       time >=1.4 && <1.10,
+                       syb >=0.6,
+                       containers >=0.5 && <0.7,
+                       unordered-containers >= 0.2,
+                       vector >= 0.12,
+                       resourcet >= 1.1.7,
+                       http-types >= 0.9,
+                       wai >= 3.0,
+                       wai-extra >= 3.0,
+                       ekg-core >= 0.1.1.3,
+                       ekg-json >= 0.1.0.6,
+                       monad-metrics >= 0.2.1.2,
+                       wai-middleware-metrics >= 0.2.4,
+                       vault,
+                       scotty >= 0.10,
+                       aeson >= 0.11,
+                       yaml >= 0.8.4,
+                       text >= 1.2,
+                       parsec >= 3.1,
+                       bytestring >= 0.10,
+                       optparse-applicative >= 0.14.3.0,
+                       cryptonite >= 0.23,
+                       th-lift >= 0.6,
+                       batchd-core >= 0.1.0.0
+  -- hs-source-dirs:      
+  ghc-options: -fwarn-unused-imports -fwarn-missing-signatures -threaded
+  default-language:    Haskell2010
+
+executable batch
+  main-is:             batch.hs
+  hs-source-dirs:      src/
+  other-modules:       
+        Batchd.Client.Actions
+        Batchd.Client.CmdLine
+        Batchd.Client.Config
+        Batchd.Client.Http
+        Batchd.Client.Monad
+        Batchd.Client.Shell
+        Batchd.Client.Types
+        Batchd.Client.Logging
+        Batchd.Common.Data
+        Batchd.Common.Schedule
+        Batchd.Common.Config
+        Batchd.Common.Types
+
+  build-depends:       base >=4.7 && <5.0,
+                       data-default >= 0.5,
+                       mtl >=2.2 && <2.3,
+                       unliftio-core >= 0.1.2.0,
+                       dates >=0.2 && <0.3,
+                       filepath >= 1.3,
+                       time >=1.4 && <1.10,
+                       syb >=0.6,
+                       containers >=0.5 && <0.7,
+                       unordered-containers >= 0.2,
+                       haskeline >= 0.8.2,
+                       x509-store >= 1.6.2,
+                       tls >= 1.3.10,
+                       connection >= 0.2.8,
+                       http-types >= 0.9,
+                       http-client >= 0.5.6.1,
+                       http-client-tls >= 0.3.4.2,
+                       aeson >= 0.11,
+                       yaml >= 0.8.4,
+                       text >= 1.2,
+                       parsec >= 3.1,
+                       bytestring >= 0.10,
+                       optparse-applicative >= 0.14.3.0,
+                       persistent >= 2.2,
+                       persistent-template >= 2,
+                       hsyslog >= 5,
+                       text-format-heavy >= 0.1.5.2,
+                       heavy-logger >= 0.3.1.0,
+                       heavy-logger-instances >= 0.1.2.0,
+                       hsyslog >= 5,
+                       fast-logger >= 2.4,
+                       localize >= 0.2,
+                       unix >= 2.7.0,
+                       boxes >= 0.1.4,
+                       batchd-core >= 0.1.0.0
+
+  ghc-options: -fwarn-unused-imports -fwarn-missing-signatures
+  default-language:    Haskell2010
+
+Source-repository head
+  type: git
+  location: https://github.com/portnov/batchd.git
+
