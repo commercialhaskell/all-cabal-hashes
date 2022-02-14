@@ -1,0 +1,108 @@
+cabal-version:    2.4
+name:             ghc-events
+version:          0.17.0.2
+synopsis:         Library and tool for parsing .eventlog files from GHC
+description:      Parses .eventlog files emitted by GHC 6.12.1 and later.
+                  Includes the ghc-events tool permitting, in particular,
+                  to dump an event log file as text.
+category:         Development, GHC, Debug, Profiling, Trace
+license:          BSD-3-Clause
+license-file:     LICENSE
+author:           Donnie Jones <donnie@darthik.com>,
+                  Simon Marlow <marlowsd@gmail.com>,
+                  Paul Bone <pbone@csse.unimelb.edu.au>,
+                  Mischa Dieterle <dieterle@mathematik.uni-marburg.de>,
+                  Thomas Horstmeyer <horstmey@mathematik.uni-marburg.de>,
+                  Duncan Coutts <duncan@well-typed.com>,
+                  Nicolas Wu <nick@well-typed.com>,
+                  Jost Berthold <berthold@diku.dk>
+                  Mikolaj Konarski <mikolaj@well-typed.com>
+                  Karolis Velicka <karolis.velicka@gmail.com>
+maintainer:       Simon Marlow <marlowsd@gmail.com>
+bug-reports:      https://github.com/haskell/ghc-events/issues
+build-type:       Simple
+tested-with:      GHC == 7.10.3
+                  GHC == 8.0.2
+                  GHC == 8.2.2
+                  GHC == 8.4.4
+                  GHC == 8.6.5
+                  GHC == 8.8.4
+                  GHC == 8.10.7
+                  GHC == 9.0.1
+                  GHC == 9.2.1
+extra-source-files: include/EventLogFormat.h
+                    test/*.eventlog
+                    test/*.reference
+                    test/Utils.hs
+                    test/stop.hs
+                    README.md
+                    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: git@github.com:haskell/ghc-events.git
+
+common default
+  default-extensions:
+    BangPatterns
+    NamedFieldPuns
+    PatternGuards
+    RecordWildCards
+  default-language: Haskell2010
+
+library
+  import:           default
+  build-depends:    base       >= 4.7 && < 4.17,
+                    containers >= 0.5 && < 0.7,
+                    binary     >= 0.7 && < 0.11,
+                    bytestring >= 0.10.4,
+                    array      >= 0.2 && < 0.6,
+                    text       >= 0.11.2.3 && < 2.1,
+                    vector     >= 0.7 && < 0.13
+  exposed-modules:  GHC.RTS.Events,
+                    GHC.RTS.Events.Incremental
+                    GHC.RTS.Events.Merge
+                    GHC.RTS.Events.Analysis
+                    GHC.RTS.Events.Analysis.Capability
+                    GHC.RTS.Events.Analysis.SparkThread
+                    GHC.RTS.Events.Analysis.Thread
+  other-modules:    GHC.RTS.EventParserUtils,
+                    GHC.RTS.EventTypes
+                    GHC.RTS.Events.Binary
+  hs-source-dirs:   src
+  include-dirs:     include
+  other-extensions: FlexibleContexts, CPP
+  ghc-options:      -Wall
+
+executable ghc-events
+  import:           default
+  main-is:          GhcEvents.hs
+  build-depends:    ghc-events, base, containers
+
+test-suite test-versions
+  import:           default
+  type:             exitcode-stdio-1.0
+  main-is:          TestVersions.hs
+  other-modules:    Utils
+  hs-source-dirs:   ., test
+  build-depends:    ghc-events, base
+
+test-suite write-merge
+  import:           default
+  type:             exitcode-stdio-1.0
+  main-is:          WriteMerge.hs
+  other-modules:    Utils
+  hs-source-dirs:   ., test
+  build-depends:    ghc-events, base, bytestring
+  -- disabled until #14 is fixed
+  buildable:        False
+
+test-suite roundtrip
+  import:           default
+  type:             exitcode-stdio-1.0
+  main-is:          Roundtrip.hs
+  other-modules:    Utils
+  hs-source-dirs:   ., test
+  build-depends:    ghc-events, base
+  -- disabled until #14 is fixed
+  buildable:        False
