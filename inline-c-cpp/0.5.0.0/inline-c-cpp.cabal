@@ -1,0 +1,106 @@
+cabal-version:       2.2
+name:                inline-c-cpp
+version:             0.5.0.0
+synopsis:            Lets you embed C++ code into Haskell.
+description:         Utilities to inline C++ code into Haskell using inline-c.  See
+                     tests for example on how to build.
+license:             MIT
+license-file:        LICENSE
+author:              Francesco Mazzoli
+maintainer:          f@mazzo.li
+copyright:           (c) 2015-2016 FP Complete Corporation, (c) 2017-2019 Francesco Mazzoli
+category:            FFI
+tested-with:         GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.2
+build-type:          Simple
+extra-source-files:  test/*.h
+
+source-repository head
+  type:     git
+  location: https://github.com/fpco/inline-c
+
+flag std-vector-example
+  description:         Build std::vector example
+  default:             False
+
+common cxx-opts
+  -- These options are for compilation of C++ _files_. We need to duplicate
+  -- these in ghc-options to apply them on inline-c-cpp snippets.
+  -- This is partly(?) due to Cabal < 3.2.1.0 not passing cxx-options to
+  -- GHC 8.10 correctly. See https://github.com/haskell/cabal/issues/6421
+  cxx-options:
+    -- Compilers strive to be ABI compatible regardless of the C++ language
+    -- version (except perhaps experimental features).
+    -- Discussion: https://stackoverflow.com/questions/46746878/is-it-safe-to-link-c17-c14-and-c11-objects/49118876
+    -- We only have to raise this if a new inline-c-cpp feature requires us to
+    -- bundle C++ code that requires a newer version of the standard.
+    -- Generated code in user libraries will be compiled with the language
+    -- version configured there.
+    -std=c++11
+    -Wall
+  extra-libraries: stdc++
+
+  if os(darwin)
+    -- avoid https://gitlab.haskell.org/ghc/ghc/issues/11829
+    ld-options:  -Wl,-keep_dwarf_unwind
+
+  if impl(ghc >= 8.10)
+    ghc-options:
+      -optcxx-std=c++11
+      -optcxx-Wall
+  else
+    -- On GHC < 8.10, we have to emulate -optcxx by making the C compiler compile
+    -- C++. GCC accepts this via -std, whereas Clang requires us to change the
+    -- command.
+    ghc-options:
+      -optc-std=c++11
+      -optc-Wall
+    if os(darwin)
+      ghc-options: -pgmc=clang++
+
+library
+  import:              cxx-opts
+  exposed-modules:     Language.C.Inline.Cpp
+                       Language.C.Inline.Cpp.Exception
+                       Language.C.Inline.Cpp.Exceptions
+  build-depends:       base >=4.7 && <5
+                     , bytestring
+                     , inline-c >= 0.9.0.0
+                     , template-haskell
+                     , text
+                     , safe-exceptions
+                     , containers
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  include-dirs:        include
+  install-includes:    HaskellException.hxx HaskellStablePtr.hxx
+  cxx-sources:         cxx-src/HaskellException.cxx
+                       cxx-src/HaskellStablePtr.cxx
+
+test-suite tests
+  import:              cxx-opts
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             tests.hs
+  other-modules:       StdVector
+                     , TemplateSpec
+  build-depends:       base >=4 && <5
+                     , bytestring
+                     , inline-c
+                     , inline-c-cpp
+                     , safe-exceptions
+                     , hspec
+                     , containers
+                     , template-haskell
+                     , vector
+  default-language:    Haskell2010
+  cxx-options:         -Werror -std=c++11
+
+  if impl(ghc >= 8.10)
+    ghc-options:
+      -optcxx-Werror
+  -- else
+  --   ghc-options:
+  --     -- GHC < 8.10 can pass options to the C++ compiler, but it warns
+  --     -- so -Werror will not work.
+  --     -optc-Werror
