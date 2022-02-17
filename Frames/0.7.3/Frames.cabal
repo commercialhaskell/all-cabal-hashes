@@ -1,0 +1,257 @@
+name:                Frames
+version:             0.7.3
+synopsis:            Data frames For working with tabular data files
+description:         User-friendly, type safe, runtime efficient tooling for
+                     working with tabular data deserialized from
+                     comma-separated values (CSV) files. The type of
+                     each row of data is inferred from data, which can
+                     then be streamed from disk, or worked with in
+                     memory.
+license:             BSD3
+license-file:        LICENSE
+author:              Anthony Cowley
+maintainer:          acowley@gmail.com
+copyright:           Copyright (C) 2014-2018 Anthony Cowley
+category:            Data
+build-type:          Simple
+extra-source-files:  benchmarks/*.hs benchmarks/*.py
+                     demo/framestack/app/Main.hs CHANGELOG.md README.md
+                     data/GetData.hs
+                     test/examples.toml
+                     test/data/managers.csv test/data/employees.csv
+                     test/data/mpg.csv test/data/issue114.csv
+                     test/data/latinManagers.csv
+                     test/data/prestige.csv
+                     test/data/prestigeNoHeader.csv
+                     test/data/prestigePartial.csv
+                     test/data/catSmall.csv test/data/catLarge.csv
+                     test/data/multiline.csv
+                     test/data/issue145.csv
+                     data/left1.csv data/right1.csv data/left_summary.csv
+                     data/FL2.csv
+cabal-version:       >=1.10
+tested-with:         GHC == 8.6.5 || == 8.8.4 || == 8.10.7 || == 9.0.1 || == 9.2.1
+
+source-repository head
+  type:     git
+  location: http://github.com/acowley/Frames.git
+
+flag demos
+  description: Build demonstration programs
+  default:     False
+  manual:      True
+
+library
+  exposed-modules:     Frames
+                       Frames.Categorical
+                       Frames.Col
+                       Frames.ColumnTypeable
+                       Frames.ColumnUniverse
+                       Frames.CSV
+                       Frames.Exploration
+                       Frames.Frame
+                       Frames.InCore
+                       Frames.Melt
+                       Frames.Rec
+                       Frames.RecF
+                       Frames.ShowCSV
+                       Frames.TH
+                       Frames.TypeLevel
+                       Frames.Joins
+                       Frames.ExtraInstances
+                       Frames.Utils
+  other-extensions:    DataKinds, GADTs, KindSignatures, TypeFamilies,
+                       TypeOperators, ConstraintKinds, StandaloneDeriving,
+                       UndecidableInstances, ScopedTypeVariables,
+                       OverloadedStrings, TypeApplications
+  build-depends:       base >=4.10 && <4.17,
+                       ghc-prim >=0.3 && <0.9,
+                       primitive >= 0.6 && < 0.8,
+                       text >= 1.1.1.0,
+                       template-haskell,
+                       transformers,
+                       vector,
+                       readable >= 0.3.1,
+                       pipes >= 4.1 && < 5,
+                       pipes-bytestring >= 2.1.6 && < 2.2,
+                       pipes-group >= 1.0.8 && < 1.1,
+                       pipes-parse >= 3.0 && < 3.1,
+                       pipes-safe >= 2.2.6 && < 2.4,
+                       bytestring,
+                       vinyl >= 0.13.0 && < 0.15,
+                       discrimination,
+                       contravariant,
+                       hashable,
+                       deepseq >= 1.4,
+                       containers,
+                       vector-th-unbox >= 0.2.1.6
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+-- Get the large-ish data files used in the demo and benchmark
+executable getdata
+  if !flag(demos)
+    buildable: False
+  main-is: GetData.hs
+  if flag(demos)
+    build-depends:
+      base, bytestring,
+      http-client >= 0.4.3,
+      http-client-tls,
+      zip-archive, directory
+  hs-source-dirs: data
+  default-language: Haskell2010
+  ghc-options: -Wall
+
+-- Demonstrate using the Chart library to produce figures
+executable plot
+  if !flag(demos)
+    buildable: False
+  main-is: Plot.hs
+  if flag(demos)
+    build-depends: base, Frames,
+                   microlens, vector, text,
+                   template-haskell,
+                   pipes >= 4.1.5 && < 4.4,
+                   pipes-safe,
+                   Chart >= 1.5 && < 2.0,
+                   Chart-diagrams >= 1.5 && < 2.0,
+                   diagrams-rasterific >= 1.3 && < 1.5,
+                   diagrams-lib >= 1.3 && < 1.5,
+                   readable, containers, statistics
+  hs-source-dirs: demo
+  default-language: Haskell2010
+
+executable plot2
+  if !flag(demos)
+    buildable: False
+  main-is: Plot2.hs
+  if flag(demos)
+    build-depends: base, Frames,
+                   microlens, vector, text, template-haskell,
+                   pipes >= 4.1.5 && < 4.4,
+                   Chart >= 1.5 && < 2.0,
+                   Chart-diagrams >= 1.5 && < 2.0,
+                   diagrams-rasterific >= 1.3 && < 1.5,
+                   diagrams-lib >= 1.3 && < 1.5,
+                   readable, containers, statistics
+  hs-source-dirs: demo
+  default-language: Haskell2010
+
+-- Miscellaneous tooling around a data file
+executable demo
+  if !flag(demos)
+    buildable: False
+  main-is: Main.hs
+  if flag(demos)
+    build-depends: base, list-t, microlens, transformers, Frames,
+                   vector, text, template-haskell, ghc-prim, readable,
+                   pipes
+  hs-source-dirs: demo/framestack/app
+  default-language: Haskell2010
+  ghc-options: -O2 -fsimpl-tick-factor=200
+  -- ghc-options: -O2 -fllvm
+
+executable tutorial
+  if !flag(demos)
+    buildable: False
+  main-is: TutorialMain.hs
+  if flag(demos)
+    build-depends: base, Frames,
+                   microlens, vector, text, template-haskell, readable,
+                   foldl, pipes, vinyl
+  hs-source-dirs: demo
+  default-language: Haskell2010
+
+-- A short demo to compare with Pandas
+executable benchdemo
+  if !flag(demos)
+    buildable: False
+  main-is:          BenchDemo.hs
+  if flag(demos)
+    build-depends:    base, Frames,
+                      foldl >= 1.3 && < 1.5,
+                      pipes >= 4.1.5 && < 4.4
+  hs-source-dirs:   benchmarks
+  default-language: Haskell2010
+  -- ghc-options:      -O2
+  ghc-options: -O2 -fllvm -fsimpl-tick-factor=200
+
+-- A demonstration of dealing with missing data. Provided for source
+-- code and experimentation rather than a useful executable.
+executable missing
+  if !flag(demos)
+    buildable: False
+  main-is: MissingData.hs
+  if flag(demos)
+    build-depends: base, Frames, vinyl, pipes, pipes-safe
+  hs-source-dirs: demo
+  default-language: Haskell2010
+
+-- Demo the joins feature
+benchmark joins
+  type:             exitcode-stdio-1.0
+  main-is:          JoinsBench.hs
+  hs-source-dirs:   benchmarks
+  build-depends:    base, Frames, criterion
+  ghc-options:      -O2
+  default-language: Haskell2010
+
+-- Benchmark showing tradeoffs of differing processing needs
+benchmark insurance
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   benchmarks
+  main-is:          InsuranceBench.hs
+  build-depends:    base, criterion, Frames, transformers,
+                    pipes >= 4.1.5 && < 4.4
+  ghc-options:      -O2
+  default-language: Haskell2010
+
+-- Demonstration of tab-separated value parsing
+executable kata04
+  if !flag(demos)
+    buildable: False
+  main-is: Kata04.hs
+  if flag(demos)
+    build-depends: base, Frames, vinyl, text, readable
+  hs-source-dirs: demo
+  default-language: Haskell2010
+
+executable modcsv
+  if !flag(demos)
+    buildable: False
+  main-is: ModifyCSV.hs
+  if flag(demos)
+    build-depends: base, Frames, microlens, pipes
+  hs-source-dirs: demo
+  default-language: Haskell2010
+
+test-suite spec
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  other-modules:       DataCSV PrettyTH Temp LatinTest Issue114 NoHeader
+                       UncurryFold UncurryFoldNoHeader UncurryFoldPartialData
+                       Categorical Chunks Issue145
+  build-depends:       base, text, hspec, Frames, template-haskell,
+                       temporary, directory, htoml, regex-applicative, pretty,
+                       unordered-containers, pipes, HUnit, vinyl,
+                       foldl >= 1.3 && < 1.5,
+                       attoparsec, lens, bytestring
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
+  default-language:    Haskell2010
+
+test-suite overlap
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Overlap.hs
+  build-depends:       base, Frames
+  default-language:    Haskell2010
+
+test-suite mpg
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Mpg.hs
+  build-depends:       base, Frames
+  default-language:    Haskell2010
