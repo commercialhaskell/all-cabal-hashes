@@ -1,0 +1,220 @@
+Name:                HList
+Version:             0.5.2.0
+Category:            Data
+Synopsis:            Heterogeneous lists
+Description:         HList provides many operations to create and manipulate
+                     heterogenous lists (HLists) whose length and element
+                     types are known at compile-time. HLists are used to implement
+                    .
+                      * records
+                    .
+                      * variants
+                    .
+                      * type-indexed products (TIP)
+                    .
+                      * type-indexed co-products (TIC)
+                    .
+                      * keyword arguments
+                    .
+                     User code should import "Data.HList" or
+                     "Data.HList.CommonMain" for a slightly more limited scope
+                    .
+                     The original design is described in <http://okmij.org/ftp/Haskell/HList-ext.pdf>,
+                     though since that paper came out, the -XTypeFamiles extension has been used to
+                     replace `TypeCast` with `~`.
+License:             MIT
+License-File:        LICENSE
+Author:              2004 Oleg Kiselyov (FNMOC, Monterey), Ralf Laemmel (CWI/VU, Amsterdam),
+                     Keean Schupke (London)
+Maintainer:          oleg@pobox.com
+
+Data-files:          README, ChangeLog
+Cabal-version:       >= 1.10
+Tested-With:         GHC==8.10.7
+Build-Type:          Simple
+
+Extra-Source-Files:
+                     examples/broken/*.hs,
+                     examples/broken/*.lhs,
+                     examples/broken/*.ref,
+
+                     Data/HList/broken/*.hs,
+                     Data/HList/obsolete/*.hs
+
+Source-Repository head
+    type: git
+    location: https://bitbucket.org/HList/hlist
+
+
+flag new_type_eq
+  Default: False
+  Manual: True
+  Description: use Data.Type.Equality.== to define the instance of HEq
+               instead of overlapping instances (in Data.HList.TypeEqO)
+               (needs ghc >= 7.8)
+              .
+               This version does not allow `HEq x [x] f` to lead to
+               f ~ False, unlike the version with overlapping instances.
+               See <https://ghc.haskell.org/trac/ghc/ticket/9918>
+
+library
+  Build-Depends:       base >= 4.6 && < 4.17,
+                       -- for Typeable '[] and '(:) with ghc-7.6
+                       base-orphans,
+                       -- Data.Semigroup for ghc < 8
+                       semigroups,
+                       template-haskell,
+                       ghc-prim,
+                       mtl,
+                       tagged,
+                       profunctors,
+                       array
+
+
+  Exposed-modules:     Data.HList,
+                       Data.HList.CommonMain,
+                       Data.HList.Data,
+                       Data.HList.Dredge,
+                       Data.HList.FakePrelude,
+                       Data.HList.HArray,
+                       Data.HList.HCurry,
+                       Data.HList.HList,
+                       Data.HList.HListPrelude,
+                       Data.HList.HOccurs,
+                       Data.HList.HTypeIndexed,
+                       Data.HList.HSort,
+                       Data.HList.HZip,
+                       Data.HList.Keyword,
+                       Data.HList.Label3,
+                       Data.HList.Label5,
+                       Data.HList.Label6,
+                       Data.HList.Labelable,
+                       Data.HList.MakeLabels,
+                       Data.HList.Record,
+                       Data.HList.RecordPuns,
+                       Data.HList.RecordU,
+                       Data.HList.TIC,
+                       Data.HList.TIP,
+                       Data.HList.TIPtuple,
+                       Data.HList.TypeEqO,
+                       Data.HList.Variant
+  Other-modules:       LensDefs
+  Default-Language:    Haskell2010
+
+
+  Ghc-Options:         -Wall -fno-warn-missing-signatures -fno-warn-orphans
+
+  Default-Extensions:  ConstraintKinds
+                       DataKinds
+                       DeriveDataTypeable
+                       EmptyDataDecls
+                       FlexibleContexts
+                       FlexibleInstances
+                       FunctionalDependencies
+                       GeneralizedNewtypeDeriving
+                       GADTs
+                       KindSignatures
+                       MultiParamTypeClasses
+                       PolyKinds
+                       RankNTypes
+                       ScopedTypeVariables
+                       StandaloneDeriving
+                       TypeFamilies
+                       TypeOperators
+                       UndecidableInstances
+  Other-Extensions:    CPP
+                       TemplateHaskell
+                       OverlappingInstances
+  if impl(ghc >= 8.6)
+    Default-Extensions: StarIsType
+
+  if impl(ghc >= 8.0)
+    Default-Extensions: UndecidableSuperClasses
+
+  if impl(ghc < 7.7)
+    Cpp-options:       -DOLD_TYPEABLE -DNO_CLOSED_TF
+
+  if impl(ghc >= 7.7)
+    Default-Extensions: AllowAmbiguousTypes
+                        RoleAnnotations
+
+  if impl(ghc > 7.9)
+    Ghc-Options:      -fno-warn-unticked-promoted-constructors
+                      -Wno-star-is-type
+
+  if flag(new_type_eq)
+    Cpp-options:       -DNEW_TYPE_EQ
+    Build-Depends:     base >= 4.7
+
+Test-Suite examples
+  Type:     exitcode-stdio-1.0
+  Main-Is: HListExample.hs
+  Default-Language:    Haskell2010
+  Hs-Source-Dirs:  examples
+  Build-Depends:       base, hspec >= 1.7, directory, filepath,
+                       hspec-expectations,
+                       process,
+                       syb,
+                       cmdargs,
+                       lens,
+                       HList,
+                       mtl,
+                       QuickCheck,
+                       array,
+                       semigroups,
+                       template-haskell
+  Other-Modules:
+        Properties.Common
+
+        HListExample.CmdArgs
+        HListExample.Datatypes2
+        HListExample.Labelable
+        HListExample.MainGhcGeneric1
+        HListExample.MainPosting051106
+        HListExample.OverloadedLabels
+        HListExample.Prism
+        HListExample.Pun
+        HListExample.TIPTransform
+        HListExample.TIPTransformM
+
+  if impl(ghc > 7.9)
+    Ghc-Options: -fno-warn-tabs
+
+Test-Suite doctests
+  Type:     exitcode-stdio-1.0
+  Ghc-Options: -threaded
+  if impl(ghc <= 7.9 ) && impl(ghc <= 7.11)
+    -- doctests include things like :t pred . maxBound, which
+    -- depending on the ghc version, comes out as one of
+    -- (Bounded a, Enum a) => ...
+    -- (Enum b, Bounded b) => ...
+    Build-Depends: base, doctest >= 0.8, process
+  Buildable: False
+  Main-Is: rundoctests.hs
+  Hs-Source-Dirs:  examples
+  Default-Language:    Haskell2010
+
+
+Test-Suite properties
+  Type:     exitcode-stdio-1.0
+  Build-Depends: base,
+                 hspec >= 1.7,
+                 hspec-expectations,
+                 HList,
+                 lens,
+                 mtl,
+                 QuickCheck,
+                 template-haskell,
+                 array,
+                 syb
+  Other-Modules:
+        Properties.Common
+        Properties.KW
+        Properties.LengthDependent
+        Properties.LengthDependentSplice
+        Properties.LengthIndependent
+  Main-Is:  Properties.hs
+  Hs-Source-Dirs: examples
+  Default-Language:    Haskell2010
+  if impl(ghc <= 7.11)
+        build-depends: semigroups
