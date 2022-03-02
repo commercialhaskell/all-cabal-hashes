@@ -1,0 +1,127 @@
+name:           phatsort
+version:        0.5.0.1
+category:       Utils
+synopsis:       FAT filesystem sort utility
+description:
+  This package provides a utility for sorting files and directories on a FAT
+  filesystem.  Please see the README on GitHub at
+  <https://github.com/ExtremaIS/phatsort-haskell#readme>.
+
+homepage:       https://github.com/ExtremaIS/phatsort-haskell#readme
+bug-reports:    https://github.com/ExtremaIS/phatsort-haskell/issues
+author:         Travis Cardwell <travis.cardwell@extrema.is>
+maintainer:     Travis Cardwell <travis.cardwell@extrema.is>
+copyright:      Copyright (c) 2019-2022 Travis Cardwell
+license:        MIT
+license-file:   LICENSE
+
+cabal-version:  1.24
+build-type:     Simple
+tested-with:
+  GHC ==8.2.2
+   || ==8.4.4
+   || ==8.6.5
+   || ==8.8.4
+   || ==8.10.7
+   || ==9.0.2
+   || ==9.2.1
+
+extra-source-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type: git
+  location: https://github.com/ExtremaIS/phatsort-haskell.git
+
+flag write-hie
+  description: write .hie files
+  default: False
+
+library
+  hs-source-dirs: src
+  exposed-modules:
+      PhatSort
+    , PhatSort.Cmd.PhatSort
+    , PhatSort.Cmd.SeqCp
+    , PhatSort.Monad.FileSystem
+    , PhatSort.Monad.Stdio
+    , PhatSort.Monad.Sync
+    , PhatSort.Monad.Trans.Error
+    , PhatSort.Script
+    , PhatSort.SortOptions
+  other-modules:
+      Paths_phatsort
+  if !os(windows)
+    other-modules:
+        PhatSort.Monad.Sync.Unistd
+  build-depends:
+      base >=4.7 && <5
+    , directory >=1.3 && <1.4
+    , filepath >=1.4 && <1.5
+    , MonadRandom >=0.5 && <0.6
+    , random-shuffle >=0.0.4 && <0.1
+    , transformers >=0.5 && <0.6
+    , unix-compat >=0.5 && <0.6
+  default-language: Haskell2010
+  default-extensions:
+      OverloadedStrings
+  if flag(write-hie)
+    ghc-options: -Wall -fwrite-ide-info -hiedir=.hie
+  else
+    ghc-options: -Wall
+
+executable phatsort
+  hs-source-dirs: app
+  main-is: phatsort.hs
+  other-modules:
+      LibOA
+    , Options
+  build-depends:
+      ansi-wl-pprint >=0.6 && <0.7
+    , base
+    , optparse-applicative >=0.14 && <0.18
+    , phatsort
+  default-language: Haskell2010
+  if flag(write-hie)
+    ghc-options: -Wall -fwrite-ide-info -hiedir=.hie
+  else
+    ghc-options: -Wall
+
+executable seqcp
+  hs-source-dirs: app
+  main-is: seqcp.hs
+  other-modules:
+      LibOA
+    , Options
+  build-depends:
+      ansi-wl-pprint >=0.6 && <0.7
+    , base
+    , optparse-applicative >=0.14 && <0.18
+    , phatsort
+  default-language: Haskell2010
+  if flag(write-hie)
+    ghc-options: -Wall -fwrite-ide-info -hiedir=.hie
+  else
+    ghc-options: -Wall
+
+test-suite phatsort-test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Spec.hs
+  build-depends:
+      base
+    , MonadRandom
+    , phatsort
+    , tasty >=1.0 && <1.5
+    , tasty-hunit >=0.10 && <0.11
+    , transformers >=0.5 && <0.7
+  if impl(ghc >= 8.6.1)
+    other-modules:
+        PhatSort.Cmd.PhatSort.Mock
+      , PhatSort.Cmd.SeqCp.Mock
+      , TestLib
+    build-depends:
+        HMock >=0.5.1 && <0.6
+  default-language: Haskell2010
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
