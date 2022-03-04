@@ -1,0 +1,100 @@
+name: xeno
+version: 0.5
+synopsis: A fast event-based XML parser in pure Haskell
+description: A fast, low-memory use, event-based XML parser in pure Haskell.  
+build-type: Simple
+category: XML, Parser
+cabal-version: >=1.10
+homepage: https://github.com/ocramz/xeno
+license: BSD3
+license-file: LICENSE
+author: Christopher Done
+maintainer: Marco Zocca (ocramz fripost org)
+tested-with:         GHC == 8.0.1, GHC == 8.2.2, GHC == 8.4.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 9.0.1
+extra-source-files:  README.md
+                     CHANGELOG.markdown
+                     CONTRIBUTORS.md
+data-files: data/books-4kb.xml
+
+source-repository head
+  type:     git
+  location: https://github.com/ocramz/xeno
+                     
+flag libxml2
+  description:   Include libxml2 in the benchmarks
+  default:       False
+
+flag whitespace-around-equals
+  description:   Correctly parse whitespace around the = characters in attribute definitions
+  default:       False
+
+library
+  hs-source-dirs: src
+  ghc-options: -Wall -O2
+  exposed-modules: Xeno.SAX, Xeno.DOM, Xeno.DOM.Internal, Xeno.DOM.Robust, Xeno.Types, Xeno.Errors
+                   
+  other-modules: Control.Spork
+  build-depends: base >= 4.7 && < 5
+               , bytestring >= 0.10.8
+               , vector >= 0.11
+               , deepseq >= 1.4.2
+               , array >= 0.5.1
+               , mutable-containers >= 0.3.3
+               , mtl >= 2.2.1
+  if flag(whitespace-around-equals)
+    cpp-options: -DWHITESPACE_AROUND_EQUALS
+
+  default-language: Haskell2010
+
+test-suite xeno-test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends: base, xeno, hexml, hspec, bytestring
+               -- | DEBUG 
+               , hspec
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  if flag(whitespace-around-equals)
+    cpp-options: -DWHITESPACE_AROUND_EQUALS
+  default-language: Haskell2010
+
+benchmark xeno-speed-bench
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: Speed.hs
+  build-depends: base, xeno, hexml, criterion, bytestring, deepseq, ghc-prim, xml, hexpat
+  if flag(libxml2)
+    build-depends: libxml
+  ghc-options: -Wall -rtsopts -O2
+  if flag(libxml2)
+     cpp-options: -DLIBXML2   
+     -- ghc-options: -DLIBXML2  -- Hackage started complaining about this
+  default-language: Haskell2010
+
+benchmark xeno-memory-bench
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: Memory.hs
+  build-depends: base, xeno, weigh, bytestring, deepseq, hexml
+  ghc-options: -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
+  default-language: Haskell2010
+
+benchmark xeno-speed-big-files-bench
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: SpeedBigFiles.hs
+  build-depends: base, xeno, hexml, criterion, bytestring, deepseq, ghc-prim, xml, hexpat, bzlib, filepath
+  if flag(libxml2)
+    build-depends: libxml
+  ghc-options: -Wall -O2 -rtsopts "-with-rtsopts=-H8G -AL1G -A256m -M25G"
+  if flag(libxml2)
+     cpp-options: -DLIBXML2
+  default-language: Haskell2010
+
+benchmark xeno-bench
+  type: exitcode-stdio-1.0
+  main-is: Bench.hs
+  hs-source-dirs: app
+  build-depends: base, xeno, weigh, bytestring, deepseq, hexml, bytestring-mmap, time
+  ghc-options: -O2 -threaded -rtsopts "-with-rtsopts=-N"
+  default-language: Haskell2010
