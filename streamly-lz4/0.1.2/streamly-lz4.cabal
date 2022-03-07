@@ -1,0 +1,101 @@
+cabal-version:       2.2
+name:                streamly-lz4
+version:             0.1.2
+synopsis:            Streamly combinators for LZ4 compression
+description:
+    Compress and decompress streams of data using LZ4 compression.  See
+    <https://github.com/lz4/lz4> .
+license:             Apache-2.0
+license-file:        LICENSE
+homepage:            https://github.com/composewell/streamly-lz4
+bug-reports:         https://github.com/composewell/streamly-lz4/issues
+author:              Composewell Technologies
+maintainer:          streamly@composewell.com
+copyright:           2020 Composewell Technologies
+category:            Codec, Compression, Streamly
+build-type:          Simple
+tested-with:         GHC==8.2.2
+                   , GHC==8.4.4
+                   , GHC==8.6.5
+                   , GHC==8.8.4
+                   , GHC==8.10.7
+                   , GHC==9.0.1
+                   , GHC==9.2.1
+extra-source-files:  CHANGELOG.md
+                   , NOTICE
+                   , README.md
+                   , cbits/lz4.h
+                   , download-corpora.sh
+
+flag fusion-plugin
+  description: Use fusion plugin for benchmarks and executables
+  manual: True
+  default: False
+
+source-repository head
+  type: git
+  location: https://github.com/composewell/streamly-lz4
+
+common optimization-options
+  ghc-options: -O2
+               -fdicts-strict
+               -fspec-constr-recursive=16
+               -fmax-worker-args=16
+
+common exe-options
+  import: optimization-options
+  if flag(fusion-plugin) && !impl(ghc < 8.6)
+    ghc-options:       -fplugin Fusion.Plugin
+    build-depends:     fusion-plugin >= 0.2 && < 0.3
+
+library
+  import:              optimization-options
+  hs-source-dirs:      src
+  include-dirs:        cbits
+  c-sources:           cbits/lz4.c
+  exposed-modules:     Streamly.LZ4
+                     , Streamly.Internal.LZ4
+                     , Streamly.Internal.LZ4.Config
+  build-depends:       base                >= 4    && < 5
+                     , fusion-plugin-types >= 0.1  && < 0.2
+                     , exceptions          >= 0.8  && < 0.11
+                     , streamly            == 0.8.2.*
+  ghc-options:         -Wall
+  default-language:    Haskell2010
+  default-extensions:
+      CPP
+      CApiFFI
+      EmptyDataDecls
+      ForeignFunctionInterface
+      ScopedTypeVariables
+      RecordWildCards
+      TypeInType
+      FlexibleContexts
+
+test-suite test-lz4
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Main.hs
+  build-depends:       streamly-lz4
+                     , streamly   == 0.8.2.*
+                     , base       >= 4      && < 5
+                     , QuickCheck >= 2.13.1 && < 2.15
+                     , hspec      >= 2.7    && < 2.9
+                     , temporary  >= 1.3    && < 1.4
+  ghc-options:         -fno-ignore-asserts -Wall -rtsopts +RTS -M200M -RTS
+  default-language:    Haskell2010
+  default-extensions:  TypeInType
+
+benchmark bench-lz4
+  import:              exe-options
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      benchmark
+  main-is:             Main.hs
+  build-depends:       streamly-lz4
+                     , streamly      == 0.8.2.*
+                     , base          >= 4      && < 5
+                     , gauge         >= 0.2.5  && < 0.2.6
+                     , directory     >= 1.3.0  && < 1.3.8
+  ghc-options:         -Wall
+  default-language:    Haskell2010
+  default-extensions:  TypeInType
