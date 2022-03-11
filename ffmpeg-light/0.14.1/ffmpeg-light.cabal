@@ -1,0 +1,163 @@
+name:                ffmpeg-light
+version:             0.14.1
+synopsis:            Minimal bindings to the FFmpeg library.
+
+description:         Stream frames from an encoded video, or stream frames to
+                     a video output file. To read the first frame from
+                     an @h264@-encoded file into a JuicyPixels
+                     @Maybe DynamicImage@,
+                     .
+                     > import Codec.FFmpeg
+                     > import Codec.Picture
+                     > import Control.Applicative
+                     >
+                     > go :: IO (Maybe DynamicImage)
+                     > go = do (getFrame, cleanup) <- imageReader "myVideo.mov"
+                     >         (fmap ImageRGB8 <$> getFrame) <* cleanup
+                     .
+                     Tested with FFmpeg 3.1 - 3.4.2
+
+license:             BSD3
+license-file:        LICENSE
+author:              Anthony Cowley
+maintainer:          acowley@gmail.com
+copyright:           Copyright (C) 2018 Anthony Cowley
+homepage:            http://github.com/acowley/ffmpeg-light
+bug-reports:         http://github.com/acowley/ffmpeg-light/issues
+category:            Codec
+build-type:          Simple
+extra-source-files:  src/hscMacros.h, src/nameCompat.h, CHANGELOG.md
+cabal-version:       >=1.10
+tested-with:         GHC == 8.6.5 || == 8.8.4 || == 8.10.7 || == 9.0.2 || == 9.2.1
+
+source-repository head
+  type:     git
+  location: http://github.com/acowley/ffmpeg-light.git
+
+flag BuildDemo
+  description: Build demo executable
+  default:     False
+  manual:      True
+
+flag BuildRasterDemo
+  description: Build Rasterific demo executable
+  default:     False
+  manual:      True
+
+flag BuildVPlayDemo
+  description: Build video player demo executable
+  default:     False
+  manual:      True
+
+flag BuildTranscodeDemo
+  description: Build transcode demo executable
+  default:     False
+  manual:      True
+
+flag BuildAudioExtractDemo
+  description: Build audio-extract demo executable
+  default:     False
+  manual:      True
+
+flag BuildAudioSinDemo
+  description: Build audio-sin demo executable
+  default:     False
+  manual:      True
+
+library
+  exposed-modules:     Codec.FFmpeg,
+                       Codec.FFmpeg.AudioStream,
+                       Codec.FFmpeg.Common,
+                       Codec.FFmpeg.Decode,
+                       Codec.FFmpeg.Encode,
+                       Codec.FFmpeg.Enums,
+                       Codec.FFmpeg.Juicy,
+                       Codec.FFmpeg.Probe,
+                       Codec.FFmpeg.Resampler,
+                       Codec.FFmpeg.Scaler,
+                       Codec.FFmpeg.Types,
+                       Codec.FFmpeg.Internal.Debug,
+                       Codec.FFmpeg.Internal.Linear
+  build-tools:         hsc2hs
+  build-depends:       base >=4.6 && < 5,
+                       either,
+                       exceptions,
+                       vector >= 0.10.9 && < 0.13,
+                       stm >= 2.0.0.0 && < 3.0.0.0.0,
+                       transformers >= 0.4.1 && < 0.7,
+                       mtl >= 2.2.1 && < 2.3,
+                       JuicyPixels >= 3.1 && < 3.4,
+                       bytestring
+
+  pkgconfig-depends:   libavutil, libavformat, libavcodec, libswscale, libavdevice,
+                       libswresample
+  hs-source-dirs:      src
+  include-dirs:        src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable demo
+  if !flag(BuildDemo)
+    buildable:      False
+  build-depends:    base < 5, vector, mtl, transformers, JuicyPixels
+  if flag(BuildDemo)
+    build-depends:  ffmpeg-light, time
+  hs-source-dirs:   demo
+  main-is:          Main.hs
+  default-language: Haskell2010
+  ghc-options:      -Wall
+
+executable raster
+  if !flag(BuildRasterDemo)
+    buildable:      False
+  build-depends:    base < 5, vector, mtl, transformers, JuicyPixels >= 3.2
+  if flag(BuildRasterDemo)
+    build-depends:  ffmpeg-light, Rasterific >= 0.3
+  hs-source-dirs:   demo
+  main-is:          Raster.hs
+  default-language: Haskell2010
+  ghc-options:      -Wall -O2
+
+executable vplay
+  if !flag(BuildVPlayDemo)
+    buildable:       False
+  build-depends:     base < 5, mtl, transformers, text, monad-loops, bytestring
+  if flag(BuildVPlayDemo)
+    build-depends:   ffmpeg-light, sdl2
+  hs-source-dirs:    demo
+  main-is:           VPlay.hs
+  default-language:  Haskell2010
+  ghc-options:      -Wall -O2
+
+executable transcode
+  if !flag(BuildTranscodeDemo)
+    buildable:      False
+  build-depends:    base < 5, JuicyPixels
+  if flag(BuildTranscodeDemo)
+    build-depends:  ffmpeg-light
+  hs-source-dirs:   demo
+  main-is:          Transcode.hs
+  default-language: Haskell2010
+  ghc-options:      -Wall
+
+executable audio-extract
+  if !flag(BuildAudioExtractDemo)
+    buildable:      False
+  build-depends:    base < 5
+  if flag(BuildAudioExtractDemo)
+    build-depends:  ffmpeg-light, mtl, vector
+  hs-source-dirs:   demo
+  main-is:          AudioExtract.hs
+  default-language: Haskell2010
+  ghc-options:      -Wall
+
+executable audio-sin
+  if !flag(BuildAudioSinDemo)
+    buildable:      False
+  build-depends:    base < 5
+  if flag(BuildAudioSinDemo)
+    build-depends:  ffmpeg-light, mtl, vector, JuicyPixels
+  hs-source-dirs:   demo
+  main-is:          AudioSin.hs
+  default-language: Haskell2010
+  ghc-options:      -Wall
