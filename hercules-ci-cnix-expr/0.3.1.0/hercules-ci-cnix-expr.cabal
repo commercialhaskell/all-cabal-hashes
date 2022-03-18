@@ -1,0 +1,149 @@
+cabal-version: 2.4
+
+name:           hercules-ci-cnix-expr
+version:        0.3.1.0
+synopsis:       Bindings for the Nix evaluator
+category:       Nix, CI, Testing, DevOps
+homepage:       https://docs.hercules-ci.com
+bug-reports:    https://github.com/hercules-ci/hercules-ci-agent/issues
+author:         Hercules CI contributors
+maintainer:     info@hercules-ci.com
+copyright:      2018-2021 Hercules CI
+license:        Apache-2.0
+build-type:     Custom
+extra-source-files:
+    CHANGELOG.md
+
+data-dir: data
+data-files:
+  vendor/flake-compat/*.nix
+  vendor/flake-compat/COPYING
+
+source-repository head
+  type: git
+  location: https://github.com/hercules-ci/hercules-ci-agent
+
+-- Deprecated
+flag nix-2_4
+  description: Build for Nix >=2.4pre*
+  default: True
+
+flag nix-2_5
+  description: Build for Nix >=2.5pre*
+  default: False
+
+-- match the C++ language standard Nix is using
+common cxx-opts
+  cxx-options:
+    -std=c++17
+    -Wall
+  extra-libraries: stdc++
+
+  if flag(nix-2_5)
+    cxx-options:
+      -DNIX_2_5
+    cpp-options:
+      -DNIX_2_5
+
+  if os(darwin)
+    -- avoid https://gitlab.haskell.org/ghc/ghc/issues/11829
+    ld-options:  -Wl,-keep_dwarf_unwind
+
+  if impl(ghc >= 8.10)
+    ghc-options:
+      -optcxx-std=c++17
+      -optcxx-Wall
+  else
+    ghc-options:
+      -optc-std=c++17
+      -optc-Wall
+    if os(darwin)
+      ghc-options: -pgmc=clang++
+
+custom-setup
+  setup-depends:
+    base
+    , Cabal >= 2.2.0.0
+    , cabal-pkg-config-version-hook
+
+
+library
+  import: cxx-opts
+  exposed-modules:
+      Hercules.CNix.Expr
+      Hercules.CNix.Expr.Context
+      Hercules.CNix.Expr.Raw
+      Hercules.CNix.Expr.Typed
+      Hercules.CNix.Expr.Schema
+  other-modules:
+      Paths_hercules_ci_cnix_expr
+  autogen-modules:
+      Paths_hercules_ci_cnix_expr
+
+  hs-source-dirs:
+      src
+  default-extensions: DeriveGeneric DeriveTraversable DisambiguateRecordFields FlexibleContexts InstanceSigs LambdaCase MultiParamTypeClasses NoImplicitPrelude OverloadedStrings RankNTypes TupleSections TypeApplications TypeOperators
+  ghc-options: -Wall -fwarn-tabs -fwarn-unused-imports -fwarn-missing-signatures -fwarn-name-shadowing -fwarn-incomplete-patterns
+  build-depends:
+      aeson >= 2
+    , base >=4.7 && <5
+    , bytestring
+    , conduit
+    , directory
+    , filepath
+    , hercules-ci-cnix-store
+    , containers
+    , exceptions
+    , inline-c
+    , inline-c-cpp
+    , protolude >= 0.3
+    , scientific
+    , text
+    , unliftio
+    , unordered-containers
+    , vector
+  default-language: Haskell2010
+  include-dirs:
+      include
+  install-includes:
+      hercules-ci-cnix/expr.hxx
+  extra-libraries:
+      boost_context
+  pkgconfig-depends:
+      nix-store >= 2.4
+    , nix-expr >= 2.4
+    , nix-main >= 2.4
+
+
+test-suite hercules-ci-cnix-expr-tests
+  type: exitcode-stdio-1.0
+  main-is: TestMain.hs
+  other-modules:
+      Hercules.CNix.ExprSpec
+      Hercules.CNix.Store.TestUtil
+      Hercules.CNix.Expr.SchemaSpec
+      SingleState
+      Spec
+  hs-source-dirs:
+      test
+  default-extensions: DeriveGeneric DeriveTraversable DisambiguateRecordFields FlexibleContexts InstanceSigs LambdaCase MultiParamTypeClasses NoImplicitPrelude OverloadedStrings RankNTypes TupleSections TypeApplications TypeOperators
+  ghc-options: -Wall -fwarn-tabs -fwarn-unused-imports -fwarn-missing-signatures -fwarn-name-shadowing -fwarn-incomplete-patterns -threaded -rtsopts -with-rtsopts=-N
+  -- trace on exception (profiling):
+  -- -with-rtsopts=-xc
+  build-depends:
+      aeson
+    , base
+    , bytestring
+    , containers
+    , hercules-ci-cnix-expr
+    , hercules-ci-cnix-store
+    , hspec
+    , protolude
+    , QuickCheck
+    , scientific
+    , temporary
+    , unordered-containers
+    , vector
+  build-tool-depends:
+      hspec-discover:hspec-discover == 2.*
+  default-language: Haskell2010
