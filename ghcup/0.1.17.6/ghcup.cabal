@@ -1,0 +1,321 @@
+cabal-version:      3.0
+name:               ghcup
+version:            0.1.17.6
+license:            LGPL-3.0-only
+license-file:       LICENSE
+copyright:          Julian Ospald 2020
+maintainer:         hasufell@posteo.de
+author:             Julian Ospald
+homepage:           https://gitlab.haskell.org/haskell/ghcup-hs
+bug-reports:        https://gitlab.haskell.org/haskell/ghcup-hs/issues
+synopsis:           ghc toolchain installer
+description:
+  A rewrite of the shell script ghcup, for providing
+  a more stable user experience and exposing an API.
+
+category:           System
+build-type:         Simple
+extra-doc-files:
+  CHANGELOG.md
+  data/config.yaml
+  README.md
+
+extra-source-files:
+  data/build_mk/cross
+  data/build_mk/default
+  test/golden/GHCupInfo.json
+
+source-repository head
+  type:     git
+  location: https://gitlab.haskell.org/haskell/ghcup-hs.git
+
+flag tui
+  description:
+    Build the brick powered tui (ghcup tui). This is disabled on windows.
+
+  default:     False
+  manual:      True
+
+flag internal-downloader
+  description:
+    Compile the internal downloader, which links against OpenSSL. This is disabled on windows.
+
+  default:     False
+  manual:      True
+
+flag no-exe
+  description: Don't build any executables 
+  default:     False
+  manual:      True
+
+flag disable-upgrade
+  description:
+    Disable upgrade functionality. This is mainly to support brew packagers.
+
+  default:     False
+  manual:      True
+
+library
+  exposed-modules:
+    GHCup
+    GHCup.Download
+    GHCup.Download.Utils
+    GHCup.Errors
+    GHCup.Platform
+    GHCup.Requirements
+    GHCup.Types
+    GHCup.Types.JSON
+    GHCup.Types.JSON.Utils
+    GHCup.Types.Optics
+    GHCup.Utils
+    GHCup.Utils.Dirs
+    GHCup.Utils.File
+    GHCup.Utils.File.Common
+    GHCup.Utils.Logger
+    GHCup.Utils.MegaParsec
+    GHCup.Utils.Prelude
+    GHCup.Utils.String.QQ
+    GHCup.Utils.Version.QQ
+    GHCup.Version
+
+  hs-source-dirs:     lib
+  other-modules:      Paths_ghcup
+  autogen-modules:    Paths_ghcup
+  default-language:   Haskell2010
+  default-extensions:
+    DeriveGeneric
+    LambdaCase
+    MultiWayIf
+    NamedFieldPuns
+    PackageImports
+    QuasiQuotes
+    RecordWildCards
+    ScopedTypeVariables
+    StrictData
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    ViewPatterns
+
+  ghc-options:
+    -Wall -fwarn-tabs -fwarn-incomplete-uni-patterns
+    -fwarn-incomplete-record-updates
+
+  build-depends:
+    , aeson                 >=1.4
+    , async                 >=0.8        && <2.3
+    , base                  >=4.12       && <5
+    , base16-bytestring     >=0.1.1.6    && <1.1
+    , binary                ^>=0.8.6.0
+    , bytestring            ^>=0.10
+    , Cabal                 ^>=3.6.2.0
+    , case-insensitive      ^>=1.2.1.0
+    , casing                ^>=0.1.4.1
+    , containers            ^>=0.6
+    , cryptohash-sha256     ^>=0.11.101.0
+    , deepseq               ^>=1.4.4.0
+    , directory             ^>=1.3.6.0
+    , disk-free-space       ^>=0.1.0.1
+    , filepath              ^>=1.4.2.1
+    , haskus-utils-types    ^>=1.5
+    , haskus-utils-variant  ^>=3.2.1
+    , libarchive            ^>=3.0.3.0
+    , lzma-static           ^>=5.2.5.3
+    , megaparsec            >=8.0.0      && <9.3
+    , mtl                   ^>=2.2
+    , optics                ^>=0.4
+    , os-release            ^>=1.0.0
+    , pretty                ^>=1.1.3.1
+    , pretty-terminal       ^>=0.1.0.0
+    , regex-posix           ^>=0.96
+    , resourcet             ^>=1.2.2
+    , retry                 ^>=0.8.1.2
+    , safe                  ^>=0.3.18
+    , safe-exceptions       ^>=0.1
+    , split                 ^>=0.2.3.4
+    , strict-base           ^>=0.4
+    , template-haskell      >=2.7        && <2.18
+    , temporary             ^>=1.3
+    , text                  ^>=1.2.4.0
+    , time                  ^>=1.9.3
+    , transformers          ^>=0.5
+    , unliftio-core         ^>=0.2.0.1
+    , unordered-containers  ^>=0.2.10.0
+    , uri-bytestring        ^>=0.3.2.2
+    , vector                ^>=0.12
+    , versions              >=4.0.1      && <5.1
+    , word8                 ^>=0.1.3
+    , yaml-streamly         ^>=0.12.0
+    , zlib                  ^>=0.6.2.2
+
+  if (flag(internal-downloader) && !os(windows))
+    exposed-modules: GHCup.Download.IOStreams
+    cpp-options:     -DINTERNAL_DOWNLOADER
+    build-depends:
+      , HsOpenSSL              >=0.11.4.18
+      , http-io-streams        >=0.1.2.0
+      , io-streams             >=1.5.2.1
+      , terminal-progress-bar  >=0.4.1
+
+  if os(windows)
+    cpp-options:   -DIS_WINDOWS
+    other-modules:
+      GHCup.Utils.File.Windows
+      GHCup.Utils.Prelude.Windows
+      GHCup.Utils.Windows
+
+    build-depends:
+      , bzlib
+      , process  ^>=1.6.11.0
+      , Win32    ^>=2.10
+
+  else
+    other-modules:
+      GHCup.Utils.File.Posix
+      GHCup.Utils.Posix
+      GHCup.Utils.Prelude.Posix
+
+    build-depends:
+      , bz2              >=0.5.0.5 && <1.1
+      , terminal-size    ^>=0.3.2.1
+      , unix             ^>=2.7
+      , unix-bytestring  ^>=0.3.7.3
+
+  if (flag(tui) && !os(windows))
+    cpp-options:   -DBRICK
+    build-depends: vty >=5.28.2 && <5.34
+
+executable ghcup
+  main-is:            Main.hs
+  other-modules:
+    GHCup.OptParse
+    GHCup.OptParse.ChangeLog
+    GHCup.OptParse.Common
+    GHCup.OptParse.Compile
+    GHCup.OptParse.Config
+    GHCup.OptParse.DInfo
+    GHCup.OptParse.GC
+    GHCup.OptParse.Install
+    GHCup.OptParse.List
+    GHCup.OptParse.Nuke
+    GHCup.OptParse.Prefetch
+    GHCup.OptParse.Rm
+    GHCup.OptParse.Run
+    GHCup.OptParse.Set
+    GHCup.OptParse.ToolRequirements
+    GHCup.OptParse.UnSet
+    GHCup.OptParse.Whereis
+
+  hs-source-dirs:     app/ghcup
+  default-language:   Haskell2010
+  default-extensions:
+    LambdaCase
+    MultiWayIf
+    NamedFieldPuns
+    PackageImports
+    RecordWildCards
+    ScopedTypeVariables
+    StrictData
+    TupleSections
+
+  ghc-options:
+    -Wall -fwarn-tabs -fwarn-incomplete-uni-patterns
+    -fwarn-incomplete-record-updates -threaded
+
+  build-depends:
+    , aeson                 >=1.4
+    , aeson-pretty          ^>=0.8.8
+    , async                 ^>=2.2.3
+    , base                  >=4.12     && <5
+    , bytestring            ^>=0.10
+    , cabal-plan            ^>=0.7.2
+    , containers            ^>=0.6
+    , deepseq               ^>=1.4
+    , directory             ^>=1.3.6.0
+    , filepath              ^>=1.4.2.1
+    , ghcup
+    , haskus-utils-variant  ^>=3.2.1
+    , libarchive            ^>=3.0.3.0
+    , megaparsec            >=8.0.0    && <9.3
+    , mtl                   ^>=2.2
+    , optparse-applicative  >=0.15.1.0 && <0.18
+    , pretty                ^>=1.1.3.1
+    , pretty-terminal       ^>=0.1.0.0
+    , process               ^>=1.6.11.0
+    , resourcet             ^>=1.2.2
+    , safe                  ^>=0.3.18
+    , safe-exceptions       ^>=0.1
+    , tagsoup               ^>=0.14
+    , template-haskell      >=2.7      && <2.18
+    , temporary             ^>=1.3
+    , text                  ^>=1.2.4.0
+    , unordered-containers  ^>=0.2
+    , uri-bytestring        ^>=0.3.2.2
+    , utf8-string           ^>=1.0
+    , vector                ^>=0.12
+    , versions              >=4.0.1    && <5.1
+    , yaml-streamly         ^>=0.12.0
+
+  if flag(internal-downloader)
+    cpp-options: -DINTERNAL_DOWNLOADER
+
+  if (flag(tui) && !os(windows))
+    cpp-options:   -DBRICK
+    other-modules: BrickMain
+    build-depends:
+      , brick         ^>=0.64
+      , transformers  ^>=0.5
+      , unix          ^>=2.7
+      , vty           >=5.28.2 && <5.34
+
+  if os(windows)
+    cpp-options: -DIS_WINDOWS
+
+  else
+    build-depends: unix ^>=2.7
+
+  if flag(no-exe)
+    buildable: False
+
+  if flag(disable-upgrade)
+    cpp-options: -DDISABLE_UPGRADE
+
+  else
+    other-modules: GHCup.OptParse.Upgrade
+
+test-suite ghcup-test
+  type:               exitcode-stdio-1.0
+  main-is:            Main.hs
+  build-tool-depends: hspec-discover:hspec-discover -any
+  hs-source-dirs:     test
+  other-modules:
+    GHCup.ArbitraryTypes
+    GHCup.Types.JSONSpec
+    Spec
+
+  default-language:   Haskell2010
+  default-extensions:
+    LambdaCase
+    MultiWayIf
+    PackageImports
+    RecordWildCards
+    ScopedTypeVariables
+    TupleSections
+
+  ghc-options:
+    -Wall -fwarn-tabs -fwarn-incomplete-uni-patterns
+    -fwarn-incomplete-record-updates
+
+  build-depends:
+    , base                      >=4.12    && <5
+    , bytestring                ^>=0.10
+    , containers                ^>=0.6
+    , generic-arbitrary         >=0.1.0   && <0.3
+    , ghcup
+    , hspec                     >=2.7.10  && <2.10
+    , hspec-golden-aeson        ^>=0.9
+    , QuickCheck                ^>=2.14.1
+    , quickcheck-arbitrary-adt  ^>=0.3.1.0
+    , text                      ^>=1.2.4.0
+    , uri-bytestring            ^>=0.3.2.2
+    , versions                  >=4.0.1   && <5.1
