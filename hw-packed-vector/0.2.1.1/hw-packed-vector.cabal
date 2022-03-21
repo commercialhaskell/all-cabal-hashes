@@ -1,0 +1,129 @@
+cabal-version: 2.2
+
+name:                   hw-packed-vector
+version:                0.2.1.1
+synopsis:               Packed Vector
+description:            Packed Vector. Please see README.md
+category:               Data, Vector
+stability:              Experimental
+homepage:               http://github.com/haskell-works/hw-packed-vector#readme
+bug-reports:            https://github.com/haskell-works/hw-packed-vector/issues
+author:                 John Ky
+maintainer:             newhoggy@gmail.com
+copyright:              2016-2021 John Ky
+license:                BSD-3-Clause
+license-file:           LICENSE
+tested-with:            GHC == 9.2.2, GHC == 9.0.2, GHC == 8.10.7, GHC == 8.8.4, GHC == 8.6.5
+build-type:             Simple
+extra-source-files:     README.md
+
+source-repository head
+  type: git
+  location: https://github.com/haskell-works/hw-packed-vector
+
+common base                       { build-depends: base                       >= 4.11       && < 5      }
+
+common binary                     { build-depends: binary                     >= 0.8        && < 0.9    }
+common bytestring                 { build-depends: bytestring                 >= 0.10.8.2   && < 0.12   }
+common doctest                    { build-depends: doctest                    >= 0.16.2     && < 0.21   }
+common doctest-discover           { build-depends: doctest-discover           >= 0.2        && < 0.3    }
+common criterion                  { build-depends: criterion                  >= 1.4.1.0    && < 1.6    }
+common deepseq                    { build-depends: deepseq                    >= 1.4        && < 1.5    }
+common directory                  { build-depends: directory                  >= 1.3        && < 1.4    }
+common generic-lens               { build-depends: generic-lens               >= 1.1.0.0    && < 2.3    }
+common hedgehog                   { build-depends: hedgehog                   >= 0.6        && < 1.2    }
+common hspec                      { build-depends: hspec                      >= 2.7.1      && < 3      }
+common hw-bits                    { build-depends: hw-bits                    >= 0.7.0.6    && < 0.8    }
+common hw-hedgehog                { build-depends: hw-hedgehog                >= 0.1.0.3    && < 0.2    }
+common hw-hspec-hedgehog          { build-depends: hw-hspec-hedgehog          >= 0.1.0.7    && < 0.2    }
+common hw-prim                    { build-depends: hw-prim                    >= 0.6.2.27   && < 0.7    }
+common lens                       { build-depends: lens                       >= 4          && < 6      }
+common optparse-applicative       { build-depends: optparse-applicative       >= 0.14       && < 0.18   }
+common vector                     { build-depends: vector                     >= 0.12.0.3   && < 0.13   }
+
+common config
+  default-language:     Haskell2010
+  ghc-options:          -Wall -O2
+  if arch(x86_64)
+    ghc-options:        -msse4.2
+
+common hw-packed-vector
+  build-depends:        hw-packed-vector
+
+library
+  import:               base, config
+                      , bytestring
+                      , deepseq
+                      , hw-bits
+                      , hw-prim
+                      , vector
+  exposed-modules:      HaskellWorks.Data.PackedVector
+                        HaskellWorks.Data.PackedVector.Internal
+                        HaskellWorks.Data.PackedVector.IO
+                        HaskellWorks.Data.PackedVector.PackedVector64
+  other-modules:        Paths_hw_packed_vector
+  autogen-modules:      Paths_hw_packed_vector
+  hs-source-dirs:       src
+
+executable hw-packed-vector
+  import:               base, config
+                      , binary
+                      , bytestring
+                      , generic-lens
+                      , hw-bits
+                      , hw-prim
+                      , lens
+                      , optparse-applicative
+                      , vector
+  main-is:              Main.hs
+  hs-source-dirs:       app
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N -O2
+  build-depends:        hw-packed-vector
+  other-modules:        App.Commands
+                        App.Commands.CreateIndex
+                        App.Commands.Types
+
+test-suite hw-packed-vector-test
+  import:               base, config
+                      , bytestring
+                      , hedgehog
+                      , hspec
+                      , hw-bits
+                      , hw-hedgehog
+                      , hw-hspec-hedgehog
+                      , hw-prim
+                      , vector
+  type:                 exitcode-stdio-1.0
+  main-is:              Spec.hs
+  other-modules:        HaskellWorks.Data.PackedVector.InternalSpec
+                        HaskellWorks.Data.PackedVector.PackedVector64Spec
+                        HaskellWorks.Gen
+  hs-source-dirs:       test
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  build-depends:        hw-packed-vector
+  build-tool-depends:   hspec-discover:hspec-discover
+
+benchmark bench
+  import:               base, config
+                      , criterion
+                      , directory
+                      , hedgehog
+                      , hspec
+                      , hw-prim
+                      , vector
+  type:                 exitcode-stdio-1.0
+  main-is:              Main.hs
+  hs-source-dirs:       bench
+  build-depends:        hw-packed-vector
+
+test-suite doctest
+  import:               base, config
+                      , doctest
+                      , doctest-discover
+                      , hw-packed-vector
+  default-language:     Haskell2010
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  main-is:              DoctestDriver.hs
+  HS-Source-Dirs:       doctest
+  build-tool-depends:   doctest-discover:doctest-discover
