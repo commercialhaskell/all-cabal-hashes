@@ -1,0 +1,142 @@
+cabal-version: 2.2
+
+name:                   hw-json-simd
+version:                0.1.1.1
+synopsis:               SIMD-based JSON semi-indexer
+description:            Please see the README on GitHub at <https://github.com/haskell-works/hw-json-simd#readme>
+category:               Data
+homepage:               https://github.com/haskell-works/hw-json-simd#readme
+bug-reports:            https://github.com/haskell-works/hw-json-simd/issues
+author:                 John Ky
+maintainer:             newhoggy@gmail.com
+copyright:              2018-2021 John Ky
+license:                BSD-3-Clause
+license-file:           LICENSE
+build-type:             Simple
+tested-with:            GHC == 9.2.2, GHC == 9.0.2, GHC == 8.10.7, GHC == 8.8.4, GHC == 8.6.5
+extra-source-files:     cbits/debug.h
+                        cbits/simd.h
+                        cbits/intrinsics.h
+                        cbits/simd.c
+                        cbits/simd-spliced.c
+                        cbits/simd-state.c
+                        cbits/simd-phi-table-32.c
+                        cbits/simd-transition-table-32.c
+                        README.md
+                        ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/haskell-works/hw-json-simd
+
+flag avx2
+  description: Enable avx2 instruction set
+  manual: False
+  default: False
+
+flag bmi2
+  description: Enable bmi2 instruction set
+  manual: False
+  default: False
+
+flag sse42
+  description: Enable SSE 4.2 optimisations.
+  manual: False
+  default: True
+
+common base                       { build-depends: base                       >= 4.11       && < 5      }
+
+common bytestring                 { build-depends: bytestring                 >= 0.10.6     && < 0.12   }
+common doctest                    { build-depends: doctest                    >= 0.16.2     && < 0.21   }
+common doctest-discover           { build-depends: doctest-discover           >= 0.2        && < 0.3    }
+common hw-prim                    { build-depends: hw-prim                    >= 0.6.2.35   && < 0.7    }
+common lens                       { build-depends: lens                       >= 4          && < 6      }
+common optparse-applicative       { build-depends: optparse-applicative       >= 0.14       && < 0.18   }
+common transformers               { build-depends: transformers               >= 0.4        && < 0.7    }
+common vector                     { build-depends: vector                     >= 0.12       && < 0.13   }
+
+common hw-json-simd
+  build-depends:        hw-json-simd
+
+common config
+  ghc-options:          -Wall
+  default-language:     Haskell2010
+  if impl(ghc >= 8.0.1)
+    ghc-options:        -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  if flag(sse42)
+    ghc-options:        -msse4.2
+    cc-options:         -msse4.2
+  if flag(bmi2)
+    cc-options:         -mbmi2
+    if impl(ghc >= 8.4.1)
+      ghc-options:      -mbmi2
+  if flag(avx2)
+    cc-options:         -mavx2
+
+library
+  import:               base, config
+                      , bytestring
+                      , hw-prim
+                      , lens
+                      , vector
+  autogen-modules:      Paths_hw_json_simd
+  other-modules:        Paths_hw_json_simd
+  hs-source-dirs:       src
+  cc-options:           -mssse3 -mlzcnt -mbmi2 -mavx2
+  include-dirs:         cbits
+  build-tool-depends:   c2hs:c2hs
+  exposed-modules:      HaskellWorks.Data.Json.Simd.Capabilities
+                        HaskellWorks.Data.Json.Simd.Index.Simple
+                        HaskellWorks.Data.Json.Simd.Index.Standard
+                        HaskellWorks.Data.Json.Simd.Internal.Foreign
+                        HaskellWorks.Data.Json.Simd.Internal.Index.Simple
+                        HaskellWorks.Data.Json.Simd.Internal.Index.Standard
+                        HaskellWorks.Data.Json.Simd.Internal.List
+  c-sources:            cbits/debug.c
+                        cbits/simd.c
+                        cbits/simd-spliced.c
+                        cbits/simd-state.c
+                        cbits/simd-phi-table-32.c
+                        cbits/simd-transition-table-32.c
+  
+executable hw-json-simd
+  import:               base, config
+                      , bytestring
+                      , hw-prim
+                      , lens
+                      , optparse-applicative
+                      , vector
+  main-is:              Main.hs
+  hs-source-dirs:       app
+  build-depends:        hw-json-simd
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  other-modules:        App.Commands
+                        App.Commands.Capabilities
+                        App.Commands.CreateIndex
+                        App.Commands.Types
+                        App.Lens
+
+test-suite hw-json-simd-test
+  import:               base, config
+                      , bytestring
+                      , hw-prim
+                      , lens
+                      , transformers
+                      , vector
+  type:                 exitcode-stdio-1.0
+  main-is:              Spec.hs
+  hs-source-dirs:       test
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  build-depends:        hw-json-simd
+
+test-suite doctest
+  import:               base, config
+                      , doctest
+                      , doctest-discover
+                      , hw-json-simd
+  default-language:     Haskell2010
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  main-is:              DoctestDriver.hs
+  HS-Source-Dirs:       doctest
+  build-tool-depends:   doctest-discover:doctest-discover
