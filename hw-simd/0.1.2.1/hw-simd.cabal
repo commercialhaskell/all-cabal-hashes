@@ -1,0 +1,176 @@
+cabal-version: 2.2
+
+name:                   hw-simd
+version:                0.1.2.1
+synopsis:               SIMD library
+description:            Please see the README on Github at <https://github.com/haskell-works/hw-simd#readme>
+category:               Data, Bit, SIMD
+homepage:               https://github.com/haskell-works/hw-simd#readme
+bug-reports:            https://github.com/haskell-works/hw-simd/issues
+author:                 John Ky
+maintainer:             newhoggy@gmail.com
+copyright:              2018-2021 John Ky
+license:                BSD-3-Clause
+license-file:           LICENSE
+tested-with:            GHC == 9.2.2, GHC == 9.0.2, GHC == 8.10.7, GHC == 8.8.4, GHC == 8.6.5
+build-type:             Simple
+extra-source-files:     README.md
+                        ChangeLog.md
+                        cbits/simd.h
+                        cbits/simd_debug.h
+
+source-repository head
+  type: git
+  location: https://github.com/haskell-works/hw-simd
+
+flag avx2
+  description: Enable avx2 instruction set
+  manual: False
+  default: False
+
+flag bmi2
+  description: Enable bmi2 instruction set
+  manual: False
+  default: False
+
+flag sse42
+  description: Enable SSE 4.2 optimisations.
+  manual: False
+  default: True
+
+common base                       { build-depends: base                       >= 4.11       && < 5      }
+
+common bits-extra                 { build-depends: bits-extra                 >= 0.0.1.2    && < 0.1    }
+common bytestring                 { build-depends: bytestring                 >= 0.10       && < 0.12   }
+common cassava                    { build-depends: cassava                    >= 0.5.1.0    && < 0.6    }
+common containers                 { build-depends: containers                 >= 0.5        && < 0.7    }
+common criterion                  { build-depends: criterion                  >= 1.4.1.0    && < 1.6    }
+common deepseq                    { build-depends: deepseq                    >= 1.4        && < 1.5    }
+common directory                  { build-depends: directory                  >= 1.2.2      && < 1.4    }
+common doctest                    { build-depends: doctest                    >= 0.16.2     && < 0.21   }
+common doctest-discover           { build-depends: doctest-discover           >= 0.2        && < 0.3    }
+common hedgehog                   { build-depends: hedgehog                   >= 0.5        && < 1.2    }
+common hspec                      { build-depends: hspec                      >= 2.4        && < 3      }
+common hw-bits                    { build-depends: hw-bits                    >= 0.7.0.2    && < 0.8    }
+common hw-hedgehog                { build-depends: hw-hedgehog                >= 0.1.0.1    && < 0.2    }
+common hw-hspec-hedgehog          { build-depends: hw-hspec-hedgehog          >= 0.1.0.4    && < 0.2    }
+common hw-prim                    { build-depends: hw-prim                    >= 0.6.2.12   && < 0.7    }
+common hw-rankselect              { build-depends: hw-rankselect              >= 0.13       && < 0.14   }
+common hw-rankselect-base         { build-depends: hw-rankselect-base         >= 0.3.2.0    && < 0.4    }
+common lens                       { build-depends: lens                       >= 4          && < 6      }
+common mmap                       { build-depends: mmap                       >= 0.5.9      && < 0.6    }
+common text                       { build-depends: text                       >= 1.2.2      && < 2.1    }
+common transformers               { build-depends: transformers               >= 0.4        && < 0.7    }
+common vector                     { build-depends: vector                     >= 0.12.0.1   && < 0.13   }
+
+common config
+  default-language:     Haskell2010
+  ghc-options:          -O2 -Wall
+  if (flag(avx2)) && (impl(ghc >=8.4.1))
+    ghc-options:        -mbmi2 -msse4.2
+    cpp-options:        -DBMI2_ENABLED -DAVX2_ENABLED
+  if (impl(ghc >=8.0.1))
+    ghc-options:        -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  if flag(avx2)
+    cc-options:         -mavx2 -DAVX2_ENABLED
+  if (flag(bmi2)) && (impl(ghc >=8.4.1))
+    ghc-options:        -mbmi2 -msse4.2
+  if flag(bmi2)
+    cc-options:         -mbmi2 -DBMI2_ENABLED
+  if flag(sse42)
+    ghc-options:        -msse4.2
+    cc-options:         -msse4.2
+
+common hw-simd
+  build-depends:        hw-simd
+
+library
+  import:               base, config
+                      , bits-extra
+                      , bytestring
+                      , deepseq
+                      , hw-bits
+                      , hw-prim
+                      , hw-rankselect
+                      , hw-rankselect-base
+                      , transformers
+                      , vector
+  exposed-modules:      HaskellWorks.Data.Simd.Capabilities
+                        HaskellWorks.Data.Simd.ChunkString
+                        HaskellWorks.Data.Simd.Comparison
+                        HaskellWorks.Data.Simd.Comparison.Avx2
+                        HaskellWorks.Data.Simd.Comparison.Stock
+                        HaskellWorks.Data.Simd.Internal.Bits
+                        HaskellWorks.Data.Simd.Internal.Broadword
+                        HaskellWorks.Data.Simd.Internal.ChunkString
+                        HaskellWorks.Data.Simd.Internal.Foreign
+                        HaskellWorks.Data.Simd.Internal.Marshal
+                        HaskellWorks.Data.Simd.Logical
+                        HaskellWorks.Data.Simd.Logical.Avx2
+                        HaskellWorks.Data.Simd.Logical.Stock
+  other-modules:        Paths_hw_simd
+  autogen-modules:      Paths_hw_simd
+  hs-source-dirs:       src
+  include-dirs:         cbits
+  c-sources:            cbits/simd_avx2.c
+                        cbits/simd_sse2.c
+  build-tool-depends:   c2hs:c2hs
+
+test-suite hw-simd-test
+  import:               base, config
+                      , bits-extra
+                      , bytestring
+                      , deepseq
+                      , directory
+                      , hedgehog
+                      , hspec
+                      , hw-bits
+                      , hw-hedgehog
+                      , hw-hspec-hedgehog
+                      , hw-prim
+                      , hw-rankselect
+                      , hw-rankselect-base
+                      , lens
+                      , text
+                      , vector
+  type:                 exitcode-stdio-1.0
+  main-is:              Spec.hs
+  build-depends:        hw-simd
+  other-modules:        HaskellWorks.Data.Simd.ComparisonSpec
+                        HaskellWorks.Data.Simd.Internal.BroadwordSpec
+                        HaskellWorks.Data.Simd.LogicalSpec
+  hs-source-dirs:       test
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:   hspec-discover:hspec-discover
+
+benchmark bench
+  import:               base, config
+                      , bits-extra
+                      , bytestring
+                      , cassava
+                      , containers
+                      , criterion
+                      , deepseq
+                      , directory
+                      , hw-bits
+                      , hw-prim
+                      , hw-rankselect
+                      , hw-rankselect-base
+                      , mmap
+                      , transformers
+                      , vector
+  type:                 exitcode-stdio-1.0
+  main-is:              Main.hs
+  hs-source-dirs:       bench
+  build-depends:        hw-simd
+
+test-suite doctest
+  import:               base, config
+                      , doctest
+                      , doctest-discover
+                      , hw-simd
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  main-is:              DoctestDriver.hs
+  HS-Source-Dirs:       doctest
+  build-tool-depends:   doctest-discover:doctest-discover
