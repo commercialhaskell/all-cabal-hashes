@@ -1,0 +1,296 @@
+cabal-version:      2.0
+name:               language-dickinson
+version:            1.4.2.0
+license:            BSD3
+license-file:       LICENSE
+copyright:          Copyright: (c) 2020 Vanessa McHale
+maintainer:         vamchale@gmail.com
+author:             Vanessa McHale
+tested-with:
+    ghc ==8.0.2 ghc ==8.2.2 ghc ==8.4.4 ghc ==8.6.5 ghc ==8.8.4
+    ghc ==8.10.7 ghc ==9.0.2 ghc ==9.2.2
+
+synopsis:           A language for generative literature
+description:        Dickinson is a language for generative (random) literature
+category:           Language, Text, Compilers/Interpreters
+build-type:         Simple
+data-files:
+    man/emd.1
+    lib/*.dck
+    prelude/*.dck
+    lib/grammar/*.dck
+    lib/fun/*.dck
+    doc/user-guide.pdf
+
+extra-source-files:
+    test/data/*.pretty
+    test/data/*.dck
+    test/data/*.rename
+    test/eval/*.dck
+    test/error/*.dck
+    test/demo/*.dck
+    test/examples/*.dck
+    examples/*.dck
+
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+    type:     git
+    location: https://github.com/vmchale/dickinson
+
+flag cross
+    description: Enable to ease cross-compiling
+    default:     False
+    manual:      True
+
+flag zstd
+    description: Use zstd to compress saved REPL states
+
+library
+    exposed-modules:  Language.Dickinson
+    hs-source-dirs:   public
+    other-modules:    Paths_language_dickinson
+    autogen-modules:  Paths_language_dickinson
+    default-language: Haskell2010
+    ghc-options:      -Wall
+    build-depends:
+        base >=4.9 && <5,
+        dickinson
+
+    if !flag(cross)
+        exposed-modules: Language.Dickinson.TH
+
+    if !flag(cross)
+        other-extensions: TemplateHaskell
+
+    if !flag(cross)
+        build-depends:
+            template-haskell,
+            text
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+library dickinson
+    exposed-modules:
+        Language.Dickinson.Lexer
+        Language.Dickinson.Name
+        Language.Dickinson.Type
+        Language.Dickinson.TypeCheck
+        Language.Dickinson.Parser
+        Language.Dickinson.Rename
+        Language.Dickinson.Rename.Amalgamate
+        Language.Dickinson.Eval
+        Language.Dickinson.Error
+        Language.Dickinson.Check
+        Language.Dickinson.Check.Scope
+        Language.Dickinson.Check.Internal
+        Language.Dickinson.Check.Pattern
+        Language.Dickinson.Check.Duplicate
+        Language.Dickinson.Check.Exhaustive
+        Language.Dickinson.Unique
+        Language.Dickinson.File
+        Language.Dickinson.Pipeline
+        Language.Dickinson.Import
+        Language.Dickinson.Lib
+        Language.Dickinson.Pattern.Useless
+        Data.Tuple.Ext
+        Control.Exception.Value
+        Data.Text.Prettyprint.Doc.Ext
+
+    hs-source-dirs:   src
+    other-modules:
+        Paths_language_dickinson
+        Language.Dickinson.Lib.Get
+        Language.Dickinson.Pattern
+        Language.Dickinson.Check.Common
+        Language.Dickinson.Probability
+        Control.Monad.Ext
+        Data.Foldable.Ext
+        Data.List.Ext
+
+    autogen-modules:  Paths_language_dickinson
+    default-language: Haskell2010
+    other-extensions:
+        DeriveAnyClass DeriveFunctor DeriveGeneric FlexibleContexts
+        FlexibleInstances GeneralizedNewtypeDeriving OverloadedStrings
+        StandaloneDeriving TupleSections DeriveDataTypeable
+
+    ghc-options:      -Wall -O2 -fstatic-argument-transformation
+    build-depends:
+        base >=4.9 && <5,
+        array,
+        bytestring,
+        text >=1.0.0.0,
+        mtl,
+        transformers,
+        containers,
+        random,
+        prettyprinter >=1.7.0,
+        deepseq,
+        microlens,
+        microlens-mtl,
+        composition-prelude >=2.0.0.0,
+        binary >=0.8.4.0,
+        filepath,
+        directory,
+        split
+
+    if !flag(cross)
+        build-tool-depends: alex:alex, happy:happy
+
+    if !impl(ghc >=8.0)
+        build-depends: semigroups
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+executable emd
+    main-is:          Main.hs
+    hs-source-dirs:   run
+    other-modules:
+        REPL
+        REPL.Save
+        REPL.Completions
+        Format
+        Paths_language_dickinson
+
+    autogen-modules:  Paths_language_dickinson
+    default-language: Haskell2010
+    other-extensions: FlexibleContexts OverloadedStrings TupleSections
+    ghc-options:
+        -Wall -rtsopts -with-rtsopts=-A4M -fstatic-argument-transformation
+
+    build-depends:
+        base,
+        dickinson,
+        optparse-applicative,
+        bytestring,
+        prettyprinter,
+        text,
+        haskeline >=0.8,
+        mtl,
+        random,
+        microlens-mtl,
+        microlens,
+        containers,
+        filepath,
+        directory,
+        language-dickinson,
+        binary
+
+    if !flag(cross)
+        build-tool-depends: cpphs:cpphs
+
+    if flag(zstd)
+        cpp-options:   -DZSTD
+        build-depends: zstd
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+test-suite dickinson-test
+    type:             exitcode-stdio-1.0
+    main-is:          Spec.hs
+    hs-source-dirs:   test
+    other-modules:
+        Eval
+        Golden
+        Roundtrip.Compare
+        TypeCheck
+        TH
+
+    default-language: Haskell2010
+    other-extensions: OverloadedStrings TemplateHaskell
+    ghc-options:      -threaded -rtsopts "-with-rtsopts=-N -K1K" -Wall
+    build-depends:
+        base,
+        dickinson,
+        tasty,
+        tasty-hunit,
+        bytestring,
+        prettyprinter,
+        text,
+        filepath,
+        tasty-golden,
+        pretty-simple >=4.0.0.0,
+        language-dickinson
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+benchmark dickinson-bench
+    type:             exitcode-stdio-1.0
+    main-is:          Bench.hs
+    hs-source-dirs:   bench
+    default-language: Haskell2010
+    ghc-options:
+        -Wall -rtsopts -with-rtsopts=-A4M -fstatic-argument-transformation
+
+    build-depends:
+        base,
+        dickinson,
+        binary,
+        criterion,
+        bytestring,
+        text
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
