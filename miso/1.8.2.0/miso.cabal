@@ -1,0 +1,173 @@
+name:                miso
+version:             1.8.2.0
+category:            Web, Miso, Data Structures
+license:             BSD3
+license-file:        LICENSE
+author:              David M. Johnson <djohnson.m@gmail.com>
+maintainer:          David M. Johnson <djohnson.m@gmail.com>
+homepage:            http://github.com/dmjio/miso
+copyright:           Copyright (c) 2017-2020 David M. Johnson
+bug-reports:         https://github.com/dmjio/miso/issues
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       1.22
+synopsis:            A tasty Haskell front-end framework
+description:
+            Miso is a small, production-ready, "isomorphic" Haskell front-end framework featuring a virtual-dom, recursive diffing / patching algorithm, event delegation, event batching, SVG, Server-sent events, Websockets, type-safe servant-style routing and an extensible Subscription-based subsystem. Inspired by Elm, Redux and Bobril. Miso is pure by default, but side effects (like XHR) can be introduced into the system via the Effect data type. Miso makes heavy use of the GHCJS FFI and therefore has minimal dependencies.
+
+extra-source-files:
+  README.md
+
+flag tests
+  default:
+    False
+  description:
+    Builds Miso's tests
+
+flag jsaddle
+  manual: True
+  default:
+    False
+  description:
+    Compile with JSaddle
+
+flag ios
+  manual: True
+  default:
+    False
+  description:
+    Cross compile to iOS
+
+flag jsstring-only
+  manual: True
+  default:
+    False
+  description:
+    Always set MisoString = JSString
+
+executable tests
+  main-is:
+    Main.hs
+  if !impl(ghcjs) || !flag(tests)
+    buildable: False
+  else
+    ghcjs-options:
+      -dedupe
+    cpp-options:
+      -DGHCJS_BROWSER
+    hs-source-dirs:
+      tests
+    build-depends:
+      aeson,
+      base < 5,
+      bytestring,
+      ghcjs-base,
+      QuickCheck,
+      quickcheck-instances,
+      miso,
+      http-types,
+      network-uri,
+      http-api-data,
+      containers,
+      scientific,
+      servant,
+      text,
+      unordered-containers,
+      transformers,
+      vector
+    default-language:
+      Haskell2010
+
+library
+  default-language:
+    Haskell2010
+  exposed-modules:
+    Miso
+    Miso.Util
+    Miso.Dev
+    Miso.Html
+    Miso.Html.Element
+    Miso.Html.Event
+    Miso.Html.Property
+    Miso.Html.Types
+    Miso.Delegate
+    Miso.Diff
+    Miso.Event
+    Miso.Event.Decoder
+    Miso.Event.Types
+    Miso.Router
+    Miso.Effect
+    Miso.Effect.Storage
+    Miso.Effect.DOM
+    Miso.FFI
+    Miso.FFI.History
+    Miso.FFI.SSE
+    Miso.FFI.Storage
+    Miso.FFI.WebSocket
+    Miso.JSBits
+    Miso.Subscription
+    Miso.Subscription.History
+    Miso.Subscription.Keyboard
+    Miso.Subscription.Mouse
+    Miso.Subscription.WebSocket
+    Miso.Subscription.Window
+    Miso.Subscription.SSE
+    Miso.Svg
+    Miso.Svg.Attribute
+    Miso.Svg.Element
+    Miso.Svg.Event
+    Miso.Types
+    Miso.Mathml
+    Miso.Mathml.Element
+    Miso.String
+    Miso.WebSocket
+  if !impl(ghcjs)
+    exposed-modules:
+      Miso.TypeLevel
+  other-modules:
+    Miso.Concurrent
+  ghc-options:
+    -Wall
+  hs-source-dirs:
+    src
+  if impl(ghcjs) || flag (jsstring-only)
+    hs-source-dirs:
+      jsstring-src
+  else
+    hs-source-dirs:
+      text-src
+  build-depends:
+    aeson,
+    base < 5,
+    bytestring,
+    containers,
+    file-embed,
+    http-api-data,
+    http-types,
+    jsaddle,
+    lucid,
+    network-uri,
+    servant,
+    tagsoup,
+    text,
+    transformers
+  if impl(ghcjs)
+    build-depends:
+      ghcjs-base
+  else
+    build-depends:
+      servant-lucid
+  if impl(ghcjs) || flag (jsaddle)
+    if flag (ios)
+      cpp-options:
+        -DIOS
+  if impl(ghcjs)
+    js-sources:
+      jsbits/diff.js
+      jsbits/delegate.js
+      jsbits/isomorphic.js
+      jsbits/util.js
+
+source-repository head
+   type: git
+   location: https://github.com/dmjio/miso.git
