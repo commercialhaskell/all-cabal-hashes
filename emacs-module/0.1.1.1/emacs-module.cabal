@@ -1,0 +1,145 @@
+cabal-version: 3.0
+
+name:
+  emacs-module
+version:
+  0.1.1.1
+category: Foreign, Foreign binding
+
+synopsis:
+  Utilities to write Emacs dynamic modules
+
+description:
+  This package provides a full set of bindings to emacs-module.h that
+  allows to develop Emacs modules in Haskell. Bindings are based on
+  Emacs 25 version of the interface and thus should work in all
+  subsequent versions of Emacs.
+
+  For pointers on how to write minimal Emacs module, please refer
+  to https://github.com/sergv/emacs-module/blob/master/test/src/Emacs/TestsInit.hs
+
+license:
+  Apache-2.0
+license-file:
+  LICENSE
+author:
+  Sergey Vinokurov
+maintainer:
+  Sergey Vinokurov <serg.foo@gmail.com>
+tested-with:
+    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.2
+extra-source-files:
+  cbits/emacs-module.h
+
+extra-source-files:
+  Readme.org ChangeLog.md
+
+build-type:
+  Simple
+
+homepage: https://github.com/sergv/emacs-module
+
+source-repository head
+    type: git
+    location: https://github.com/sergv/emacs-module.git
+
+
+flag assertions
+  description:
+    Enable runtime assertions
+  default:
+    False
+  manual:
+    True
+
+flag module-assertions
+  description:
+    Build a plugin that is intended to be used with Emacs's
+    '--module-assertions' flag enabled. Plugin will not free any
+    global values returned to Emacs and thus have an ever-growing
+    memory leak.
+  default:
+    False
+  manual:
+    True
+
+common ghc-options
+  default-language:
+    Haskell2010
+
+  ghc-options:
+    -Weverything
+    -Wno-redundant-constraints
+    -Wno-type-defaults
+    -Wno-implicit-prelude
+    -Wno-missing-local-signatures
+    -Wno-missing-import-lists
+    -Wno-missed-specialisations
+    -Wno-all-missed-specialisations
+    -Wno-safe
+    -Wno-missing-safe-haskell-mode
+    -Wno-unsafe
+
+  if impl(ghc >= 8.8)
+    ghc-options:
+      -Wno-missing-deriving-strategies
+
+  if impl(ghc >= 9.2)
+    ghc-options:
+      -Wno-missing-kind-signatures
+
+library
+  import: ghc-options
+  if flag(assertions)
+    cpp-options: -DASSERTIONS
+  if flag(module-assertions)
+    cpp-options: -DMODULE_ASSERTIONS
+  exposed-modules:
+    Data.Emacs.Module.Args
+    Data.Emacs.Module.Env
+    Data.Emacs.Module.Env.Functions
+    Data.Emacs.Module.NonNullPtr
+    Data.Emacs.Module.Runtime
+    Data.Emacs.Module.SymbolName
+    Data.Emacs.Module.SymbolName.TH
+    Data.Emacs.Module.Value
+    Emacs.Module
+    Emacs.Module.Assert
+    Emacs.Module.Errors
+    Emacs.Module.Functions
+    Emacs.Module.Monad
+    Emacs.Module.Monad.Class
+  other-modules:
+    Data.Emacs.Module.NonNullPtr.Internal
+    Data.Emacs.Module.Raw.Env
+    Data.Emacs.Module.Raw.Env.Internal
+    Data.Emacs.Module.Raw.Env.TH
+    Data.Emacs.Module.Raw.Value
+    Data.Emacs.Module.SymbolName.Internal
+    Data.Emacs.Module.Value.Internal
+  hs-source-dirs:
+    src
+  build-depends:
+    base >=4.14 && <5,
+    bytestring,
+    deepseq,
+    exceptions,
+    monad-control,
+    mtl,
+    prettyprinter >=1.7,
+    resourcet,
+    safe-exceptions-checked,
+    text,
+    template-haskell,
+    transformers-base,
+    vector,
+    void
+
+  includes:
+    emacs-module.h
+  install-includes:
+    emacs-module.h
+  include-dirs:
+    cbits
+  build-tool-depends:
+    hsc2hs:hsc2hs
