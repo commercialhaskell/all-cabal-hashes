@@ -1,0 +1,71 @@
+name:                idiomatic
+version:             0.1.0.0
+synopsis:            Deriving Applicative for sum types.. Idiomatically.
+description:         
+
+  'Idiomatically' is used with 'DerivingVia' to derive 'Applicative'
+  for types with multiple constructors.
+  .
+  It features an extensible domain-specific language of sums with
+  `Applicative` instances. `Idiomatically` is then passed a type-level
+  list of applicative sums that specify how deriving should take
+  place.
+  .
+  > {-# Language DataKinds          #-}
+  > {-# Language DeriveGeneric      #-}
+  > {-# Language DerivingStrategies #-}
+  > {-# Language DerivingVia        #-}
+  >
+  > import Generic.Applicative
+  >
+  > data Zip a = No | a ::: Zip a
+  >   deriving
+  >   stock (Show, Generic1)
+  >
+  >   deriving (Functor, Applicative)
+  >   via Idiomatically Zip '[RightBias Terminal]
+  .
+  This derives the standard behaviour of `ZipList` but this same
+  "RightBias Terminal" behaviour describes the `Maybe` and
+  `Validation` applicative as well.
+  .
+  > pure @Zip a = a ::: a ::: a ::: ...
+  > 
+  > liftA2 (+) No       No        = No
+  > liftA2 (+) No       (⊥:::⊥)   = No
+  > liftA2 (+) (⊥:::⊥)  No        = No
+  > liftA2 (+) (2:::No) (10:::No) = 12:::No
+  .
+  `Idiomatically` shares an intimate relationship with `Generically1`:
+  it is defined in terms of `Generically1` and they are
+  interchangeable when there is an empty list of sums:
+  .
+  > type Generically1 :: (k -> Type) -> (k -> Type)
+  > type Generically1 f = Idiomatically f '[]
+  .
+  Based on <http://ekmett.github.io/reader/2012/abstracting-with-applicatives/index.html Abstracting with Applicatives>.
+
+homepage:            https://github.com/Icelandjack/idiomatic
+license:             BSD3
+license-file:        LICENSE
+author:              Baldur Blöndal
+maintainer:          Baldur Blöndal
+category:            Generics
+build-type:          Simple
+extra-source-files:
+  ChangeLog.md
+  README.md
+cabal-version:       >=1.10
+
+library
+  exposed-modules:
+    Generic.Applicative
+    Generic.Applicative.Internal
+    Generic.Applicative.Idiom
+  build-depends:       base >=4.9 && <4.18
+  hs-source-dirs:      src
+  default-language:    Haskell98
+
+source-repository head
+  type: git
+  location: https://github.com/Icelandjack/idiomatic
