@@ -1,0 +1,133 @@
+cabal-version:      2.0
+name:               lzo
+version:            0.1.1.4
+license:            BSD3
+license-file:       LICENSE
+copyright:          Copyright: (c) 2020, 2022 Vanessa McHale
+maintainer:         vamchale@gmail.com
+author:             Vanessa McHale
+bug-reports:        https://hub.darcs.net/vmchale/sak/issues
+synopsis:           minilzo bundled for Haskell
+description:
+    A small library wrapping minilzo allowing lzop compression in Haskell.
+
+category:           Codec,Compression
+build-type:         Simple
+extra-source-files:
+    cbits/minilzo.h
+    cbits/lzodefs.h
+    cbits/lzoconf.h
+
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+    type:     darcs
+    location: https://hub.darcs.net/vmchale/sak
+    subdir:   lzo
+
+flag cross
+    description: Enable this flag if cross-compiling
+    default:     False
+
+flag pure
+    description: Use Haskell digest rather than relying on zlib
+    default:     False
+
+library
+    exposed-modules:  Codec.Compression.Lzo
+    cc-options:       -O3
+    c-sources:        cbits/minilzo.c
+    hs-source-dirs:   src
+    other-modules:
+        Codec.Compression.Lzo.Block
+        Codec.Compression.Lzo.File
+
+    default-language: Haskell2010
+    include-dirs:     cbits
+    ghc-options:      -Wall -O2
+    build-depends:
+        base >=4.10 && <5,
+        bytestring,
+        digest-sig,
+        binary >=0.8.3.0
+
+    if flag(pure)
+        build-depends: digest-pure
+        mixins:
+            digest-pure (Data.Digest.Pure.CRC32 as Data.Digest.CRC32, Data.Digest.Pure.Adler32 as Data.Digest.Adler32)
+
+    else
+        build-depends: digest
+        mixins:        digest (Data.Digest.CRC32, Data.Digest.Adler32)
+
+    if !flag(cross)
+        build-tool-depends: hsc2hs:hsc2hs
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+test-suite lzo-test
+    type:             exitcode-stdio-1.0
+    main-is:          Spec.hs
+    hs-source-dirs:   test
+    default-language: Haskell2010
+    ghc-options:      -threaded -rtsopts "-with-rtsopts=-N -K1K" -Wall
+    build-depends:
+        base,
+        lzo,
+        tasty,
+        tasty-hunit,
+        bytestring
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+benchmark lzo-bench
+    type:             exitcode-stdio-1.0
+    main-is:          Bench.hs
+    hs-source-dirs:   bench
+    default-language: Haskell2010
+    ghc-options:      -Wall
+    build-depends:
+        base,
+        lzo,
+        criterion,
+        bytestring
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
