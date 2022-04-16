@@ -1,0 +1,102 @@
+cabal-version:       3.0
+
+name:                dep-t-dynamic
+version:             0.1.0.2
+synopsis:            A dynamic environment for dependency injection.
+description:         This library is a companion to "dep-t". It provides "environments"
+                     into which you 
+                     can register record values parameterized by a monad.
+                     
+                     The environments are dynamically typed in the sense that
+                     the types of the contained records
+                     are not reflected in
+                     the type of the environment, and in that 
+                     searching for a
+                     component record might fail at runtime if the record
+                     hasn't been previously inserted.
+
+                     The main purpose of the library is to support dependency injection.
+-- bug-reports:
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Daniel Diaz
+maintainer:          diaz_carrete@yahoo.com
+category:            Control
+extra-source-files:  CHANGELOG.md, README.md
+
+source-repository    head
+  type:     git
+  location: https://github.com/danidiaz/dep-t-dynamic.git
+
+common common
+  build-depends:       base >= 4.10.0.0 && < 5,
+                       transformers >= 0.5.0.0,
+                       dep-t ^>= 0.6.2.0,
+                       unordered-containers >= 0.2.14,
+                       hashable >= 1.0.1.1,
+                       sop-core ^>= 0.5.0.0,
+                       algebraic-graphs ^>= 0.6
+  default-language:    Haskell2010
+
+library
+  import: common
+  exposed-modules:     Dep.Checked
+                       Dep.SimpleChecked
+                       Dep.Dynamic
+  other-modules:       Dep.Dynamic.Internal
+  hs-source-dirs:      lib 
+
+common common-tests
+  import:              common
+  build-depends:       
+                       dep-t-advice, 
+                       dep-t, 
+                       dep-t-dynamic, 
+                       template-haskell,
+                       text,
+                       unliftio-core >= 0.2.0.0,
+                       mtl >= 2.2,
+
+common common-tasty
+  import:              common-tests
+  hs-source-dirs:      test
+  build-depends:       
+                       tasty              >= 1.3.1,
+                       tasty-hunit        >= 0.10.0.2,
+test-suite tests
+  import: common-tasty
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             tests.hs
+  build-depends:       
+    dep-t, 
+    dep-t-dynamic, 
+    template-haskell,
+    aeson              ^>= 2.0,
+    bytestring,
+    text,
+    containers
+
+test-suite synthetic-callstack-tests
+  import:              common-tasty
+  type:                exitcode-stdio-1.0
+  main-is:             synthetic-callstack-tests.hs
+  build-depends:       aeson,
+                       containers,
+                       unordered-containers >= 0.2.14,
+                       microlens >= 0.4.12.0
+
+-- VERY IMPORTANT for doctests to work: https://stackoverflow.com/a/58027909/1364288
+-- http://hackage.haskell.org/package/cabal-doctest
+test-suite doctests
+  import:              common
+  ghc-options:         -threaded
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             doctests.hs
+  build-depends:       
+                       dep-t, 
+                       dep-t-dynamic,
+                       dep-t-advice,
+                       doctest            ^>= 0.20,
+
