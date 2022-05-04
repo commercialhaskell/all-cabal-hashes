@@ -1,0 +1,171 @@
+Name:                dbmigrations
+Version:             2.1.0
+Synopsis:            An implementation of relational database "migrations"
+Description:         A library and program for the creation,
+                     management, and installation of schema updates
+                     (called /migrations/) for a relational database. In
+                     particular, this package lets the migration author
+                     express explicit dependencies between migrations
+                     and the management tool automatically installs or
+                     reverts migrations accordingly, using transactions
+                     for safety.
+
+                     This package is written to support a number of
+                     different databases. For packages that support
+                     specific databases using this library, see packages
+                     named "dbmigrations-BACKEND". Each package
+                     provides an executable "moo-BACKEND" for managing
+                     migrations. Usage information for the "moo-"
+                     executables can be found in "MOO.TXT" in this
+                     package.
+
+                     This package also includes a conformance test suite
+                     to ensure that backend implementations respect the
+                     library's required semantics.
+
+Category:            Database
+Author:              Jonathan Daugherty <cygnus@foobox.com>
+Maintainer:          Jonathan Daugherty <cygnus@foobox.com>
+Build-Type:          Simple
+License:             BSD3
+License-File:        LICENSE
+Cabal-Version:       >= 1.10
+
+Data-Files:
+  README.md
+  MOO.TXT
+  test/example_store/root
+  test/example_store/update1
+  test/example_store/update2
+  test/config_loading/cfg1.cfg
+  test/config_loading/cfg_ts.cfg
+  test/config_loading/invalid.cfg
+  test/config_loading/missing.cfg
+  test/config_loading/moo.cfg
+  test/migration_parsing/invalid_field_name.txt
+  test/migration_parsing/invalid_missing_required_fields.txt
+  test/migration_parsing/invalid_syntax.txt
+  test/migration_parsing/invalid_timestamp.txt
+  test/migration_parsing/valid_full.txt
+  test/migration_parsing/valid_no_depends.txt
+  test/migration_parsing/valid_no_desc.txt
+  test/migration_parsing/valid_no_revert.txt
+  test/migration_parsing/valid_no_timestamp.txt
+  test/migration_parsing/valid_with_colon.txt
+  test/migration_parsing/valid_with_comments.txt
+  test/migration_parsing/valid_with_comments2.txt
+  test/migration_parsing/valid_with_multiline_deps.txt
+
+Source-Repository head
+  type:     git
+  location: git://github.com/jtdaugherty/dbmigrations.git
+
+Library
+  default-language: Haskell2010
+  if impl(ghc >= 6.12.0)
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields
+                 -fno-warn-unused-do-bind
+  else
+    ghc-options: -Wall -fwarn-tabs -funbox-strict-fields
+
+  Build-Depends:
+    base >= 4 && < 5,
+    HDBC >= 2.2.1,
+    time >= 1.4,
+    random >= 1.0,
+    containers >= 0.2,
+    mtl >= 2.1,
+    filepath >= 1.1,
+    directory >= 1.0,
+    fgl >= 5.4,
+    template-haskell,
+    yaml,
+    bytestring >= 0.9,
+    string-conversions >= 0.4,
+    text >= 0.11,
+    configurator >= 0.2,
+    split >= 0.2.2,
+    HUnit >= 1.2,
+    aeson < 2,
+    unordered-containers
+
+  Hs-Source-Dirs:    src
+  Exposed-Modules:
+          Database.Schema.Migrations
+          Database.Schema.Migrations.Backend
+          Database.Schema.Migrations.Backend.HDBC
+          Database.Schema.Migrations.CycleDetection
+          Database.Schema.Migrations.Dependencies
+          Database.Schema.Migrations.Filesystem
+          Database.Schema.Migrations.Filesystem.Serialize
+          Database.Schema.Migrations.Migration
+          Database.Schema.Migrations.Store
+          Database.Schema.Migrations.Test.BackendTest
+          Moo.CommandHandlers
+          Moo.CommandInterface
+          Moo.CommandUtils
+          Moo.Core
+          Moo.Main
+
+test-suite dbmigrations-tests
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  Build-Depends:
+    base >= 4 && < 5,
+    dbmigrations,
+    time >= 1.4,
+    containers >= 0.2,
+    mtl >= 2.1,
+    filepath >= 1.1,
+    directory >= 1.0,
+    fgl >= 5.4,
+    template-haskell,
+    yaml,
+    bytestring >= 0.9,
+    string-conversions >= 0.4,
+    MissingH,
+    HDBC >= 2.2.1,
+    HUnit >= 1.2,
+    process >= 1.1,
+    configurator >= 0.2,
+    text >= 0.11,
+    split >= 0.2.2
+
+  other-modules:
+    Common
+    CommonTH
+    CycleDetectionTest
+    DependencyTest
+    FilesystemParseTest
+    FilesystemSerializeTest
+    FilesystemTest
+    MigrationsTest
+    StoreTest
+    InMemoryStore
+    LinearMigrationsTest
+    ConfigurationTest
+
+  if impl(ghc >= 6.12.0)
+    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
+                 -fno-warn-unused-do-bind -Wwarn
+  else
+    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
+
+  Hs-Source-Dirs:  test
+  Main-is:         Main.hs
+
+Executable moo
+  default-language: Haskell2010
+  Build-Depends:
+    base >= 4 && < 5,
+    configurator >= 0.2,
+    dbmigrations
+
+  if impl(ghc >= 6.12.0)
+    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
+                 -fno-warn-unused-do-bind
+  else
+    ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields
+
+  Hs-Source-Dirs:  programs
+  Main-is:         Moo.hs
