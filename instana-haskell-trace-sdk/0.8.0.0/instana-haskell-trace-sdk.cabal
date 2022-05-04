@@ -1,0 +1,396 @@
+name:           instana-haskell-trace-sdk
+version:        0.8.0.0
+synopsis:       SDK for adding custom Instana tracing support to Haskell applications.
+description:    Please also see the README on Github at <https://github.com/instana/haskell-trace-sdk#readme>
+homepage:       https://www.instana.com/
+bug-reports:    https://github.com/instana/haskell-trace-sdk/issues
+author:         Bastian Krol
+maintainer:     bastian.krol@instana.com
+copyright:      2018 Instana, Inc.
+category:       Monitoring
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+stability:      experimental
+cabal-version:  2.0
+
+extra-source-files:
+  CHANGELOG.md
+  README.md
+  CONTRIBUTING.md
+  LICENSE
+
+source-repository head
+  type: git
+  location: https://github.com/instana/haskell-trace-sdk
+
+Flag dev
+  Description: development mode - warnings let compilation fail
+  Default: False
+  Manual: True
+
+library
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , aeson
+    , aeson-casing
+    , aeson-extra
+    , bytestring
+    , case-insensitive
+    , containers
+    , directory
+    , ekg-core
+    , exceptions
+    , hslogger
+    , http-client
+    , http-client-tls
+    , http-types
+    , network
+    , process
+    , random
+    , regex-base
+    , regex-compat
+    , regex-pcre
+    , regex-tdfa
+    , retry
+    , scientific
+    , stm
+    , sysinfo
+    , text
+    , time
+    , unix
+    , unordered-containers
+    , vector
+    , wai
+  if flag(dev)
+    ghc-options:
+      -Wall -Werror
+  else
+    ghc-options:
+      -Wall
+  exposed-modules:
+      Instana.SDK.Config
+      Instana.SDK.SDK
+      Instana.SDK.Span.EntrySpan
+      Instana.SDK.Span.ExitSpan
+      Instana.SDK.Span.NonRootEntry
+      Instana.SDK.Span.RootEntry
+      Instana.SDK.Span.SimpleSpan
+      Instana.SDK.Span.Span
+      Instana.SDK.Span.SpanData
+      Instana.SDK.Span.SpanType
+      Instana.SDK.TracingHeaders
+      Instana.Wai.Middleware.Entry
+  other-modules:
+      Instana.SDK.Internal.AgentConnection.AgentHostLookup
+      Instana.SDK.Internal.AgentConnection.AgentReady
+      Instana.SDK.Internal.AgentConnection.Announce
+      Instana.SDK.Internal.AgentConnection.ConnectLoop
+      Instana.SDK.Internal.AgentConnection.Json.AnnounceResponse
+      Instana.SDK.Internal.AgentConnection.Json.Util
+      Instana.SDK.Internal.AgentConnection.Paths
+      Instana.SDK.Internal.AgentConnection.ProcessInfo
+      Instana.SDK.Internal.AgentConnection.SchedFile
+      Instana.SDK.Internal.Command
+      Instana.SDK.Internal.Config
+      Instana.SDK.Internal.Context
+      Instana.SDK.Internal.Id
+      Instana.SDK.Internal.Logging
+      Instana.SDK.Internal.Metrics.Collector
+      Instana.SDK.Internal.Metrics.Compression
+      Instana.SDK.Internal.Metrics.Deltas
+      Instana.SDK.Internal.Metrics.Sample
+      Instana.SDK.Internal.Retry
+      Instana.SDK.Internal.Secrets
+      Instana.SDK.Internal.ServerTiming
+      Instana.SDK.Internal.SpanStack
+      Instana.SDK.Internal.URL
+      Instana.SDK.Internal.Util
+      Instana.SDK.Internal.W3CTraceContext
+      Instana.SDK.Internal.WireSpan
+      Instana.SDK.Internal.Worker
+      Instana.Wai.Middleware.Entry.Internal
+      Paths_instana_haskell_trace_sdk
+  autogen-modules:
+      Paths_instana_haskell_trace_sdk
+  default-language: Haskell2010
+
+
+executable instana-haskell-example-exe
+  -- scope: private
+  main-is: Main.hs
+  hs-source-dirs:
+      example-app
+  if flag(dev)
+    ghc-options:
+      -Wall -Werror -threaded -rtsopts "-with-rtsopts=-T -N "
+  else
+    ghc-options:
+      -Wall -threaded -rtsopts "-with-rtsopts=-T -N "
+  build-depends:
+      base >=4.7 && <5
+    , hslogger
+    , instana-haskell-trace-sdk
+  default-language: Haskell2010
+
+
+test-suite instana-haskell-trace-sdk-unit-tests
+  -- We are not listing instana-haskell-trace-sdk as a dependency here but
+  -- instead list src as an additional hs-source-dir. This has the advantage
+  -- that we can test internal modules at the expense of needing to duplicate
+  -- all modules we want to test in other-modules and all dependencies
+  -- required for these modules in build-depends. Also, this modules will be
+  -- compiled twice (once for the library build and once for the test build).
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test/unit, src
+  if flag(dev)
+    ghc-options:
+      -Wall -Werror -threaded -rtsopts -with-rtsopts=-N -Wno-missing-home-modules
+  else
+    ghc-options:
+      -Wall -threaded -rtsopts -with-rtsopts=-N -Wno-missing-home-modules
+  build-depends:
+      base >=4.7 && <5
+    , HUnit
+    , aeson
+    , aeson-extra
+    , bytestring
+    , case-insensitive
+    , directory
+    , ekg-core
+    , http-types
+    , hslogger
+    , random
+    , regex-base
+    , regex-compat
+    , regex-pcre
+    , regex-tdfa
+    , scientific
+    , text
+    , unordered-containers
+    , vector
+    , wai
+  other-modules:
+      -- the actual tests
+      Instana.SDK.Internal.AgentConnection.SchedFileTest
+      Instana.SDK.Internal.ConfigTest
+      Instana.SDK.Internal.IdTest
+      Instana.SDK.Internal.LoggingTest
+      Instana.SDK.Internal.Metrics.CompressionTest
+      Instana.SDK.Internal.Metrics.DeltasTest
+      Instana.SDK.Internal.SecretsTest
+      Instana.SDK.Internal.ServerTimingTest
+      Instana.SDK.Internal.SpanStackTest
+      Instana.SDK.Internal.W3CTraceContextTest
+      Instana.SDK.SpanTest
+      Instana.SDK.SpanDataTest
+      Instana.SDK.TracingHeadersTest
+      -- modules under test
+      Instana.SDK.Internal.Config
+      Instana.SDK.Internal.AgentConnection.SchedFile
+      Instana.SDK.Internal.Id
+      Instana.SDK.Internal.Logging
+      Instana.SDK.Internal.Metrics.Compression
+      Instana.SDK.Internal.Metrics.Deltas
+      Instana.SDK.Internal.Secrets
+      Instana.SDK.Internal.SpanStack
+      Instana.SDK.Internal.ServerTiming
+      Instana.SDK.Span.SimpleSpan
+      Instana.SDK.Span.Span
+      Instana.SDK.Span.SpanData
+      Instana.SDK.TracingHeaders
+      Instana.SDK.Internal.W3CTraceContext
+      -- dependencies of modules under test
+      Instana.SDK.Config
+      Instana.SDK.Internal.Metrics.Sample
+      Instana.SDK.Internal.Util
+      Instana.SDK.Span.EntrySpan
+      Instana.SDK.Span.ExitSpan
+      Instana.SDK.Span.NonRootEntry
+      Instana.SDK.Span.RootEntry
+      Instana.SDK.Span.SpanType
+  default-language: Haskell2010
+
+
+executable instana-haskell-agent-stub
+  -- scope: private
+  main-is: Main.hs
+  hs-source-dirs:
+      test/agent-stub, test/shared
+  if flag(dev)
+    ghc-options:
+      -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
+  else
+    ghc-options:
+      -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , aeson
+    , aeson-casing
+    , hslogger
+    , servant
+    , servant-server
+    , text
+    , time
+    , transformers
+    , unix
+    , unordered-containers
+    , wai
+    , warp
+  other-modules:
+      Instana.SDK.AgentStub.API
+    , Instana.SDK.AgentStub.Config
+    , Instana.SDK.AgentStub.DiscoveryRequest
+    , Instana.SDK.AgentStub.DiscoveryResponse
+    , Instana.SDK.AgentStub.EntityDataRequest
+    , Instana.SDK.AgentStub.Logging
+    , Instana.SDK.AgentStub.Main
+    , Instana.SDK.AgentStub.Recorders
+    , Instana.SDK.AgentStub.Server
+    , Instana.SDK.AgentStub.StubAPI
+    , Instana.SDK.AgentStub.StubServer
+    , Instana.SDK.AgentStub.TraceRequest
+    , Instana.SDK.AgentStub.Util
+  default-language: Haskell2010
+
+
+test-suite instana-haskell-trace-sdk-integration-tests
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test/integration, test/shared
+  if flag(dev)
+    ghc-options:
+      -Wall -Werror -threaded -rtsopts "-with-rtsopts=-T -N "
+  else
+    ghc-options:
+      -Wall -threaded -rtsopts "-with-rtsopts=-T -N "
+  build-depends:
+      base >=4.7 && <5
+    , aeson
+    , aeson-casing
+    , array
+    , bytestring
+    , case-insensitive
+    , directory
+    , exceptions
+    , hslogger
+    , HUnit
+    , http-client
+    , http-types
+    , instana-haskell-trace-sdk
+    , process
+    , regex-base
+    , regex-tdfa
+    , retry
+    , text
+    , unix
+    , unordered-containers
+    , vector
+  other-modules:
+      Instana.SDK.AgentStub.DiscoveryRequest
+    , Instana.SDK.AgentStub.EntityDataRequest
+    , Instana.SDK.AgentStub.TraceRequest
+    , Instana.SDK.IntegrationTest.BracketApi
+    , Instana.SDK.IntegrationTest.Connection
+    , Instana.SDK.IntegrationTest.CustomSecrets
+    , Instana.SDK.IntegrationTest.ExtraHttpHeaders
+    , Instana.SDK.IntegrationTest.HUnitExtra
+    , Instana.SDK.IntegrationTest.HttpHelper
+    , Instana.SDK.IntegrationTest.HttpTracing
+    , Instana.SDK.IntegrationTest.Logging
+    , Instana.SDK.IntegrationTest.LowLevelApi
+    , Instana.SDK.IntegrationTest.Metrics
+    , Instana.SDK.IntegrationTest.Runner
+    , Instana.SDK.IntegrationTest.ServiceName
+    , Instana.SDK.IntegrationTest.SpecCompliance
+    , Instana.SDK.IntegrationTest.Suite
+    , Instana.SDK.IntegrationTest.TestHelper
+    , Instana.SDK.IntegrationTest.TestSuites
+    , Instana.SDK.IntegrationTest.Util
+    , Instana.SDK.IntegrationTest.WaiMiddleware
+  default-language: Haskell2010
+
+
+executable instana-haskell-test-wai-server
+  -- scope: private
+  main-is: Main.hs
+  hs-source-dirs:
+      test/apps/wai
+  if flag(dev)
+    ghc-options:
+      -Wall -Werror -threaded -rtsopts "-with-rtsopts=-T -N "
+  else
+    ghc-options:
+      -Wall -threaded -rtsopts "-with-rtsopts=-T -N "
+  build-depends:
+      base >=4.7 && <5
+    , aeson
+    , binary
+    , bytestring
+    , hslogger
+    , http-client
+    , http-types
+    , instana-haskell-trace-sdk
+    , text
+    , unix
+    , wai
+    , warp
+  default-language: Haskell2010
+
+executable instana-haskell-test-wai-with-middleware-server
+  -- scope: private
+  main-is: Main.hs
+  hs-source-dirs:
+      test/apps/wai-with-middleware
+  if flag(dev)
+    ghc-options:
+      -Wall -Werror -threaded -rtsopts "-with-rtsopts=-T -N "
+  else
+    ghc-options:
+      -Wall -threaded -rtsopts "-with-rtsopts=-T -N "
+  build-depends:
+      base >=4.7 && <5
+    , aeson
+    , binary
+    , bytestring
+    , hslogger
+    , http-client
+    , http-types
+    , instana-haskell-trace-sdk
+    , text
+    , unix
+    , wai
+    , warp
+  default-language: Haskell2010
+
+executable downstream-target
+  -- scope: private
+  main-is: Main.hs
+  hs-source-dirs:
+      test/apps/downstream-target
+  if flag(dev)
+    ghc-options:
+      -Wall -Werror -threaded -rtsopts "-with-rtsopts=-T -N "
+  else
+    ghc-options:
+      -Wall -threaded -rtsopts "-with-rtsopts=-T -N "
+  build-depends:
+      base >=4.7 && <5
+    , aeson
+    , binary
+    , bytestring
+    , case-insensitive
+    , containers
+    , hslogger
+    , http-client
+    , http-types
+    , unix
+    , wai
+    , warp
+  default-language: Haskell2010
+
