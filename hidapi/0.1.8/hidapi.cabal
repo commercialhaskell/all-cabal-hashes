@@ -1,0 +1,55 @@
+name:              hidapi
+version:           0.1.8
+build-type:        Simple
+cabal-version:     >= 1.10
+category:          Hardware
+author:            Patrick Chilton <chpatrick@gmail.com>, Niklas Hambüchen <mail@nh2.me>
+maintainer:        Patrick Chilton <chpatrick@gmail.com>
+homepage:          https://github.com/chpatrick/haskell-hidapi
+bug-reports:       https://github.com/chpatrick/haskell-hidapi/issues
+synopsis:          Haskell bindings to HIDAPI
+description:       Haskell bindings to the HIDAPI library (<https://github.com/libusb/hidapi>).
+                   .
+                   Note you need need to have the corresponding low-level
+                   library installed for your OS, e.g. libudev-dev on Debian/Ubuntu,
+                   or just udev on distributions that don't split dev libraries.
+license:           MIT
+license-file:      LICENSE
+extra-source-files:  README.md
+
+extra-source-files:
+  cbits/hidapi/hidapi.h
+
+source-repository head
+  type:      git
+  location:  git://github.com/chpatrick/haskell-hidapi.git
+
+library
+  exposed-modules: System.HIDAPI
+  build-depends:
+      base < 5
+    , bytestring >= 0.9.2.1
+    -- Note: If at some point we require deepseq >= 1.4, we can
+    --       throw out deepseq-generics, as starting from 1.4
+    --       deepseq's own default implementation is no longer
+    --       a no-op (== rubbish).
+    , deepseq >= 1.3
+    , deepseq-generics >= 0.1
+
+  -- hidapi is not packaged for many distributions, and seems to
+  -- expect to be included in the software that uses it, so we do that
+  include-dirs:  cbits/hidapi
+  includes:      hidapi.h
+  ghc-options:   -Wall
+
+  if os(windows)
+    c-sources: cbits/hidapi/windows/hid.c
+    extra-libraries: setupapi
+  else
+    if os(darwin)
+      c-sources: cbits/hidapi/mac/hid.c
+      frameworks: AppKit
+    else
+      c-sources: cbits/hidapi/linux/hid.c
+      extra-libraries: udev
+  default-language:  Haskell2010
