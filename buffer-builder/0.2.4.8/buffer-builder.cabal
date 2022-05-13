@@ -1,0 +1,167 @@
+name:                buffer-builder
+version:             0.2.4.8
+synopsis:            Library for efficiently building up buffers, one piece at a time
+description:
+
+    "Data.BufferBuilder" is an efficient library for incrementally building
+    up 'ByteString's, one chunk at a time.  Early benchmarks show it
+    is over twice as fast as ByteString Builder, primarily because
+    'BufferBuilder' is built upon an ST-style restricted monad and
+    mutable state instead of ByteString Builder's monoidal AST.
+    .
+    Internally, BufferBuilder is backed by a few C functions.
+    Examination of GHC's output shows nearly optimal code generation
+    with no intermediate thunks -- and thus, continuation passing and
+    its associated indirect jumps and stack traffic only occur when
+    BufferBuilder is asked to append a non-strict ByteString.
+    .
+    I benchmarked four approaches with a URL encoding benchmark:
+    .
+      * State monad, concatenating ByteStrings: 6.98 us
+    .
+      * State monad, ByteString Builder: 2.48 us
+    .
+      * Crazy explicit RealWorld baton passing with unboxed state: 28.94 us (GHC generated really awful code for this, but see the revision history for the technique)
+    .
+      * C + FFI + ReaderT: 1.11 us
+    .
+    Using BufferBuilder is very simple:
+    .
+    > import qualified Data.BufferBuilder as BB
+    >
+    > let byteString = BB.runBufferBuilder $ do
+    >       BB.appendBS "http"
+    >       BB.appendChar8 '/'
+    >       BB.appendBS "//"
+    .
+    This package also provides "Data.BufferBuilder.Utf8" for generating UTF-8 buffers
+    and "Data.BufferBuilder.Json" for encoding data structures into JSON.
+
+license:             BSD3
+license-file:        LICENSE
+author:              Chad Austin, Andy Friesen
+maintainer:          chad@chadaustin.me
+copyright:           IMVU Inc., Chad Austin, Andy Friesen
+category:            Data
+build-type:          Simple
+stability:           experimental
+homepage:            https://github.com/chadaustin/buffer-builder
+cabal-version:       >=1.10
+extra-source-files:  test/*.hs test.json changelog.md
+
+library
+  exposed-modules:
+    Data.BufferBuilder
+    Data.BufferBuilder.Utf8
+    Data.BufferBuilder.Json
+
+  build-depends: base ==4.*
+               , bytestring
+               , mtl
+               , text
+               , vector
+               , unordered-containers
+               
+  if !impl(ghc >= 8.0)
+    build-depends: semigroups
+
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+  --ghc-options: -ddump-ds -ddump-simpl -ddump-stg -ddump-opt-cmm -ddump-asm -ddump-to-file
+
+  hs-source-dirs: src
+  c-sources: cbits/buffer.c cbits/branchlut.c
+  install-includes: cbits/branchlut.h
+  cc-options: -O2 -Wall -Werror -std=c99
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+
+  build-depends: base ==4.*
+               , buffer-builder
+               , text
+               , quickcheck-instances
+               , HTF
+               , vector
+               , bytestring
+               , attoparsec
+               , aeson
+
+benchmark bench
+  type: exitcode-stdio-1.0
+  main-is: Bench.hs
+  hs-source-dirs: bench
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+  --ghc-options: -ddump-ds -ddump-simpl -ddump-stg -ddump-opt-cmm -ddump-asm -ddump-to-file
+
+  build-depends: base ==4.*
+               , bytestring
+               , buffer-builder
+               , criterion
+
+benchmark json-bench
+  type: exitcode-stdio-1.0
+  main-is: JsonBench.hs
+  hs-source-dirs: bench
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+  --ghc-options: -ddump-ds -ddump-simpl -ddump-stg -ddump-opt-cmm -ddump-asm -ddump-to-file
+  build-depends: base
+               , buffer-builder
+               , aeson
+               , bytestring
+               , text
+               , deepseq
+               , vector
+               , criterion
+               , vector
+               , json-builder
+
+benchmark url
+  type: exitcode-stdio-1.0
+  main-is: UrlBench.hs
+  hs-source-dirs: bench
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+  --ghc-options: -ddump-ds -ddump-simpl -ddump-stg -ddump-opt-cmm -ddump-asm -ddump-to-file
+  build-depends: base
+               , buffer-builder
+               , bytestring
+               , http-types
+               , text
+               , criterion
+
+test-suite tinyjson
+  type: exitcode-stdio-1.0
+  main-is: TinyJson.hs
+  hs-source-dirs: bench
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+  --ghc-options: -ddump-ds -ddump-simpl -ddump-stg -ddump-opt-cmm -ddump-asm -ddump-to-file
+  build-depends: base
+               , buffer-builder
+               , aeson
+               , bytestring
+               , text
+               , deepseq
+               , criterion
+
+test-suite tinyjson2
+  type: exitcode-stdio-1.0
+  main-is: TinyJson2.hs
+  hs-source-dirs: bench
+  default-language: Haskell2010
+  ghc-options: -O2 -Wall
+  --ghc-options: -ddump-ds -ddump-simpl -ddump-stg -ddump-opt-cmm -ddump-asm -ddump-to-file
+  build-depends: base
+               , buffer-builder
+               , aeson
+               , bytestring
+               , deepseq
+               , criterion
+               , vector
