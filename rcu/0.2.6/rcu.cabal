@@ -1,0 +1,446 @@
+name:          rcu
+category:      Data
+version:       0.2.6
+license:       BSD3
+cabal-version: 1.22
+license-file:  LICENSE
+author:        Ted Cooper and Edward A. Kmett
+maintainer:    Edward A. Kmett <ekmett@gmail.com>, Ted Cooper <anthezium@gmail.com>
+stability:     provisional
+homepage:      http://github.com/ekmett/rcu/
+bug-reports:   http://github.com/ekmett/rcu/issues
+copyright:     Copyright (C) 2015 Edward A. Kmett, Theodore Rhys Cooper
+build-type:    Simple
+tested-with:   GHC == 7.10.3
+             , GHC == 8.0.2
+             , GHC == 8.2.2
+             , GHC == 8.4.4
+             , GHC == 8.6.5
+             , GHC == 8.8.4
+             , GHC == 8.10.7
+             , GHC == 9.0.2
+             , GHC == 9.2.2
+synopsis:      Read-Copy-Update for Haskell
+description:   Read-Copy-Update for Haskell.
+
+extra-source-files:
+  .hlint.yaml
+  examples/*.hs
+  CHANGELOG.markdown
+  README.markdown
+
+source-repository head
+  type: git
+  location: git://github.com/ekmett/rcu.git
+
+-- Include unstable and/or potentially incorrect implementations.
+flag unstable
+  default: False
+  manual: True
+
+-- Configure benchmarks to measure writer synchronize time at the expense of
+-- increasing average update time.
+flag measure-synchronize
+  default: False
+  manual: True
+
+library
+  build-depends:
+    atomic-primops >= 0.8,
+    base >= 4.8 && < 5,
+    fail == 4.9.*,
+    ghc-prim >= 0.3,
+    parallel >= 3.2 && < 3.3,
+    primitive >= 0.6,
+    transformers >= 0.4 && < 0.7
+
+  exposed-modules:
+    Control.Concurrent.RCU.Class
+    Control.Concurrent.RCU.GC
+    Control.Concurrent.RCU.GC.Internal
+    Control.Concurrent.RCU.QSBR
+    Control.Concurrent.RCU.QSBR.Internal
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  ghc-options: -Wall -fwarn-tabs -feager-blackholing
+  if impl(ghc >= 8.6)
+    ghc-options: -Wno-star-is-type
+  hs-source-dirs: src
+  default-language: Haskell2010
+
+  if flag(unstable)
+    hs-source-dirs: unstable
+    build-depends: stm >= 2.4.4 && < 2.6
+    exposed-modules:
+      Control.Concurrent.RCU.STM
+      Control.Concurrent.RCU.STM.Internal
+
+executable MoveStringSTM
+  main-is: MoveString.hs
+  cpp-options: -DMODE=STM
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -feager-blackholing -fwarn-tabs "-with-rtsopts=-N -qa -qb -qm -s"
+  default-language: Haskell2010
+  if !flag(unstable)
+    buildable: False
+  else
+    build-depends: base, rcu, transformers
+
+executable MoveStringQSBR
+  main-is: MoveString.hs
+  cpp-options: -DMODE=QSBR
+  build-depends: base, rcu, transformers
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -feager-blackholing -fwarn-tabs "-with-rtsopts=-N -qa -qb -qm -s"
+  default-language: Haskell2010
+
+executable MoveStringGC
+  main-is: MoveString.hs
+  cpp-options: -DMODE=GC
+  build-depends: base, rcu, transformers
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -feager-blackholing -fwarn-tabs "-with-rtsopts=-N -qa -qb -qm -s"
+  default-language: Haskell2010
+
+benchmark IncCounterExperiment
+  main-is: IncCounterExperiment.hs
+  type: exitcode-stdio-1.0
+  build-depends:
+    base,
+    criterion >= 1.1,
+    ghc-prim,
+    primitive,
+    rcu,
+    transformers
+
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -feager-blackholing -fwarn-tabs "-with-rtsopts=-N -qa -qb -qm -s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeQSBR
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=QSBR -DBENCHMARKS
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    rdtsc >= 1.3.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=QSBR -DBENCHMARKS -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-N -qa -qb -qm -s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeGC
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=GC -DBENCHMARKS
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    rdtsc >= 1.3.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=GC -DBENCHMARKS -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-N -qa -qb -qm -s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeQSBRUnbound
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=QSBR -DBENCHMARKS -DUNBOUND
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    time >= 1.5.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=QSBR -DBENCHMARKS -DUNBOUND -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-N -s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeGCUnbound
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=GC -DBENCHMARKS -DUNBOUND
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    time >= 1.5.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=GC -DBENCHMARKS -DUNBOUND -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-N -s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeQSBRSingleThread
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=QSBR -DBENCHMARKS -DUNBOUND
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    time >= 1.5.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=QSBR -DBENCHMARKS -DUNBOUND -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeGCSingleThread
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=GC -DBENCHMARKS -DUNBOUND
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    time >= 1.5.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=GC -DBENCHMARKS -DUNBOUND -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeQSBRPinned
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=QSBR -DBENCHMARKS
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    rdtsc >= 1.3.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=QSBR -DBENCHMARKS -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-N -qa -s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeGCPinned
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=GC -DBENCHMARKS
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    rdtsc >= 1.3.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=GC -DBENCHMARKS -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-N -qa -s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeQSBRnoGC
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=QSBR -DBENCHMARKS
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    rdtsc >= 1.3.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=QSBR -DBENCHMARKS -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-N -qa -qb -qm -A1g -I0 -s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeGCnoGC
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=GC -DBENCHMARKS
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    rdtsc >= 1.3.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=GC -DBENCHMARKS -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-N -qa -qb -qm -A1g -I0 -s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeQSBRnoGCPinned
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=QSBR -DBENCHMARKS
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    rdtsc >= 1.3.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=QSBR -DBENCHMARKS -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-N -qa -A1g -I0 -s"
+  default-language: Haskell2010
+
+benchmark TimeSynchronizeGCnoGCPinned
+  main-is: TimeSynchronize.hs
+  type: exitcode-stdio-1.0
+  cpp-options: -DMODE=GC -DBENCHMARKS
+  build-depends:
+    base >= 4.8 && < 5,
+    containers >= 0.5,
+    deepseq >= 1.4.1,
+    ghc-prim >= 0.3,
+    optparse-applicative >= 0.11,
+    primitive >= 0.6,
+    rcu,
+    rdtsc >= 1.3.0.1,
+    transformers >= 0.4 && < 0.7
+
+  if flag(measure-synchronize)
+    cpp-options: -DMODE=GC -DBENCHMARKS -DMEASURE_SYNCHRONIZE
+
+  c-sources: cbits/pause.c
+  include-dirs: cbits
+  install-includes:
+    pause.h
+    pause_impl.h
+  hs-source-dirs: examples
+  ghc-options: -threaded -Wall -fwarn-tabs -feager-blackholing -rtsopts "-with-rtsopts=-N -qa -A1g -I0 -s"
+  default-language: Haskell2010
