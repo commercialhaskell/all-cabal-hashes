@@ -1,0 +1,196 @@
+Name:           syntactic
+Version:        3.8.4
+Synopsis:       Generic representation and manipulation of abstract syntax
+Description:    The library provides a generic representation of type-indexed abstract syntax trees
+                (or indexed data types in general). It also permits the definition of open syntax
+                trees based on the technique in Data Types à la Carte [1].
+                .
+                This package does not work on GHC version 8.2, but works on many
+                earlier and later versions.
+                .
+                (Note that the difference between version 2.x and 3.0 is not that big. The bump to
+                3.0 was done because the modules changed namespace.)
+                .
+                For more information, see
+                \"A Generic Abstract Syntax Model for Embedded Languages\"
+                (ICFP 2012):
+                .
+                  * Paper:
+                    <https://emilaxelsson.github.io/documents/axelsson2012generic.pdf>
+                .
+                  * Literal source:
+                    <https://emilaxelsson.github.io/documents/axelsson2012generic.lhs>
+                .
+                  * Slides:
+                    <https://emilaxelsson.github.io/documents/axelsson2012generic-slides.pdf>
+                .
+                Example EDSLs can be found in the @examples@ folder.
+                .
+                \[1\] W. Swierstra. Data Types à la Carte.
+                /Journal of Functional Programming/, 18(4):423-436, 2008,
+                <http://dx.doi.org/10.1017/S0956796808006758>.
+License:        BSD3
+License-file:   LICENSE
+Author:         Emil Axelsson
+Maintainer:     78emil@gmail.com
+Copyright:      Copyright (c) 2011-2015, Emil Axelsson
+Homepage:       https://github.com/emilaxelsson/syntactic
+Bug-reports:    https://github.com/emilaxelsson/syntactic/issues
+Stability:      experimental
+Category:       Language
+Build-type:     Simple
+Cabal-version:  1.16
+
+extra-source-files:
+  CONTRIBUTORS
+  examples/*.hs
+  tests/*.hs
+  tests/gold/*.txt
+  benchmarks/*.hs
+
+source-repository head
+  type:     git
+  location: https://github.com/emilaxelsson/syntactic
+
+flag th
+  description: Include the module Language.Syntactic.TH, which uses Template
+               Haskell
+  default:     True
+
+library
+  exposed-modules:
+    Language.Syntactic
+    Language.Syntactic.Syntax
+    Language.Syntactic.Traversal
+    Language.Syntactic.Interpretation
+    Language.Syntactic.Sugar
+    Language.Syntactic.Decoration
+    Language.Syntactic.Functional
+    Language.Syntactic.Functional.Sharing
+    Language.Syntactic.Functional.WellScoped
+    Language.Syntactic.Sugar.Binding
+    Language.Syntactic.Sugar.BindingTyped
+    Language.Syntactic.Sugar.Monad
+    Language.Syntactic.Sugar.MonadTyped
+  if flag(th)
+    exposed-modules:
+      Data.NestTuple
+      Data.NestTuple.TH
+      Language.Syntactic.TH
+      Language.Syntactic.Functional.Tuple
+      Language.Syntactic.Functional.Tuple.TH
+      Language.Syntactic.Sugar.Tuple
+      Language.Syntactic.Sugar.TupleTyped
+
+  build-depends:
+    base >= 4.6 && < 4.17,
+    constraints < 0.14,
+    containers < 0.7,
+    data-hash < 0.3,
+    deepseq < 1.5,
+    mtl >= 2 && < 2.4,
+    syb < 0.8,
+    tree-view >= 0.5 && < 0.6
+
+  if impl(ghc == 8.2.*)
+    build-depends: base<0
+    -- See the note to the catch-all instance of `BindingDomain`. Since this can
+    -- lead to subtle errors and non-termination in user code, we prefer not to
+    -- support GHC 8.2.
+
+  if impl(ghc < 7.10)
+    build-depends: base-orphans
+
+  if impl(ghc < 7.8)
+    build-depends: tagged
+
+  if flag(th)
+    build-depends: template-haskell
+
+  hs-source-dirs: src
+
+  default-language: Haskell2010
+
+  default-extensions:
+    DefaultSignatures
+    DeriveDataTypeable
+    DeriveFunctor
+    DeriveFoldable
+    DeriveTraversable
+    FlexibleContexts
+    FlexibleInstances
+    FunctionalDependencies
+    GADTs
+    GeneralizedNewtypeDeriving
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    TypeFamilies
+    TypeOperators
+
+  other-extensions:
+    OverlappingInstances
+    UndecidableInstances
+
+test-suite examples
+  type: exitcode-stdio-1.0
+
+  hs-source-dirs: tests examples
+
+  main-is: Tests.hs
+
+  other-modules: AlgorithmTests
+                 Monad
+                 MonadTests
+                 NanoFeldspar
+                 NanoFeldsparComp
+                 NanoFeldsparTests
+                 SyntaxTests
+                 TH
+                 WellScoped
+                 WellScopedTests
+
+  default-language: Haskell2010
+
+  build-depends:
+    syntactic,
+    base,
+    containers,
+    mtl,
+    QuickCheck,
+    tagged,
+    tasty,
+    tasty-hunit,
+    tasty-golden,
+    tasty-quickcheck,
+    tasty-th,
+    utf8-string
+
+benchmark syntactic-bench
+  type: exitcode-stdio-1.0
+
+  hs-source-dirs: benchmarks
+
+  main-is: MainBenchmark.hs
+
+  other-modules: JoiningTypes
+                 Normal
+                 WithArity
+
+  build-depends:
+    base,
+    criterion >= 1,
+    deepseq,
+    syntactic
+
+  default-language: Haskell2010
+
+  default-extensions:
+    FlexibleInstances
+    GADTs
+    MultiParamTypeClasses
+    TypeOperators
+
+  other-extensions:
+    TemplateHaskell
+
