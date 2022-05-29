@@ -1,0 +1,220 @@
+cabal-version: 2.0
+
+name:           doctest-parallel
+version:        0.2.3
+synopsis:       Test interactive Haskell examples
+description:    The doctest program checks examples in source code comments.  It is modeled
+                after doctest for Python (<https://docs.python.org/3/library/doctest.html>).
+                .
+                Documentation is at <https://github.com/martijnbastiaan/doctest-parallel#readme>.
+category:       Testing
+bug-reports:    https://github.com/martijnbastiaan/doctest-parallel/issues
+homepage:       https://github.com/martijnbastiaan/doctest-parallel#readme
+license:        MIT
+license-file:   LICENSE
+copyright:      (c) 2009-2018 Simon Hengel, 2021-2022 Martijn Bastiaan
+author:         Martijn Bastiaan <martijn@hmbastiaan.nl>
+maintainer:     Martijn Bastiaan <martijn@hmbastiaan.nl>
+build-type:     Simple
+tested-with:
+    GHC == 8.2.2
+  , GHC == 8.4.4
+  , GHC == 8.6.5
+  , GHC == 8.8.4
+  , GHC == 8.10.7
+  , GHC == 9.0.1
+  , GHC == 9.2.1
+extra-source-files:
+    example/example.cabal
+    example/src/Example.hs
+    example/test/doctests.hs
+    cabal.project
+    CHANGES.markdown
+    README.markdown
+
+    -- Rather annoyingly, Cabal implements arbitrary limitations in their file
+    -- globbing, one of them being that a wildcard can't be used to match
+    -- directories. Hence, we list them here individually.
+    test/extract/argument-list/*.hs
+    test/extract/comment-order/*.hs
+    test/extract/declaration/*.hs
+    test/extract/dos-line-endings/*.hs
+    test/extract/export-list/*.hs
+    test/extract/imported-module/*.hs
+    test/extract/module-header/*.hs
+    test/extract/module-options/*.hs
+    test/extract/named-chunks/*.hs
+    test/extract/regression/*.hs
+    test/extract/setup/*.hs
+    test/extract/th/*.hs
+    test/extract/type-class/*.hs
+    test/extract/type-class-args/*.hs
+    test/extract/type-families/*.hs
+    test/parse/multiple-examples/*.hs
+    test/parse/no-examples/*.hs
+    test/parse/non-exported/*.hs
+    test/parse/property/*.hs
+    test/parse/setup-empty/*.hs
+    test/parse/setup-only/*.hs
+    test/parse/simple/*.hs
+    test/integration/WithCInclude/include/WithCInclude.h
+
+source-repository head
+  type: git
+  location: https://github.com/martijnbastiaan/doctest-parallel
+
+library
+  ghc-options: -Wall
+  hs-source-dirs:
+      src
+      ghci-wrapper/src
+  exposed-modules:
+      Test.DocTest
+      Test.DocTest.Helpers
+      Test.DocTest.Internal.Extract
+      Test.DocTest.Internal.GhcUtil
+      Test.DocTest.Internal.Interpreter
+      Test.DocTest.Internal.Location
+      Test.DocTest.Internal.Options
+      Test.DocTest.Internal.Parse
+      Test.DocTest.Internal.Property
+      Test.DocTest.Internal.Runner
+      Test.DocTest.Internal.Runner.Example
+      Test.DocTest.Internal.Util
+      Language.Haskell.GhciWrapper
+  autogen-modules:
+      Paths_doctest_parallel
+  other-modules:
+      Paths_doctest_parallel
+  build-depends:
+      Cabal >= 3.4
+    , Glob
+    , base >=4.10 && <5
+    , base-compat >=0.7.0
+    , code-page >=0.1
+    , containers
+    , deepseq
+    , directory
+    , exceptions
+    , extra
+    , filepath
+    , ghc >=8.2 && <9.3
+    , ghc-paths >=0.1.0.9
+    , pretty
+    , process
+    , random >= 1.2
+    , syb >=0.3
+    , transformers
+    , unordered-containers
+  default-language: Haskell2010
+
+test-suite doctests
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          doctests.hs
+  ghc-options:      -threaded
+  build-depends:    base, doctest-parallel
+  default-language: Haskell2010
+
+
+library spectests-modules
+  default-language: Haskell2010
+  build-depends: base, doctest-parallel, template-haskell
+  -- Too many warnings. TODO: fix.
+  -- ghc-options: -Wall
+  hs-source-dirs:
+      test/integration
+  include-dirs:
+      test/integration/WithCInclude/include
+  c-sources:
+      test/integration/WithCbits/foo.c
+  exposed-modules:
+    BugfixImportHierarchical.ModuleA
+    BugfixImportHierarchical.ModuleB
+    BugfixMultipleModules.ModuleA
+    BugfixMultipleModules.ModuleB
+    BugfixOutputToStdErr.Fib
+    Color.Foo
+    DosLineEndings.Fib
+    Failing.Foo
+    FailingMultiple.Foo
+    It.Foo
+    It.Setup
+    LocalStderrBinding.A
+    ModuleIsolation.TestA
+    ModuleIsolation.TestB
+    ModuleOptions.Foo
+    NonExposedModule.Exposed
+    Multiline.Multiline
+    PropertyBool.Foo
+    PropertyBoolWithTypeSignature.Foo
+    PropertyFailing.Foo
+    PropertyImplicitlyQuantified.Foo
+    PropertyQuantified.Foo
+    PropertySetup.Foo
+    Setup.Foo
+    SetupSkipOnFailure.Foo
+    SystemIoImported.A
+    TemplateHaskell.Foo
+    TestBlankline.Fib
+    TestCombinedExample.Fib
+    TestCommentLocation.Foo
+    TestDocumentationForArguments.Fib
+    TestFailOnMultiline.Fib
+    TestImport.ModuleA
+    TestImport.ModuleB
+    TestPutStr.Fib
+    TestSimple.Fib
+    TrailingWhitespace.Foo
+    WithCbits.Bar
+    WithCInclude.Bar
+  other-modules:
+    NonExposedModule.NoImplicitImport
+
+test-suite spectests
+  main-is: Spec.hs
+  other-modules:
+      ExtractSpec
+      InterpreterSpec
+      LocationSpec
+      MainSpec
+      OptionsSpec
+      ParseSpec
+      PropertySpec
+      Runner.ExampleSpec
+      RunnerSpec
+      RunSpec
+      UtilSpec
+  type: exitcode-stdio-1.0
+  ghc-options: -Wall -threaded
+  cpp-options: -DTEST
+  hs-source-dirs:
+      test
+  build-tool-depends:
+    hspec-discover:hspec-discover
+  build-depends:
+      HUnit
+    , QuickCheck >=2.13.1
+    , base >=4.5 && <5
+    , base-compat >=0.7.0
+    , code-page >=0.1
+    , containers
+    , doctest-parallel
+    , deepseq
+    , directory
+    , exceptions
+    , filepath
+    , ghc
+    , ghc-paths >=0.1.0.9
+    , hspec >=2.3.0
+    , hspec-core >=2.3.0
+    , hspec-discover
+    , mockery
+    , process
+    , setenv
+    , silently >=1.2.4
+    , stringbuilder >=0.4
+    , spectests-modules
+    , syb >=0.3
+    , transformers
+  default-language: Haskell2010
