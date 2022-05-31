@@ -1,0 +1,66 @@
+cabal-version: 3.0
+
+name: unfork
+version: 1.0.0.0
+x-revision: 1
+category: Concurrency
+synopsis: Make any action thread safe
+
+description:
+    “Unfork” is the opposite of “fork”; whereas forking allows things to run concurrently, unforking prevents things from running concurrently. Use one of the functions in the "Unfork" module when you have an action that will be used by concurrent threads but needs to run serially.
+
+    A typical use case is a multi-threaded program that writes log messages. If threads use @putStrLn@ directly, the strings may be interleaved in the combined output. Instead, create an unforked version of @putStrLn@:
+
+    > import Unfork
+    >
+    > main :: IO ()
+    > main =
+    >     unforkAsyncIO_ putStrLn \putStrLn' ->
+    >         _ -- Within this continuation, use
+    >           -- putStrLn' instead of putStrLn
+
+    The new @putStrLn'@ function writes to a queue. A separate thread reads from the queue and performs the actions, thus ensuring that the actions are all performed in one linear sequence. The main thread returns after the continuation has returned and the queue is empty. If an exception is raised in either thread, both threads halt and the exception is re-raised in the main thread.
+
+copyright: 2022 Mission Valley Software LLC
+license: Apache-2.0
+license-file: license.txt
+
+author: Chris Martin
+maintainer: Chris Martin, Julie Moronuki
+
+homepage: https://github.com/typeclasses/unfork
+bug-reports: https://github.com/typeclasses/unfork/issues
+
+build-type: Simple
+
+source-repository head
+    type: git
+    location: git://github.com/typeclasses/unfork.git
+
+common base
+    default-language: Haskell2010
+    default-extensions:
+        BlockArguments
+        ExistentialQuantification
+        NamedFieldPuns
+    ghc-options:
+        -Wall
+    build-depends:
+        async ^>= 2.2.2
+      , base ^>= 4.14 || ^>= 4.15 || ^>= 4.16
+      , safe-exceptions ^>= 0.1.7
+      , stm ^>= 2.5
+
+library
+    import: base
+    exposed-modules:
+        Unfork
+    other-modules:
+        Unfork.Async.Core
+        Unfork.Async.FireAndForget.IO
+        Unfork.Async.FireAndForget.STM
+        Unfork.Async.WithResult.Future
+        Unfork.Async.WithResult.IO
+        Unfork.Async.WithResult.STM
+        Unfork.Async.WithResult.Task
+        Unfork.Sync
