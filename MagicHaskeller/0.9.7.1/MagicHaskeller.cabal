@@ -1,0 +1,185 @@
+Name:            MagicHaskeller
+Version:         0.9.7.1
+Cabal-Version:   >= 1.10
+License:         BSD3
+License-file:    LICENSE 
+Author:          Susumu Katayama
+Maintainer:      Susumu Katayama <skata@cs.miyazaki-u.ac.jp>
+Stability:       experimental
+Homepage:        http://nautilus.cs.miyazaki-u.ac.jp/~skata/MagicHaskeller.html
+bug-reports:     mailto:skata@cs.miyazaki-u.ac.jp
+Synopsis:        Automatic inductive functional programmer by systematic search
+Description:     MagicHaskeller is an inductive functional programming system for Haskell.
+                 This package contains the MagicHaskeller library, which can be used within GHCi or as an API for inductive program synthesis.
+                 It also contains the MagicHaskeller executable that is a standalone synthesis program which can be used interactively or as a backend server,
+                 and the MagicHaskeller.cgi executable that is a CGI frontend for providing the Web interface.
+Build-Type:      Simple
+Category:        Language
+data-files:      ExperimIOP.hs MagicHaskeller/predicates MagicHaskeller/predicatesAug2014 MagicHaskeller.conf MagicHaskeller/predicatesServed primitives.txt
+Extra-source-files: xlmap changelog.txt
+Tested-with:     GHC == 7.6.3, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4
+
+Flag TFRANDOM
+  Description: Use the tf-random package instead of the random package
+  Default:     False
+
+Flag GHCAPI
+  Description: Enable execution using the GHC API rather than the combinatory interpreter
+  Default:     True
+
+Flag GHCAPICompat
+  Description: Use GHC-API's compatibility helper.
+  Default:     False
+
+Flag READFILE
+  Description: Enable to read a component library file
+  Default:     True
+
+-- This is being introduced. Not practical without parsers for classes and contexts.
+Flag READFILEEXTS
+  Description: Enable to read a component library file using haskell-src-exts
+  Default:     False
+
+Flag DEBUG
+  Description: Force typechecking at each dynamic application
+  Default:     False
+
+Flag NETWORKURI
+  Description: Find Network.URI in network-uri rather than in network < 2.6 (This is a workaround for the changes made in those packages.)
+  Default:     True
+
+Flag SEMIGROUP
+  Description: Introduce Semigroup as the superclass of Monoid.
+  Default:     True
+
+-- Flag ForcibleTO
+-- Flag Debug
+-- Flag Benchmark
+
+Library
+  Build-depends:   time, template-haskell, base >= 4 && < 5, syb, containers, array, random, directory, bytestring, mtl, html, pretty, hashable, transformers, network <3.0
+  Exposed-modules: MagicHaskeller, Control.Monad.Search.Combinatorial, Control.Monad.Search.Best, MagicHaskeller.ProgramGenerator, MagicHaskeller.ProgGen, MagicHaskeller.ProgGenSF,
+                   MagicHaskeller.ProgGenSFIORef, MagicHaskeller.Expression, MagicHaskeller.LibTH, MagicHaskeller.Analytical, MagicHaskeller.Options, MagicHaskeller.Classification, MagicHaskeller.GetTime, MagicHaskeller.Minimal,
+--                   MagicHaskeller.IOGenerator,
+                   MagicHaskeller.FastRatio, MagicHaskeller.LibExcel, MagicHaskeller.CoreLang, MagicHaskeller.Individual, MagicHaskeller.PolyDynamic, MagicHaskeller.Instantiate, MagicHaskeller.TICE, MagicHaskeller.MyCheck
+  Other-modules:   MagicHaskeller.MemoToFiles, MagicHaskeller.ShortString, 
+                   MagicHaskeller.Types, MagicHaskeller.PriorSubsts, Data.Memo, MagicHaskeller.ClassifyTr,
+                   MagicHaskeller.DebMT, MagicHaskeller.TyConLib,
+                   MagicHaskeller.FakeDynamic, MagicHaskeller.ReadTypeRep,
+                   MagicHaskeller.ReadTHType, MagicHaskeller.TimeOut, MagicHaskeller.Execute, MagicHaskeller.T10,
+                   MagicHaskeller.Classify, MagicHaskeller.MHTH,
+                   MagicHaskeller.ExprStaged, MagicHaskeller.Combinators, MagicHaskeller.ReadDynamic,
+                   MagicHaskeller.MyDynamic, MagicHaskeller.ClassifyDM, MagicHaskeller.Analytical.FMExpr,
+                   MagicHaskeller.Analytical.Parser, MagicHaskeller.Analytical.Syntax, MagicHaskeller.Analytical.UniT, MagicHaskeller.Analytical.Synthesize,
+--                   MagicHaskeller.ExpToHtml,
+                   MagicHaskeller.FMType, MagicHaskeller.NearEq, MagicHaskeller.ClassLib, MagicHaskeller.LibExcelStaged,
+                   Paths_MagicHaskeller, MagicHaskeller.VersionInfo
+  default-extensions:    CPP, TemplateHaskell
+  cpp-options:   -DCHTO -DCABAL
+  default-language:    Haskell2010
+
+  if flag(TFRANDOM)
+    Build-depends:   tf-random <= 0.3 || >= 0.5
+    cpp-options:     -DTFRANDOM
+  else
+    Build-depends:   random >= 1.2.0, splitmix
+
+  if flag(GHCAPI) && !os(windows) && !impl(ghcjs)
+    Build-depends:   ghc-paths
+    Exposed-modules: MagicHaskeller.RunAnalytical, MagicHaskeller.ExecuteAPI610
+    if flag(GHCAPICompat)
+      Build-depends: ghc >= 8.10, ghc-api-compat
+      cpp-options: -DGHCAPICOMPAT
+    else
+      Build-depends: ghc >= 6.10 && < 8.10
+
+  if flag(READFILE)
+    Build-depends:   haskell-src
+    cpp-options:     -DHASKELLSRC
+    Other-modules:   MagicHaskeller.ReadHsType
+
+  if flag(READFILEEXTS)
+    Build-depends:   haskell-src-exts
+    cpp-options:     -DHASKELLSRCEXTS
+    Other-modules:   MagicHaskeller.ReadHsExtsType
+
+  if flag(DEBUG)
+    cpp-options:     -DREALDYNAMIC
+
+  if flag(SEMIGROUP)
+     Build-depends:  base >= 4.11
+     cpp-options:    -DSEMIGROUP
+  else
+     Build-depends:  base < 4.11
+
+Executable MagicHaskeller
+   Main-is: Backend.hs
+   Build-depends:   MagicHaskeller, time, template-haskell, base >= 4 && < 5, syb, containers, array, random, directory, bytestring, mtl, html, pretty, hashable, process, monad-par, transformers, abstract-par, ghc-paths, ghc
+   Other-modules:   MagicHaskeller.SimpleServer, MagicHaskeller.ExpToHtml
+   GHC-options:    -threaded -feager-blackholing -rtsopts
+   default-extensions:     CPP, TemplateHaskell
+   cpp-options:    -DCHTO -DCABAL
+   default-language:    Haskell2010
+
+   if !os(windows)
+     Build-depends:   unix
+     cpp-options:     -DUNIX
+
+   if flag(TFRANDOM)
+     Build-depends:   tf-random <= 0.3 || >= 0.5
+     cpp-options:     -DTFRANDOM
+ 
+   -- just for avoiding rebuilding everything
+   if flag(READFILE)
+     Build-depends:   haskell-src
+     cpp-options:     -DHASKELLSRC
+ 
+   if impl(ghc >= 7)
+     GHC-options:     -with-rtsopts=-N
+
+   if flag(DEBUG)
+     cpp-options:     -DREALDYNAMIC
+
+   if flag(NETWORKURI)
+      Build-depends:  network >= 2.6 && < 3.0, network-uri >= 2.6
+   else
+      Build-depends:  network < 2.6, network-uri < 2.6
+
+   if flag(SEMIGROUP)
+      Build-depends:  base >= 4.11
+      cpp-options:    -DSEMIGROUP
+   else
+      Build-depends:  base < 4.11
+
+-- It is strongly recommended to use a UNIX server for the CGI frontend.
+-- Non-UNIX servers cannot use mueval, which means the functionality of generating input/output examples is not available.
+Executable MagicHaskeller.cgi
+  Main-is: CGI.lhs
+  Build-depends:   time, template-haskell, base >= 4 && < 5, syb, containers, array, random, directory, bytestring, mtl, html, pretty, hashable,
+                   MagicHaskeller, cgi, hint, extensible-exceptions, haskell-src
+  Other-modules:   MagicHaskeller.CGI, MagicHaskeller.ExpToHtml, MagicHaskeller.IOGenerator
+  default-extensions:     CPP
+  cpp-options:   -DCHTO -DCABAL
+  default-language:    Haskell2010
+
+  if !os(windows)
+    Build-depends:   mueval
+    cpp-options:     -DUNIX
+
+  if flag(TFRANDOM)
+    Build-depends:   tf-random <= 0.3 || >= 0.5
+    cpp-options:     -DTFRANDOM
+
+  if flag(DEBUG)
+    cpp-options:     -DREALDYNAMIC
+
+  if flag(NETWORKURI)
+     Build-depends:  network >= 2.6 && < 3.2, network-uri >= 2.6
+  else
+     Build-depends:  network < 2.6, network-uri < 2.6
+
+  if flag(SEMIGROUP)
+     Build-depends:  base >= 4.11
+     cpp-options:    -DSEMIGROUP
+  else
+     Build-depends:  base < 4.11
