@@ -1,0 +1,118 @@
+name:                ridley
+version:             0.3.3.1
+synopsis:            Quick metrics to grow your app strong.
+description:         A collection of Prometheus metrics to monitor your app. Please see README.md
+homepage:            https://github.com/iconnect/ridley#README
+license:             BSD3
+license-file:        LICENSE
+author:              Alfredo Di Napoli & the IRIS Connect Engineering Team
+maintainer:          chrisd@irisconnect.co.uk
+copyright:           2022 IRIS Connect Ltd.
+category:            Web
+build-type:          Simple
+data-files:
+  include/helpers.h
+cabal-version:       >=1.10
+
+flag lib-Werror
+     manual: True
+     default: False
+     description: Enable -Werror
+
+flag library-only
+  description: Build without the executable, for downstream packages
+  manual: True
+  default: True
+
+library
+  hs-source-dirs:      src
+  include-dirs:        include
+  exposed-modules:     System.Metrics.Prometheus.Ridley
+                       System.Metrics.Prometheus.Ridley.Types
+                       System.Metrics.Prometheus.Ridley.Metrics.Memory
+                       System.Metrics.Prometheus.Ridley.Metrics.DiskUsage
+                       System.Metrics.Prometheus.Ridley.Metrics.CPU
+                       System.Metrics.Prometheus.Ridley.Metrics.Network
+                       System.Metrics.Prometheus.Ridley.Metrics.Network.Types
+  other-modules:       System.Metrics.Prometheus.Ridley.Types.Internal
+
+  build-depends:       async < 3.0.0,
+                       auto-update >= 0.1,
+                       base >= 4.7 && < 5,
+                       containers < 0.7.0.0,
+                       katip < 0.9.0.0,
+                       wai-middleware-metrics < 0.3.0.0,
+                       template-haskell,
+                       ekg-core,
+                       time,
+                       text >= 1.2.4.0,
+                       mtl,
+                       shelly >= 1.8.2,
+                       safe-exceptions < 1.8,
+                       transformers,
+                       prometheus > 0.5.0 && < 2.3.0,
+                       raw-strings-qq,
+                       microlens,
+                       microlens-th,
+                       process,
+                       string-conv,
+                       ekg-prometheus-adapter >= 0.1.0.3,
+                       inline-c,
+                       vector,
+                       unix
+  c-sources:           cbits/helpers.c
+  cc-options:          -Wall -std=c99
+  default-language:    Haskell2010
+  if flag(lib-Werror)
+    ghc-options: -Wall -Werror
+  if os(darwin)
+    c-sources:         src/System/Metrics/Prometheus/Ridley/Metrics/CPU/Darwin.c
+    other-modules:     System.Metrics.Prometheus.Ridley.Metrics.Network.Darwin
+                       System.Metrics.Prometheus.Ridley.Metrics.CPU.Darwin
+  else
+    other-modules:     System.Metrics.Prometheus.Ridley.Metrics.Network.Unix
+                       System.Metrics.Prometheus.Ridley.Metrics.CPU.Unix
+
+test-suite ridley-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , bytestring
+                     , ridley
+                     , tasty
+                     , tasty-hunit
+                     , tasty-quickcheck
+                     , ekg-core
+                     , prometheus
+                     , containers
+                     , microlens
+                     , ekg-prometheus-adapter
+                     , text
+                     , string-conv
+                     , http-client >= 0.4.30
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+executable ridley-example
+    main-is: example/Main.hs
+    if !flag(library-only)
+      build-depends: base
+                   , time
+                   , ridley
+                   , katip
+                   , text
+                   , http-types
+                   , wai
+                   , wai-middleware-metrics
+                   , warp
+                   , microlens
+                   , mtl
+                   , prometheus
+    if flag(library-only)
+      buildable: False
+    default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/iconnect/ridley
