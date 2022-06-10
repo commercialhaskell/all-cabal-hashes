@@ -1,0 +1,238 @@
+cabal-version:      >=1.10
+name:               intricacy
+version:            0.8.1.1
+license:            GPL-3
+license-file:       COPYING
+maintainer:         mbays@sdf.org
+author:             Martin Bays
+homepage:           http://mbays.freeshell.org/intricacy
+synopsis:           A game of competitive puzzle-design
+description:
+    A lockpicking-themed turn-based puzzle game on a hex grid. A series of
+    preset puzzles serves as an extended single-player introduction, after
+    which players enter a multi-player game with a client-server architecture,
+    in which players design puzzles (locks) and solve those designed by
+    others. A metagame encourages the design of maximally difficult puzzles,
+    within tight size constraints. The client supports Curses and SDL, with
+    all graphics in SDL mode drawn by code using SDL-gfx. The network protocol
+    is based on the 'binary' package, and is intended to be reasonably
+    efficient. TVars are used to give transparent local caching and background
+    network operations. Also incorporates an implementation of a graph
+    5-colouring algorithm (see GraphColouring.hs).
+
+category:           Game
+build-type:         Simple
+data-files:
+    VeraMoBd.ttf
+    tutorial/*.lock
+    tutorial/*.text
+    initiation/initiation.map
+    initiation/*.lock
+    initiation/*.text
+    sounds/*.ogg
+
+extra-source-files:
+    Main_stub.h
+    README
+    BUILD
+    NEWS
+    tutorial-extra/*.lock
+    tutorial-extra/README
+
+source-repository head
+    type:     git
+    location: http://mbays.freeshell.org/intricacy/.git
+
+flag game
+    description: Build game
+    manual:      True
+
+flag sdl
+    description: Enable SDL UI
+
+flag sound
+    description: Enable sound
+
+flag curses
+    description: Enable Curses UI
+
+flag server
+    description: Build server
+    default:     False
+    manual:      True
+
+executable intricacy
+    main-is:          Intricacy.hs
+    other-modules:
+        AsciiLock
+        BinaryInstances
+        BoardColouring
+        Cache
+        Command
+        CVec
+        Database
+        EditGameState
+        Frame
+        GameState
+        GameStateTypes
+        GraphColouring
+        Hex
+        Init
+        InputMode
+        Interact
+        InteractUtil
+        KeyBindings
+        Lock
+        MainState
+        Maxlocksize
+        Metagame
+        Mundanities
+        Paths_intricacy
+        Physics
+        Protocol
+        ServerAddr
+        Util
+        Version
+
+    default-language: Haskell2010
+
+    if !flag(game)
+        buildable: False
+
+    else
+        default-extensions: DoAndIfThenElse
+        build-depends:
+            base >=4.3 && <5,
+            mtl >=2.1.3.1 && <2.4,
+            transformers >=0.3.0.0 && <0.8,
+            stm >=2.1 && <2.6,
+            directory >=1.0 && <1.4,
+            exceptions >=0.8.3 && <0.11,
+            filepath >=1.0 && <1.5,
+            time >=1.2 && <1.14,
+            bytestring >=0.10 && <0.12,
+            array >=0.3 && <0.6,
+            containers >=0.4 && <0.7,
+            vector >=0.9 && <0.13,
+            binary >=0.5 && <0.11,
+            network-simple >=0.3 && <0.5,
+            safe >=0.3.18 && <0.4,
+            memory >=0.11 && <0.18,
+            cryptonite >=0.16 && <0.31
+
+        if !impl(ghc >=8.0)
+            build-depends: semigroups ==0.18.*
+
+        if flag(sdl)
+            build-depends:
+                SDL >=0.6.5 && <0.7,
+                SDL-ttf ==0.6.*,
+                SDL-gfx >=0.6 && <0.8
+
+            if flag(sound)
+                cpp-options:   -DSOUND
+                build-depends:
+                    SDL-mixer ==0.6.*,
+                    random >=1.0 && <1.4
+
+            if os(windows)
+                extra-libraries:
+                    SDL_ttf
+                    SDL
+                    SDL_gfx
+                    freetype
+
+                ghc-options:     -optl-mwindows
+
+                if flag(sound)
+                    extra-libraries: SDL_mixer
+
+            if os(osx)
+                cpp-options:  -DAPPLE
+                c-sources:    c_main.c
+                include-dirs: /usr/include/SDL /usr/local/include/SDL
+                ghc-options:  -no-hs-main
+
+        if flag(curses)
+            cpp-options:       -DMAIN_CURSES
+            pkgconfig-depends: ncursesw -any
+            other-modules:
+                CursesRender
+                CursesUI
+                CursesUIMInstance
+
+            build-depends:     hscurses ==1.4.*
+
+        if flag(sdl)
+            cpp-options:   -DMAIN_SDL
+            other-modules:
+                SDLGlyph
+                SDLRender
+                SDLUI
+                SDLUIMInstance
+
+        if (!flag(sdl) && !flag(curses))
+            buildable:     False
+            build-depends: base <0
+
+executable intricacy-server
+    main-is:          Server.hs
+    other-modules:
+        AsciiLock
+        BinaryInstances
+        BoardColouring
+        CVec
+        Database
+        Frame
+        GameState
+        GameStateTypes
+        GraphColouring
+        Hex
+        Lock
+        Maxlocksize
+        Metagame
+        Mundanities
+        Paths_intricacy
+        Physics
+        Protocol
+        Util
+        Version
+
+    default-language: Haskell2010
+
+    if flag(server)
+        default-extensions: DoAndIfThenElse
+        build-depends:
+            base >=4.3 && <5,
+            mtl >=2.2 && <2.4,
+            transformers >=0.4 && <0.8,
+            stm >=2.1 && <2.6,
+            directory >=1.0 && <1.4,
+            exceptions >=0.8.3 && <0.11,
+            filepath >=1.0 && <1.5,
+            time >=1.5 && <1.14,
+            bytestring >=0.10 && <0.12,
+            array >=0.3 && <0.6,
+            containers >=0.4 && <0.7,
+            vector >=0.9 && <0.13,
+            binary >=0.5 && <0.11,
+            network-fancy >=0.1.5 && <0.3,
+            safe >=0.3.18 && <0.4,
+            random >=1.0 && <1.4,
+            pipes >=4 && <4.4,
+            feed >=1.1 && <1.4,
+            xml-conduit >=1.0 && <1.10,
+            email-validate >=1.0 && <2.4,
+            text >=0.1 && <1.3,
+            text-short ==0.1.*,
+            mime-mail >=0.4.4 && <0.6,
+            smtp-mail >=0.1.4.1 && <0.4,
+            memory >=0.11 && <0.18,
+            cryptonite >=0.16 && <0.31,
+            argon2 ==1.3.*
+
+        if !impl(ghc >=8.0)
+            build-depends: semigroups ==0.18.*
+
+    else
+        buildable: False
