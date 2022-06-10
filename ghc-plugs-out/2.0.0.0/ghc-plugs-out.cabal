@@ -1,0 +1,305 @@
+cabal-version: 3.0
+
+name:           ghc-plugs-out
+version:        2.0.0.0
+synopsis:       Type checker plugins without the type checking.
+description:
+  A __plugs-out__ spacecraft has no cables or umbilicals connected. The plugins
+  in this package are __plugs-out__ in the sense that they do no type checking.
+
+  The test suites in this package show how type checker plugins interact with GHC
+  depending on:
+
+  * their purity
+
+  * how they're wired up
+
+  * what options they see
+
+  * whether GHC needs help type checking
+
+category:       Compiler Plugin
+author:         Phil de Joux
+maintainer:     phil.dejoux@blockscope.com
+copyright:      © 2020-2022 Phil de Joux, © 2020-2022 Block Scope Limited
+homepage:       https://github.com/blockscope/ghc-plugs-out
+license:        MPL-2.0
+license-file:   LICENSE.md
+tested-with:    GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.2
+build-type:     Simple
+extra-source-files:
+  changelog.md, README.rst
+
+source-repository head
+  type: git
+  location: https://github.com/blockscope/ghc-plugs-out
+
+common opts
+  ghc-options:
+    -Wall
+    -Wincomplete-uni-patterns
+    -Wcompat
+    -Widentities
+    -Wredundant-constraints
+    -fhide-source-paths
+  default-language: Haskell2010
+
+library no-op-plugin
+  import: opts
+  exposed-modules:
+      NoOp.Plugin
+  hs-source-dirs:
+      plugins/noop
+  build-depends:
+      base >= 4.10 && < 5
+    , ghc
+    , ghc-corroborate
+
+library undefined-init-plugin
+  import: opts
+  exposed-modules:
+      Undefined.Init.Plugin
+  hs-source-dirs:
+      plugins/init
+  build-depends:
+      base >= 4.10 && < 5
+    , ghc
+    , ghc-corroborate
+    , no-op-plugin
+
+library undefined-solve-plugin
+  import: opts
+  exposed-modules:
+      Undefined.Solve.Plugin
+  hs-source-dirs:
+      plugins/solve
+  build-depends:
+      base >= 4.10 && < 5
+    , ghc
+    , ghc-corroborate
+    , no-op-plugin
+
+library undefined-stop-plugin
+  import: opts
+  exposed-modules:
+      Undefined.Stop.Plugin
+  hs-source-dirs:
+      plugins/stop
+  build-depends:
+      base >= 4.10 && < 5
+    , ghc
+    , ghc-corroborate
+    , no-op-plugin
+
+library call-count-plugin
+  import: opts
+  exposed-modules:
+      CallCount.TcPlugin
+      CallCount.Pure.Plugin
+      CallCount.Pure.Plugin1
+      CallCount.Pure.Plugin2
+      CallCount.Impure.Plugin
+  hs-source-dirs:
+      plugins/call-count
+  build-depends:
+      base >= 4.10 && < 5
+    , ghc
+    , ghc-corroborate
+    , th-printf
+    , no-op-plugin
+
+test-suite test-undefined-init
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/undef-init
+  build-depends:
+      base >= 4.10 && < 5
+    , undefined-init-plugin
+
+test-suite test-undefined-init-carefree
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/undef-init-carefree
+  build-depends:
+      base >= 4.10 && < 5
+    , undefined-init-plugin
+
+test-suite test-undefined-solve
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/undef-solve
+  build-depends:
+      base >= 4.10 && < 5
+    , undefined-solve-plugin
+
+test-suite test-undefined-solve-carefree
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/undef-solve-carefree
+  build-depends:
+      base >= 4.10 && < 5
+    , undefined-solve-plugin
+
+test-suite test-undefined-stop
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/undef-stop
+  build-depends:
+      base >= 4.10 && < 5
+    , undefined-stop-plugin
+
+test-suite test-undefined-stop-carefree
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/undef-stop-carefree
+  build-depends:
+      base >= 4.10 && < 5
+    , undefined-stop-plugin
+
+test-suite test-wireup-pure-by-option
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/wireup-pure-by-option
+  ghc-options: -Wall -fplugin CallCount.Pure.Plugin
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-wireup-pure-by-pragma
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/wireup-pure-by-pragma
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-wireup-pure-by-both
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/wireup-pure-by-pragma
+  ghc-options: -Wall -fplugin CallCount.Pure.Plugin
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-wireup-impure-by-option
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/wireup-impure-by-option
+  ghc-options: -Wall -fplugin CallCount.Impure.Plugin
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-wireup-impure-by-pragma
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/wireup-impure-by-pragma
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-wireup-impure-by-both
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/wireup-impure-by-pragma
+  ghc-options: -Wall -fplugin CallCount.Impure.Plugin
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-counter-main
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/counter-main
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-in-turn
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/counter-in-turn
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-in-line
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/counter-in-line
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-in-turn-each
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/counter-in-turn-each
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-in-line-each
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suites/counter-in-line-each
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-counter-foo-bar-main
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules: Foo Bar
+  hs-source-dirs:
+      test-suites/counter-foo-bar-main
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
+
+test-suite test-counter-foobar-main
+  import: opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules: FooBar
+  hs-source-dirs:
+      test-suites/counter-foobar-main
+  build-depends:
+      base >= 4.10 && < 5
+    , call-count-plugin
