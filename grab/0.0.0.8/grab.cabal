@@ -1,0 +1,128 @@
+cabal-version: 3.0
+
+name: grab
+version: 0.0.0.8
+
+synopsis: Applicative non-linear consumption
+category: Control
+
+description:
+    == The Grab type
+
+    A grab consumes some portion (none, part, or all) of
+    its input @bag@, and returns a @residue@ consisting of
+    the unconsumed input, some monoidal @log@ (e.g. a list
+    of error messages), and some @desideratum@ (the object
+    of desire) produced from the consumed input, or
+    @Nothing@ if the grab failed.
+
+    > newtype Grab bag residue log desideratum =
+    >   Grab (
+    >     bag -> (residue, log, Maybe desideratum)
+    >   )
+
+    Grabs are useful as parsers for inputs such as JSON
+    objects or lists of form parameters, where the input data
+    is not necessarily given linearly in the same order in
+    which we want to consume it.
+
+    == Applicative composition
+
+    A @Simple@ grab (where the @bag@ and @residue@ are the
+    same type) has an @Applicative@ instance.
+
+    > instance (bag ~ residue, Monoid log) =>
+    >     Applicative (Grab bag residue log)
+
+    For example, we can create two simple list grabs, one that
+    grabs multiples of two, and the other that grabs multiples
+    of three:
+
+    > twos, threes :: Monoid log =>
+    >     Control.Grab.Simple [Integer] log [Integer]
+    > twos   = partition (Data.List.partition (\x -> mod x 2 == 0))
+    > threes = partition (Data.List.partition (\x -> mod x 3 == 0))
+
+    > λ> runGrabMaybe ((,) <$> twos @() <*> threes @()) [1..10]
+    > Just ([2,4,6,8,10],[3,9])
+
+    Notice that the second part of the resulting tuple contains only
+    the /odd/ multiples of three. Because @twos@ runs first, it
+    consumes @6@ before the @threes@ can get it.
+
+    == Pipeline composition
+
+    @a / b@ is a pipeline of two grabs, where the desideratum from
+    @a@ is the @bag@ for @b@.
+    .
+    > (/) :: Semigroup log
+    >     => Grab bag residue log x
+    >     -> Grab x  _residue log desideratum
+    >     -> Grab bag residue log desideratum
+
+    > λ> runGrabMaybe (twos @() / threes @()) [1..10]
+    > Just [6]
+
+    > λ> runGrabMaybe ((,) <$> (twos @() / threes @()) <*> threes @()) [1..10]
+    > Just ([6],[3,9])
+
+homepage:    https://github.com/typeclasses/grab
+bug-reports: https://github.com/typeclasses/grab/issues
+
+author:     Chris Martin
+maintainer: Chris Martin, Julie Moronuki
+
+copyright: 2021 Mission Valley Software LLC
+license: MIT
+license-file: license.txt
+
+extra-source-files:
+    changelog.md
+
+common base
+    default-language: Haskell2010
+    build-depends:
+        base ^>= 4.12 || ^>= 4.13 || ^>= 4.14 || ^>= 4.15 || ^>= 4.16
+
+library
+    import: base
+    hs-source-dirs: src
+    ghc-options: -fdefer-typed-holes
+    exposed-modules: Control.Grab
+
+test-suite grab-test
+    import: base
+    type: exitcode-stdio-1.0
+    hs-source-dirs: test
+    main-is: Main.hs
+
+    build-depends:
+        grab
+      , hedgehog ^>= 1.0 || ^>= 1.1
+
+-- This benchmark runs with a tightly limited stack size
+-- to detect space leaks, as described by:
+-- http://neilmitchell.blogspot.com/2015/09/detecting-space-leaks.html
+--
+-- Run it like this for a stack trace:
+--
+--     stack bench grab:space --profile --ba "+RTS -xc"
+--
+benchmark grab-space-bench
+    import: base
+    type: exitcode-stdio-1.0
+    hs-source-dirs: bench/space
+    main-is: Main.hs
+    ghc-options: "-with-rtsopts=-K1K"
+
+    build-depends: grab
+
+benchmark grab-time-bench
+    import: base
+    type: exitcode-stdio-1.0
+    hs-source-dirs: bench/time
+    main-is: Main.hs
+
+    build-depends:
+        criterion ^>= 1.5
+      , grab
