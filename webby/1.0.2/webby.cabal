@@ -1,0 +1,133 @@
+cabal-version: 2.2
+name:           webby
+version:        1.0.2
+synopsis:       A super-simple web server framework
+description:    A super-simple, easy to use web server framework inspired by
+                Scotty. The goals of the project are: (1) Be easy to use (2) Allow
+                graceful exception handling (3) Parse request parameters easily and
+                in a typed manner.
+category:       Web
+homepage:       https://github.com/donatello/webby
+bug-reports:    https://github.com/donatello/webby/issues
+maintainer:     aditya.mmy@gmail.com,
+                krishnan.parthasarathi@gmail.com
+license:        Apache-2.0
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    LICENSE
+    examples/*.hs
+
+source-repository head
+  type: git
+  location: https://github.com/donatello/webby
+
+common base-settings
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -haddock
+  if impl(ghc >= 8.0)
+    ghc-options:       -Wredundant-constraints
+  if impl(ghc >= 8.2)
+    ghc-options:       -fhide-source-paths
+
+  -- Add this when we have time. Fixing partial-fields requires major version
+  -- bump at this time.
+  -- if impl(ghc >= 8.4)
+  --   ghc-options:       -Wpartial-fields
+  --                      -Wmissing-export-lists
+
+  if impl(ghc >= 8.8)
+    ghc-options:       -Wmissing-deriving-strategies
+                       -Werror=missing-deriving-strategies
+
+  default-language:    Haskell2010
+
+  default-extensions:
+      DerivingStrategies
+      FlexibleInstances
+      MultiParamTypeClasses
+      MultiWayIf
+      NoImplicitPrelude
+      OverloadedStrings
+      ScopedTypeVariables
+      TupleSections
+
+  other-modules:
+      Prelude
+      Webby.Server
+      Webby.Types
+      Paths_webby
+
+  autogen-modules:
+      Paths_webby
+  build-depends:
+      aeson >=1.4 && <2.2
+    , base >=4.7 && <5
+    , binary >=0.8 && <1
+    , bytestring >=0.10 && <1
+    , formatting >=6.3.7 && <7.2
+    , http-api-data >=0.4 && <0.6
+    , http-types ==0.12.*
+    , relude >=0.7
+    , resourcet ==1.2.*
+    , text >=1.2 && <2.1
+    , unliftio >=0.2.13 && <0.3
+    , unliftio-core ==0.2.*
+    , unordered-containers >=0.2.9 && <0.3
+    , wai ==3.2.*
+
+  mixins:              base hiding (Prelude)
+
+library
+  import:
+      base-settings
+  exposed-modules:
+      Webby
+  hs-source-dirs:
+      src
+
+test-suite webby-test
+  import:
+      base-settings
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs:
+      src
+      test
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , webby
+
+Flag examples
+  Description: Build the examples
+  Default: False
+  Manual: True
+
+common examples-settings
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+  default-extensions:  OverloadedStrings
+  build-depends:       base >= 4.7 && < 5
+                     , http-types
+                     , relude
+                     , text
+                     , warp
+                     , webby
+                     , unliftio
+                     , unordered-containers
+  hs-source-dirs:      examples
+  if !flag(examples)
+    buildable: False
+
+executable Basic
+  import:   examples-settings
+  scope:    private
+  main-is: Basic.hs
