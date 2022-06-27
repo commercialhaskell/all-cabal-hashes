@@ -1,0 +1,130 @@
+cabal-version:       2.2
+name:                unicode-data-names
+version:             0.1.0
+synopsis:            Unicode characters names and aliases
+description:
+  @unicode-data-names@ provides Haskell APIs to access the Unicode
+  character /names and aliases/ from the
+  <https://www.unicode.org/ucd/ Unicode character database> (UCD).
+  .
+  The Haskell data structures are generated programmatically from the UCD.
+  The latest Unicode version supported by this library is
+  @<https://www.unicode.org/versions/Unicode14.0.0/ 14.0.0>@.
+homepage:            http://github.com/composewell/unicode-data
+bug-reports:         https://github.com/composewell/unicode-data/issues
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Composewell Technologies and Contributors
+maintainer:          dev@wismill.eu
+copyright:           2022 Composewell Technologies and Contributors
+category:            Data,Text,Unicode
+stability:           Experimental
+build-type:          Simple
+tested-with:         GHC==8.0.2
+                   , GHC==8.2.2
+                   , GHC==8.4.4
+                   , GHC==8.6.5
+                   , GHC==8.8.4
+                   , GHC==8.10.7
+                   , GHC==9.0.1
+                   , GHC==9.2.1
+
+extra-source-files:
+    Changelog.md
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/composewell/unicode-data
+
+flag export-all-chars
+  description: Build the export-all-chars executable
+  manual: True
+  default: False
+
+common default-extensions
+  default-extensions:
+      BangPatterns
+      DeriveGeneric
+      MagicHash
+      RecordWildCards
+      ScopedTypeVariables
+      TupleSections
+      FlexibleContexts
+      LambdaCase
+
+      -- Experimental, may lead to issues
+      DeriveAnyClass
+      TemplateHaskell
+      UnboxedTuples
+
+common compile-options
+  ghc-options: -Wall
+               -fwarn-identities
+               -fwarn-incomplete-record-updates
+               -fwarn-incomplete-uni-patterns
+               -fwarn-tabs
+  default-language: Haskell2010
+
+library
+  import: default-extensions, compile-options
+  default-language: Haskell2010
+  exposed-modules:
+      -- The module structure is derived from
+      -- https://www.unicode.org/reports/tr44/#Property_Index_Table
+      Unicode.Char.General.Names
+
+      -- Generated files
+      -- This module structure is largely based on the UCD file names from which
+      -- the properties are generated.
+      Unicode.Internal.Char.UnicodeData.DerivedName
+      Unicode.Internal.Char.UnicodeData.NameAliases
+
+  hs-source-dirs: lib
+  build-depends:
+      base             >= 4.7   && < 4.17
+
+test-suite test
+  import: default-extensions, compile-options
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test
+  other-modules:
+      Unicode.Char.General.NamesSpec
+  build-depends:
+      base             >= 4.7   && < 4.17
+    , hspec            >= 2.0   && < 2.10
+    , unicode-data
+    , unicode-data-names
+  build-tool-depends:
+      hspec-discover:hspec-discover >= 2.0 && < 2.10
+  default-language: Haskell2010
+
+executable export-all-chars
+  import: default-extensions, compile-options
+  default-language: Haskell2010
+  ghc-options: -O2
+  hs-source-dirs: test
+  main-is: export_all_chars.hs
+  if flag(export-all-chars)
+    buildable: True
+    build-depends:
+        base
+      , unicode-data
+      , unicode-data-names
+  else
+    buildable: False
+
+benchmark bench
+  import: default-extensions, compile-options
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: Main.hs
+  build-depends:
+    base        >= 4.7   && < 4.17,
+    deepseq     >= 1.1   && < 1.5,
+    tasty-bench >= 0.2.5 && < 0.4,
+    tasty       >= 1.4.1,
+    unicode-data-names
+  ghc-options: -O2 -fdicts-strict -rtsopts
