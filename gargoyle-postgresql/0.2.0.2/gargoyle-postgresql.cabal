@@ -1,0 +1,122 @@
+name:               gargoyle-postgresql
+version:            0.2.0.2
+license:            BSD3
+license-file:       LICENSE
+author:             Obsidian Systems LLC
+maintainer:         maintainer@obsidian.systems
+copyright:          Copyright (C) 2017 Obsidian Systems LLC
+category:           PostgreSQL
+build-type:         Simple
+cabal-version:      >=1.10
+synopsis:           Manage PostgreSQL servers with gargoyle
+description:
+  This package provides tools for managing PostgreSQL servers that live in local folders and communicate via a Unix domain socket. It uses the <https://hackage.haskell.org/package/gargoyle gargoyle> package in order to automatically initialize, spin up, and spin down such servers according to client demand.
+  .
+  The `gargoyle-psql` executable is such a client which will try to connect to a PostgreSQL server at a given location:
+  .
+  > gargoyle-psql db
+  .
+  > psql (9.5.6)
+  > Type "help" for help.
+  >
+  > postgres=#
+  .
+  Note that `gargoyle-psql` assumes that PostgreSQL executables such as `psql` are available on the PATH. A custom 'Gargoyle' is required to use non-standard PostgreSQL installations.
+  .
+  The following is an example of using this package to run <https://hackage.haskell.org/package/postgresql-simple postgresql-simple> actions using a local DB:
+  .
+  > import Database.PostgreSQL.Simple
+  > import Gargoyle
+  > import Gargoyle.PostgreSQL
+  >
+  > withDb :: String -> (Connection -> IO a) -> IO a
+  > withDb dbPath a = withGargoyle defaultPostgres dbPath $ \dbUri -> a =<< connectPostgreSQL dbUri
+
+extra-source-files: ChangeLog.md
+tested-with:        GHC ==8.6.5 || ==8.8.4 || ==8.10.7 || ==9.0.2
+
+-- Requires postgres to be in the environment to run
+flag enable-psql-test
+  default: False
+  manual:  True
+
+library
+  exposed-modules:  Gargoyle.PostgreSQL
+  ghc-options:      -Wall
+  ghc-prof-options: -fprof-auto-exported
+  build-depends:
+      base          >=4.12  && <4.17
+    , bytestring    >=0.10  && <0.12
+    , directory     >=1.3   && <1.4
+    , gargoyle      >=0.1.1.0 && < 0.2
+    , posix-escape  >=0.1   && <0.2
+    , process       >=1.5   && <1.7
+    , stringsearch  >=0.3   && <0.4
+    , text          >=1.2   && <1.3
+    , unix          >=2.7.2 && <2.8
+
+  hs-source-dirs:   src
+  default-language: Haskell2010
+
+executable gargoyle-psql
+  main-is:          gargoyle-psql.hs
+  hs-source-dirs:   src-bin
+  ghc-options:      -Wall -threaded
+  ghc-prof-options: -fprof-auto-exported
+  default-language: Haskell2010
+  build-depends:
+      base
+    , bytestring
+    , gargoyle
+    , gargoyle-postgresql
+    , process
+    , text
+    , unix
+
+executable gargoyle-pg-run
+  main-is:          gargoyle-pg-run.hs
+  hs-source-dirs:   src-bin
+  ghc-options:      -Wall -threaded
+  ghc-prof-options: -fprof-auto-exported
+  default-language: Haskell2010
+  build-depends:
+      base
+    , gargoyle
+    , gargoyle-postgresql
+
+executable gargoyle-postgres-monitor
+  main-is:          gargoyle-postgres-monitor.hs
+  hs-source-dirs:   src-bin
+  ghc-options:      -Wall -threaded
+  ghc-prof-options: -fprof-auto-exported
+  default-language: Haskell2010
+  build-depends:
+      base
+    , bytestring
+    , gargoyle
+    , gargoyle-postgresql
+    , process
+    , text
+
+test-suite gargoyle-psql-test
+  type:             exitcode-stdio-1.0
+  main-is:          gargoyle-psql-test.hs
+  ghc-options:      -Wall -threaded
+  ghc-prof-options: -fprof-auto-exported
+  hs-source-dirs:   tests
+  default-language: Haskell2010
+
+  if !flag(enable-psql-test)
+    buildable: False
+
+  else
+    build-depends:
+        base
+      , bytestring
+      , directory
+      , filepath
+      , gargoyle
+      , gargoyle-postgresql
+      , process
+      , text
+      , unix
