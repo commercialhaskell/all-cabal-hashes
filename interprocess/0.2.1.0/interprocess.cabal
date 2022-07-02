@@ -1,0 +1,119 @@
+cabal-version:       3.0
+name:                interprocess
+version:             0.2.1.0
+synopsis:            Shared memory and control structures for IPC
+description:         Provides portable shared memory allocator and some synchronization primitives.
+                     Can be used for interprocess communication.
+                     Refer to README.md for further information.
+homepage:            https://github.com/achirkin/interprocess
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Artem Chirkin
+maintainer:          achirkin@users.noreply.github.com
+copyright:           (c) 2018-2022 Artem Chirkin
+category:            system
+build-type:          Simple
+extra-source-files:
+    README.md
+    include/common.h
+    include/SharedPtr.h
+    src/Control/Concurrent/Process/QSem.c
+    src/Foreign/SharedPtrPosix.c
+    src/Foreign/SharedPtrWin32.c
+    src/Control/Concurrent/Process/StoredMVarPosix.c
+    src/Control/Concurrent/Process/StoredMVarWin32.c
+
+flag examples
+    description:
+      Build example-test programs
+    default: False
+    manual: True
+
+flag dev
+    description:
+      Development build with debugging and with no optimization
+    default: False
+    manual: True
+
+library
+    hs-source-dirs:    src
+    exposed-modules:   Foreign.SharedPtr
+                       Foreign.SharedObjectName
+                       Foreign.SharedObjectName.Internal
+                       Foreign.SharedPtr.C
+                       Control.Concurrent.Process.QSem
+                       Control.Concurrent.Process.StoredMVar
+    build-depends:     base >= 4.8 && < 5
+    default-language:  Haskell2010
+    ghc-options:       -Wall
+    include-dirs:      include
+    c-sources:         cbits/common.c
+                       src/Control/Concurrent/Process/QSem.c
+                       src/Foreign/SharedPtr.c
+    cmm-sources:       src/Control/Concurrent/Process/StoredMVarPrim.cmm
+    if os(windows)
+      c-sources:       src/Foreign/SharedPtrWin32.c
+                       src/Control/Concurrent/Process/StoredMVarWin32.c
+    else
+      c-sources:       src/Foreign/SharedPtrPosix.c
+                       src/Control/Concurrent/Process/StoredMVarPosix.c
+    if flag(dev)
+        ghc-options:   -O0 -debug -dcmm-lint
+        cpp-options:   -DINTERPROCESS_DEBUG
+        cc-options:    -DINTERPROCESS_DEBUG
+    else
+        cpp-options:   -DNDEBUG
+        cc-options:    -DNDEBUG
+        ghc-options:   -O2
+
+
+executable concurrent-malloc
+    if !flag(examples)
+      buildable:         False
+    hs-source-dirs:      examples
+    main-is:             concurrent-malloc.hs
+    default-language:    Haskell2010
+    build-depends:       base
+                       , typed-process >= 0.2.5
+                       , interprocess
+    ghc-options:         -threaded -Wall
+
+executable wait-qsem
+    if !flag(examples)
+      buildable:         False
+    hs-source-dirs:      examples
+    main-is:             wait-qsem.hs
+    default-language:    Haskell2010
+    build-depends:       base
+                       , typed-process >= 0.2.5
+                       , interprocess
+    ghc-options:         -threaded -Wall
+
+executable wait-mvar
+    if !flag(examples)
+      buildable:         False
+    hs-source-dirs:      examples
+    main-is:             wait-mvar.hs
+    default-language:    Haskell2010
+    build-depends:       base
+                       , typed-process >= 0.2.5
+                       , interprocess
+    ghc-options:         -threaded -Wall
+
+test-suite StoredMVar
+    type:                exitcode-stdio-1.0
+    main-is:             StoredMVar.hs
+    other-modules:       Tools.Handle
+                         Tools.TestResult
+                         Tools.Runner
+    default-language:    Haskell2010
+    hs-source-dirs:      test
+    build-depends:       base >= 4.11
+                       , typed-process >= 0.2.5
+                       , async
+                       , containers
+                       , bytestring
+                       , stm
+                       , temporary
+                       , interprocess
+    ghc-options:         -threaded -Wall
