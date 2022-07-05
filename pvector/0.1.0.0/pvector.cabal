@@ -1,0 +1,139 @@
+cabal-version: 3.0
+name: pvector
+version: 0.1.0.0
+synopsis: Fast persistent vectors
+description:
+  An persistent vector is an efficient sequence data structure.
+  It supports fast indexing, iteration, snocing.
+homepage: https://github.com/oberblastmeister/pvector
+bug-reports: https://github.com/oberblastmeister/pvector/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Brian Shu
+maintainer: littlebubu.shu@gmail.com
+copyright: 2022 Brian Shu
+category: Data
+extra-source-files:
+  CHANGELOG.md
+  README.md
+extra-doc-files:
+  docs/diagram.png
+tested-with: GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.2
+
+flag debug
+  description: Enable array bounds checking
+  manual: True
+  default: False
+
+common common-options
+  default-language: Haskell2010
+  default-extensions:
+    FlexibleInstances,
+    FlexibleContexts,
+    InstanceSigs,
+    MultiParamTypeClasses,
+    ConstraintKinds,
+    LambdaCase,
+    EmptyCase,
+    TupleSections,
+    BangPatterns,
+    TypeApplications,
+    StandaloneDeriving,
+    OverloadedStrings,
+    RankNTypes,
+    ScopedTypeVariables,
+    NamedFieldPuns,
+    DuplicateRecordFields,
+    DataKinds,
+    ConstraintKinds,
+    TypeApplications,
+    KindSignatures,
+    DeriveFoldable,
+    DeriveFunctor,
+    DeriveGeneric,
+    DeriveDataTypeable,
+    DeriveLift,
+    DeriveTraversable ,
+    GeneralizedNewtypeDeriving,
+    GADTs,
+    PolyKinds,
+    ViewPatterns,
+    PatternSynonyms,
+    TypeFamilies,
+    TypeFamilyDependencies,
+    FunctionalDependencies,
+    ExistentialQuantification,
+    TypeOperators,
+  ghc-options:
+    -Wall
+    -Wincomplete-record-updates
+    -Wredundant-constraints
+    -Wno-name-shadowing
+    -- until OverloadedRecordUpdate stabilizes
+    -Wno-ambiguous-fields
+    -Werror=incomplete-patterns
+    -Werror=incomplete-uni-patterns
+    -Werror=missing-methods
+  build-depends:
+    base >= 4.12 && <5,
+    primitive >= 0.6.4.0 && <0.8,
+    deepseq >=1.1 && <1.5,
+    vector-stream ^>= 0.1.0.0,
+
+library
+  import: common-options
+  hs-source-dirs: src
+  exposed-modules:
+    Data.Vector.Persistent
+    Data.Vector.Persistent.Unsafe
+    Data.Vector.Persistent.Internal
+    Data.Vector.Persistent.Internal.Buffer
+    Data.Vector.Persistent.Internal.Array
+    Data.Vector.Persistent.Internal.CoercibleUtils
+  if flag(debug)
+    cpp-options: -DDEBUG
+    if impl(ghc >= 9.2.2)
+      ghc-options: -fcheck-prim-bounds
+
+  -- uncomment to inspect generated code
+  -- ghc-options: -O2
+  -- ghc-options: -ddump-simpl -ddump-stg-final -ddump-cmm -ddump-asm -ddump-to-file
+  -- ghc-options: -dsuppress-coercions -dsuppress-unfoldings -dsuppress-module-prefixes
+  -- ghc-options: -dsuppress-uniques -dsuppress-timestamps
+
+common rtsopts
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+test-suite pvector-test
+  import: common-options, rtsopts
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Spec.hs
+  other-modules:
+    PersistentVectorSpec
+  build-depends:
+    pvector,
+    hspec ^>= 2.9.4,
+    QuickCheck ^>= 2.14.2,
+    quickcheck-instances ^>= 0.3.27,
+  build-tool-depends:
+    hspec-discover:hspec-discover,
+  cpp-options: -DTEST
+
+benchmark pvector-bench
+  import: common-options, rtsopts
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: Main.hs
+  ghc-options: -O2
+  build-depends:
+    pvector,
+    criterion ^>= 1.5.13.0,
+    rrb-vector ^>= 0.1.1.0,
+    vector ^>= 0.12.3.1,
+    unordered-containers ^>= 0.2.17.0,
+    containers >= 0.5.5.1 && < 0.7,
+    persistent-vector ^>= 0.2.0,
