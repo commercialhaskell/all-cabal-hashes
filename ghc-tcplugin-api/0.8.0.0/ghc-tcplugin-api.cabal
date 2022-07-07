@@ -1,0 +1,158 @@
+cabal-version:  3.0
+name:           ghc-tcplugin-api
+version:        0.8.0.0
+synopsis:       An API for type-checker plugins.
+license:        BSD-3-Clause
+build-type:     Simple
+author:         Sam Derbyshire
+maintainer:     Sam Derbyshire
+copyright:      2021 Sam Derbyshire
+homepage:       https://github.com/sheaf/ghc-tcplugin-api
+category:       Type System, GHC, Plugin
+description:
+
+  This library provides a streamlined monadic interface
+  for writing GHC type-checking plugins.
+
+  Each stage in a type-checking plugin (initialisation, solving, rewriting,
+  shutdown) has a corresponding monad, preventing operations that are only
+  allowed in some stages to be used in the other stages.
+  Operations that work across multiple stages are overloaded across monads
+  using MTL-like typeclasses.
+
+  Some operations, like creating evidence for constraints or creating
+  custom type error messages, are also simplified.
+
+  Please refer to the <https://github.com/sheaf/ghc-tcplugin-api associated GitHub repository>
+  for example usage.
+
+extra-source-files:
+  changelog.md
+
+library
+
+  build-depends:
+    base
+      >= 4.13.0 && < 4.19,
+    ghc
+      >= 8.8    && < 9.7,
+    transformers
+      >= 0.5    && < 0.6,
+
+  default-language:
+    Haskell2010
+
+  ghc-options:
+    -Wall
+    -Wcompat
+    -fwarn-missing-local-signatures
+    -fwarn-incomplete-uni-patterns
+    -fwarn-missing-deriving-strategies
+    -fno-warn-unticked-promoted-constructors
+
+  hs-source-dirs:
+    src
+
+  exposed-modules:
+    GHC.TcPlugin.API,
+    GHC.TcPlugin.API.Names,
+    GHC.TcPlugin.API.Internal
+
+  reexported-modules:
+      GHC.Builtin.Names
+    , GHC.Builtin.Types
+    , GHC.Builtin.Types.Prim
+    , GHC.Core.Make
+    , GHC.Plugins
+    , GHC.Types.Unique.DFM
+    , GHC.Types.Unique.FM
+    , GHC.Utils.Outputable
+
+  if impl(ghc >= 9.3.0)
+    cpp-options: -DHAS_REWRITING
+  else
+    cpp-options: -DHAS_DERIVEDS
+    other-modules:
+      GHC.TcPlugin.API.Internal.Shim
+      GHC.TcPlugin.API.Internal.Shim.Reduction
+
+  -- Compatibility for versions of GHC prior to 9.0.
+  if impl(ghc < 9.0)
+
+    mixins:
+      ghc
+        ( GHC        as GHC
+
+        , PrelNames  as GHC.Builtin.Names
+        , TysWiredIn as GHC.Builtin.Types
+        , TysPrim    as GHC.Builtin.Types.Prim
+
+        , CoreSyn    as GHC.Core
+        , CoAxiom    as GHC.Core.Coercion.Axiom
+        , Coercion   as GHC.Core.Coercion
+        , Class      as GHC.Core.Class
+        , DataCon    as GHC.Core.DataCon
+        , FamInstEnv as GHC.Core.FamInstEnv
+        , InstEnv    as GHC.Core.InstEnv
+        , MkCore     as GHC.Core.Make
+        , TyCoRep    as GHC.Core.TyCo.Rep
+        , TyCon      as GHC.Core.TyCon
+        , Type       as GHC.Core.Type
+
+        , FastString as GHC.Data.FastString
+        , Pair       as GHC.Data.Pair
+
+        , Finder     as GHC.Driver.Finder
+        , DynFlags   as GHC.Driver.Session
+        , HscTypes   as GHC.Driver.Types
+
+        , GhcPlugins as GHC.Plugins
+
+        , TcPluginM  as GHC.Tc.Plugin
+        , TcSMonad   as GHC.Tc.Solver.Monad
+        , TcRnTypes  as GHC.Tc.Types
+        , TcEvidence as GHC.Tc.Types.Evidence
+        , TcRnMonad  as GHC.Tc.Utils.Monad
+        , TcType     as GHC.Tc.Utils.TcType
+        , TcMType    as GHC.Tc.Utils.TcMType
+
+        , BasicTypes as GHC.Types.Basic
+        , Id         as GHC.Types.Id
+        , Literal    as GHC.Types.Literal
+        , Name       as GHC.Types.Name
+        , OccName    as GHC.Types.Name.Occurrence
+        , SrcLoc     as GHC.Types.SrcLoc
+        , Unique     as GHC.Types.Unique
+        , UniqDFM    as GHC.Types.Unique.DFM
+        , UniqFM     as GHC.Types.Unique.FM
+        , Var        as GHC.Types.Var
+        , VarEnv     as GHC.Types.Var.Env
+        , VarSet     as GHC.Types.Var.Set
+
+        , Module     as GHC.Unit.Module
+        , Module     as GHC.Unit.Module.Name
+        , Module     as GHC.Unit.Types
+
+        , Util       as GHC.Utils.Misc
+        , TcRnMonad  as GHC.Utils.Monad
+        , Outputable as GHC.Utils.Outputable
+        , Panic      as GHC.Utils.Panic
+        )
+
+    if impl(ghc > 8.10)
+
+      mixins:
+        ghc
+          ( Predicate  as GHC.Core.Predicate
+          , Constraint as GHC.Tc.Types.Constraint
+          , TcOrigin   as GHC.Tc.Types.Origin
+          )
+
+    else
+
+      mixins:
+        ghc
+          ( Type      as GHC.Core.Predicate
+          , TcRnTypes as GHC.Tc.Types.Constraint
+          , TcRnTypes as GHC.Tc.Types.Origin
+          )
