@@ -1,0 +1,184 @@
+cabal-version:       2.2
+name:                universum
+version:             1.8.1
+synopsis:            Custom prelude used in Serokell
+description:         See README.md file for more details.
+homepage:            https://github.com/serokell/universum
+license:             MIT
+license-file:        LICENSE
+author:              Stephen Diehl, @serokell
+maintainer:          Serokell <hi@serokell.io>
+copyright:           2016 Stephen Diehl, 2016-2018 Serokell
+category:            Prelude
+stability:           stable
+build-type:          Simple
+bug-reports:         https://github.com/serokell/universum/issues
+tested-with:         GHC == 8.6.5
+                   , GHC == 8.8.4
+                   , GHC == 8.10.7
+                   , GHC == 9.0.1
+                   , GHC == 9.2.2
+extra-doc-files:     CHANGES.md
+                   , CONTRIBUTING.md
+                   , README.md
+
+source-repository head
+  type:     git
+  location: git@github.com:serokell/universum.git
+
+common common-options
+  build-depends:       base >= 4.8 && < 5
+  ghc-options:
+                       -- Source: https://medium.com/mercury-bank/enable-all-the-warnings-a0517bc081c3
+                       -Weverything
+                       -Wno-missing-exported-signatures
+                       -Wno-missing-import-lists
+                       -Wno-missed-specialisations
+                       -Wno-all-missed-specialisations
+                       -Wno-unsafe
+                       -Wno-safe
+                       -Wno-missing-local-signatures
+                       -Wno-monomorphism-restriction
+                       -Wno-implicit-prelude
+  if impl(ghc >= 8.10.1)
+    ghc-options:       -Wno-prepositive-qualified-module
+                       -Wno-inferred-safe-imports
+  if impl(ghc >= 9.2.0)
+    ghc-options:         -Wno-missing-kind-signatures
+
+  default-language:    Haskell2010
+
+library
+  import:              common-options
+  hs-source-dirs:      src
+  exposed-modules:
+                       Universum
+                           Universum.Applicative
+                           Universum.Base
+                           Universum.Bool
+                               Universum.Bool.Guard
+                               Universum.Bool.Reexport
+                           Universum.Container
+                               Universum.Container.Class
+                               Universum.Container.Reexport
+                           Universum.Debug
+                           Universum.DeepSeq
+                           Universum.Exception
+                           Universum.Function
+                           Universum.Functor
+                               Universum.Functor.Fmap
+                               Universum.Functor.Reexport
+                           Universum.Lifted
+                               Universum.Lifted.Concurrent
+                               Universum.Lifted.Env
+                               Universum.Lifted.File
+                               Universum.Lifted.IORef
+                           Universum.List
+                               Universum.List.Reexport
+                               Universum.List.Safe
+                           Universum.Monad
+                               Universum.Monad.Container
+                               Universum.Monad.Either
+                               Universum.Monad.Maybe
+                               Universum.Monad.Reexport
+                               Universum.Monad.Trans
+                           Universum.Monoid
+                           Universum.Nub
+                           Universum.Print
+                               Universum.Print.Internal
+                           Universum.String
+                               Universum.String.Conversion
+                               Universum.String.Reexport
+                           Universum.TypeOps
+                           Universum.Unsafe
+                           Universum.VarArg
+
+  build-depends:       bytestring
+                     , containers
+                     , deepseq
+                     , ghc-prim >= 0.4.0.0
+                     , hashable
+                     , microlens
+                     , microlens-mtl
+                     , mtl
+                     , safe-exceptions
+                     , stm
+                     -- Make sure that "toString-toText-rewritting" note
+                     -- is still valid when bumping this constraint.
+                     , text >= 1.0.0.0 && <= 1.2.5.0
+                     , transformers
+                     , unordered-containers
+                     , utf8-string
+                     , vector
+
+  ghc-options:         -Wimplicit-prelude
+  default-extensions:  NoImplicitPrelude
+                       OverloadedStrings
+
+test-suite universum-test
+  import:              common-options
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+
+  other-modules:
+                       Tree
+                       Test.Universum.Issue208
+                       Test.Universum.StringProps
+                       Test.Universum.UtfProps
+                       Test.Universum.ListProps
+                       Test.Universum.BoolMProps
+
+  build-depends:       universum
+                     , bytestring
+                     , text
+                     , hedgehog
+                     , tasty
+                     , tasty-hedgehog
+  build-tool-depends:
+      tasty-discover:tasty-discover
+
+  if impl(ghc >= 8.10.1)
+    ghc-options:         -Wno-missing-safe-haskell-mode
+
+  ghc-options:         -threaded
+
+test-suite universum-doctest
+  import:              common-options
+  if os(windows)
+     buildable: False
+
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Doctest.hs
+
+  build-depends:       doctest
+                     , Glob
+
+  if impl(ghc >= 8.10.1)
+    ghc-options:         -Wno-missing-safe-haskell-mode
+  -- https://github.com/sol/doctest/issues/327
+  -- TODO: re-enable when the issue is resolved
+  if impl(ghc >= 9.0.0)
+    buildable: False
+
+  ghc-options:         -threaded
+
+benchmark universum-benchmark
+  import:              common-options
+  type:                exitcode-stdio-1.0
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+
+  hs-source-dirs:      benchmark
+  main-is:             Main.hs
+  build-depends:       universum
+                     , containers
+                     , gauge
+                     , text
+                     , unordered-containers
+
+  if impl(ghc >= 8.10.1)
+    ghc-options:         -Wno-missing-safe-haskell-mode
+
+  default-extensions:  NoImplicitPrelude
+                       ScopedTypeVariables
