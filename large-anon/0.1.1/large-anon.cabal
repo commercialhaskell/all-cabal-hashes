@@ -1,0 +1,188 @@
+cabal-version:      2.4
+name:               large-anon
+version:            0.1.1
+synopsis:           Scalable anonymous records
+description:        The @large-anon@ package provides support for anonymous
+                    records in Haskell, with a focus on compile-time (and
+                    run-time) scalability.
+bug-reports:        https://github.com/well-typed/large-records/issues
+license:            BSD-3-Clause
+author:             Edsko de Vries
+maintainer:         edsko@well-typed.com
+category:           Records
+extra-source-files: CHANGELOG.md
+tested-with:        GHC ==8.8.4 || ==8.10.7 || ==9.0.2 || ==9.2.2
+
+library
+  exposed-modules:
+      Data.Record.Anon
+      Data.Record.Anon.Simple
+      Data.Record.Anon.Advanced
+      Data.Record.Anon.Plugin
+      Data.Record.Anon.Plugin.Internal.Runtime
+
+  other-modules:
+      -- Module organization:
+      --
+      -- o The modules in @Core.*@ can only import from other modules in
+      --   @Core.*@ and modules in @Util.*@.
+      -- o The modules in the rest of @Internal.*@ can import from @Core.*@ and
+      --   @Util.*@, as well "Data.Record.Anon.Plugin.Internal.Runtime".
+      --
+      -- See detailed discussion in the runtime module.
+      --
+
+      Data.Record.Anon.Internal.Util.SmallHashMap
+      Data.Record.Anon.Internal.Util.StrictArray
+
+      Data.Record.Anon.Internal.Core.Canonical
+      Data.Record.Anon.Internal.Core.Diff
+      Data.Record.Anon.Internal.Core.FieldName
+
+      Data.Record.Anon.Internal.Reflection
+      Data.Record.Anon.Internal.Advanced
+      Data.Record.Anon.Internal.Simple
+
+      Data.Record.Anon.Internal.Plugin
+
+      Data.Record.Anon.Internal.Plugin.TC.Constraints.AllFields
+      Data.Record.Anon.Internal.Plugin.TC.Constraints.KnownFields
+      Data.Record.Anon.Internal.Plugin.TC.Constraints.KnownHash
+      Data.Record.Anon.Internal.Plugin.TC.Constraints.RowHasField
+      Data.Record.Anon.Internal.Plugin.TC.Constraints.SubRow
+      Data.Record.Anon.Internal.Plugin.TC.EquivClasses
+      Data.Record.Anon.Internal.Plugin.TC.GhcTcPluginAPI
+      Data.Record.Anon.Internal.Plugin.TC.NameResolution
+      Data.Record.Anon.Internal.Plugin.TC.Parsing
+      Data.Record.Anon.Internal.Plugin.TC.Rewriter
+      Data.Record.Anon.Internal.Plugin.TC.Row.KnownField
+      Data.Record.Anon.Internal.Plugin.TC.Row.KnownRow
+      Data.Record.Anon.Internal.Plugin.TC.Row.ParsedRow
+      Data.Record.Anon.Internal.Plugin.TC.Solver
+      Data.Record.Anon.Internal.Plugin.TC.TyConSubst
+
+      Data.Record.Anon.Internal.Plugin.Source
+      Data.Record.Anon.Internal.Plugin.Source.GhcShim
+      Data.Record.Anon.Internal.Plugin.Source.Names
+      Data.Record.Anon.Internal.Plugin.Source.NamingT
+      Data.Record.Anon.Internal.Plugin.Source.Options
+
+  build-depends:
+      base             >= 4.13  && < 4.18
+    , aeson            >= 1.4.4 && < 2.2
+    , containers       >= 0.6.2 && < 0.7
+    , ghc-tcplugin-api >= 0.8   && < 0.9
+    , hashable         >= 1.3   && < 1.5
+    , mtl              >= 2.2.1 && < 2.3
+    , optics-core      >= 0.3   && < 0.5
+    , primitive        >= 0.7.1 && < 0.8
+    , record-hasfield  >= 1.0   && < 1.1
+    , sop-core         >= 0.5   && < 0.6
+    , syb              >= 0.7   && < 0.8
+    , tagged           >= 0.8.6 && < 0.9
+    , typelet          >= 0.1   && < 0.2
+
+      -- large-generics 0.2 starts using 'SmallArray' instead of 'Vector'
+    , large-generics   >= 0.2   && < 0.3
+
+      -- Whatever version is bundled with ghc
+    , ghc
+  hs-source-dirs:
+      src
+  default-language:
+      Haskell2010
+  ghc-options:
+      -Wall
+      -Wredundant-constraints
+      -Wno-unticked-promoted-constructors
+
+  if impl(ghc >= 8.10)
+    ghc-options:
+      -Wunused-packages
+
+  if flag(debug)
+    build-depends:
+      recover-rtti >= 0.4.1
+    cpp-options:
+      -DDEBUG
+
+test-suite test-large-anon
+  default-language:
+      Haskell2010
+  type:
+      exitcode-stdio-1.0
+  hs-source-dirs:
+      test
+  main-is:
+      TestLargeAnon.hs
+  other-modules:
+      Test.Infra.Generics
+      Test.Infra.MarkStrictness
+      Test.Infra.Discovery
+      Test.Infra.DynRecord
+      Test.Infra.DynRecord.Advanced
+      Test.Infra.DynRecord.Simple
+      Test.Prop.Record.Combinators.Constrained
+      Test.Prop.Record.Combinators.Simple
+      Test.Prop.Record.Model
+      Test.Prop.Record.Model.Generator
+      Test.Prop.Record.Model.Orphans
+      Test.Sanity.AllFields
+      Test.Sanity.Applicative
+      Test.Sanity.BlogPost
+      Test.Sanity.CheckIsSubRow
+      Test.Sanity.Discovery
+      Test.Sanity.DuplicateFields
+      Test.Sanity.Generics
+      Test.Sanity.HasField
+      Test.Sanity.Intersection
+      Test.Sanity.Merging
+      Test.Sanity.Named.Record1
+      Test.Sanity.Named.Record2
+      Test.Sanity.PolyKinds
+      Test.Sanity.RecordLens
+      Test.Sanity.Simple
+      Test.Sanity.SrcPlugin.WithoutTypelet
+      Test.Sanity.SrcPlugin.WithTypelet
+      Test.Sanity.TypeLevelMetadata
+  build-depends:
+      base
+    , aeson
+    , aeson-pretty
+    , bytestring
+    , large-anon
+    , large-generics
+    , mtl
+    , optics-core
+    , parsec
+    , QuickCheck
+    , record-dot-preprocessor
+    , sop-core
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , text
+    , typelet
+    , validation-selective
+
+      -- required when using record-dot-preprocessor
+    , record-hasfield
+  ghc-options:
+      -Wall
+      -Wredundant-constraints
+      -Wno-unticked-promoted-constructors
+      -fno-show-valid-hole-fits
+
+  -- Not sure why, but ghc warns about record-hasfield being unused,
+  -- despite it actually being required. So for now we just disable this check.
+  -- if impl(ghc >= 8.10)
+  --   ghc-options: -Wunused-packages
+
+  if impl(ghc >= 9.0.1)
+    -- Work around ghc problem. See more detailed discussion in large-records.
+    ghc-options: -Wno-unused-imports
+
+Flag debug
+  Description: Enable internal debugging features
+  Default: False
+  Manual: True
