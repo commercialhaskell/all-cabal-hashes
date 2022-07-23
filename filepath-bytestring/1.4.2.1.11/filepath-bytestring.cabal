@@ -1,0 +1,95 @@
+cabal-version: 1.18
+name:           filepath-bytestring
+version:        1.4.2.1.11
+-- NOTE: Don't forget to update CHANGELOG and the filepath dependency below
+license:        BSD3
+license-file:   LICENSE
+author:         Neil Mitchell <ndmitchell@gmail.com>
+maintainer:     Joey Hess <id@joeyh.name>
+copyright:      Neil Mitchell 2005-2019
+                Joey Hess 2019-2021
+category:       System
+build-type:     Simple
+synopsis:       Library for manipulating RawFilePaths in a cross platform way.
+description:
+    This package provides functionality for manipulating @RawFilePath@
+    values. It can be used as a drop in replacement for the filepath library
+    to get the benefits of using ByteStrings. It provides three modules:
+    .
+    * "System.FilePath.Posix.ByteString" manipulates POSIX\/Linux style @RawFilePath@ values (with @\/@ as the path separator).
+    .
+    * "System.FilePath.Windows.ByteString" manipulates Windows style @RawFilePath@ values (with either @\\@ or @\/@ as the path separator, and deals with drives).
+    .
+    * "System.FilePath.ByteString" is an alias for the module appropriate to your platform.
+    .
+    All three modules provide the same API, and the same documentation (calling out differences in the different variants).
+    .
+    This package is now deprecated, since filepath 1.4.100.0 provides an
+    OsPath type that is based on a bytestring. See
+    https://hasufell.github.io/posts/2022-06-29-fixing-haskell-filepaths.html
+
+extra-source-files:
+    System/FilePath/Internal.hs
+extra-doc-files:
+    README.md
+    CHANGELOG
+    TODO
+
+source-repository head
+    type:     git
+    location: git://git.joeyh.name/haskell-filepath-bytestring.git
+
+library
+    default-language: Haskell2010
+    other-extensions:
+        CPP
+        PatternGuards
+    if impl(GHC >= 7.2)
+        other-extensions: Safe
+
+    exposed-modules:
+        System.FilePath.ByteString
+        System.FilePath.Posix.ByteString
+        System.FilePath.Windows.ByteString
+
+    build-depends:
+        base >= 4 && < 4.17,
+        bytestring >= 0.11.2.0
+    if os(Windows)
+        build-depends: utf8-string
+    else
+        build-depends: unix
+
+    ghc-options: -O2 -Wall -fno-warn-tabs
+
+test-suite filepath-tests
+    type: exitcode-stdio-1.0
+    default-language: Haskell2010
+    main-is: Test.hs
+    ghc-options: -main-is Test -Wall -fno-warn-tabs
+    hs-source-dirs: tests
+    other-modules:
+        TestEquiv
+        TestGen
+        TestUtil
+    build-depends:
+        filepath-bytestring,
+        base,
+        bytestring >= 0.11.2.0,
+        QuickCheck >= 2.7 && < 2.15,
+	-- Versions of filepath that are equvilant to this
+	-- library, for quickcheck equivilance tests.
+        filepath >= 1.4.2 && <= 1.4.2.1
+
+benchmark filepath-bench
+    type: exitcode-stdio-1.0
+    default-language: Haskell2010
+    main-is: benchmark.hs
+    ghc-options: -O2 -Wall -fno-warn-tabs
+    hs-source-dirs: benchmark
+    build-depends: 
+        base,
+        criterion,
+        filepath-bytestring,
+	-- Version of filepath to benchmark against
+        filepath >= 1.4.2 && <= 1.4.2.1
