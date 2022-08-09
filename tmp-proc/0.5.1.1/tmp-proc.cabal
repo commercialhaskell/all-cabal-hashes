@@ -1,0 +1,154 @@
+cabal-version:      3.0
+name:               tmp-proc
+version:            0.5.1.1
+synopsis:           Run 'tmp' processes in integration tests
+description:
+  @tmp-proc@ runs services in docker containers for use in integration tests.
+
+  It aims to make using these services become like accessing /tmp/ processes,
+  similar to how /tmp/ file or directories are used.
+
+  It aspires to provide a user-friendly API, while including useful features
+  such as
+
+  * launch of multiple services on docker during test setup
+
+  * delayed test execution until the launched services are available
+
+  * simplified use of connections to the services from a [WAI](https://hackage.haskell.org/package/wai) server under test
+
+  * good integration with haskell testing frameworks like [hspec](https://hspec.github.io)
+  and [tasty](https://hackage.haskell.org/package/tasty)
+
+license:            BSD-3-Clause
+license-file:       LICENSE
+copyright:          2020 Tim Emiola
+author:             Tim Emiola
+maintainer:         adetokunbo@users.noreply.github.com
+category:           testing, docker
+bug-reports:        https://github.com/adetokunbo/tmp-proc/issues
+homepage:           https://github.com/adetokunbo/tmp-proc/tree/master/tmp-proc#tmp-proc
+build-type:         Simple
+data-files:
+  test_certs/*.csr
+  test_certs/*.pem
+extra-source-files:
+  ChangeLog.md
+tested-with:
+  GHC == 8.10.5
+
+source-repository head
+  type:     git
+  location: https://github.com/adetokunbo/tmp-proc.git
+
+library
+  exposed-modules:
+    System.TmpProc
+    System.TmpProc.Docker
+    System.TmpProc.TypeLevel
+    System.TmpProc.TypeLevel.Sort
+    System.TmpProc.Warp
+
+  hs-source-dirs:   src
+  build-depends:
+    , async       ^>=2.2.1
+    , base        >=4.11     && <5
+    , bytestring  >=0.10.8.2 && <0.12
+    , mtl         ^>=2.2.2
+    , network     >=2.6.3.6  && <3.2
+    , process     ^>=1.6.3.0
+    , text        >=1.2.3 && <2.2
+    , unliftio    ^>=0.2.7
+    , wai         ^>=3.2.1
+    , warp        >=3.2.3    && <3.4
+    , warp-tls    >=3.2.4    && <3.4
+
+  default-language: Haskell2010
+  ghc-options:      -fno-ignore-asserts -Wall
+
+test-suite integration-test
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  autogen-modules:  Paths_tmp_proc
+
+  other-modules:
+    Test.Hspec.TmpProc
+    Test.HttpBin
+    Test.SimpleServer
+    Test.System.TmpProc.Hspec
+    Test.System.TmpProc.HttpBinSpec
+    Test.System.TmpProc.WarpSpec
+    Paths_tmp_proc
+
+  hs-source-dirs:   test
+  build-depends:
+    , base
+    , bytestring
+    , connection
+    , data-default
+    , hspec
+    , http-client
+    , http-client-tls
+    , http-types
+    , req
+    , text
+    , tmp-proc
+    , wai
+    , warp
+    , warp-tls
+
+  default-language: Haskell2010
+  ghc-options:
+    -threaded -rtsopts -with-rtsopts=-N -fno-ignore-asserts -Wall
+
+Flag use-doc-tests
+  description: Include the doctests in the package tests
+  default:     False
+
+test-suite doctests
+  if flag(use-doc-tests)
+     buildable:     True
+  else
+     buildable:     False
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  build-depends:
+    , base
+    , doctest   >=0.8
+    , tmp-proc
+
+  hs-source-dirs:   doctest
+  default-language: Haskell2010
+  ghc-options:      -threaded
+
+
+Flag build-the-readme
+  description: Allow the readme to build
+  default:     False
+
+
+executable readme
+  if os(windows) || !flag(build-the-readme)
+    buildable: False
+  else
+    buildable: True
+
+  build-tool-depends: markdown-unlit:markdown-unlit
+  ghc-options:        -pgmL markdown-unlit -threaded -rtsopts -with-rtsopts=-N
+  main-is:            README.lhs
+  default-language:   Haskell2010
+  build-depends:
+    , base
+    , bytestring
+    , connection
+    , data-default
+    , hspec
+    , http-client
+    , http-client-tls
+    , http-types
+    , req
+    , text
+    , tmp-proc
+    , wai
+    , warp
+    , warp-tls
