@@ -1,0 +1,100 @@
+cabal-version:      3.0
+name:               podenv
+version:            0.2.0
+synopsis:           A container wrapper
+description:
+    Podenv provides a declarative interface to manage containerized applications.
+    .
+    Using rootless containers, podenv let you run applications seamlessly.
+    .
+homepage:           https://github.com/podenv/podenv#readme
+bug-reports:        https://github.com/podenv/podenv/issues
+license:            Apache-2.0
+license-file:       LICENSE
+extra-doc-files:    CHANGELOG.md
+                    README.md
+author:             Tristan Cacqueray
+maintainer:         tdecacqu@redhat.com
+copyright:          2021 Red Hat
+category:           Development
+extra-source-files: test/*.dhall
+                    hub/*.dhall
+                    hub/**/*.dhall
+                    .git/modules/hub/HEAD
+
+source-repository head
+  type:             git
+  location:         https://github.com/podenv/podenv.git
+
+flag ci
+  description: Make warnings error
+  default:     False
+  manual:      True
+
+common common
+  if flag(ci)
+    ghc-options:    -Werror
+  ghc-options:      -Wall
+                    -Wcompat
+                    -Widentities
+                    -Wincomplete-uni-patterns
+                    -Wincomplete-record-updates
+                    -Wno-missing-pattern-synonym-signatures
+  if impl(ghc >= 8.0)
+    ghc-options:    -Wredundant-constraints
+  if impl(ghc >= 8.2)
+    ghc-options:    -fhide-source-paths
+  if impl(ghc >= 8.4)
+    ghc-options:    -Wpartial-fields
+  if impl(ghc >= 8.10)
+    ghc-options:    -Wunused-packages
+  default-language: Haskell2010
+
+library
+  import:           common
+  build-depends:    base < 5
+                  , SHA
+                  , containers
+                  , dhall >= 1.39
+                  , directory
+                  , unix
+                  , either
+                  , filepath
+                  , gitrev
+                  , lens-family-core
+                  , lens-family-th
+                  , linux-capabilities >= 0.1.1.0
+                  , optparse-applicative
+                  , relude >= 0.7
+                  , text
+                  , th-env
+                  , typed-process
+                  , unix
+  hs-source-dirs:   src
+  exposed-modules:  Podenv.Application
+                  , Podenv.Build
+                  , Podenv.Config
+                  , Podenv.Context
+                  , Podenv.Dhall
+                  , Podenv.Env
+                  , Podenv.Main
+                  , Podenv.Prelude
+                  , Podenv.Runtime
+                  , Podenv.Version
+                  , Podenv
+  other-modules:    Paths_podenv
+  autogen-modules:  Paths_podenv
+
+executable podenv
+  import:           common
+  hs-source-dirs:   app
+  main-is:          Main.hs
+  build-depends:    base, podenv
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+
+test-suite tests
+  import:           common
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Spec.hs
+  build-depends:    base, hspec, podenv, text
