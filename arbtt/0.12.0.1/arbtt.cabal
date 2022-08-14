@@ -1,0 +1,295 @@
+name:               arbtt
+version:            0.12.0.1
+license:            GPL-2
+license-file:       LICENSE
+category:           Desktop
+cabal-version:      >= 1.10
+build-type:         Simple
+author:             Joachim Breitner <mail@joachim-breitner.de>
+maintainer:         Joachim Breitner <mail@joachim-breitner.de>
+copyright:          Joachim Breitner 2009-2013
+synopsis:           Automatic Rule-Based Time Tracker
+description:
+    arbtt is a background daemon that stores which windows are open, which one
+    has the focus and how long since your last action (and possbly more sources
+    later), and stores this. It is also a program that will, based on
+    expressive rules you specify, derive what you were doing, and what for.
+    .
+    The documentation, which includes the changelog, can also be found at
+    <http://arbtt.nomeata.de/doc/users_guide/>.
+    .
+    WARNING: The log file might contain very sensitive private data. Make sure
+    you understand the consequences of a full-time logger and be careful with this
+    data.
+homepage:           http://arbtt.nomeata.de/
+bug-reports:        https://github.com/nomeata/arbtt/issues
+extra-source-files:
+    categorize.cfg, arbtt-capture.desktop, README.md,
+    doc/arbtt.xml, doc/fptools.css, doc/Makefile,
+    setup.iss, modpath.iss,
+    tests/*.log, tests/*.out, tests/*.in, tests/*.cfg
+
+executable arbtt-capture
+    main-is:            capture-main.hs
+    hs-source-dirs:     src
+    build-depends:
+                base >= 4.7 && < 5,
+                filepath, directory, transformers, utf8-string, strict,
+                containers >= 0.5 && < 0.7,
+                aeson >= 0.10  && < 2.2,
+                binary >= 0.6.4,
+                bytestring, deepseq,
+                time >= 1.5, tz
+
+    other-modules:
+        Data
+        Data.MyText
+        Data.Binary.StringRef
+        CommonStartup
+        Capture
+        TimeLog
+        UpgradeLog1
+        LeftFold
+        LockFile
+        DumpFormat
+        Paths_arbtt
+
+    ghc-options: -rtsopts
+
+    if !os(windows)
+        build-depends: unix
+
+    if os(windows)
+        extra-libraries: psapi
+        cpp-options:    -DWIN32
+        ghc-options:    -optl-mwindows
+        other-modules:
+            Capture.Win32
+            Graphics.Win32.Window.Extra
+            System.Win32.Mutex
+        build-depends:
+             Win32
+    else
+        if os(darwin)
+            cpp-options:    -DDARWIN
+            frameworks: Foundation Carbon IOKit
+            other-modules:
+                Capture.OSX
+                Graphics.OSX.Window
+                System.Locale.SetLocale
+        else
+            other-modules:
+                Capture.X11
+                System.Locale.SetLocale
+            build-depends:
+                X11 >= 1.9
+    default-language: Haskell98
+
+executable arbtt-stats
+    main-is:            stats-main.hs
+    hs-source-dirs:     src
+    build-depends:
+        base >= 4.7 && < 5,
+        parsec == 3.*,
+        containers >= 0.5 && < 0.7,
+        pcre-light,
+        binary >= 0.6.4,
+        deepseq, bytestring, utf8-string, strict,
+        transformers, directory, filepath,
+        aeson >= 0.10  && < 2.2,
+        array == 0.4.* || == 0.5.*,
+        terminal-progress-bar >= 0.4 && < 0.5,
+        bytestring-progress,
+        mtl,
+        text,
+        time >= 1.5, tz
+
+    if !os(windows)
+        build-depends: unix
+
+    other-modules:
+        Data
+        Data.MyText
+        Data.Binary.StringRef
+        DumpFormat
+        LeftFold
+        CommonStartup
+        Categorize
+        TimeLog
+        Stats
+        Text.Parsec.ExprFail
+        Text.ParserCombinators.Parsec.ExprFail
+        Text.Regex.PCRE.Light.Text
+        TermSize
+        Paths_arbtt
+    ghc-options: -rtsopts
+    if os(windows)
+        cpp-options:    -DWIN32
+    else
+        other-modules:
+            System.Locale.SetLocale
+    default-language: Haskell98
+
+executable arbtt-dump
+    main-is:            dump-main.hs
+    hs-source-dirs:     src
+    build-depends:
+        base >= 4.7 && < 5,
+        parsec == 3.*,
+        containers >= 0.5 && < 0.7,
+        aeson >= 0.10  && < 2.2,
+        binary >= 0.6.4,
+        deepseq, bytestring, utf8-string, strict,
+        transformers, directory, filepath,
+        time >= 1.5, tz
+
+    if !os(windows)
+        build-depends: unix
+
+
+    other-modules:
+        Data
+        Data.MyText
+        Data.Binary.StringRef
+        CommonStartup
+        TimeLog
+        DumpFormat
+        Data.List.TakeR
+        Paths_arbtt
+    ghc-options: -rtsopts
+    if os(windows)
+        cpp-options:    -DWIN32
+    else
+        other-modules:
+            System.Locale.SetLocale
+    default-language: Haskell98
+
+executable arbtt-import
+    main-is:            import-main.hs
+    hs-source-dirs:     src
+    build-depends:
+        base >= 4.7 && < 5,
+        parsec == 3.*,
+        containers >= 0.5 && < 0.7,
+        binary >= 0.6.4,
+        aeson >= 0.10  && < 2.2,
+        conduit >= 1.2 && < 1.4,
+        exceptions >= 0.8,
+        attoparsec >= 0.13,
+        deepseq, bytestring, utf8-string, strict,
+        transformers, directory, filepath,
+        time >= 1.5, tz
+
+    if !os(windows)
+        build-depends: unix
+
+
+    other-modules:
+        Data
+        Data.MyText
+        Data.Binary.StringRef
+        CommonStartup
+        TimeLog
+        LockFile
+        DumpFormat
+        Paths_arbtt
+    ghc-options: -rtsopts
+    if os(windows)
+        cpp-options:    -DWIN32
+        other-modules:
+            System.Win32.Mutex
+    else
+        other-modules:
+            System.Locale.SetLocale
+    default-language: Haskell98
+
+    -- We inline Data.Conduit.Attoparsec, copied
+    -- from conduit-extra to avoid dependencies on network etc.
+    -- The build-depends below are exclusively used by these modules
+    other-modules:
+        Data.Conduit.Attoparsec
+        Data.Conduit.Binary
+        Data.Streaming.FileRead
+    build-depends:
+        text,
+        resourcet >= 1.2,
+        unliftio-core
+
+executable arbtt-recover
+    main-is:            recover-main.hs
+    hs-source-dirs:     src
+    build-depends:
+        base >= 4.7 && < 5,
+        containers >= 0.5 && < 0.7,
+        binary >= 0.6.4,
+        deepseq, bytestring, utf8-string,
+        directory, filepath,
+        time >= 1.5, tz
+
+    if !os(windows)
+        build-depends: unix
+
+
+    other-modules:
+        Data
+        Data.MyText
+        Data.Binary.StringRef
+        CommonStartup
+        TimeLog
+        Paths_arbtt
+    ghc-options: -rtsopts
+    if os(windows)
+        cpp-options:    -DWIN32
+    else
+        other-modules:
+            System.Locale.SetLocale
+    default-language: Haskell98
+
+test-suite test
+  Type:
+    exitcode-stdio-1.0
+  Hs-source-dirs:
+    tests
+    src
+  Main-is:
+    test.hs
+  other-modules:
+    Categorize
+    Data
+    Data.Binary.StringRef
+    Data.MyText
+    Text.Parsec.ExprFail
+    Text.Regex.PCRE.Light.Text
+    TimeLog
+  Build-depends:
+      base >= 4.7 && < 5
+      , tasty >= 0.7 && < 1.5
+      , tasty-golden >= 2.2.0.2  && < 2.4
+      , tasty-hunit >= 0.2  && < 0.11
+      , process-extras >= 0.2 && < 0.8
+      , deepseq
+      , binary >= 0.6.4
+      , bytestring
+      , utf8-string
+      , directory
+      , parsec == 3.*
+      , containers >= 0.5 && < 0.7
+      , pcre-light
+      , transformers
+      , mtl
+      , time >= 1.5
+      , tz
+
+  if !os(windows)
+    build-depends: unix
+
+  default-language: Haskell98
+  build-tool-depends:
+      arbtt:arbtt-stats
+    , arbtt:arbtt-dump
+    , arbtt:arbtt-import
+    , arbtt:arbtt-recover
+
+source-repository head
+  type:     git
+  location: https://github.com/nomeata/arbtt
