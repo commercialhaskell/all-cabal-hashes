@@ -1,0 +1,148 @@
+cabal-version: 2.4
+name:           gitlab-haskell
+category:       Git
+version:        1.0.0.0
+synopsis:       A Haskell library for the GitLab web API
+description:
+            This library lifts the GitLab REST API into Haskell: <https://docs.gitlab.com/ee/api/>
+            .
+            It also features an event driven reactive API for writing Gitlab file hook applications
+            .
+            Run all GitLab actions with `runGitLab`:
+            .
+            > runGitLab ::
+            >  => GitLabServerConfig -- ^ the GitLab server details
+            >  -> GitLab a           -- ^ the GitLab action
+            >  -> IO a
+            .
+            For example:
+            .
+            > myProjects <- runGitLab
+            >      (defaultGitLabServer
+            >          { url = "https://gitlab.example.com"
+            >          , token="my_token"} )
+            >      (searchUser "joe" >>= userProjects . fromJust)
+            .
+            Which uses the functions:
+            .
+            > searchUser   :: Text -> GitLab (Maybe User)
+            > userProjects :: User -> GitLab (Maybe [Project])
+            .
+            This is the API to develop event driven rule based GitLab file hooks that fire in real-time on events on a GitLab server:
+            .
+            > receive :: [Rule] -> GitLab ()
+            .
+            > class (FromJSON a) => SystemHook a where
+            >   match   :: String -> (a -> GitLab ()) -> Rule
+            >   matchIf :: String -> (a -> GitLab Bool) -> (a -> GitLab ()) -> Rule
+            .
+            For more details about the file hooks support: <https://www.macs.hw.ac.uk/~rs46/posts/2020-06-06-gitlab-system-hooks.html>
+            .
+            Unsurprisingly, this library is maintained on GitLab: <https://gitlab.com/robstewart57/gitlab-haskell>
+
+
+homepage:       https://gitlab.com/robstewart57/gitlab-haskell
+bug-reports:    https://gitlab.com/robstewart57/gitlab-haskell/issues
+author:         Rob Stewart
+maintainer:     robstewart57@gmail.com
+copyright:      2022 Rob Stewart, Heriot-Watt University
+license:        BSD-3-Clause
+license-file:   LICENSE
+data-files:     data/system-hooks/*.json
+build-type:     Simple
+extra-source-files:
+    README.md
+  , data/api/boards/list-project.json
+  , data/api/boards/create-board.json
+  , data/api/boards/update-board.json
+
+source-repository head
+  type: git
+  location: https://gitlab.com/robstewart57/gitlab-haskell
+
+library
+  exposed-modules:
+                  GitLab
+                , GitLab.Types
+                , GitLab.API.Groups
+                , GitLab.API.Members
+                , GitLab.API.Commits
+                , GitLab.API.Projects
+                , GitLab.API.Users
+                , GitLab.API.Issues
+                , GitLab.API.Pipelines
+                , GitLab.API.Branches
+                , GitLab.API.Jobs
+                , GitLab.API.Repositories
+                , GitLab.API.MergeRequests
+                , GitLab.API.RepositoryFiles
+                , GitLab.API.Tags
+                , GitLab.API.Todos
+                , GitLab.API.Version
+                , GitLab.API.Notes
+                , GitLab.API.Discussions
+                , GitLab.API.Boards
+                , GitLab.SystemHooks.Types
+                , GitLab.SystemHooks.GitLabSystemHooks
+                , GitLab.SystemHooks.Rules
+  other-modules:
+                  GitLab.WebRequests.GitLabWebCalls
+  hs-source-dirs:
+                 src
+  build-depends:
+                base >=4.7 && <5
+              , http-conduit
+              , connection
+              , aeson >= 1.4.4.0
+              , bytestring
+              , text
+              , http-client
+              , http-types
+              , transformers
+              , time >= 1.9
+              , temporary
+              , unix
+  default-language: Haskell2010
+  ghc-options: -Wall
+               -- the following two for the stan static analysis tool
+               -- -fwrite-ide-info
+               -- -hiedir=.hie
+
+test-suite test-gitlab-haskell
+  type:          exitcode-stdio-1.0
+  main-is:       Tests.hs
+  other-modules: SystemHookTests
+               , API.BoardsTests
+               , API.BranchesTests
+               , API.CommitsTests
+               , API.DiscussionsTests
+               , API.EventsTests
+               , API.GroupsTests
+               , API.IssuesTests
+               , API.JobsTests
+               , API.MembersTests
+               , API.MergeRequestsTests
+               , API.NotesTests
+               , API.PipelinesTests
+               , API.ProjectsTests
+               , API.RepositoriesTests
+               , API.RepositoryFilesTests
+               , API.TagsTests
+               , API.TodosTests
+               , API.UsersTests
+               , API.VersionTests
+               , API.Common
+  hs-source-dirs: tests/
+  default-language: Haskell2010
+  build-depends: base >= 4.8.0.0 && < 6
+               , tasty
+               , tasty-hunit
+               , gitlab-haskell
+               , bytestring
+               , aeson
+               , tree-diff
+               , ansi-wl-pprint
+               , vector
+               , unordered-containers
+  ghc-options: -Wall
+               
