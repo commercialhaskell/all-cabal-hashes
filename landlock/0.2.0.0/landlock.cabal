@@ -1,0 +1,122 @@
+Cabal-Version:       2.2
+Build-Type:          Simple
+
+Name:                landlock
+Version:             0.2.0.0
+Synopsis:            Haskell bindings for the Linux Landlock API
+Description:
+  This library exposes Haskell bindings for the Linux kernel Landlock API.
+  .
+  The Linux kernel Landlock API provides unprivileged access control. The goal
+  of Landlock is to enable to restrict ambient rights (e.g. global filesystem
+  access) for a set of processes. Because Landlock is a stackable LSM, it makes
+  possible to create safe security sandboxes as new security layers in addition
+  to the existing system-wide access-controls. This kind of sandbox is expected
+  to help mitigate the security impact of bugs or unexpected/malicious
+  behaviors in user space applications. Landlock empowers any process,
+  including unprivileged ones, to securely restrict themselves.
+  .
+  For more information, see the <https://landlock.io/ Landlock homepage> and its
+  <https://docs.kernel.org/userspace-api/landlock.html kernel documentation>.
+Homepage:            https://github.com/NicolasT/landlock-hs
+Bug-Reports:         https://github.com/NicolasT/landlock-hs/issues
+License:             BSD-3-Clause
+License-File:        LICENSE
+Author:              Nicolas Trangez
+Maintainer:          ikke@nicolast.be
+Copyright:           (c) 2022 Nicolas Trangez
+Category:            System
+Stability:           alpha
+
+Extra-Source-Files:
+  CHANGELOG.md
+  README.md
+  cbits/hs-landlock.h
+
+Tested-With:         GHC ==8.10.5
+                   , GHC ==9.0.2
+                   , GHC ==9.2.2
+
+Source-Repository head
+  Type:                git
+  Location:            https://github.com/NicolasT/landlock-hs.git
+  Subdir:              landlock
+  Branch:              main
+
+Library
+  Exposed-Modules:     System.Landlock
+  Build-Depends:       landlock-internal
+                     , base ^>=4.14.2.0 || ^>=4.15 || ^>=4.16
+                     , exceptions ^>=0.10.4
+                     , unix ^>=2.7.2.2
+  Build-Tool-Depends:  hsc2hs:hsc2hs
+  Hs-Source-Dirs:      src
+  Default-Language:    Haskell2010
+  Other-Extensions:    EmptyCase
+                       EmptyDataDeriving
+                       FlexibleContexts
+                       LambdaCase
+                       RankNTypes
+  Ghc-Options:         -Wall
+
+Library landlock-internal
+  Exposed-Modules:     System.Landlock.Flags
+                     , System.Landlock.OpenPath
+                     , System.Landlock.Rules
+                     , System.Landlock.Syscalls
+                     , System.Landlock.Version
+  Include-Dirs:        cbits
+  C-Sources:           cbits/hs-landlock.c
+  Cc-Options:          -Wall
+  Build-Depends:       psx ^>=0.1
+                     , base
+                     , exceptions
+                     , unix
+  Build-Tool-Depends:  hsc2hs:hsc2hs
+  Hs-Source-Dirs:      internal
+  Default-Language:    Haskell2010
+  Other-Extensions:    DataKinds
+                       FlexibleInstances
+                       GADTs
+                       KindSignatures
+                       LambdaCase
+                       StandaloneDeriving
+  Ghc-Options:         -Wall
+
+Test-Suite landlock-test
+  Type:                exitcode-stdio-1.0
+  Hs-Source-Dirs:      test
+  Main-Is:             landlock-test.hs
+  Other-Modules:       ThreadedScenario
+  Build-Depends:       landlock
+                     , landlock-internal
+                     , base
+                     , async ^>=2.2.3
+                     , filepath ^>=1.4.2.1
+                     , process ^>=1.6.9.0
+                     , QuickCheck ^>=2.14.2
+                     , tasty ^>=1.4.1
+                     , tasty-expected-failure ^>=0.12.3
+                     , tasty-hunit ^>=0.10.0.3
+                     , tasty-quickcheck ^>=0.10.1.2
+  Default-Language:    Haskell2010
+  Other-Extensions:    DataKinds
+                       FlexibleInstances
+                       LambdaCase
+                       ScopedTypeVariables
+                       TypeApplications
+  Ghc-Options:         -Wall
+
+Test-Suite landlock-test-threaded
+  Type:                exitcode-stdio-1.0
+  Hs-Source-Dirs:      test
+  Main-Is:             landlock-test-threaded.hs
+  Other-Modules:       ThreadedScenario
+  Build-Depends:       landlock
+                     , base
+                     , async ^>=2.2.3
+                     , tasty ^>=1.4.1
+                     , tasty-expected-failure ^>=0.12.3
+                     , tasty-hunit ^>=0.10.0.3
+  Default-Language:    Haskell2010
+  Ghc-Options:         -Wall -threaded -with-rtsopts -N2
