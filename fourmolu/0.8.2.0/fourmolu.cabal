@@ -1,0 +1,257 @@
+cabal-version:      2.4
+name:               fourmolu
+version:            0.8.2.0
+license:            BSD-3-Clause
+license-file:       LICENSE.md
+maintainer:
+    Matt Parsons <parsonsmatt@gmail.com>
+    George Thomas <georgefsthomas@gmail.com>
+    Brandon Chinn <brandonchinn178@gmail.com>
+tested-with:        ghc ==8.10.7 ghc ==9.0.2 ghc ==9.2.1
+homepage:           https://github.com/parsonsmatt/fourmolu
+bug-reports:        https://github.com/parsonsmatt/fourmolu/issues
+synopsis:           A formatter for Haskell source code
+description:        A formatter for Haskell source code.
+category:           Development, Formatting
+build-type:         Simple
+extra-source-files:
+    data/**/*.hs
+    data/**/*.txt
+    data/**/*.cabal
+    extract-hackage-info/hackage-info.json
+    -- needed for integration tests
+    fixity-tests/*.hs
+    region-tests/*.hs
+    fourmolu.yaml
+
+extra-doc-files:
+    CHANGELOG.md
+    README.md
+
+source-repository head
+    type:     git
+    location: https://github.com/parsonsmatt/fourmolu.git
+
+flag dev
+    description: Turn on development settings.
+    default:     False
+    manual:      True
+
+flag fixity-th
+    description: Parse the default fixity information via Template Haskell
+    manual:      True
+
+library
+    exposed-modules:
+        Ormolu
+        Ormolu.Config
+        Ormolu.Diff.ParseResult
+        Ormolu.Diff.Text
+        Ormolu.Exception
+        Ormolu.Imports
+        Ormolu.Parser
+        Ormolu.Parser.CommentStream
+        Ormolu.Parser.Pragma
+        Ormolu.Parser.Result
+        Ormolu.Printer
+        Ormolu.Printer.Combinators
+        Ormolu.Printer.Comments
+        Ormolu.Printer.Internal
+        Ormolu.Printer.Meat.Common
+        Ormolu.Printer.Meat.Declaration
+        Ormolu.Printer.Meat.Declaration.Annotation
+        Ormolu.Printer.Meat.Declaration.Class
+        Ormolu.Printer.Meat.Declaration.Data
+        Ormolu.Printer.Meat.Declaration.Default
+        Ormolu.Printer.Meat.Declaration.Foreign
+        Ormolu.Printer.Meat.Declaration.Instance
+        Ormolu.Printer.Meat.Declaration.RoleAnnotation
+        Ormolu.Printer.Meat.Declaration.Rule
+        Ormolu.Printer.Meat.Declaration.Signature
+        Ormolu.Printer.Meat.Declaration.Splice
+        Ormolu.Printer.Meat.Declaration.Type
+        Ormolu.Printer.Meat.Declaration.TypeFamily
+        Ormolu.Printer.Meat.Declaration.Value
+        Ormolu.Printer.Meat.Declaration.OpTree
+        Ormolu.Printer.Meat.Declaration.Warning
+        Ormolu.Printer.Meat.ImportExport
+        Ormolu.Printer.Meat.Module
+        Ormolu.Printer.Meat.Pragma
+        Ormolu.Printer.Meat.Type
+        Ormolu.Printer.Operators
+        Ormolu.Fixity
+        Ormolu.Fixity.Internal
+        Ormolu.Fixity.Parser
+        Ormolu.Fixity.Printer
+        Ormolu.Printer.SpanStream
+        Ormolu.Processing.Common
+        Ormolu.Processing.Cpp
+        Ormolu.Processing.Preprocess
+        Ormolu.Terminal
+        Ormolu.Utils
+        Ormolu.Utils.Cabal
+        Ormolu.Utils.Fixity
+        Ormolu.Utils.IO
+    other-modules:
+        Ormolu.Config.TH
+        Ormolu.Config.Types
+
+    hs-source-dirs:   src
+    other-modules:    GHC.DynFlags
+    default-language: Haskell2010
+    build-depends:
+        Cabal >=3.6 && <3.7,
+        Diff >=0.4 && <1.0,
+        MemoTrie >=0.6 && <0.7,
+        aeson >=1.0 && <3.0,
+        ansi-terminal >=0.10 && <1.0,
+        array >=0.5 && <0.6,
+        base >=4.14 && <5.0,
+        bytestring >=0.2 && <0.12,
+        containers >=0.5 && <0.7,
+        directory ^>=1.3,
+        dlist >=0.8 && <2.0,
+        exceptions >=0.6 && <0.11,
+        filepath >=1.2 && <1.5,
+        ghc-lib-parser >=9.2 && <9.3,
+        megaparsec >=9.0,
+        mtl >=2.0 && <3.0,
+        syb >=0.7 && <0.8,
+        template-haskell,
+        text >=0.2 && <3.0,
+        th-lift-instances >=0.1 && <0.2,
+        -- fourmolu-only deps
+        yaml >=0.11.6.0 && <1
+
+    mixins:           ghc-lib-parser hiding (Language.Haskell.TH, Language.Haskell.TH.Syntax)
+
+    if flag(fixity-th)
+        cpp-options: -DFIXITY_TH
+
+    else
+        build-depends: file-embed >=0.0.15 && <0.1
+
+    if flag(dev)
+        ghc-options:
+            -Wall -Werror -Wcompat -Wincomplete-record-updates
+            -Wincomplete-uni-patterns -Wnoncanonical-monad-instances
+            -Wno-missing-home-modules
+
+    else
+        ghc-options: -O2 -Wall
+
+executable fourmolu
+    main-is:          Main.hs
+    hs-source-dirs:   app
+    other-modules:    Paths_fourmolu
+    autogen-modules:  Paths_fourmolu
+    default-language: Haskell2010
+    build-depends:
+        base >=4.12 && <5.0,
+        containers >=0.5 && <0.7,
+        filepath >=1.2 && <1.5,
+        ghc-lib-parser >=9.2 && <9.3,
+        gitrev >=1.3 && <1.4,
+        optparse-applicative >=0.14 && <0.18,
+        text >=0.2 && <3.0,
+        -- fourmolu-only deps
+        directory >=1.3.3 && <1.4,
+        yaml >=0.11.6.0 && <1,
+        fourmolu
+
+    if flag(dev)
+        ghc-options:
+            -Wall -Werror -Wcompat -Wincomplete-record-updates
+            -Wincomplete-uni-patterns -Wnoncanonical-monad-instances
+            -optP-Wno-nonportable-include-path
+
+    else
+        ghc-options: -O2 -Wall -rtsopts
+
+common integration-test-utils
+    build-tool-depends: fourmolu:fourmolu
+    hs-source-dirs: tests/utils/
+    other-modules: IntegrationUtils
+    build-depends:
+        directory >=1.3 && <1.4,
+        process >=1.6 && <2.0
+
+test-suite tests
+    import: integration-test-utils
+    type:               exitcode-stdio-1.0
+    main-is:            Spec.hs
+    build-tool-depends: hspec-discover:hspec-discover >=2.0 && <3.0
+    hs-source-dirs:     tests
+    other-modules:
+        Ormolu.CabalInfoSpec
+        Ormolu.Diff.TextSpec
+        Ormolu.Fixity.ParserSpec
+        Ormolu.Fixity.PrinterSpec
+        Ormolu.HackageInfoSpec
+        Ormolu.OpTreeSpec
+        Ormolu.Parser.OptionsSpec
+        Ormolu.Parser.ParseFailureSpec
+        Ormolu.Parser.PragmaSpec
+        Ormolu.PrinterSpec
+
+    default-language:   Haskell2010
+    build-depends:
+        QuickCheck >=2.14,
+        base >=4.14 && <5.0,
+        containers >=0.5 && <0.7,
+        directory ^>=1.3,
+        filepath >=1.2 && <1.5,
+        ghc-lib-parser >=9.2 && <9.3,
+        hspec >=2.0 && <3.0,
+        hspec-megaparsec >=2.2,
+        megaparsec >=9.0,
+        path >=0.6 && <0.10,
+        path-io >=1.4.2 && <2.0,
+        temporary ^>=1.3,
+        text >=0.2 && <3.0
+
+    -- specific to fourmolu tests
+    other-modules:
+        Ormolu.Config.OptionsSpec
+        Ormolu.Config.PrinterOptsSpec
+    build-depends:
+        Diff >=0.3 && <0.5,
+        pretty >=1.0 && <2.0,
+        fourmolu
+
+    if flag(dev)
+        ghc-options: -Wall -Werror
+
+    else
+        ghc-options: -O2 -Wall
+
+test-suite region-tests
+    import: integration-test-utils
+    type:               exitcode-stdio-1.0
+    main-is:            Main.hs
+    hs-source-dirs:     region-tests
+    default-language:   Haskell2010
+    build-depends:
+        base >=4.14 && <5.0,
+        hspec >=2.0 && <3.0
+
+    if flag(dev)
+        ghc-options: -Wall -Werror
+    else
+        ghc-options: -O2 -Wall
+
+test-suite fixity-tests
+    import: integration-test-utils
+    type:               exitcode-stdio-1.0
+    main-is:            Main.hs
+    hs-source-dirs:     fixity-tests
+    default-language:   Haskell2010
+    build-depends:
+        base >=4.14 && <5.0,
+        hspec >=2.0 && <3.0,
+        temporary >=1.3 && <1.4
+
+    if flag(dev)
+        ghc-options: -Wall -Werror
+    else
+        ghc-options: -O2 -Wall
