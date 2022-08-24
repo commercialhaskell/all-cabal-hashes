@@ -1,0 +1,119 @@
+Cabal-Version:       2.2
+Build-Type:          Simple
+
+Name:                psx
+Version:             0.1.0.0
+Synopsis:            Integrate @libpsx@ with the GHC RTS
+Description:
+  This library embeds libpsx in a GHC Haskell-compiled application.
+  .
+  Note @libpsx@ performs some trickery with signal handling in a process.
+  Furthermore, when using this library, @sigfillset@ will be wrapped so
+  @SIGSYS@ is /not/ set, in order for the GHC RTS @ticker@ thread not to
+  block the signal and work properly with @libpsx@.
+  .
+  __Warning:__ @libpsx@ on current Ubuntu and Debian systems (from @libcap@
+  2.44) is broken. Hence, this library contains a bundled version of @libpsx@
+  by default. Disable the @bundled-libpsx@ flag to use a system-provided
+  version of the library, which must be from @libcap@ version 2.46 or higher.
+  The license of the bundled library can be found in @cbits\/psx\/License@.
+Homepage:            https://github.com/NicolasT/landlock-hs
+Bug-Reports:         https://github.com/NicolasT/landlock-hs/issues
+License:             BSD-3-Clause
+License-File:        LICENSE
+Author:              Nicolas Trangez
+Maintainer:          ikke@nicolast.be
+Copyright:           (c) 2022 Nicolas Trangez
+Category:            System
+Stability:           alpha
+
+Extra-Source-Files:
+  CHANGELOG.md
+  README.md
+  cbits/hs-psx.h
+  cbits/psx/License
+  cbits/psx/psx_syscall.h
+  test/detect-psx.h
+
+Tested-With:         GHC ==8.10.5
+                   , GHC ==9.0.2
+                   , GHC ==9.2.2
+
+Source-Repository head
+  Type:                git
+  Location:            https://github.com/NicolasT/landlock-hs.git
+  Subdir:              psx
+  Branch:              main
+
+Flag bundled-libpsx
+  Description:         Use the bundled libpsx instead of a (potentially broken) system-provided version. See @cbits\/psx\/License@.
+  Default:             True
+  Manual:              True
+
+Library
+  -- Despite this library not containing any Haskell code, and
+  -- hence not really having any dependency on `base`, it is
+  -- only *tested* on particular GHC versions (which we can tie
+  -- to some version of `base`). Given the intricate interaction
+  -- between this package functionality working as expected (cfr.
+  -- the `sigfillset` wrapping) and the GHC RTS, it seems wise to
+  -- restrict compatibility with said GHC version(s).
+  Exposed-Modules:     System.PSX
+  Hs-Source-Dirs:      src
+  Build-Depends:       base ^>=4.14.2.0 || ^>=4.15 || ^>=4.16
+  Include-Dirs:        cbits
+  Install-Includes:    hs-psx.h
+  C-Sources:           cbits/hs-psx.c
+  Cc-Options:          -Wall
+  Ld-Options:          -Wl,-wrap,sigfillset -Wl,-undefined,__wrap_sigfillset
+  Default-Language:    Haskell2010
+  Ghc-Options:         -Wall
+  if flag(bundled-libpsx)
+    C-Sources:         cbits/psx/psx.c
+    Cc-Options:        -DBUNDLED_LIBPSX
+    Ld-Options:        -pthread -Wl,-wrap,pthread_create
+  else
+    Pkgconfig-Depends: libpsx
+
+Test-Suite psx-test-threaded
+  Type:                exitcode-stdio-1.0
+  Hs-Source-Dirs:      test
+  Main-Is:             psx-test-threaded.hs
+  Other-Modules:       TestCases
+  C-Sources:           test/detect-psx.c
+  Include-Dirs:        test
+  Build-Depends:       psx
+                     , base
+                     , async ^>=2.2.3
+                     , tasty ^>=1.4.1
+                     , tasty-hunit ^>=0.10.0.3
+  Default-Language:    Haskell2010
+  Ghc-Options:         -Wall -threaded -with-rtsopts -N2
+
+Test-Suite psx-test
+  Type:                exitcode-stdio-1.0
+  Hs-Source-Dirs:      test
+  Main-Is:             psx-test.hs
+  Other-Modules:       TestCases
+  C-Sources:           test/detect-psx.c
+  Include-Dirs:        test
+  Build-Depends:       psx
+                     , base
+                     , async ^>=2.2.3
+                     , tasty ^>=1.4.1
+                     , tasty-hunit ^>=0.10.0.3
+  Default-Language:    Haskell2010
+  Ghc-Options:         -Wall
+
+Test-Suite psx-test-no-psx
+  Type:                exitcode-stdio-1.0
+  Hs-Source-Dirs:      test
+  Main-Is:             psx-test-no-psx.hs
+  C-Sources:           test/detect-psx.c
+  Include-Dirs:        test
+                       cbits
+  Build-Depends:       base
+                     , tasty ^>=1.4.1
+                     , tasty-hunit ^>=0.10.0.3
+  Default-Language:    Haskell2010
+  Ghc-Options:         -Wall
