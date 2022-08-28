@@ -1,0 +1,234 @@
+cabal-version:  3.0
+name:           list-remote-forwards
+version:        0.0.2
+author:         Michael Orlitzky
+maintainer:	Michael Orlitzky <michael@orlitzky.com>
+license:        AGPL-3.0-only
+license-file:   doc/LICENSE
+bug-reports:    mailto:michael@orlitzky.com
+category:       Mail, Utils
+build-type:     Simple
+extra-source-files:
+  doc/list-remote-forwardsrc.example
+  doc/man1/list-remote-forwards.1
+  test/fixtures/postfixadmin.sqlite3
+synopsis:
+  List all remote forwards for mail accounts stored in a SQL database.
+description:
+  /Usage/:
+
+  @
+  list-remote-forwards [OPTIONS]
+  @
+
+  List all remote forwards for mail accounts stored in a SQL database.
+
+  A list of local domains is supplied to the program (more or less)
+  through the @--domain-query@ option. Any addresses which
+  forward to another address not contained in this list of local domains
+  is considered a remote forward. Remote forwards can cause problems for
+  a number of reasons, the most common of which are,
+
+    * If the sender has an SPF record authorizing his mail server to send
+      mail on his behalf, then when his message is forwarded by the
+      recipient's mail server, it will fail any subsequent SPF checks. This
+      will likely cause the message to be rejected, and the original
+      recipient's server will generate backscatter.
+
+    * If any spam makes it through the filter on the recipient's mail
+      server, that spam will then be forwarded to a remote destination. The
+      remote destination will blame the forwarding server for the spam, and
+      that can impact its reputation and potentially lead to a blacklisting
+      even though the spam did not originate on the recipient's server.
+
+  Whether or not these are an issue depends on the circumstances, but in
+  any case it is useful to know who is forwarding mail off-site.
+
+  /Input:/
+
+  None.
+
+  /Output:/
+
+  A list of addresses that are forwarded to remote domains.
+
+  /Options/:
+
+  @
+  \--database
+  @
+
+  The name of the database (or file, if SQLite) to which we should
+  connect.
+
+  Default: The name of the current user (Postgres only).
+
+  @
+  \--domain-query
+  @
+  SQL query used to produce a list of local domains. This should return
+  the set of all domains (i.e one column) that are local to the
+  server. See the default value for an example.
+
+  Default: \"SELECT domain FROM domain WHERE domain <> 'ALL' ORDER BY domain;\"
+
+  @
+  \--exclude-mx, -e
+  @
+
+  The name of a mail exchanger, the forwards of whose domains we should
+  ignore. For example, if one mail exchanger, mx1.example.com, has
+  strict spam filtering, it may be acceptable to have remote forwarding
+  for domains that have mx1.example.com as their sole mail exchanger (MX
+  record). In that case, you might want to exclude those domains from
+  the report by naming mx1.example.com here.
+
+  A forward will be excluded from the report only if /all/ of its MX
+  records are contained in the given exclude list.
+
+  This option can be repeated to add mail exchangers to the exclude list.
+
+  Default: [] (empty)
+
+  @
+  \--forward-query, -f
+  @
+
+  SQL query used to produce a list of all forwards on the mail
+  system. This query should return the set of all (address, goto)
+  triples, where \"goto\" is the destination address; i.e. to where
+  the \"address\" forwards. The \"goto\" field may contain more
+  than one email address, separated by commas.
+
+  Default: \"SELECT address,goto FROM alias ORDER BY address;\"
+
+  @
+  \--host, -h
+  @
+
+  Hostname where the database is located (Postgres-only).
+
+  Default: None, a UNIX domain socket connection is attempted (Postgres only)
+
+  @
+  \--password
+  @
+
+  Password used to connect to the database (Postgres-only).
+
+  Default: None (assumes passwordless authentication)
+
+  @
+  \--port
+  @
+  Port number used to connect to the database (Postgres-only).
+
+  Default: None, a UNIX domain socket connection is attempted (Postgres only)
+
+  @
+  \--username, -u
+  @
+
+  Username used to connect to the database (Postgres-only).
+
+  Default: The current user
+
+  /Examples/:
+
+  @
+  $ list-remote-forwards --database=test\/fixtures\/postfixadmin.sqlite3
+  user1@example.com -> user1@example.net
+  user2@example.com -> user1@example.org
+  user2@example.com -> user2@example.org
+  user2@example.com -> user3@example.org
+  user7@example.com -> user8@example.net
+  @
+
+executable list-remote-forwards
+  build-depends:
+    base                        >= 4.15 && < 5,
+    bytestring                  >= 0.10,
+    cmdargs                     >= 0.10,
+    configurator                >= 0.2,
+    containers                  >= 0.5,
+    dns                         >= 1.4,
+    directory                   >= 1.2,
+    filepath                    >= 1.3,
+    HDBC                        >= 2.4,
+    HDBC-postgresql             >= 2.3,
+    HDBC-sqlite3                >= 2.3,
+    MissingH                    >= 1.2,
+    tasty                       >= 0.8,
+    tasty-hunit                 >= 0.8
+
+  default-language:
+    Haskell2010
+
+  main-is:
+    Main.hs
+
+  hs-source-dirs:
+    src/
+
+  other-modules:
+    Configuration
+    CommandLine
+    DNS
+    Forward
+    MxList
+    OptionalConfiguration
+    Paths_list_remote_forwards
+    Report
+    String
+
+  autogen-modules:
+    Paths_list_remote_forwards
+
+test-suite testsuite
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src test
+  default-language: Haskell2010
+  main-is: TestSuite.hs
+
+  other-modules:
+    Configuration
+    DNS
+    Forward
+    MxList
+    OptionalConfiguration
+    Paths_list_remote_forwards
+    Report
+
+  autogen-modules:
+    Paths_list_remote_forwards
+
+  build-depends:
+    base                        >= 4.15 && < 5,
+    bytestring                  >= 0.10,
+    cmdargs                     >= 0.10,
+    configurator                >= 0.2,
+    containers                  >= 0.5,
+    dns                         >= 1.4,
+    directory                   >= 1.2,
+    filepath                    >= 1.3,
+    HDBC                        >= 2.4,
+    HDBC-sqlite3                >= 2.3,
+    MissingH                    >= 1.2,
+    tasty                       >= 0.8,
+    tasty-hunit                 >= 0.8
+
+test-suite doctests
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  default-language: Haskell2010
+  main-is: Doctests.hs
+  build-depends:
+    base      >= 4.15 && < 5,
+    -- Additional test dependencies.
+    doctest   >= 0.9,
+    filemanip >= 0.3.6
+
+source-repository head
+  type: git
+  location: http://gitweb.michael.orlitzky.com/list-remote-forwards.git
+  branch: master
