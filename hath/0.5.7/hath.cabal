@@ -1,0 +1,160 @@
+cabal-version:  3.0
+name:           hath
+version:        0.5.7
+author:         Michael Orlitzky
+maintainer:	Michael Orlitzky <michael@orlitzky.com>
+homepage:       http://michael.orlitzky.com/code/hath.xhtml
+category:       Utils
+license:        AGPL-3.0-only
+license-file:   doc/LICENSE
+build-type:     Simple
+extra-source-files:
+  doc/man1/hath.1
+  test/shell/*.test
+synopsis:
+  Hath manipulates network blocks in CIDR notation.
+description:
+  Hath is a Haskell program for working with network blocks in CIDR
+  notation. When dealing with blocks of network addresses, there are a
+  few things that one usually wants to do with them:
+
+    * Create a regular expression matching the CIDR block(s). This is
+      because grep will throw up if you feed it CIDR.
+
+    * Combine small blocks into larger ones. For example, if you have two
+      consecutive \/24s, they might combine into a larger \/23.
+
+    * View the result of block combination in a useful way.
+
+    * List them.
+
+  Hath has several modes to perform these functions:
+
+    * __Regexed__
+      This computes a (Perl-compatible) regular expression matching
+      the input CIDR blocks. It's the default mode of operation.
+
+    * __Reduced__
+      This combines small blocks into larger ones where possible, and
+      eliminates redundant blocks. The output should be equivalent to
+      the input, though.
+
+    * __Duped__
+      Shows only the blocks that would be removed by reduce; that is, it
+      shows the ones that would get combined into larger blocks or are
+      simply redundant.
+
+    * __Diffed__
+      Shows what would change if you used reduce. Uses diff-like
+      notation.
+
+    * __Listed__
+      List the IP addresses contained within the given CIDRs.
+
+  /Examples/:
+
+  Compute a (Perl-compatible) regular expression matching
+  the input CIDR blocks. It's the default mode of operation.
+
+  @
+  $ echo \"10.0.0.0\/29 10.0.0.8\/29\" | hath
+  ((10)\.(0)\.(0)\.(15|14|13|12|11|10|9|8|7|6|5|4|3|2|1|0))
+  @
+
+  Combine two \/24s into a \/23:
+
+  @
+  $ echo \"10.0.0.0\/24 10.0.1.0\/24\" | hath reduced
+  10.0.0.0/23
+  @
+
+  List the addresses in 192.168.0.240\/29:
+
+  @
+  $ echo 192.168.0.240\/29 | hath listed
+  192.168.0.240
+  192.168.0.241
+  192.168.0.242
+  192.168.0.243
+  192.168.0.244
+  192.168.0.245
+  192.168.0.246
+  192.168.0.247
+  @
+
+  The command-line syntax and complete set of options are documented in
+  the man page.
+
+
+executable hath
+  default-language:
+    Haskell2010
+
+  main-is:
+    Main.hs
+
+  hs-source-dirs:
+    src/
+
+  other-modules:
+    Bit
+    Cidr
+    CommandLine
+    ExitCodes
+    IPv4Address
+    Maskable
+    Maskbits
+    Octet
+    Paths_hath
+
+  autogen-modules:
+    Paths_hath
+
+  build-depends:
+    base                        >= 4.15 && < 5.0,
+    cmdargs                     >= 0.10,
+    split                       >= 0.2,
+    tasty                       >= 0.8,
+    tasty-hunit                 >= 0.8,
+    tasty-quickcheck            >= 0.8.1
+
+
+test-suite testsuite
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src test
+  default-language: Haskell2010
+  main-is: TestSuite.hs
+
+  other-modules:
+    Bit
+    Cidr
+    IPv4Address
+    Maskable
+    Maskbits
+    Octet
+
+  build-depends:
+    base                        >= 4.15 && < 5.0,
+    split                       >= 0.2,
+    tasty                       >= 0.8,
+    tasty-hunit                 >= 0.8,
+    tasty-quickcheck            >= 0.8.1
+
+
+-- These won't work without shelltestrunner installed in your
+-- $PATH. Maybe there is some way to tell Cabal that.
+test-suite shelltests
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  default-language: Haskell2010
+  main-is: ShellTests.hs
+
+  build-depends:
+    base                        >= 4.15 && < 5.0,
+    process                     >= 1.1
+
+
+source-repository head
+  type: git
+  location: http://gitweb.michael.orlitzky.com/hath.git
+  branch: master
