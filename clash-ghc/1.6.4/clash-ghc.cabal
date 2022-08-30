@@ -1,0 +1,232 @@
+Cabal-version:        2.2
+Name:                 clash-ghc
+Version:              1.6.4
+Synopsis:             Clash: a functional hardware description language - GHC frontend
+Description:
+  Clash is a functional hardware description language that borrows both its
+  syntax and semantics from the functional programming language Haskell. The
+  Clash compiler transforms these high-level descriptions to low-level
+  synthesizable VHDL, Verilog, or SystemVerilog.
+  .
+  Features of Clash:
+  .
+  * Strongly typed, but with a very high degree of type inference, enabling both
+    safe and fast prototyping using concise descriptions.
+  .
+  * Interactive REPL: load your designs in an interpreter and easily test all
+    your component without needing to setup a test bench.
+  .
+  * Higher-order functions, with type inference, result in designs that are
+    fully parametric by default.
+  .
+  * Synchronous sequential circuit design based on streams of values, called
+    @Signal@s, lead to natural descriptions of feedback loops.
+  .
+  * Support for multiple clock domains, with type safe clock domain crossing.
+  .
+  .
+  This package provides:
+  .
+  * Clash Compiler binary using GHC/Haskell as a frontend
+  .
+  .
+  Prelude library: <https://hackage.haskell.org/package/clash-prelude>
+Homepage:             https://clash-lang.org/
+bug-reports:          https://github.com/clash-lang/clash-compiler/issues
+License:              BSD-2-Clause
+License-file:         LICENSE
+Author:               The Clash Authors
+Maintainer:           QBayLogic B.V. <devops@qbaylogic.com>
+Copyright:            Copyright © 2012-2016, University of Twente,
+                                  2016-2017, Myrtle Software Ltd,
+                                  2017-2019, QBayLogic B.V., Google Inc.
+Category:             Hardware
+Build-type:           Simple
+
+Extra-source-files:   README.md,
+                      CHANGELOG.md,
+                      LICENSE_GHC,
+                      cbits/PosixSource.h
+
+source-repository head
+  type: git
+  location: https://github.com/clash-lang/clash-compiler.git
+  subdir: clash-ghc
+
+flag dynamic
+  description:
+    Build Clash binaries with GHC flag `-dynamic`. This flag should only be used for packaging purposes. Installations using cabal should use `--enable-executable-dynamic`!
+  default: False
+  manual: True
+
+flag use-ghc-paths
+  description:
+    Locate the GHC core libraries using the `ghc-paths` package.  Note: this flag may make binaries less relocatable, by hard-coding an absolute path to the core libraries.
+  default: False
+  manual: True
+
+executable clash
+  Main-Is:            src-ghc/Batch.hs
+  Build-Depends:      base, clash-ghc
+  GHC-Options:        -Wall -Wcompat -threaded -rtsopts -with-rtsopts=-A128m
+  if flag(dynamic)
+    GHC-Options: -dynamic
+  extra-libraries:    pthread
+  default-language:   Haskell2010
+
+executable clashi
+  Main-Is:            src-ghc/Interactive.hs
+  Build-Depends:      base, clash-ghc
+  GHC-Options:        -Wall -Wcompat -rtsopts -with-rtsopts=-A128m
+  if flag(dynamic)
+    GHC-Options: -dynamic
+  extra-libraries:    pthread
+  default-language:   Haskell2010
+
+common common-options
+  default-language:   Haskell2010
+  default-extensions: BangPatterns
+                      BinaryLiterals
+                      DataKinds
+                      DefaultSignatures
+                      DeriveDataTypeable
+                      DeriveFoldable
+                      DeriveFunctor
+                      DeriveGeneric
+                      DeriveLift
+                      DeriveTraversable
+                      DerivingStrategies
+                      InstanceSigs
+                      KindSignatures
+                      NoStarIsType
+                      ScopedTypeVariables
+                      StandaloneDeriving
+                      TupleSections
+                      TypeApplications
+                      TypeOperators
+                      ViewPatterns
+
+  if impl(ghc >= 8.6)
+      default-extensions: NoStarIsType
+
+library
+  import:             common-options
+  HS-Source-Dirs:     src-ghc, src-bin-common
+  if impl(ghc >= 9.0.0)
+    HS-Source-Dirs: src-bin-9.0
+  elif impl(ghc >= 8.10.0)
+    HS-Source-Dirs: src-bin-8.10
+  elif impl(ghc >= 8.8.0)
+    HS-Source-Dirs: src-bin-881
+  elif impl(ghc >= 8.6.0)
+    HS-Source-Dirs: src-bin-861
+
+  GHC-Options:        -Wall -Wcompat
+  if impl(ghc >= 8.10.0)
+    CPP-Options:        -DHAVE_INTERNAL_INTERPRETER
+  else
+    CPP-Options:        -DGHCI
+
+  other-extensions:   FlexibleContexts
+                      OverloadedStrings
+                      RecordWildCards
+                      TemplateHaskell
+
+  Build-Depends:      array                     >= 0.4      && < 0.6,
+                      base                      >= 4.11     && < 5,
+                      bytestring                >= 0.9      && < 0.12,
+                      Cabal,
+                      containers                >= 0.5.4.0  && < 0.7,
+                      data-binary-ieee754       >= 0.4.4    && < 0.6,
+                      directory                 >= 1.2      && < 1.4,
+                      extra                     >= 1.6      && < 1.8,
+                      filepath                  >= 1.3      && < 1.5,
+                      process                   >= 1.2      && < 1.7,
+                      hashable                  >= 1.1.2.3  && < 1.5,
+                      haskeline                 >= 0.7.0.3  && < 0.9,
+                      lens                      >= 4.10     && < 5.2.0,
+                      mtl                       >= 2.1.1    && < 2.3,
+                      split                     >= 0.2.3    && < 0.3,
+                      text                      >= 1.2.2    && < 2.1,
+                      transformers              >= 0.5.2.0  && < 0.7,
+                      unordered-containers      >= 0.2.1.0  && < 0.3,
+
+                      clash-lib                 == 1.6.4,
+                      clash-prelude             == 1.6.4,
+                      concurrent-supply         >= 0.1.7    && < 0.2,
+                      ghc-typelits-extra        >= 0.3.2    && < 0.5,
+                      ghc-typelits-knownnat     >= 0.6      && < 0.8,
+                      ghc-typelits-natnormalise >= 0.6      && < 0.8,
+                      deepseq                   >= 1.3.0.2  && < 1.5,
+                      time                      >= 1.4.0.1  && < 1.14,
+                      ghc-boot                  >= 8.6.0    && < 9.1,
+                      ghc-prim                  >= 0.3.1.0  && < 0.8,
+                      ghci                      >= 8.6.0    && < 9.1,
+                      uniplate                  >= 1.6.12   && < 1.8,
+                      reflection                >= 2.1.2    && < 3.0,
+                      primitive                 >= 0.5.0.1  && < 1.0,
+                      template-haskell          >= 2.8.0.0  && < 2.18,
+                      utf8-string               >= 1.0.0.0  && < 1.1.0.0,
+                      vector                    >= 0.11     && < 1.0
+
+  if os(windows)
+    -- 8.8 is broken on Windows - it randomly segfaults
+    Build-Depends: ghc >= 8.6.0 && < 8.8.0 || >= 8.10.0 && < 9.1
+  elif os(darwin)
+    -- 8.10 is broken on macOS - it exits tests with status code -11
+    Build-Depends: ghc >= 8.6.0 && < 8.10.0 || >= 9.0.0 && < 9.1
+  else
+    -- Unix
+    Build-Depends: ghc >= 8.6.0 && < 9.1
+
+  if impl(ghc >= 8.10.0)
+    Build-Depends:    exceptions                >= 0.10.4   && < 0.11,
+
+  if impl(ghc >= 9.0.0)
+    Build-Depends:    ghc-bignum                >= 1.0      && < 1.3
+  else
+    Build-Depends:    integer-gmp               >= 1.0.1.0  && < 2.0
+
+  if flag(use-ghc-paths)
+    Build-Depends:    ghc-paths
+    CPP-Options:      -DUSE_GHC_PATHS=1
+
+  if os(windows)
+    Build-Depends:    Win32                     >= 2.3.1    && < 2.14
+  else
+    Build-Depends:    unix                      >= 2.7.1    && < 2.9
+
+  Include-dirs:       cbits
+  C-Sources:          cbits/hschooks.c
+
+  Autogen-Modules:    Paths_clash_ghc
+
+  Exposed-Modules:    Clash.Main
+
+                      -- exposed for use by the benchmarks
+                      Clash.GHC.Evaluator
+                      Clash.GHC.Evaluator.Primitive
+                      Clash.GHC.GenerateBindings
+                      Clash.GHC.LoadModules
+                      Clash.GHC.NetlistTypes
+
+                      Clash.GHC.PartialEval
+                      Clash.GHC.PartialEval.Eval
+                      Clash.GHC.PartialEval.Quote
+                      Clash.GHC.PartialEval.Primitive
+
+                      Clash.GHCi.Common
+
+  Other-Modules:      Clash.GHCi.Leak
+                      Clash.GHCi.UI
+                      Clash.GHCi.UI.Info
+                      Clash.GHCi.UI.Monad
+                      Clash.GHCi.UI.Tags
+
+                      Clash.GHC.ClashFlags
+                      Clash.GHC.GHC2Core
+                      Clash.GHC.LoadInterfaceFiles
+                      Clash.GHC.Util
+                      Paths_clash_ghc
+  if impl(ghc >= 8.8.0)
+    Other-Modules:    Clash.GHCi.Util
