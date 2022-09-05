@@ -1,0 +1,131 @@
+name:                json-stream
+version:             0.4.4.2
+synopsis:            Incremental applicative JSON parser
+description:         Easy to use JSON parser fully supporting incremental parsing.
+                     Parsing grammar in applicative form.
+                     .
+                     The parser is compatibile with aeson and its FromJSON class.
+                     It is possible to use aeson monadic parsing when appropriate.
+                     .
+                     The parser supports constant-space safe incremental parsing regardless
+                     of the input data. In addition to performance-critical parts written in C,
+                     a lot of performance is gained by being less memory intensive especially
+                     when used for stream parsing.
+                     .
+                     * WARNING: 0.4.0.0 has code-breaking semantic changes, see changelog!
+
+homepage:            https://github.com/ondrap/json-stream
+license:             BSD3
+license-file:        LICENSE
+author:              Ondrej Palkovsky
+maintainer:          palkovsky.ondrej@gmail.com
+category:            Text, JSON
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  c_lib/lexer.h, changelog.md, benchmarks/json-data/*.json, README.md
+
+source-repository head
+  type: git
+  location: https://github.com/ondrap/json-stream.git
+
+flag conduit
+  description: Support the conduit package
+  manual: True
+  default: False
+
+library
+  exposed-modules:     Data.JsonStream.Parser
+  other-modules:       Data.JsonStream.TokenParser
+                     , Data.JsonStream.CLexType
+                     , Data.JsonStream.CLexer
+                     , Data.JsonStream.Unescape
+  c-sources:           c_lib/lexer.c, c_lib/unescape_string.c
+  includes:            c_lib/lexer.h
+  include-dirs:        c_lib
+  build-depends:         base >=4.7 && <5
+                       , bytestring
+                       , text
+                       , aeson >= 0.7 && < 2.2
+                       , vector
+                       , unordered-containers
+                       , scientific
+                       , primitive
+  if flag(conduit)
+    exposed-modules:     Data.JsonStream.Conduit
+    build-depends:       conduit
+
+  default-language:    Haskell2010
+  Ghc-Options:         -Wall -fwarn-incomplete-uni-patterns
+
+
+test-suite doctest
+  -- Doctest needs to expose CLexType, which we probably don't want. Disable tests for now.
+  Buildable:            False
+
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       test, .
+  Ghc-Options:          -threaded -Wall
+  Main-Is:              doctests.hs
+  other-modules:       Data.JsonStream.CLexType
+  c-sources:           c_lib/lexer.c, c_lib/unescape_string.c
+  includes:            c_lib/lexer.h
+  include-dirs:        c_lib
+  cc-options:          -fPIC
+  Build-Depends:         base >= 4.7 && <5
+                       , doctest >= 0.9.3
+                       , bytestring
+                       , text
+                       , aeson
+                       , vector
+                       , unordered-containers
+                       , hspec
+                       , scientific
+                       , directory
+                       , QuickCheck
+                       , quickcheck-unicode
+
+test-suite spec
+  main-is:             Spec.hs
+  other-modules:         Data.JsonStream.CLexType
+                       , Data.JsonStream.Unescape
+                       , ParserSpec
+                       , UnescapeSpec
+                       , Data.JsonStream.CLexer
+                       , Data.JsonStream.Parser
+                       , Data.JsonStream.TokenParser
+  c-sources:           c_lib/lexer.c, c_lib/unescape_string.c
+  include-dirs:        c_lib
+  includes:            c_lib/lexer.h
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test, .
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  build-depends:         base >=4.7 && <5
+                       , bytestring
+                       , text
+                       , aeson
+                       , vector
+                       , unordered-containers
+                       , hspec
+                       , scientific
+                       , directory
+                       , QuickCheck
+                       , quickcheck-unicode
+                       , primitive
+
+
+-- executable spdtest
+--   main-is: spdtest.hs
+--   other-modules:       Data.JsonStream.TokenParser, Data.JsonStream.CLexType, Data.JsonStream.CLexer
+--   ghc-options:         -O2 -Wall -fprof-auto
+--   c-sources:           c_lib/lexer.c
+--   include-dirs:        c_lib
+--   default-language:    Haskell2010
+--   build-depends:         base >=4.7 && <5
+--                        , bytestring
+--                        , text
+--                        , aeson
+--                        , vector
+--                        , unordered-containers
+--                        , scientific
