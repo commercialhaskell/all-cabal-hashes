@@ -1,0 +1,123 @@
+cabal-version:      2.2
+name:               skew-list
+version:            0.1
+synopsis:           Random access lists: skew binary
+category:           Data
+description:
+  This package provides ordinary random access list, 'SkewList'
+  implemented using skew binary approach.
+  .
+  It's worth comparing to ordinary lists, binary random access list (as in @ral@ package) and vectors (@vector@ package)
+  across two operations: indexing and consing.
+  .
+  +------------------------------+------------+----------+
+  |                              | Consing    | Indexing |
+  +------------------------------+------------+----------+
+  | Ordinary list, @[a]@         | O(1)       | O(n)     |
+  +------------------------------+------------+----------+
+  | Binary list, @RAList a@      | O(log n)   | O(log n) |
+  +------------------------------+------------+----------+
+  | Vector, @Vector@             | O(n)       | O(1)     |
+  +------------------------------+------------+----------+
+  | Sequence, @Seq@              | O(1)       | O(log n) |
+  +------------------------------+------------+----------+
+  | Skew binary list, @SkewList@ | O(1)       | O(log n) |
+  +------------------------------+------------+----------+
+  .
+  @SkewList@ improves upon ordinary list, the cons operation is still
+  constant time (though with higher constant factor), but indexing
+  can be done in a logarithmic time.
+  .
+  Binary list cons is slower, as it might need to walk over whole
+  /log n/ sized structure.
+  .
+  @Vector@ is the other end of trade-off spectrum: indexing is constant time
+  operation, but consing a new element will need to copy whole spine.
+  .
+  @Seq@ from "Data.Sequence" has similar (but amortized) complexity bounds for
+  cons and index as @SkewList@.  However (it seems) that indexing is quicker for
+  @SkewList@ in practice. Also @SkewList@ has strict spine.
+  On the other hand, @Seq@ has quick append if you need that.
+  .
+  If you need both: fast consing and index, consider using @SkewList@.
+
+homepage:           https://github.com/phadej/skew-list
+bug-reports:        https://github.com/phadej/skew-list/issues
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Oleg Grenrus <oleg.grenrus@iki.fi>
+maintainer:         Oleg.Grenrus <oleg.grenrus@iki.fi>
+copyright:          (c) 2022 Oleg Grenrus
+build-type:         Simple
+extra-source-files: ChangeLog.md
+tested-with:
+  GHC ==8.6.5 || ==8.8.4 || ==8.10.7 || ==9.0.2 || ==9.2.5 || ==9.4.4
+
+source-repository head
+  type:     git
+  location: https://github.com/phadej/skew-list.git
+
+library
+  default-language: Haskell2010
+  hs-source-dirs:   src
+  ghc-options:      -Wall -fprint-explicit-kinds
+  exposed-modules:
+    Data.SkewList.Lazy
+    Data.SkewList.Strict
+
+  -- Internal modules
+  exposed-modules:
+    Data.SkewList.Lazy.Internal
+    Data.SkewList.Strict.Internal
+
+  other-modules:    TrustworthyCompat
+
+  -- GHC boot libs
+  build-depends:
+    , base     >=4.12.0.0 && <4.18
+    , deepseq  >=1.4.4.0  && <1.5
+
+  -- other dependencies
+  build-depends:
+    , hashable             ^>=1.4.1.0
+    , indexed-traversable  ^>=0.1.1
+    , QuickCheck           ^>=2.14.2
+    , strict               ^>=0.4.0.1
+
+  if impl(ghc >=9.0)
+    -- these flags may abort compilation with GHC-8.10
+    -- https://gitlab.haskell.org/ghc/ghc/-/merge_requests/3295
+    ghc-options: -Winferred-safe-imports -Wmissing-safe-haskell-mode
+
+test-suite skew-list-tests
+  type:             exitcode-stdio-1.0
+  main-is:          skew-list-tests.hs
+  other-modules:
+    Lazy
+    Strict
+
+  default-language: Haskell2010
+  hs-source-dirs:   tests
+  ghc-options:      -Wall
+  build-depends:
+    , base
+    , indexed-traversable
+    , QuickCheck           ^>=2.14.2
+    , skew-list
+    , tasty                ^>=1.4.2.3
+    , tasty-hunit          ^>=0.10.0.3
+    , tasty-quickcheck     ^>=0.10.2
+
+benchmark skew-list-bench
+  type:             exitcode-stdio-1.0
+  main-is:          skew-list-bench.hs
+  default-language: Haskell2010
+  hs-source-dirs:   bench
+  ghc-options:      -Wall
+  build-depends:
+    , base
+    , containers
+    , criterion   ^>=1.6.0.0
+    , ral         ^>=0.2.1
+    , skew-list
+    , vector      ^>=0.13.0.0
