@@ -1,0 +1,99 @@
+cabal-version:       >=1.10
+name:                lazy-cache
+synopsis:            Library for caching IO action that leverages on GHC RTS implementation
+version:             0.2.0.0
+author:              Alexander Vershilov
+maintainer:          backend-dev@sirius.online
+copyright:           2019-2022 (C) Фонд "Талант и Успех"
+license:             MPL-2.0
+license-file:        LICENSE
+build-type:          Simple
+category:            System
+description:         The library provides an interface for caching the results of IO actions.
+                     This library relies on a blackholing — mechanism that is used to implement lazy
+                     evaluation for avoiding concurrent runs of the action
+                     (this is where the name of the library comes from).
+                     .
+                     The library provides caching mechanismsl with the following properties:
+                     .
+                       1. when the function is called the successful result is cached by no more than a provided time;
+                       2. if the function ends with an exception, it will be rethrown, and the result will not be cached;
+                       3. if the function will be called with the same input value it immediately gets cached
+                          result;
+                       4. if functions are called concurrently with the different input values they will not
+                          block each other;
+                       5. if functions will be called concurrently with the same argument then only one will
+                          act, others will wait until the first one is finished and will either return the
+                          result once it's received, or will rethrow an exception if the first one
+                          exits with an exception;
+                       6. outdated values are cleared only on accesses to the cache, so if no action is called
+                          the data will not be cleared.
+                     .
+                     The main entry point of the library is "System.Cache" module, it explains how to
+                     use the library and provides the public API, that does not depend on the actual
+                     store implementation.
+                     .
+                     The library provides an interface for caching, and three implementations:
+                     .
+                        1. "System.Cache.Impl.Ghc" — the main one based on GHC system;
+
+                        2. "System.Cache.Impl.MVar" — implementation based on library functions;
+
+                        3. "System.Cache.Impl.NoCache" — implementation that disables caching, but keeps the same interface 
+                     .
+                     If you want to implement your own caching mechanism, or use internal API, you
+                     can refer to the "System.Cache.Internal.Interface" module for an additional documentation.
+extra-source-files:
+   CHANGELOG.md
+   Readme.md
+
+tested-with:
+  GHC == 9.2.2
+   || == 8.10.7
+
+source-repository head
+  type: git
+  location: https://github.com/cheopslab/lazy-cache
+
+library
+  exposed-modules:
+    System.Cache
+    System.Cache.Impl.Ghc
+    System.Cache.Impl.MVar
+    System.Cache.Impl.NoCache
+    System.Cache.Internal.Interface
+  other-extensions:
+    RecursiveDo
+    TemplateHaskell
+  build-depends:
+    base >=4.12 && <5,
+    hashable >=1.1.2.3 && <1.5,
+    psqueues >=0.2 && <0.3,
+    clock >= 0.8
+  hs-source-dirs: src
+  ghc-options: -Wall
+  default-language: Haskell2010
+  default-extensions:
+    LambdaCase
+    NumericUnderscores
+    OverloadedStrings
+    RecordWildCards
+    ScopedTypeVariables
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Cheops.Cache.CacheSpec
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends: hspec-discover:hspec-discover
+  build-depends:
+      HUnit
+    , base >=4.7 && <5
+    , lazy-cache
+    , hashable
+    , hspec
+    , clock
+  default-language: Haskell2010
