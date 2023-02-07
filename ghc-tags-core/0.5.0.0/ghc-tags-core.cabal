@@ -1,0 +1,92 @@
+cabal-version:       3.0
+name:                ghc-tags-core
+version:             0.5.0.0
+synopsis:            a library to work with tags created from Haskell parsed tree
+description:
+  === library scope
+  .
+  'ghc-tags-core' library provides:
+  .
+  * a function to extract /tag/ information from @'HsModule' 'GhcPs'@ parsed tree representation of Haskell code,
+  * parsers for __ctag__ and __etag__ style tag files (/vim/ \/ /emacs/),
+  * formatting tags into __ctag__ and __etag__ files,
+  * tries to be compatible with [universal-ctags](https://github.com/universal-ctags/ctags).
+  .
+  === developer tools
+  Check out these projects:
+  .
+  * [ghc-tags](https://hackage.haskell.org/package/ghc-tags) - a standalone ghc tags generator;
+  * [ghc-tags-plugin](https://hackage.haskell.org/package/ghc-tags-plugin) -
+    a ghc [compiler
+    plugin](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/extending_ghc.html?highlight=compiler%20plugin#compiler-plugins)
+    which extracts tags during @GHC@'s parser pass and from TH splices.
+  .
+license:             MPL-2.0
+license-file:        LICENSE
+author:              Marcin Szamotulski
+maintainer:          coot@coot.me
+copyright:           (c) 2020-2022, Marcin Szamotulski
+category:            Development
+stability:           experimental
+extra-source-files:  CHANGELOG.md
+                     README.md
+homepage:            https://github.com/coot/ghc-tags-plugin#readme
+bug-reports:         https://github.com/coot/ghc-tags-plugin/issues
+tested-with:         GHC == { 8.10.7, 9.0.2, 9.2.4, 9.4.2 }
+
+flag ghc-lib
+  default: False
+  manual:  True
+  description: Use ghc-lib rather than ghc
+
+common warnings
+  ghc-options:         -Wall
+                       -Wno-unticked-promoted-constructors
+                       -Wcompat
+                       -- the following three warnings are enabled by -Wall in
+                       -- ghc-9.2
+                       -Wno-incomplete-uni-patterns
+                       -Wno-incomplete-record-updates
+                       -Wpartial-fields
+                       -Widentities
+                       -Wredundant-constraints
+  if impl(ghc >= 9)
+    ghc-options:       -Wunused-packages
+
+library
+  import:              warnings
+  hs-source-dirs:      lib
+  exposed-modules:     GhcTags
+                       GhcTags.Ghc
+                       GhcTags.Tag
+                       GhcTags.CTag
+                       GhcTags.CTag.Header
+                       GhcTags.CTag.Parser
+                       GhcTags.CTag.Formatter
+                       GhcTags.CTag.Utils
+                       GhcTags.ETag
+                       GhcTags.ETag.Parser
+                       GhcTags.ETag.Formatter
+                       GhcTags.Utils
+  build-depends:       attoparsec           >=0.13.0.0,
+                       base                 >=4.12.0.0 && <4.18,
+                       bytestring           >=0.10,
+                       containers,
+                       deepseq,
+                       filepath-bytestring ^>=1.4,
+                       text                 >=1.2 && <2.1
+
+  if flag(ghc-lib)
+    build-depends: ghc-lib
+  else
+    build-depends: ghc
+
+  if flag(ghc-lib)
+    cpp-options: -DMIN_VERSION_GHC(x,y)=MIN_VERSION_ghc_lib(x,y,0)
+  else
+    cpp-options: -DMIN_VERSION_GHC(x,y)=MIN_VERSION_GLASGOW_HASKELL(x,y,0,0)
+
+  default-language:    Haskell2010
+  if impl(ghc < 8.10)
+    ghc-options:       -pgmP cpp
+
