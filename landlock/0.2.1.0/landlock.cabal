@@ -1,0 +1,213 @@
+cabal-version:      2.2
+build-type:         Simple
+name:               landlock
+version:            0.2.1.0
+synopsis:           Haskell bindings for the Linux Landlock API
+description:
+  This library exposes Haskell bindings for the Linux kernel Landlock API.
+  .
+  The Linux kernel Landlock API provides unprivileged access control. The goal
+  of Landlock is to enable to restrict ambient rights (e.g. global filesystem
+  access) for a set of processes. Because Landlock is a stackable LSM, it makes
+  possible to create safe security sandboxes as new security layers in addition
+  to the existing system-wide access-controls. This kind of sandbox is expected
+  to help mitigate the security impact of bugs or unexpected/malicious
+  behaviors in user space applications. Landlock empowers any process,
+  including unprivileged ones, to securely restrict themselves.
+  .
+  For more information, see the <https://landlock.io/ Landlock homepage> and its
+  <https://docs.kernel.org/userspace-api/landlock.html kernel documentation>.
+
+homepage:           https://github.com/NicolasT/landlock-hs
+bug-reports:        https://github.com/NicolasT/landlock-hs/issues
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Nicolas Trangez
+maintainer:         ikke@nicolast.be
+copyright:          (c) 2022 Nicolas Trangez
+category:           System
+stability:          alpha
+extra-doc-files:
+  cbits/linux/GPL-2.0
+  cbits/linux/Linux-syscall-note
+  CHANGELOG.md
+  README.md
+
+extra-source-files:
+  cbits/hs-landlock.h
+  cbits/linux/landlock.h
+
+tested-with:        GHC ==8.10.7 || ==9.0.2 || ==9.2.4 || ==9.4.2
+
+source-repository head
+  type:     git
+  location: https://github.com/NicolasT/landlock-hs.git
+  subdir:   landlock
+  branch:   main
+
+flag landlocked
+  description: Build the landlocked utility.
+  default:     True
+  manual:      True
+
+flag werror
+  description: Turn compiler warnings into errors.
+  default:     False
+  manual:      True
+
+common common-settings
+  default-language: Haskell2010
+  ghc-options:
+    -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates
+    -Wpartial-fields -Wmissing-home-modules -Widentities
+    -Wredundant-constraints -Wcpp-undef -Wmissing-export-lists
+
+  cc-options:       -Wall -Wextra -pedantic
+
+  if flag(werror)
+    ghc-options: -Werror -optc=-Werror
+
+    -- Note: disable some warnings triggered by `hsc2hs` code
+    cc-options:
+      -Werror -Wno-error=overlength-strings -Wno-error=type-limits
+      -Wno-error=variadic-macros
+
+library
+  import:           common-settings
+  exposed-modules:  System.Landlock
+  build-depends:
+    , base               >=4.14.2.0 && <4.17 || ^>=4.17
+    , exceptions         ^>=0.10.4
+    , landlock-internal
+    , unix               >=2.7.2.2  && <2.8  || ^>=2.8
+
+  hs-source-dirs:   src
+  other-extensions:
+    FlexibleContexts
+    RankNTypes
+
+library landlock-internal
+  import:             common-settings
+  exposed-modules:
+    System.Landlock.Flags
+    System.Landlock.Hsc
+    System.Landlock.OpenPath
+    System.Landlock.Rules
+    System.Landlock.Syscalls
+    System.Landlock.Version
+
+  include-dirs:       cbits
+  c-sources:          cbits/hs-landlock.c
+  build-depends:
+    , base        >=4.14.2.0 && <4.17 || ^>=4.17
+    , exceptions  ^>=0.10.4
+    , psx         ^>=0.1
+    , unix        >=2.7.2.2  && <2.8  || ^>=2.8
+
+  build-tool-depends: hsc2hs:hsc2hs
+  hs-source-dirs:     internal
+  other-extensions:
+    CApiFFI
+    DataKinds
+    EmptyCase
+    EmptyDataDeriving
+    FlexibleInstances
+    GADTs
+    KindSignatures
+    LambdaCase
+    StandaloneDeriving
+
+executable landlocked
+  import:          common-settings
+
+  if !flag(landlocked)
+    buildable: False
+
+  main-is:         landlocked.hs
+  other-modules:   Paths_landlock
+  autogen-modules: Paths_landlock
+  hs-source-dirs:  bin
+  build-depends:
+    , base                  >=4.14.2.0 && <4.17 || ^>=4.17
+    , exceptions            ^>=0.10.4
+    , landlock
+    , optparse-applicative  >=0.16.1.0 && <0.17 || ^>=0.17
+    , unix                  >=2.7.2.2  && <2.8  || ^>=2.8
+
+test-suite landlock-test
+  import:           common-settings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          landlock-test.hs
+  other-modules:    ThreadedScenario
+  build-depends:
+    , async                    ^>=2.2.3
+    , base                     >=4.14.2.0  && <4.17 || ^>=4.17
+    , filepath                 ^>=1.4.2.1
+    , landlock
+    , landlock-internal
+    , process                  ^>=1.6.9.0
+    , QuickCheck               ^>=2.14.2
+    , quickcheck-classes-base  ^>=0.6.2.0
+    , tasty                    ^>=1.4.1
+    , tasty-hunit              ^>=0.10.0.3
+    , tasty-quickcheck         ^>=0.10.1.2
+
+  other-extensions:
+    CApiFFI
+    DataKinds
+    FlexibleInstances
+    LambdaCase
+    TypeApplications
+
+test-suite landlock-test-threaded
+  import:           common-settings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          landlock-test-threaded.hs
+  other-modules:    ThreadedScenario
+  build-depends:
+    , async        ^>=2.2.3
+    , base         >=4.14.2.0  && <4.17 || ^>=4.17
+    , landlock
+    , tasty        ^>=1.4.1
+    , tasty-hunit  ^>=0.10.0.3
+
+  ghc-options:      -threaded -with-rtsopts -N2
+  other-extensions: CApiFFI
+
+test-suite landlock-readme
+  import:             common-settings
+  type:               exitcode-stdio-1.0
+  main-is:            README.lhs
+  other-modules:      ReadmeUtils
+  hs-source-dirs:     . test
+  build-depends:
+    , base       >=4.14.2.0 && <4.17 || ^>=4.17
+    , directory  ^>=1.3.6.0
+    , filepath   ^>=1.4.2.1
+    , landlock
+    , process    ^>=1.6.9.0
+    , temporary  ^>=1.3
+
+  build-tool-depends: markdown-unlit:markdown-unlit
+  ghc-options:        -pgmL markdown-unlit
+
+test-suite landlocked-test
+  import:             common-settings
+
+  if !flag(landlocked)
+    buildable: False
+
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            landlocked-test.hs
+  build-depends:
+    , base         >=4.14.2.0  && <4.17 || ^>=4.17
+    , filepath     ^>=1.4.2.1
+    , process      ^>=1.6.9.0
+    , tasty        ^>=1.4.1
+    , tasty-hunit  ^>=0.10.0.3
+    , temporary    ^>=1.3
+
+  build-tool-depends: landlock:landlocked
