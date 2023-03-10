@@ -1,0 +1,78 @@
+cabal-version:      3.0
+name:               atomic-modify-general
+version:            0.1.0.0
+synopsis:           Generalizations of atomicModifyIORef
+description:
+ @base@ provides
+
+ @
+ atomicModifyIORef :: IORef a -> (a -> (a, b)) -> IO b
+ atomicModifyIORef2 :: IORef a -> (a -> (a, b)) -> IO (a, (a, b))
+ @
+
+ to modify the value in an @IORef@ and return a result (and, in the
+ case of @atomicModifyIORef2@, also return the old value).
+
+ In "Data.IORef.AtomicModify", we generalize this from pairs to arbitrary
+ types for which the user can provide a function to extract the new
+ value to store in the @IORef@.
+
+ In "Data.IORef.AtomicModify.Generic", we offer a faster but more restricted
+ version taking advantage of the fact that the primop used to implement
+ @atomicModifyIORef2@ actually works for /somewhat/ more general record types
+ than @atomicModifyIORef2@ accepts.
+
+homepage:           https://github.com/treeowl/atomic-modify-general
+license:            BSD-2-Clause
+license-file:       LICENSE
+author:             David Feuer
+maintainer:         David.Feuer@gmail.com
+copyright:          2023 David Feuer
+category:           Concurrency
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+-- extra-source-files:
+tested-with:
+     GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7
+   , GHC == 9.0.2, GHC == 9.2.7, GHC == 9.4.4, GHC == 9.6.1
+source-repository head
+    type:     git
+    location: http://github.com/treeowl/atomic-modify-general.git
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    exposed-modules:
+        Data.IORef.AtomicModify
+      , Data.IORef.AtomicModify.Generic
+    other-modules:
+        Data.IORef.AtomicModify.SmallArraySize
+    -- other-extensions:
+    build-depends:    base >= 4.11 && < 4.19
+                    , primitive
+    hs-source-dirs:   src
+    if impl (ghc >= 8.10)
+      hs-source-dirs: compat-sa-size-recent
+    else
+      hs-source-dirs: compat-sa-size-old
+    if impl (ghc < 8.8)
+      hs-source-dirs: compat-atomic-modify-old
+      other-modules:
+        Data.IORef.AtomicModify.Generic.UnsafeToPair
+    default-language: Haskell2010
+    if impl (ghc < 8.6)
+      ghc-options: -Wno-unticked-promoted-constructors
+
+test-suite atomic-modify-general-test
+    import:           warnings
+    default-language: Haskell2010
+    -- other-modules:
+    -- other-extensions:
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:
+         base >= 4.11.0 && < 4.19
+       , atomic-modify-general
