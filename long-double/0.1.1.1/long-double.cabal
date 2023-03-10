@@ -1,0 +1,75 @@
+name:                long-double
+version:             0.1.1.1
+synopsis:            FFI bindings for C long double
+description:
+  This package provides a LongDouble type, being 80bits of x87 data taking up
+  96bits on i386 and 128bits on x86_64.  On arm it is an alias for 64bit double.
+  On aarch64 it is an alias for quadruple precision _Float128,
+  except under Apple macOS or Microsoft Windows where it equals double.
+  It does not provide a CLDouble type usable for FFI without wrapping in Ptr,
+  this needs to be done by the compiler.
+  See <https://ghc.haskell.org/trac/ghc/ticket/3353>.
+
+homepage:            https://code.mathr.co.uk/long-double
+license:             BSD3
+license-file:        LICENSE
+author:              Claude Heiland-Allen
+maintainer:          claude@mathr.co.uk
+copyright:           (c) 2018,2020,2023 Claude Heiland-Allen
+category:            Math
+build-type:          Simple
+extra-source-files:
+  ChangeLog.md
+  i386/Numeric/LongDouble.hs
+  x86_64/Numeric/LongDouble.hs
+  aarch64/Numeric/LongDouble.hs
+  arm/Numeric/LongDouble.hs
+  hs/Numeric/LongDouble/ARM_64.hs
+  hs/Numeric/LongDouble/ARM_128.hs
+  hs/Numeric/LongDouble/X87.hs
+  hs/Numeric/LongDouble/X87_96.hs
+  hs/Numeric/LongDouble/X87_128.hs
+
+cabal-version:       >=1.10
+
+source-repository head
+  type: git
+  location: https://code.mathr.co.uk/long-double.git
+
+source-repository this
+  type: git
+  location: https://code.mathr.co.uk/long-double.git
+  tag: long-double-0.1.1.1
+
+library
+  exposed-modules:
+    Numeric.LongDouble
+  build-depends:
+    base >=4.6 && <4.17,
+    integer-gmp >=0.5 && <1.2
+  c-sources: c/longdouble.c
+  hs-source-dirs: hs
+  if arch(i386)
+    hs-source-dirs: i386
+    other-modules: Numeric.LongDouble.X87_96
+  else
+    if arch(x86_64)
+      hs-source-dirs: x86_64
+      other-modules: Numeric.LongDouble.X87_128
+    else
+      if arch(arm) || (arch(aarch64) && (os(darwin) || os(windows)))
+        hs-source-dirs: arm
+        other-modules: Numeric.LongDouble.ARM_64
+      else
+        if arch(aarch64)
+          hs-source-dirs: aarch64
+          other-modules: Numeric.LongDouble.ARM_128
+          build-depends: float128 >=0.1 && <0.2
+        else
+          buildable: False
+  default-language: Haskell2010
+  other-extensions:
+    CPP,
+    ForeignFunctionInterface,
+    GeneralizedNewtypeDeriving,
+    MagicHash
