@@ -1,0 +1,58 @@
+cabal-version:      3.0
+name:               data-forced
+version:            0.1.0.0
+synopsis:           Specify that lifted values were forced to WHNF or NF.
+license:            MIT
+license-file:       LICENSE
+author:             Ruben Astudillo
+maintainer:         ruben.astud@gmail.com
+copyright:          2023
+category:           Data
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+description:
+  Alternative to bang patterns using CBV functions and unlifted data types.
+  Tag your values to maintain the invariant that they were forced. Avoid
+  liveness leaks on long running data structures.
+
+  > import Data.Map.Lazy as ML -- Spine strict
+  > 
+  > -- No references on added leafs even though it is a lazy map.
+  > basicEvent :: ML.Map Char (ForcedWHNF Int) -> IO (ML.Map Char (ForcedWHNF Int))
+  > basicEvent map0 = do
+  >   let val0 :: Strict (ForcedWHNF Int)
+  >       -- val0 = strictlyWHNF (error "argument evaluated") -- would fail
+  >       val0 = strictlyWHNF (2 + 2)
+  >       -- CBV function, 2 + 2 reduced before val0 is bound.
+  >       Strict val1 = val0  -- De-structure
+  >       map1 = ML.insert 'a' val1 map0
+  >   pure map1
+-- extra-source-files:
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    exposed-modules:  Data.Forced
+    -- other-modules:
+    -- other-extensions:
+    build-depends:    base ^>=4.16.4.0,
+                      data-elevator >=0.1.0.0,
+                      deepseq >= 1.4.6.0
+    hs-source-dirs:   src
+    default-language: GHC2021
+
+test-suite data-forced-test
+    import:           warnings
+    default-language: GHC2021
+    -- other-modules:
+    -- other-extensions:
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:
+        base ^>=4.16.4.0,
+        containers,
+        HUnit,
+        data-forced
