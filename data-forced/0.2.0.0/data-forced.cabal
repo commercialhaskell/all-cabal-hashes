@@ -1,0 +1,75 @@
+cabal-version:      3.0
+name:               data-forced
+version:            0.2.0.0
+synopsis:           Specify that lifted values were forced to WHNF or NF.
+license:            MIT
+license-file:       LICENSE
+author:             Ruben Astudillo
+maintainer:         ruben.astud@gmail.com
+homepage:           https://github.com/RubenAstudillo/data-forced
+bug-reports:        https://github.com/RubenAstudillo/data-forced/issues
+copyright:          2023
+category:           Data
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+description:
+  Alternative to bang patterns using CBV functions and unlifted data types.
+  Tag your values to maintain the invariant that they were forced. Avoid
+  liveness leaks on long lived data structures.
+
+  Main tutorial on the only module. Here is a taste of how it will look
+  like.
+
+  > import Data.Map.Lazy as ML -- Spine strict
+  >
+  > -- No references on added leafs even though it is a lazy map.
+  > basicEvent :: ML.Map Char (ForcedWHNF Int) -> IO (ML.Map Char (ForcedWHNF Int))
+  > basicEvent map0 = do
+  >   let
+  >     -- Step1: bind the strict value with a strict let. (2 + 2) reduced
+  >     -- before val0 is bound.
+  >     val0 :: StrictValueExtractor (ForcedWHNF Int)
+  >     val0 = strictlyWHNF (2 + 2)
+  >     -- val0 = strictlyWHNF (error "argument evaluated") -- would fail
+  >
+  >     -- Step2: extract the strict value to be use on lazy setting. A
+  >     -- neccesary idiom to avoid a pitfall.
+  >     val1 = case val0 of { Pairy val0' ext -> ext val0' }
+  >
+  >     -- Step3: Store the value free of references. Even though map1 is a lazy
+  >     -- map, the references to evaluate val1 were already freed.
+  >     map1 = ML.insert 'a' val1 map0
+  >   pure map1
+-- extra-source-files:
+
+source-repository head
+  type: git
+  location: https://github.com/RubenAstudillo/data-forced
+
+common warnings
+    ghc-options: -Wall -Werror=unbanged-strict-patterns
+
+library
+    import:           warnings
+    exposed-modules:  Data.Forced
+    -- other-modules:
+    -- other-extensions:
+    build-depends:    base ^>=4.16.4.0,
+                      data-elevator >=0.1.0.0,
+                      deepseq >= 1.4.6.0
+    hs-source-dirs:   src
+    default-language: GHC2021
+
+test-suite data-forced-test
+    import:           warnings
+    default-language: GHC2021
+    -- other-modules:
+    -- other-extensions:
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:
+        base ^>=4.16.4.0,
+        containers,
+        HUnit,
+        data-forced
