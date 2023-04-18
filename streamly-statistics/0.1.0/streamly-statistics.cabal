@@ -1,0 +1,157 @@
+cabal-version:       2.4
+name:                streamly-statistics
+version:             0.1.0
+synopsis:
+    Statistical measures for finite or infinite data streams.
+description:
+    Statistical measures for finite or infinite data streams.
+    .
+    All operations use numerically stable floating point arithmetic.
+    Measurements can be performed over the entire input stream or on a sliding
+    window of fixed or variable size.  Where possible, measures are computed
+    online without buffering the input stream.
+    .
+    Includes\:
+    .
+    * Summary: length, sum, powerSum
+    * Location: minimum, maximum, rawMoments, means, exponential smoothing
+    * Spread: range, variance, deviations
+    * Shape: skewness, kurtosis
+    * Sample statistics, resampling
+    * Probablity distribution: frequency, mode, histograms
+    * Transforms: Fast fourier transform
+homepage:            https://streamly.composewell.com
+bug-reports:         https://github.com/composewell/streamly-statistics/issues
+license:             Apache-2.0
+license-file:        LICENSE
+tested-with:
+      GHC==8.10.7
+    , GHC==9.0.2
+    , GHC==9.2.2
+    , GHC==9.4.4
+author: Composewell Technologies
+maintainer: streamly@composewell.com
+copyright: 2019 Composewell Technologies
+category: Streamly, Statistics
+
+extra-source-files:
+    CHANGELOG.md
+  , NOTICE
+  , README.md
+
+source-repository head
+    type: git
+    location: https://github.com/composewell/streamly-statistics
+
+flag fusion-plugin
+  description: Use fusion plugin for benchmarks
+  manual: True
+  default: True
+
+common default-extensions
+    default-extensions:
+        BangPatterns
+        CApiFFI
+        CPP
+        ConstraintKinds
+        DeriveDataTypeable
+        DeriveGeneric
+        DeriveTraversable
+        ExistentialQuantification
+        FlexibleContexts
+        FlexibleInstances
+        GeneralizedNewtypeDeriving
+        InstanceSigs
+        KindSignatures
+        LambdaCase
+        MagicHash
+        MultiParamTypeClasses
+        PatternSynonyms
+        RankNTypes
+        RecordWildCards
+        ScopedTypeVariables
+        TupleSections
+        TypeApplications
+        TypeFamilies
+        ViewPatterns
+
+        -- MonoLocalBinds, enabled by TypeFamilies, causes performance
+        -- regressions. Disable it. This must come after TypeFamilies,
+        -- otherwise TypeFamilies will enable it again.
+        NoMonoLocalBinds
+
+        -- UndecidableInstances -- Does not show any perf impact
+        -- UnboxedTuples        -- interferes with (#.)
+
+common compile-options
+    default-language: Haskell2010
+    ghc-options: -Wall
+                 -Wcompat
+                 -Wunrecognised-warning-flags
+                 -Widentities
+                 -Wincomplete-record-updates
+                 -Wincomplete-uni-patterns
+                 -Wredundant-constraints
+                 -Wnoncanonical-monad-instances
+                 -Rghc-timing
+
+common optimization-options
+    ghc-options: -O2
+                 -fdicts-strict
+                 -fspec-constr-recursive=16
+                 -fmax-worker-args=16
+                 -fsimpl-tick-factor=200
+
+common ghc-options
+    import: default-extensions, compile-options, optimization-options
+
+library
+    import: ghc-options
+    exposed-modules:     Streamly.Statistics
+    build-depends:       base     >= 4.9 && < 5
+                       , streamly-core == 0.1.0
+                       , containers  >= 0.5   && < 0.7
+                       , random >= 1.2 && < 1.3
+                       , mwc-random >= 0.15 && < 0.16
+                       , deque      >= 0.4.4 && < 0.4.5
+    hs-source-dirs:      src
+
+test-suite test
+    import: ghc-options
+    type:               exitcode-stdio-1.0
+    hs-source-dirs:     test
+    main-is:            Main.hs
+    build-depends:      streamly-statistics
+                      , streamly-core == 0.1.0
+                      , base           >= 4.9   && < 5
+                      , QuickCheck     >= 2.10  && < 2.15
+                      , hspec          >= 2.0   && < 3
+                      , hspec-core     >= 2.0   && < 3
+                      , random         >= 1.0.0 && < 2
+                      , containers     >= 0.5   && < 0.7
+                      -- XXX Should remove these dependencies
+                      , vector         >= 0.11  && < 0.14
+                      , statistics     >= 0.15  && < 0.17
+
+benchmark benchmark
+    import: ghc-options
+    ghc-options: +RTS -M3G -RTS
+    type: exitcode-stdio-1.0
+    hs-source-dirs:   benchmark
+    main-is:          Main.hs
+    build-depends:      streamly-statistics
+                      , streamly-core == 0.1.0
+                      , base           >= 4.9   && < 5
+                      , random         >= 1.0.0 && < 2
+                      , deepseq        >= 1.4.1 && < 1.5
+                      , tasty-bench >= 0.3 && < 0.4
+                      , tasty     >= 1.4.1 && < 1.5
+    mixins: tasty-bench
+      (Test.Tasty.Bench as Gauge
+      ,Test.Tasty.Bench as Gauge.Main
+      )
+    if flag(fusion-plugin) && !impl(ghcjs) && !impl(ghc < 8.6)
+       cpp-options: -DFUSION_PLUGIN
+       ghc-options: -fplugin Fusion.Plugin
+       build-depends:
+           fusion-plugin     >= 0.2   && < 0.3
