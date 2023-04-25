@@ -1,0 +1,75 @@
+cabal-version:      3.0
+name:               data-forced
+version:            0.3.0.0
+synopsis:           Specify that lifted values were forced to WHNF or NF.
+license:            MIT
+license-file:       LICENSE
+author:             Ruben Astudillo
+maintainer:         ruben.astud@gmail.com
+homepage:           https://github.com/RubenAstudillo/data-forced
+bug-reports:        https://github.com/RubenAstudillo/data-forced/issues
+copyright:          2023
+category:           Data
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+description:
+  Alternative to bang patterns using CBV functions and unlifted data types.
+  Tag your values to maintain the invariant that they were forced. Avoid
+  liveness leaks on long lived data structures.
+
+  Main tutorial on the only module. Here is a taste of how it will look
+  like.
+
+  > {-# Language QualifiedDo #-}
+  > 
+  > import qualified Data.Forced as DF
+  > import Data.Forced hiding (pure, fmap, (\<*\>), return, (>>=), (>>))
+  > import Data.Map.Lazy qualified as ML
+  > 
+  > noThunksForWHNF :: IO ()
+  > noThunksForWHNF = do
+  >   -- map0 actually evaluated on here.
+  >   let map0 :: Demand (ML.Map Char (ForcedWHNF Int))
+  >       map0 = DF.do
+  >         v <- demandWHNF (const (2 + 2) 'a')
+  >         DF.pure $ ML.insert 'a' v ML.empty
+  > 
+  >   map1 <- extractDemand map0
+  >   go (ML.lookup 'a' map1)
+  > 
+  > -- pattern matching for de-structuring, no construction allowed.
+  > go :: ForcedWHNF Int -> IO ()
+  > go (ForcedWHNF i) =  print i
+-- extra-source-files:
+
+source-repository head
+  type: git
+  location: https://github.com/RubenAstudillo/data-forced
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    exposed-modules:  Data.Forced
+    -- other-modules:
+    -- other-extensions:
+    build-depends:    base ^>=4.16.4.0,
+                      data-elevator >=0.1.0.0,
+                      deepseq >= 1.4.6.0
+    hs-source-dirs:   src
+    default-language: GHC2021
+
+test-suite data-forced-test
+    import:           warnings
+    default-language: GHC2021
+    -- other-modules:
+    -- other-extensions:
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:
+        base ^>=4.16.4.0,
+        containers,
+        HUnit,
+        data-forced
