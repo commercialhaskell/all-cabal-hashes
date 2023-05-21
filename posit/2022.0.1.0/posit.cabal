@@ -1,0 +1,106 @@
+cabal-version: 1.12
+
+name:           posit
+version:        2022.0.1.0
+description:    The Posit Number format attempting to conform to the Posit Standard Versions 3.2 and 2022.  Where Real numbers are approximated by `Maybe Rational` and sampled in a similar way to the projective real line.
+homepage:       https://github.com/waivio/posit#readme
+bug-reports:    https://github.com/waivio/posit/issues
+author:         Nathan Waivio
+maintainer:     nathan.waivio@gmail.com
+copyright:      2021-2023 Nathan Waivio
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+tested-with:         GHC == 8.10.4,
+                     GHC == 8.10.7,
+                     GHC == 9.0.2,
+                     GHC == 9.2.7,
+                     GHC == 9.4.4
+synopsis:       Posit Numbers
+extra-source-files:
+    README.md
+    ChangeLog.md
+    stack.yaml
+
+source-repository head
+  type: git
+  location: https://github.com/waivio/posit
+
+flag do-no-storable-random
+  description: Build without Storable or Random/Uniform Class support
+  manual:      True
+  default:     False
+
+flag do-liquid
+  description: Build with Liquid Haskell checking
+  manual:      True
+  default:     False
+
+
+library
+  exposed-modules:
+      Posit
+      Posit.Internal.PositC
+  hs-source-dirs:
+      src
+  build-depends:
+      data-dword,
+      scientific
+  default-language: Haskell2010
+
+  -- Compiler options
+  ghc-options: -Wall -O2
+ 
+  if flag(do-liquid)
+    ghc-options: -fplugin=LiquidHaskell -fplugin-opt=LiquidHaskell:--fast -fplugin-opt=LiquidHaskell:--no-termination -fplugin-opt=LiquidHaskell:--max-case-expand=4 -fplugin-opt=LiquidHaskell:--short-names
+ 
+  if flag(do-no-storable-random)
+    cpp-options: -DO_NO_STORABLE_RANDOM
+ 
+  if flag(do-liquid)
+    cpp-options: -DO_LIQUID -DO_NO_STORABLE_RANDOM
+ 
+ 
+  -- Other library packages from which modules are imported.
+  build-depends:
+    deepseq >=1.1 && <2
+ 
+  if !flag(do-liquid)
+    build-depends:
+      base >=4.7 && <5
+ 
+  if !flag(do-no-storable-random)
+    build-depends:
+      random
+ 
+  if flag(do-liquid)
+    build-depends:
+      liquid-base,
+      liquidhaskell
+
+-- perhaps one day: -threaded -rtsopts -with-rtsopts=-N
+test-suite posit-test
+  type: exitcode-stdio-1.0
+  main-is: TestPosit.hs
+  other-modules:
+      Test.Algorithms
+  hs-source-dirs:
+      test
+  ghc-options: -O2
+  build-depends:
+    base >=4.7 && <5,
+    posit
+  default-language: Haskell2010
+
+-- Weigh based benchmark for Vector
+benchmark test-posit-weigh
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: WeighPosit.hs
+  ghc-options: -Wall -O2
+  build-depends:
+    base >=4.7 && <5,
+    posit,
+    vector,
+    weigh
+  default-language: Haskell2010
