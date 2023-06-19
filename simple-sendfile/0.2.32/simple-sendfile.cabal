@@ -1,0 +1,91 @@
+cabal-version:      >=1.10
+name:               simple-sendfile
+version:            0.2.32
+license:            BSD3
+license-file:       LICENSE
+maintainer:         Kazu Yamamoto <kazu@iij.ad.jp>
+author:             Kazu Yamamoto <kazu@iij.ad.jp>
+synopsis:           Cross platform library for the sendfile system call
+description:
+    Cross platform library for the sendfile system call.
+    This library tries to call minimum system calls which
+    are the bottleneck of web servers.
+
+category:           Network
+build-type:         Simple
+extra-source-files: test/inputFile
+
+source-repository head
+    type:     git
+    location: https://github.com/kazu-yamamoto/simple-sendfile
+
+flag allow-bsd
+    description: Allow use of BSD sendfile (disable on GNU/kFreeBSD)
+
+flag fallback
+    description: Use conduit instead of sendfile()
+    default: False
+
+library
+    exposed-modules:  Network.Sendfile
+    other-modules:    Network.Sendfile.Types
+    default-language: Haskell2010
+    ghc-options:      -Wall
+    build-depends:
+        base >=4.8 && <5,
+        network >=3.1.4,
+        bytestring
+
+    if (os(freebsd) && flag(allow-bsd) && !flag(fallback))
+        cpp-options:   -DOS_BSD
+        other-modules:
+            Network.Sendfile.BSD
+            Network.Sendfile.IOVec
+
+        build-depends: unix
+
+    else
+        if (os(osx) && !flag(fallback))
+            cpp-options:   -DOS_MacOS
+            other-modules:
+                Network.Sendfile.BSD
+                Network.Sendfile.IOVec
+
+            build-depends: unix
+
+        else
+            if (os(linux) && !flag(fallback))
+                exposed-modules: System.Linux.Sendfile
+                cpp-options:     -DOS_Linux
+                other-modules:   Network.Sendfile.Linux
+                build-depends:   unix
+
+            else
+                other-modules: Network.Sendfile.Fallback
+                build-depends:
+                    conduit >=1.0 && <1.4,
+                    conduit-extra >=1.0 && <1.4,
+                    transformers >=0.2.2 && <0.7,
+                    resourcet
+
+test-suite spec
+    type:               exitcode-stdio-1.0
+    main-is:            Spec.hs
+    build-tool-depends: hspec-discover:hspec-discover
+    hs-source-dirs:     test
+    other-modules:      SendfileSpec
+    default-language:   Haskell2010
+    ghc-options:        -Wall
+    build-depends:
+        HUnit,
+        base,
+        bytestring,
+        conduit,
+        conduit-extra,
+        directory,
+        easy-file >= 0.2.4,
+        hspec >=1.3,
+        network,
+        process,
+        resourcet,
+        simple-sendfile
