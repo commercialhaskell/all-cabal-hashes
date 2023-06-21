@@ -1,0 +1,164 @@
+cabal-version: 3.0
+
+-- Created : 29 December 2022
+
+name:
+  atomic-counter
+version:
+  0.1.2.1
+synopsis:
+  Mutable counters that can be modified with atomic operatinos
+
+description:
+  This package defines Counter type that can be safely modified
+  concurrently from multiple threads. The type supports only few
+  operations, namely read, write, cas (compare and swap), add,
+  subtract and a few bitwise ones like or, and xor.
+
+  Most common use case is having a shared counter that multiple
+  threads increment. Another potential use case is lightweight locks.
+
+copyright:
+  (c) Sergey Vinokurov 2022
+license:
+  Apache-2.0
+license-file:
+  LICENSE
+author:
+  Sergey Vinokurov
+maintainer:
+  Sergey Vinokurov <serg.foo@gmail.com>
+category:
+  Concurrency, Data, Data Structures
+
+build-type:
+  Simple
+
+extra-source-files:
+  Changelog.md
+  Readme.md
+
+homepage:
+  https://github.com/sergv/atomic-counter
+bug-reports:
+  https://github.com/sergv/atomic-counter/issues
+
+source-repository head
+  type: git
+  location: https://github.com/sergv/atomic-counter.git
+
+flag dev
+  description:
+    Enable development flags like -Werror and linting
+  default:
+    False
+  manual:
+    True
+
+flag no-cmm
+  description:
+    Don't use cmm implementation
+  default:
+    False
+  manual:
+    True
+
+common ghc-options
+  default-language:
+    Haskell2010
+
+  ghc-options:
+    -Weverything
+    -Wno-all-missed-specialisations
+    -Wno-implicit-prelude
+    -Wno-missed-specialisations
+    -Wno-missing-import-lists
+    -Wno-missing-local-signatures
+    -Wno-missing-safe-haskell-mode
+    -Wno-safe
+    -Wno-type-defaults
+    -Wno-unsafe
+
+  if impl(ghc >= 8.8)
+    ghc-options:
+      -Wno-missing-deriving-strategies
+
+  if impl(ghc >= 9.2)
+    ghc-options:
+      -Wno-missing-kind-signatures
+
+library
+  import: ghc-options
+  exposed-modules:
+    Control.Concurrent.Counter
+    Control.Concurrent.Counter.Lifted.IO
+    Control.Concurrent.Counter.Lifted.ST
+    Control.Concurrent.Counter.Unlifted
+  hs-source-dirs:
+    src
+  build-depends:
+    , base >= 4.14 && < 5
+  if impl(ghc >= 9.4) && !arch(javascript) && !arch(i386) && !flag(no-cmm)
+    cmm-sources:
+      Counter.cmm
+    cpp-options:
+      -DUSE_CMM
+    if flag(dev)
+      ghc-options:
+        -dcmm-lint
+
+library test-utils
+  import: ghc-options
+  exposed-modules:
+    TestUtils
+  hs-source-dirs:
+    test
+  build-depends:
+    , QuickCheck
+    , async >= 2
+    , base >= 4.14
+
+test-suite test
+  import: ghc-options
+  type:
+    exitcode-stdio-1.0
+  main-is:
+    test/TestMain.hs
+  hs-source-dirs:
+    .
+  build-depends:
+    , QuickCheck
+    , atomic-counter
+    , base >= 4.14
+    , tasty
+    , tasty-quickcheck
+    , test-utils
+  ghc-options:
+    -rtsopts
+    -threaded
+    "-with-rtsopts=-N -A32M"
+    -main-is TestMain
+
+benchmark bench
+  import: ghc-options
+  type:
+    exitcode-stdio-1.0
+  main-is:
+    bench/BenchMain.hs
+  hs-source-dirs:
+    .
+  build-depends:
+    , QuickCheck
+    , atomic-counter
+    , base >= 4.14
+    , primitive
+    , stm
+    , tasty >= 1.4.2
+    , tasty-bench >= 0.3.4
+    , tasty-quickcheck
+    , test-utils
+  ghc-options:
+    -rtsopts
+    -threaded
+    "-with-rtsopts=-N -A32M"
+    -main-is BenchMain
