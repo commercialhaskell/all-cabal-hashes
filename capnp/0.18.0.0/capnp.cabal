@@ -1,0 +1,286 @@
+cabal-version:            2.2
+name:                     capnp
+version:                  0.18.0.0
+category:                 Data, Serialization, Network, Rpc
+copyright:                2016-2023 haskell-capnp contributors (see CONTRIBUTORS file).
+author:                   Ian Denhardt
+maintainer:               ian@zenhack.net
+license:                  MIT
+license-file:             LICENSE.md
+homepage:                 https://codeberg.org/zenhack/haskell-capnp
+bug-reports:              https://codeberg.org/zenhack/haskell-capnp/issues
+synopsis:                 Cap'n Proto for Haskell
+description:
+  A native Haskell implementation of the Cap'N Proto cerialization format and
+  RPC protocol.
+  .
+  The library implements serialization and level 1 RPC.
+  .
+  The "Capnp.Tutorial" module is the best place to start reading; the
+  reference documentation can seem bewildering without that context.
+build-type:               Simple
+extra-source-files:
+    README.md
+  , CHANGELOG.md
+  , CONTRIBUTING.md
+  , ci/README.md
+  , ci/Dockerfile
+  , core-schema/README.md
+  , core-schema/capnp/schema.capnp
+  , core-schema/capnp/stream.capnp
+  , core-schema/capnp/rpc-twoparty.capnp
+  , core-schema/capnp/persistent.capnp
+  , core-schema/capnp/rpc.capnp
+  , core-schema/capnp/compat/json.capnp
+  , core-schema/capnp/c++.capnp
+  , scripts/format.sh
+  , scripts/hlint.sh
+  , scripts/README.md
+  , scripts/regen.sh
+  , .stylish-haskell.yaml
+  , .gitattributes
+  , .gitignore
+
+--------------------------------------------------------------------------------
+
+source-repository head
+    type:                 git
+    branch:               master
+    location:             https://codeberg.org/zenhack/haskell-capnp.git
+
+--------------------------------------------------------------------------------
+
+common shared-opts
+  build-depends:
+        base                              >= 4.14  && < 5
+      , bytes                             >= 0.15.4 && <0.18
+      , bytestring                        >= 0.10 && <0.12
+      , containers                        >= 0.5.9 && <0.7
+      , data-default                      ^>= 0.7.1
+      , exceptions                        ^>= 0.10.0
+      , ghc-prim                          >= 0.6.1 && <0.11
+      , mtl                               >= 2.2.2 && <2.4
+      , primitive                         >= 0.6.3 && <0.9
+      , safe-exceptions                   ^>= 0.1.7
+      , text                              >= 1.2 && < 2.1
+      , transformers                      >= 0.5.2 && <0.7
+      , vector                            >= 0.12.0 && <0.14
+      , monad-stm                         ^>= 0.1
+  ghc-options:
+    -Wall
+
+    -- This warning is triggered by normal use of NamedFieldPuns, so it's a no-go
+    -- for us:
+    -Wno-name-shadowing
+
+    -- I(zenhack) find it rather odd that orphan instances are flagged when the
+    -- class and the type are in different modules but, the same *package*. We do
+    -- this in a number of places in the capnp package, so we disable this
+    -- warning. It's not super easy to write a package-level orphan by accident,
+    -- so we're not losing much.
+    -Wno-orphans
+  default-language:     Haskell2010
+
+--------------------------------------------------------------------------------
+
+-- main runtime library.
+library
+    import: shared-opts
+    hs-source-dirs:
+      lib
+      -- generated code:
+      gen/lib
+    exposed-modules:
+        Capnp.Address
+      , Capnp.Bits
+      , Capnp.Canonicalize
+      , Capnp
+      , Capnp.Accessors
+      , Capnp.Basics
+      , Capnp.Classes
+      , Capnp.Constraints
+      , Capnp.Rpc.Common
+      , Capnp.Rpc.Membrane
+      , Capnp.Rpc.Revoke
+      , Capnp.Rpc.Server
+      , Capnp.Convert
+      , Capnp.Errors
+      , Capnp.Fields
+      , Capnp.GenHelpers
+      , Capnp.GenHelpers.Rpc
+      , Capnp.IO
+      , Capnp.Message
+      , Capnp.Mutability
+      , Capnp.Pointer
+      , Capnp.Untyped
+      , Capnp.Repr
+      , Capnp.Repr.Methods
+      , Capnp.Repr.Parsed
+      , Capnp.TraversalLimit
+      , Capnp.Rpc
+      , Capnp.Rpc.Promise
+      , Capnp.Rpc.Untyped
+      , Capnp.Rpc.Errors
+      , Capnp.Rpc.Transport
+      , Capnp.Tutorial
+
+      , Data.Mutable
+
+      , Capnp.Gen
+      , Capnp.Gen.Capnp
+
+      -- BEGIN GENERATED SCHEMA MODULES
+      , Capnp.Gen.Capnp.Cxx
+      , Capnp.Gen.Capnp.Compat.Json
+      , Capnp.Gen.Capnp.Persistent
+      , Capnp.Gen.Capnp.Rpc
+      , Capnp.Gen.Capnp.RpcTwoparty
+      , Capnp.Gen.Capnp.Schema
+      , Capnp.Gen.Capnp.Stream
+
+      , Capnp.Gen.ById.Xbdf87d7bb8304e81
+      , Capnp.Gen.ById.X8ef99297a43a5e34
+      , Capnp.Gen.ById.Xb8630836983feed7
+      , Capnp.Gen.ById.Xb312981b2552a250
+      , Capnp.Gen.ById.Xa184c7885cdaf2a1
+      , Capnp.Gen.ById.Xa93fc509624c72d9
+      , Capnp.Gen.ById.X86c366a91393f3f8
+      -- END GENERATED SCHEMA MODULES
+    other-modules:
+        Internal.AppendVec
+      , Internal.SnocList
+      , Internal.Rc
+      , Internal.TCloseQ
+      , Internal.BuildPure
+      , Internal.STE
+      , Internal.Rpc.Breaker
+      , Internal.Rpc.Export
+    -- other-extensions:
+    build-depends:
+        hashable                          >= 1.2.7 && <1.5
+      , data-default-instances-vector     ^>= 0.0.1
+      , stm                               ^>= 2.5.0
+      , stm-containers                    >= 1.1.0 && <1.3
+      , list-t                            ^>= 1.0.2
+      , focus                             ^>= 1.0.1
+      , async                             ^>= 2.2.1
+      , network-simple                    ^>= 0.4
+      , network                           >= 3 && <3.2
+      , supervisors                       ^>= 0.2.1
+      , lifetimes                         ^>= 0.2
+      , pretty-show                       >= 1.9.5 && <1.11
+      , template-haskell                  >=2.18 && <2.21
+
+--------------------------------------------------------------------------------
+
+-- code generator plugin
+executable capnpc-haskell
+  import: shared-opts
+  hs-source-dirs:       cmd/capnpc-haskell
+  main-is: Main.hs
+  other-modules:
+      IR.Name
+    , IR.AbstractOp
+    , IR.Common
+    , IR.Stage1
+    , IR.Flat
+    , IR.Haskell
+    , Trans.CgrToStage1
+    , Trans.Stage1ToFlat
+    , Trans.FlatToAbstractOp
+    , Trans.ToHaskellCommon
+    , Trans.AbstractOpToHaskell
+    , Trans.HaskellToText
+    , Check
+  build-depends:
+      capnp
+    , wl-pprint-text ^>= 1.2
+    , filepath ^>= 1.4.2
+    , directory ^>= 1.3.0
+    , bifunctors >= 5.5.8 && <5.7
+
+--------------------------------------------------------------------------------
+
+test-suite tests
+    import: shared-opts
+    type:                 exitcode-stdio-1.0
+    main-is:              Main.hs
+    hs-source-dirs:
+      tests
+      gen/tests
+      examples/lib
+      examples/gen/lib
+    ghc-options:
+      -threaded
+    other-modules:
+      -- Utilities
+        Util
+      , Instances
+      , SchemaGeneration
+
+      , Examples.Rpc.CalculatorClient
+      , Examples.Rpc.CalculatorServer
+
+      -- Generated code for examples/calculator.capnp
+      , Capnp.Gen.Calculator
+      , Capnp.Gen.ById.X85150b117366d14b
+
+      -- Generated code for examples/echo.capnp
+      , Capnp.Gen.Echo
+      , Capnp.Gen.ById.Xd0a87f36fa0182f5
+
+      -- generated from tests/data/aircraft.capnp
+      , Capnp.Gen.Aircraft
+      , Capnp.Gen.ById.X832bcc6686a26d56
+
+      -- generated from tests/data/generics.capnp
+      , Capnp.Gen.Generics
+      , Capnp.Gen.ById.Xb6421fb8e478d144
+
+      -- Actual tests:
+      , Module.Capnp.Gen.Capnp.Schema
+      , Module.Capnp.Gen.Capnp.Schema.Pure
+      , Module.Capnp.Rpc
+      , Module.Capnp.Untyped
+      , Module.Capnp.Untyped.Pure
+      , Module.Capnp.Pointer
+      , Module.Capnp.Bits
+      , Module.Capnp.Basics
+      , Module.Capnp.Canonicalize
+      , PointerOOB
+      , Regression
+      , WalkSchemaCodeGenRequest
+      , SchemaQuickCheck
+      , CalculatorExample
+      , Constants
+      , Rpc.Unwrap
+    build-depends:
+        capnp
+      , network
+      , network-simple
+      , stm
+      , async
+      , process
+      , process-extras
+      , QuickCheck
+      , quickcheck-io
+      , quickcheck-instances
+      , hspec
+      , directory
+      , resourcet
+      , heredoc
+      , deepseq
+      , pretty-show
+      , supervisors
+
+
+benchmark bench
+  import: shared-opts
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: bench
+  build-depends:
+      capnp
+    , criterion >=1.5.9 && <0.7
+    , deepseq
+    , process-extras
