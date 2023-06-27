@@ -1,0 +1,88 @@
+cabal-version: 2.4
+name:          jaskell
+version:       0.1.0.0
+author:        Owen Bechtel
+maintainer:    ombspring@gmail.com
+
+category: Language
+synopsis: Stack-based concatenative language embedded in Haskell
+
+description:
+  Jaskell is a stack-based programming language implemented using normal Haskell 
+  types and functions, along with a quasiquoter that allows for a more elegant syntax
+  than what pure Haskell supports. Since it is embedded in Haskell, Jaskell is purely 
+  functional and, unlike other stack-based languages, statically typed. The standard 
+  library is based on that of [Joy](https://www.kevinalbrecht.com/code/joy-mirror/), 
+  and the name \"Jaskell\" is a portmanteau of \"Joy\" and \"Haskell.\"
+  .
+  A Jaskell program is a sequence of commands. Each command is a function which takes 
+  a stack &#8212; represented in Haskell as a left-nested tuple &#8212; and returns another stack. 
+  In order to accomodate side effects, commands need not actually be functions; any 
+  arrow is allowed as a command. The two most useful arrow types are @(->)@ and @Kleisli IO@.
+  .
+  Two example programs are shown below. The first program asks for the user's name and then
+  prints a greeting. The second program defines a @qsort@ function and then uses it to
+  sort a list.
+  .
+  > {-# LANGUAGE QuasiQuotes #-}
+  > import qualified Jaskell
+  > import Jaskell.Quote (jsl)
+  > import Jaskell.Prelude
+  > 
+  > main :: IO ()
+  > main = Jaskell.runK [jsl| 
+  >   "What's your name?" !putStrLn [ "Hello, ", ?getLine, "!" ] $concat !putStrLn 
+  >   |]
+  > 
+  > sorted :: ((), [Int])
+  > sorted = Jaskell.run [jsl| 
+  >   DEF small = 
+  >     { $null } { uncons $null } disjoin ;
+  >   DEF qsort = 
+  >     small { } { uncons { < } split rolldown }
+  >     { swap cons ++ } binrec' ;
+  >   [3,5,1,6,4,2] qsort
+  >   |]
+
+homepage:           https://github.com/UnaryPlus/jaskell
+bug-reports:        https://github.com/UnaryPlus/jaskell/issues
+license:            MIT
+license-file:       LICENSE
+extra-source-files: CHANGELOG.md, README.md
+
+source-repository head
+  type: git
+  location: https://github.com/UnaryPlus/jaskell.git
+
+library
+  hs-source-dirs:   src
+  default-language: Haskell2010
+  ghc-options:      -Wall
+
+  exposed-modules:
+    Jaskell,
+    Jaskell.Prelude,
+    Jaskell.Quote
+
+  build-depends:
+    base >= 4.13.0.0 && < 5,
+    megaparsec >= 9.0.0 && < 10, 
+    template-haskell >= 2.16.0.0 && < 2.21
+
+test-suite test
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test 
+  default-language: Haskell2010
+  ghc-options:      -Wall
+  main-is:          Spec.hs
+
+  other-modules:
+    JaskellSpec,
+    Jaskell.PreludeSpec,
+    Jaskell.QuoteSpec
+  
+  build-depends: 
+    base, hspec, megaparsec, directory, jaskell
+  
+  build-tool-depends:
+    hspec-discover:hspec-discover
