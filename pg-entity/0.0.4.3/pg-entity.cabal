@@ -1,0 +1,186 @@
+cabal-version:      3.0
+name:               pg-entity
+synopsis:           A pleasant PostgreSQL layer
+description:
+  A PostgreSQL layer to safely expand your SQL queries with a lightweight eDSL.
+  Read the tutorial at https://hackage.haskell.org/package/pg-entity/src/docs/book/index.html
+
+version:            0.0.4.3
+homepage:
+  https://hackage.haskell.org/package/pg-entity/src/docs/book/index.html
+
+bug-reports:        https://github.com/tchoutri/pg-entity/issues
+author:             Théophile Choutri
+maintainer:         Théophile Choutri
+category:           Database
+license:            MIT
+build-type:         Simple
+tested-with:
+  GHC ==8.8.4 || ==8.10.7 || ==9.0.2 || ==9.2.8 || ==9.4.5
+
+extra-source-files:
+  CHANGELOG.md
+  LICENSE.md
+  README.md
+
+extra-doc-files:
+  ./docs/book/*.css
+  ./docs/book/*.html
+  ./docs/book/*.js
+  ./docs/book/css/*.css
+  ./docs/book/favicon.png
+  ./docs/book/favicon.svg
+  ./docs/book/FontAwesome/css/font-awesome.css
+  ./docs/book/FontAwesome/fonts/fontawesome-webfont.woff2
+  ./docs/book/fonts/*.css
+  ./docs/book/fonts/*.woff2
+  ./docs/book/searchindex.json
+
+flag prod
+  description:
+    This flag enables features for production usage, like disabling logs
+
+  default:     False
+  manual:      True
+
+flag book
+  description: Enable the generation of the book
+  default:     False
+  manual:      True
+
+source-repository head
+  type:     git
+  location: https://github.com/tchoutri/pg-entity
+
+common common-extensions
+  default-extensions:
+    AllowAmbiguousTypes
+    ConstraintKinds
+    DataKinds
+    DeriveAnyClass
+    DeriveGeneric
+    DerivingStrategies
+    DerivingVia
+    DisambiguateRecordFields
+    DuplicateRecordFields
+    FlexibleContexts
+    FlexibleInstances
+    GeneralizedNewtypeDeriving
+    InstanceSigs
+    KindSignatures
+    MultiParamTypeClasses
+    NamedFieldPuns
+    OverloadedLabels
+    OverloadedStrings
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    StandaloneDeriving
+    TypeApplications
+    TypeOperators
+
+  default-language:   Haskell2010
+
+common common-ghc-options
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wno-unused-do-bind -Wno-deprecations
+    -Wpartial-fields -Wredundant-constraints -fhide-source-paths
+    -funbox-strict-fields -Wunused-packages
+
+common common-rts-options
+  ghc-options: -rtsopts -threaded -with-rtsopts=-N
+
+library
+  import:          common-extensions
+  import:          common-ghc-options
+  exposed-modules:
+    Database.PostgreSQL.Entity
+    Database.PostgreSQL.Entity.DBT
+    Database.PostgreSQL.Entity.Internal
+    Database.PostgreSQL.Entity.Internal.QQ
+    Database.PostgreSQL.Entity.Internal.Unsafe
+    Database.PostgreSQL.Entity.Types
+
+  hs-source-dirs:  src
+  build-depends:
+    , base               >=4.12     && <5.0
+    , bytestring         ^>=0.11
+    , colourista         ^>=0.1
+    , parsec             ^>=3.1
+    , pg-transact        ^>=0.3
+    , postgresql-simple  ^>=0.6
+    , resource-pool      ^>=0.4
+    , template-haskell   >=2.15.0.0 && <2.22.0.0.0
+    , text               ^>=2.0
+    , text-display       ^>=0.0
+    , text-manipulate    ^>=0.3
+    , time               ^>=1.12
+    , uuid               ^>=1.3
+    , vector             ^>=0.13
+
+  if flag(prod)
+    cpp-options: -DPROD
+
+executable book
+  import:         common-extensions
+  import:         common-ghc-options
+  import:         common-rts-options
+  main-is:        Main.hs
+  other-modules:
+    ErrorsGuide
+    Tutorial
+
+  hs-source-dirs: docs/src
+
+  if !flag(book)
+    buildable: False
+
+  build-depends:
+    , base
+    , directory
+    , literatex
+    , mtl
+    , pg-entity
+    , pg-transact
+    , postgresql-simple
+    , resource-pool
+    , shake
+    , text
+    , time
+    , uuid
+
+test-suite entity-test
+  import:         common-extensions
+  import:         common-ghc-options
+  import:         common-rts-options
+  type:           exitcode-stdio-1.0
+  main-is:        Main.hs
+  other-modules:
+    BlogPost
+    EntitySpec
+    GenericsSpec
+    Utils
+
+  hs-source-dirs: test
+  build-depends:
+    , aeson
+    , base
+    , bytestring
+    , containers
+    , envparse
+    , hedgehog
+    , mtl
+    , optics-core
+    , pg-entity
+    , pg-transact
+    , postgresql-migration  ^>=0.2
+    , postgresql-simple
+    , resource-pool
+    , safe-exceptions
+    , tasty
+    , tasty-hunit
+    , text
+    , time
+    , uuid
+    , vector
