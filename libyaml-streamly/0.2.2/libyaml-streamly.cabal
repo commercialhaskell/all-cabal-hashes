@@ -1,0 +1,81 @@
+cabal-version:      2.2
+name:               libyaml-streamly
+version:            0.2.2
+synopsis:           Low-level, streaming YAML interface via streamly.
+description:        Rewrite of libyaml in streamly
+category:           Text
+stability:          stable
+homepage:           https://github.com/hasufell/streamly-yaml#readme
+bug-reports:        https://github.com/hasufell/streamly-yaml
+author:
+  Michael Snoyman <michael@snoyman.com>, Anton Ageev <antage@gmail.com>,Kirill Simonov, Julian Ospald <hasufell@posteo.de>
+
+maintainer:         Julian Ospald <hasufell@posteo.de>
+license:            BSD-3-Clause
+license-file:       LICENSE
+build-type:         Simple
+extra-source-files:
+  ./c/helper.h
+  ./ChangeLog.md
+  ./libyaml_src/LICENSE
+  ./libyaml_src/yaml.h
+  ./libyaml_src/yaml_private.h
+  ./README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/hasufell/streamly-yaml
+
+flag no-unicode
+  description:
+    Don't enable unicode output. Instead, unicode characters will be escaped.
+
+  manual:      False
+  default:     False
+
+flag system-libyaml
+  description: Use the system-wide libyaml instead of the bundled copy
+  manual:      False
+  default:     False
+
+library
+  exposed-modules:  Text.Libyaml
+  other-modules:    Paths_libyaml_streamly
+  autogen-modules:  Paths_libyaml_streamly
+  hs-source-dirs:   src
+  ghc-options:
+    -Wall -fspecialise-aggressively -fexpose-all-unfoldings
+    -fdicts-strict -O2 -fmax-worker-args=16 -fspec-constr-recursive=16
+
+  include-dirs:     c
+  c-sources:        ./c/helper.c
+  build-depends:
+      base             >=4.9.1   && <5
+    , bytestring       >=0.9.1.4
+    , deepseq
+    , safe-exceptions
+    , streamly         ^>=0.8.0
+
+  if flag(no-unicode)
+    cpp-options: -D__NO_UNICODE__
+
+  if !flag(system-libyaml)
+    include-dirs: libyaml_src
+    c-sources:
+      ./libyaml_src/api.c
+      ./libyaml_src/dumper.c
+      ./libyaml_src/emitter.c
+      ./libyaml_src/loader.c
+      ./libyaml_src/parser.c
+      ./libyaml_src/reader.c
+      ./libyaml_src/scanner.c
+      ./libyaml_src/writer.c
+
+  else
+    extra-libraries: yaml
+
+  if os(windows)
+    cpp-options:   -DWINDOWS
+    build-depends: directory
+
+  default-language: Haskell2010
