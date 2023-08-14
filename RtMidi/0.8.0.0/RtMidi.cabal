@@ -1,0 +1,131 @@
+cabal-version:       3.0
+name:                RtMidi
+version:             0.8.0.0
+synopsis:            Haskell wrapper for RtMidi, the lightweight, cross-platform MIDI I/O library.
+description:         Please see the README on GitHub at <https://github.com/riottracker/RtMidi#readme>
+category:            Sound
+build-type:          Simple
+author:              kohlrabi, Eric Conlon
+license-file:        LICENSE
+homepage:            https://github.com/riottracker/RtMidi
+maintainer:          ejconlon@gmail.com
+extra-source-files:  README.md
+                     rtmidi/rtmidi_c.h
+                     rtmidi/RtMidi.h
+                     examples/callback.hs
+                     examples/playback.hs
+                     examples/poll.hs
+                     examples/report.hs
+license:             MIT
+
+Flag alsa {
+  Description:  Enable ALSA sequencer api on Linux
+  Default:      True
+}
+
+Flag jack {
+  Description:  Enable JACK api on Linux or OSX
+  Default:      False
+}
+
+library
+  exposed-modules:     Sound.RtMidi
+                     , Sound.RtMidi.Report
+  other-modules:       Sound.RtMidi.Foreign
+  build-depends:       base >=4.14 && <5
+                     , deepseq >= 1.4.4.0 && < 2
+                     , vector >= 0.12.1.2 && < 1
+  default-language:    Haskell2010
+  default-extensions:  DeriveGeneric
+                     , DerivingStrategies
+                     , GeneralizedNewtypeDeriving
+  include-dirs:        rtmidi
+  extra-libraries:     stdc++
+  cxx-sources:         rtmidi/RtMidi.cpp
+                       rtmidi/rtmidi_c.cpp
+
+  if os(linux)
+    if flag(alsa) && flag(jack)
+      cxx-options:      -std=c++11 -D__LINUX_ALSA__ -D__UNIX_JACK__
+      extra-libraries:  asound pthread jack
+    if flag(alsa) && !flag(jack)
+      cxx-options:      -std=c++11 -D__LINUX_ALSA__
+      extra-libraries:  asound pthread
+    if !flag(alsa) && flag(jack)
+      cxx-options:      -std=c++11 -D__UNIX_JACK__
+      extra-libraries:  jack
+
+  if os(darwin)
+    if flag(jack)
+      cxx-options:      -std=c++11 -DTARGET_OS_IPHONE=0-D__MACOSX_CORE__ -D__UNIX_JACK__
+      extra-libraries:  jack
+    else
+      cxx-options:    -std=c++11 -D__MACOSX_CORE__
+    frameworks:       CoreMIDI CoreAudio CoreFoundation
+    -- NOTE(ejconlon) This is to make the c ffi wrapper actually catch
+    -- the c++ exceptions instead of simply aborting.
+    -- Cribbed from https://github.com/fpco/inline-c/pull/89
+    -- avoid https://gitlab.haskell.org/ghc/ghc/issues/11829
+    ld-options:        -Wl,-keep_dwarf_unwind
+    ghc-options:       -pgmc=clang++
+
+  if os(mingw32)
+    cxx-options:       -std=c++11 -D__WINDOWS_MM__
+    extra-libraries:   winmm
+
+executable rtmidi-callback
+  main-is:            callback.hs
+  hs-source-dirs:     examples
+  build-depends:
+      base
+    , RtMidi
+    , vector
+  default-language:   Haskell2010
+  ghc-options: -threaded -rtsopts
+
+executable rtmidi-playback
+  main-is:            playback.hs
+  hs-source-dirs:     examples
+  build-depends:
+      base
+    , RtMidi
+    , vector
+  default-language:   Haskell2010
+  ghc-options: -threaded -rtsopts
+
+executable rtmidi-poll
+  main-is:            poll.hs
+  hs-source-dirs:     examples
+  build-depends:
+      base
+    , RtMidi
+    , vector
+  default-language:   Haskell2010
+  ghc-options: -threaded -rtsopts
+
+executable rtmidi-report
+  main-is:            report.hs
+  hs-source-dirs:     examples
+  build-depends:
+      base
+    , RtMidi
+    , pretty-simple >= 4.0.0.0 && < 5
+  default-language:   Haskell2010
+  ghc-options: -threaded -rtsopts
+
+test-suite rtmidi-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test
+  build-depends:
+      base
+    , RtMidi
+    , vector
+    , tasty >= 1.2.3 && < 2
+    , tasty-hunit >= 0.10.0.2 && < 1
+  default-language:   Haskell2010
+  ghc-options: -threaded -rtsopts
+
+source-repository head
+  type:     git
+  location: https://github.com/riottracker/RtMidi
