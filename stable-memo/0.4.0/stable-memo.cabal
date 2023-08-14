@@ -1,0 +1,104 @@
+name:                stable-memo
+version:             0.4.0
+synopsis:            Memoization based on argument identity
+license:             MIT
+license-file:        LICENSE
+author:              Jake McArthur <Jake.McArthur@gmail.com>
+maintainer:          Jake McArthur <Jake.McArthur@gmail.com>
+homepage:            https://github.com/jmcarthur/stable-memo
+bug-reports:         https://github.com/jmcarthur/stable-memo/issues
+category:            Data
+build-type:          Simple
+cabal-version:       1.18
+tested-with:         GHC ==7.6.3,
+                     GHC ==7.8.4,
+                     GHC ==7.10.3,
+                     GHC ==8.0.2,
+                     GHC ==8.2.2,
+                     GHC ==8.4.4,
+                     GHC ==8.6.5,
+                     GHC ==8.8.4,
+                     GHC ==8.10.7,
+                     GHC ==9.0.2,
+                     GHC ==9.2.7,
+                     GHC ==9.4.4,
+                     GHC ==9.6.1
+description:
+
+  Whereas most memo combinators memoize based on equality, stable-memo
+  does it based on whether the exact same argument has been passed to
+  the function before (that is, is the same argument in memory).
+
+  .
+
+  * stable-memo only evaluates keys to WHNF.
+
+  .
+
+  * This can be more suitable for recursive functions over graphs with
+    cycles.
+
+  .
+
+  * stable-memo doesn't retain the keys it has seen so far, which
+    allows them to be garbage collected if they will no longer be
+    used. Finalizers are put in place to remove the corresponding
+    entries from the memo table if this happens.
+
+  .
+
+  * "Data.StableMemo.Weak" provides an alternative set of combinators
+    that also avoid retaining the results of the function, only
+    reusing results if they have not yet been garbage collected.
+
+  .
+
+  * There is no type class constraint on the function's argument.
+
+  .
+
+  For motivation, here is an implementation of map that preserves
+  sharing of the spine for cyclic lists. It should even be safe to use
+  this on arbitrarily long, acyclic lists since as long as the garbage
+  collector is chasing you, the size of the memo table should stay
+  under control, too.
+
+  .
+
+  > map :: (a -> b) -> [a] -> [b]
+  > map f = go
+  >   where go = memo map'
+  >         map' []     = []
+  >         map' (x:xs) = f x : go xs
+
+  .
+
+  This library is largely based on the implementation of memo found in
+  \"Stretching the storage manager: weak pointers and stable names in
+  Haskell\", from Simon Peyton Jones, Simon Marlow, and Conal Elliott
+  (<http://community.haskell.org/~simonmar/papers/weak.pdf>).
+
+library
+  build-depends:       base >=4.6 && <4.19,
+                       hashtables >=1.0 && <1.4,
+                       ghc-prim >=0.3 && < 0.11
+  if impl(ghc < 8.2)
+    build-depends:     tagged ==0.7.*
+  default-language:    Haskell2010
+  exposed-modules:     Data.StableMemo, Data.StableMemo.Weak
+  other-extensions:    BangPatterns,
+                       RankNTypes,
+                       PolyKinds,
+                       Safe,
+                       Trustworthy,
+                       TypeOperators
+  other-modules:       Data.StableMemo.Internal
+
+source-repository head
+  type:     git
+  location: https://github.com/jmcarthur/stable-memo.git
+
+source-repository this
+  type:     git
+  location: https://github.com/jmcarthur/stable-memo.git
+  tag:      v0.4.0
