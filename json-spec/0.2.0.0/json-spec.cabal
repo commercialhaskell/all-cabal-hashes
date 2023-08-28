@@ -1,0 +1,157 @@
+cabal-version:       3.0
+name:                json-spec
+version:             0.2.0.0
+synopsis:            Type-level JSON specification
+maintainer:          rick@owensmurray.com
+description:         = Motivation
+                     This package provides a way to specify the shape of
+                     your JSON data at the type level. The particular use
+                     cases we focus on are enabling (but not providing
+                     in this package):
+
+                     1. Auto-generating documentation to ensure it
+                        is correct.
+                     2. Auto-generating client code in front-end languages
+                        to ensure it is correct.
+
+                     There are already tools available to achieve this,
+                     but they all have one major drawback: they rely on
+                     generically derived Aeson instances. Some people
+                     strongly object to using generically derived Aeson
+                     instances for encoding/decoding http api data because
+                     of how brittle it is. It can be surprisingly easy
+                     accidentally break your API without noticing because
+                     you don't realize that a small change to some type
+                     somewhere affects the API representation. Avoiding
+                     this requires very strict discipline about how you
+                     organize and maintain your code. E.g. you will see
+                     a lot of comments like
+
+                     > --| BEWARE, Changing any of the types in this file will change the API
+                     > -- representation!!
+                     > module My.API (...) where
+
+                     But then the types in this api might reference
+                     types in in other modules where it isn't as obvious
+                     that you might be changing the api when you make
+                     an update.
+
+                     I have even seen people go so far as to mandate
+                     that /every/ type appearing on the API must be
+                     in some similar \"API\" module. This usually ends
+                     badly because you end up with a bunch of seemingly
+                     spurious (and quite tedious) translations between
+                     between \"business\" types and almost identical
+                     \"API\" types.
+
+                     The other option is to simply not use generically
+                     derived instances and code all or some of your
+                     'ToJSON'/'FromJSON' instances by hand. That
+                     (sometimes) helps solve the problem of making it a
+                     little more obvious when you are making a breaking
+                     api change. And it definitely helps with the ability
+                     to update the haskell type for some business purpose
+                     while keeping the encoding backwards compatible.
+
+                     The problem now though is that you can't take
+                     advantage of any of the above tooling without
+                     writing every instance by hand. Writing all the
+                     individual instances by hand defeat's the purpose
+                     because you are back to being unsure whether they
+                     are all in sync!
+
+                     The approach this library takes is to take a cue
+                     from `servant` and provide a way to specify the
+                     JSON encoding at the type level. You must manually
+                     specify the encoding, but you only have to do so
+                     once (at the type level). Other tools can then
+                     inspect the type using either type families or
+                     type classes to generate the appropriate artifacts
+                     or behavior. Aeson integration (provided by this
+                     package) works by using a type family to transform
+                     the spec into a new Haskell type whose structure
+                     is analogous to the specification. You are then
+                     required to transform your regular business
+                     value into a value of this \"structural type\"
+                     (I strongly recommend using type holes to make this
+                     easier). Values of the structural type will always
+                     encode into specification-complient JSON.
+
+                     = Example
+
+                     > data User = User
+                     >   { name :: Text
+                     >   , lastLogin :: UTCTime
+                     >   }
+                     >   deriving stock (Show, Eq)
+                     >   deriving (ToJSON, FromJSON) via (SpecJSON User)
+                     > instance HasJsonEncodingSpec User where
+                     >   type EncodingSpec User =
+                     >     JsonObject
+                     >       '[ '("name", JsonString)
+                     >        , '("last-login", JsonDateTime)
+                     >        ]
+                     >   toJSONStructure user =
+                     >     (Field @"name" (name user),
+                     >     (Field @"last-login" (lastLogin user),
+                     >     ()))
+                     > instance HasJsonDecodingSpec User where
+                     >   type DecodingSpec User = EncodingSpec User
+                     >   fromJSONStructure
+                     >       (Field @"name" name,
+                     >       (Field @"last-login" lastLogin,
+                     >       ()))
+                     >     =
+                     >       pure User { name , lastLogin }
+
+homepage:            https://github.com/owensmurray/json-spec
+license:             MIT
+license-file:        LICENSE
+author:              Rick Owens
+category:            JSON
+build-type:          Simple
+extra-source-files:
+  README.md
+  LICENSE
+
+common dependencies
+  build-depends:
+    , aeson      >= 2.1.2.1  && < 2.2
+    , base       >= 4.17.1.0 && < 4.18
+    , bytestring >= 0.11.4.0 && < 0.12
+    , lens       >= 5.2.2    && < 5.3
+    , openapi3   >= 3.2.3    && < 3.3
+    , scientific >= 0.3.7.0  && < 0.4
+    , text       >= 2.0.2    && < 2.1
+    , time       >= 1.12.2   && < 1.13
+    , vector     >= 0.13.0.0 && < 0.14
+
+common warnings
+  ghc-options:
+    -Wmissing-deriving-strategies
+    -Wmissing-export-lists
+    -Wmissing-import-lists
+    -Wredundant-constraints
+    -Wall
+
+library
+  import: dependencies, warnings
+  exposed-modules:
+    Data.JsonSpec
+  other-modules:       
+    Data.JsonSpec.Encode
+    Data.JsonSpec.Decode
+    Data.JsonSpec.Spec
+  -- other-extensions:    
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+test-suite jsonspec
+  import: dependencies, warnings
+  main-is: jsonspec.hs
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  default-language: Haskell2010
+  build-depends:
+    , json-spec
+    , hspec >= 2.11.1 && < 2.12
