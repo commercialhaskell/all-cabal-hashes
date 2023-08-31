@@ -1,0 +1,177 @@
+cabal-version:      3.0
+name:               dupIO
+version:            0.1.0
+synopsis:           Duplicate any closure
+description:        This is a revival of the old @ghc-dup@ package, and provides
+                    a way to make shallow copies of closures.
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Edsko de Vries
+                    Joachim Breitner
+                    Douglas Wilson
+maintainer:         edsko@well-typed.com
+copyright:          Well-Typed LLP
+category:           Development
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+tested-with:        GHC ==8.6.5  ||
+                        ==8.8.4  ||
+                        ==8.10.7 ||
+                        ==9.0.2  ||
+                        ==9.2.8  ||
+                        ==9.4.7  ||
+                        ==9.6.2
+
+source-repository head
+  type:     git
+  location: https://github.com/well-typed/dupIO
+
+common lang
+  ghc-options:
+      -Wall
+  build-depends:
+      base >= 4.12 && < 4.19
+  default-language:
+      Haskell2010
+  default-extensions:
+      BangPatterns
+      DeriveAnyClass
+      DerivingStrategies
+      EmptyCase
+      GeneralizedNewtypeDeriving
+      KindSignatures
+      LambdaCase
+      NamedFieldPuns
+      NumericUnderscores
+      ScopedTypeVariables
+      TypeApplications
+
+--------------------------------------------------------------------------------
+-- Main library
+--------------------------------------------------------------------------------
+
+library
+  import:
+      lang
+  exposed-modules:
+      Data.Dup
+  other-modules:
+      Data.Dup.Internal
+  hs-source-dirs:
+      src
+  c-sources:
+      cbits/dup-prim.cmm
+      cbits/dup.c
+  build-depends:
+      ghc-prim >= 0.5 && < 0.11
+
+--------------------------------------------------------------------------------
+-- Testing
+--------------------------------------------------------------------------------
+
+flag use-debug-RTS
+  manual:  True
+  default: False
+
+test-suite test-dupIO
+  import:
+      lang
+  type:
+      exitcode-stdio-1.0
+  hs-source-dirs:
+      test
+  main-is:
+      Main.hs
+  other-modules:
+      Test.Average
+      Test.Dup.Conduit.Closed
+      Test.Dup.Conduit.Sink
+      Test.Dup.Conduit.Source
+      Test.DupIO.Conduit.Closed
+      Test.DupIO.Conduit.Sink
+      Test.DupIO.Conduit.Source
+      Test.DupIO.Conduit.Source.Bidirectional
+      Test.DupIO.Conduit.Source.IO
+      Test.DupIO.UnsafeInterleaveIO
+      Test.DupIO.UnsafePerformIO
+      Test.Sanity.TestSetup
+      Test.Util
+      Test.Util.Conduit.Bidirectional
+      Test.Util.Conduit.Closed
+      Test.Util.Conduit.Sink
+      Test.Util.Conduit.Source
+      Test.Util.Conduit.Source.Bidirectional
+      Test.Util.Conduit.Source.IO
+      Test.Util.TestSetup
+  build-depends:
+    , dupIO
+    , ghc-prim
+    , tasty
+    , tasty-hunit
+  default-extensions:
+      UnboxedTuples
+      MagicHash
+  ghc-options:
+      -with-rtsopts "-T"
+      -fno-full-laziness
+      -fno-state-hack
+      -threaded
+      -rtsopts
+
+  if flag(use-debug-RTS)
+    ghc-options:
+      -with-rtsopts "-T -DS"
+      -debug
+
+  if impl(ghc >= 9.2.0)
+    ghc-options:
+      -fdistinct-constructor-tables
+      -finfo-table-map
+
+--------------------------------------------------------------------------------
+-- Demos
+--
+-- NOTE: HLS seems to get confused when @hs-source-dirs@ is defined in a common
+-- stanza, so we repeat it for each demo.
+--------------------------------------------------------------------------------
+
+flag build-demos
+  manual:  True
+  default: False
+
+common demo
+  import:        lang
+  build-depends: dupIO
+  if !flag(build-demos)
+    buildable: False
+
+executable demo-averageIO
+  import:         demo
+  hs-source-dirs: demo
+  main-is:        AverageIO.hs
+
+executable demo-averageST
+  import:         demo
+  hs-source-dirs: demo
+  main-is:        AverageST.hs
+
+executable demo-conduit
+  import:         demo
+  hs-source-dirs: demo
+  main-is:        Conduit.hs
+
+executable demo-conduit-ref
+  import:         demo
+  hs-source-dirs: demo
+  main-is:        ConduitRef.hs
+
+executable demo-leak-in-io
+  import:         demo
+  hs-source-dirs: demo
+  main-is:        LeakInIO.hs
+
+executable demo-gc
+  import:         demo
+  hs-source-dirs: demo
+  main-is:        GC.hs
+  ghc-options:    -rtsopts
