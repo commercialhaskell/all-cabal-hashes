@@ -1,0 +1,87 @@
+name:                   random-source
+version:                0.3.0.13
+stability:              provisional
+
+cabal-version:          >= 1.10
+build-type:             Simple
+
+author:                 James Cook <mokus@deepbondi.net>
+maintainer:             James Cook <mokus@deepbondi.net>
+license:                PublicDomain
+homepage:               https://github.com/mokus0/random-fu
+
+category:               Math
+synopsis:               Generic basis for random number generators
+description:            Random number generation based on entropy sources
+                        able to produce a small but well-defined set of
+                        primitive variates.  Also includes facilities for
+                        \"completing\" partial implementations, making it
+                        easy to define new entropy sources in a way that
+                        is naturally forward-compatible.
+                        Now DEPRECATED: see [README](#readme) for further
+                        details.
+
+tested-with:            GHC == 7.4.2, GHC == 7.6.1
+
+extra-source-files:     changelog.md
+                        README.md
+
+source-repository head
+  type:                 git
+  location:             https://github.com/mokus0/random-fu.git
+  subdir:               random-source
+
+Flag base4
+    Description:        base-4 and above do not include syb
+
+Flag mtl2
+    Description:        mtl-2 has State, etc., as "type" rather than "newtype"
+
+Library
+  ghc-options:          -Wall
+  hs-source-dirs:       src
+  default-language:     Haskell2010
+  exposed-modules:      Data.Random.Source
+                        Data.Random.Source.IO
+                        Data.Random.Source.PureMT
+                        Data.Random.Source.Std
+                        Data.Random.Source.StdGen
+                        Data.Random.Internal.Words
+                        Data.Random.Internal.Source
+  other-modules:        Data.Random.Source.Internal.Prim
+                        Data.Random.Source.Internal.TH
+
+  if impl(ghc >= 6.10)
+    -- mwc-random depends on vector, which doesn't build on GHC < 6.10.
+    -- I considered breaking this module out into another package, but I
+    -- think this is sufficient; anyone compiling something which wants
+    -- this module has pretty much no hope of working on earlier GHCs anyway,
+    -- because the mwc-random library won't have built successfully.
+    -- And if they want to get their hands dirty fixing that, altering
+    -- this cabal file is hardly any additional effort.
+    exposed-modules:    Data.Random.Source.MWC
+    build-depends:      mwc-random
+
+  if flag(mtl2)
+    build-depends:      mtl >= 2.0 && < 2.3
+    cpp-options:        -DMTL2
+  else
+    build-depends:      mtl == 1.*
+
+  if flag(base4)
+    build-depends:      base >= 4 && <4.16, syb
+  else
+    build-depends:      base >= 3 && <4
+
+  build-depends:        flexible-defaults >= 0.0.0.2,
+                        mersenne-random-pure64,
+                        random >= 1.2.0 && < 1.3,
+                        stateref >= 0.3 && < 0.4,
+                        template-haskell,
+                        th-extras,
+                        primitive
+
+  if os(Windows)
+    cpp-options:        -Dwindows
+  else
+    exposed-modules:    Data.Random.Source.DevRandom
