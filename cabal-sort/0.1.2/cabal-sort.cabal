@@ -1,0 +1,131 @@
+Cabal-Version:    2.2
+Name:             cabal-sort
+Version:          0.1.2
+License:          BSD-3-Clause
+License-File:     LICENSE
+Author:           Henning Thielemann <haskell@henning-thielemann.de>
+Maintainer:       Henning Thielemann <haskell@henning-thielemann.de>
+Homepage:         https://hub.darcs.net/thielema/cabal-sort/
+Category:         Distribution
+Synopsis:         Topologically sort cabal packages
+Description:
+  If you have a bunch of packages you may want to compile or recompile,
+  then you need an order of compilation that meets the dependencies.
+  Given a number of cabal package files,
+  this program reads all those files
+  and emits them topologically sorted according to their dependencies.
+  This way you can compile many packages at once,
+  say if a very low-level package has changed.
+  .
+  For compiling a couple of packages from their local darcs repositories
+  in the right order, you may run something like
+  .
+  > for dir in `find . -name "*.cabal" | fgrep -v _darcs | xargs cabal-sort --info=dir`; do (cd $dir && cabal install); done
+  .
+  Note that cabal-install does this automatically since version 0.10
+  when you call it will multiple directory names as arguments.
+  However, when the constraint solver in cabal-install fails
+  you may still use cabal-sort for an automated build.
+  .
+  For uploading a set of packages to Hackage in the right order
+  you may run
+  .
+  > for dir in `find . -name "*.cabal" | fgrep -v _darcs | xargs cabal-sort --info=dir`; do (cd $dir && rm dist/*.tar.gz && cabal sdist && cabal upload dist/*.tar.gz); done
+  .
+  Sometimes you have to inspect a number of packages manually,
+  e.g. in order to adapt your packages to a new GHC version.
+  In this case I found it useful to run
+  .
+  > for dir in `find . -name "*.cabal" | fgrep -v _darcs | xargs cabal-sort --info=dir`; do (cd $dir; bash); done
+  .
+  This way you start a local shell for every package.
+  Then you can easily access commands in the shell history
+  that you already run for previous packages,
+  e.g. @editor *.cabal@.
+  After you finished a package,
+  you switch to the next package
+  simply by leaving the shell by calling @exit@.
+  .
+  Problem 1: Given packages A, B, C,
+  where C depends on B and B depends on A,
+  and you call
+  .
+  > cabal-sort C.cabal A.cabal
+  .
+  then the emitted order of packages may be wrong,
+  because cabal-sort does not get to know the dependency of C on B.
+  Even if the order is correct,
+  B.cabal is missing in the output
+  and thus the list of cabal files cannot immediately be used
+  for a sequence of cabal-install runs.
+  .
+  Problem 2: We ignore flags and merge all dependencies.
+  This may lead to dependency cycles that cannot occur for any flag assignment.
+  .
+  You also have options @--parallel@ and @--makefile@
+  that support parallel compilation.
+  The first option is for manual parallelization
+  and the second one allows you to compile parallelly using
+  @make@'s @-j@/@--jobs@ option.
+  .
+  There is a second program called @ghc-pkg-dep@
+  that finds recursively all packages that a set of packages depends on.
+  Duplicates are eliminated and the packages are given topologically sorted,
+  such that you can use this for recompilation of the packages.
+  The packages must already be registered with @ghc-pkg@.
+  .
+  > ghc-pkg-dep pkgA-0.1 pkgB-2.3 pkgC-0.1.2
+  .
+  On GHC versions before 7.0 ghc-pkg runs quite slowly.
+  In order to not get bored you may run the program with @--verbose=2@ option.
+  .
+  Related packages: @rpmbuild-order@
+Tested-With:       GHC==6.10.4, GHC==6.12.3
+Tested-With:       GHC==8.0.2, GHC==8.6.5
+Build-Type:        Simple
+Source-Repository head
+  type:     darcs
+  location: https://hub.darcs.net/thielema/cabal-sort/
+
+Source-Repository this
+  type:     darcs
+  location: https://hub.darcs.net/thielema/cabal-sort/
+  tag:      0.1.2
+
+
+Executable cabal-sort
+  Build-Depends:
+    Cabal >=3.8 && <3.11,
+    comfort-graph >=0.0.4 && <0.1,
+    shell-utility >=0.1 && <0.2,
+    optparse-applicative >=0.18 && <0.19,
+    directory >=1 && <1.4,
+    filepath >=1.1 && <1.5,
+    containers >=0.2 && <0.7,
+    explicit-exception >=0.1.4 && <0.3,
+    transformers >=0.2 && <0.7,
+    base >=2 && <5
+
+  GHC-Options:      -Wall
+  Default-Language: Haskell98
+  Hs-source-dirs:   src
+  Main-Is:          CabalSort.hs
+
+Executable ghc-pkg-dep
+  Build-Depends:
+    Cabal >=1.22 && <3.11,
+    shell-utility >=0.1 && <0.2,
+    optparse-applicative >=0.18 && <0.19,
+    process >=1.0 && <1.7,
+    containers >=0.2 && <0.7,
+    explicit-exception >=0.1.6 && <0.3,
+    non-empty >=0.3.3 && <0.4,
+    utility-ht >=0.0.12 && <0.1,
+    transformers >=0.2 && <0.7,
+    bytestring >=0.9.1 && <0.13,
+    base >=2 && <5
+
+  GHC-Options:      -Wall
+  Default-Language: Haskell98
+  Hs-source-dirs:   src
+  Main-Is:          GhcPkgDep.hs
