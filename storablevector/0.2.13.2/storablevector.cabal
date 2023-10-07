@@ -1,0 +1,165 @@
+Cabal-Version:       2.2
+Name:                storablevector
+Version:             0.2.13.2
+Category:            Data
+Synopsis:            Fast, packed, strict storable arrays with a list interface like ByteString
+Description:
+    Fast, packed, strict storable arrays
+    with a list interface,
+    a chunky lazy list interface with variable chunk size
+    and an interface for write access via the @ST@ monad.
+    This is much like @bytestring@ and @binary@
+    but can be used for every 'Foreign.Storable.Storable' type.
+    See also package
+        <http://hackage.haskell.org/package/vector>
+    with a similar intention.
+    .
+    We do not provide advanced fusion optimization,
+    since especially for lazy vectors
+    this would either be incorrect or not applicable.
+    However we provide fusion with lazy lists in the package
+    <http://hackage.haskell.org/package/storablevector-streamfusion>.
+License:             BSD-3-Clause
+License-file:        LICENSE
+Author:              Spencer Janssen <sjanssen@cse.unl.edu>, Henning Thielemann <storablevector@henning-thielemann.de>
+Maintainer:          Henning Thielemann <storablevector@henning-thielemann.de>
+Homepage:            http://www.haskell.org/haskellwiki/Storable_Vector
+Stability:           Experimental
+Build-Type:          Simple
+Tested-With:         GHC==6.8.2, GHC==6.12.3
+Tested-With:         GHC==7.4.1, GHC==7.6.2, GHC==7.8.2
+Tested-With:         JHC==0.7.3
+Extra-Source-Files:
+  foreign-ptr/fast/Data/StorableVector/Memory.hs
+  foreign-ptr/slow/Data/StorableVector/Memory.hs
+  foreign-ptr/jhc/Data/StorableVector/Memory.hs
+
+Flag splitBase
+  description: Choose the new smaller, split-up base package.
+
+Flag separateSYB
+  description: Data.Generics available in separate package.
+
+
+Source-Repository head
+  type:     darcs
+  location: http://code.haskell.org/storablevector/
+
+Source-Repository this
+  type:     darcs
+  location: http://code.haskell.org/storablevector/
+  tag:      0.2.13.2
+
+
+Library
+  Build-Depends:
+    non-negative >=0.1 && <0.2,
+    utility-ht >=0.0.5 && <0.1,
+    transformers >=0.2 && <0.7,
+    semigroups >=0.1 && <1.0,
+    deepseq >=1.3 && <1.6,
+    unsafe >=0.0 && <0.1,
+    QuickCheck >=1 && <3
+
+  If impl(jhc)
+    Hs-Source-Dirs: foreign-ptr/jhc
+    Build-Depends:
+      statethread >=0.1 && <0.2,
+      base >=1 && <2
+  Else
+    Hs-Source-Dirs: foreign-ptr/slow
+    If flag(splitBase)
+      If flag(separateSYB)
+        Build-Depends:
+          base >=4 && <5,
+          syb >=0.1 && <0.8
+      Else
+        Build-Depends:
+          base >=3 && <4
+    Else
+      Build-Depends: base >=1 && <2
+
+  GHC-Options:         -Wall -funbox-strict-fields
+  Default-Language:    Haskell98
+  Hs-Source-Dirs:      src
+
+  Exposed-Modules:
+    Data.StorableVector
+    Data.StorableVector.Base
+    Data.StorableVector.Pointer
+    Data.StorableVector.Lazy
+    Data.StorableVector.Lazy.Builder
+    Data.StorableVector.Lazy.Pattern
+    Data.StorableVector.Lazy.Pointer
+    Data.StorableVector.Lazy.Typed
+    Data.StorableVector.ST.Strict
+    Data.StorableVector.ST.Lazy
+
+  If !impl(jhc)
+    Other-Modules:
+      -- Cursor has no mature interface so far
+      Data.StorableVector.Cursor
+
+  Other-Modules:
+    Data.StorableVector.Memory
+    Data.StorableVector.ST.Private
+    Data.StorableVector.Lazy.PointerPrivate
+    Data.StorableVector.Lazy.PointerPrivateIndex
+
+
+Test-Suite test
+  Type:                exitcode-stdio-1.0
+  GHC-Options:         -Wall -funbox-strict-fields
+  Default-Language:    Haskell98
+  Hs-Source-Dirs:      tests
+  Main-Is:             Test.hs
+  Other-Modules:
+    Alternative.Lazy
+    Test.Lazy
+    Test.Strict
+    Test.Utility
+  Build-Depends:
+    storablevector,
+    bytestring >=0.9 && <0.13,
+    utility-ht >=0.0.5 && <0.1,
+    QuickCheck >=1 && <3
+  If flag(splitBase)
+    Build-Depends:
+      random >=1.0 && <1.3,
+      base >=3 && <5
+  Else
+    Build-Depends:     base >=1.0 && <2
+
+Benchmark speedtest
+  Type:                exitcode-stdio-1.0
+  GHC-Options:         -Wall
+  -- -fvia-C -optc-ffast-math -optc-O3 -optc-ftree-vectorize
+  Main-Is:             SpeedTestChorus.hs
+  Other-Modules:
+    Data.StorableVector.Private
+  Default-Language:    Haskell98
+  Hs-Source-Dirs:      speedtest
+  Build-Depends:
+    storablevector,
+    utility-ht,
+    sample-frame >=0.0.1 && <0.1,
+    unsafe,
+    deepseq
+  If flag(splitBase)
+    Build-Depends:   base >= 3 && <5
+  Else
+    Build-Depends:   base >= 1.0 && < 2
+
+Benchmark speedpointer
+  Type:                exitcode-stdio-1.0
+  GHC-Options:         -Wall
+  Main-Is:             Pointer.hs
+  Default-Language:    Haskell98
+  Hs-Source-Dirs:      speedtest
+  Build-Depends:
+    storablevector,
+    utility-ht
+  If flag(splitBase)
+    Build-Depends:   base >=3 && <5
+  Else
+    Build-Depends:   base >=1.0 && <2
