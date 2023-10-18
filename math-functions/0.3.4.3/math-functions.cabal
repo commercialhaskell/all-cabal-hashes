@@ -1,0 +1,155 @@
+name:           math-functions
+version:        0.3.4.3
+cabal-version:  >= 1.10
+license:        BSD2
+license-file:   LICENSE
+author:         Bryan O'Sullivan <bos@serpentine.com>,
+                Alexey Khudyakov <alexey.skladnoy@gmail.com>
+maintainer:     Alexey Khudyakov <alexey.skladnoy@gmail.com>
+homepage:       https://github.com/haskell/math-functions
+bug-reports:    https://github.com/haskell/math-functions/issues
+category:       Math, Numeric
+build-type:     Simple
+synopsis:       Collection of tools for numeric computations
+description:
+
+  This library contain collection of various utilities for numerical
+  computing. So far there're special mathematical functions,
+  compensated summation algorithm, summation of series, root finding
+  for real functions, polynomial summation and Chebyshev
+  polynomials. 
+
+tested-with:
+    GHC ==8.0.2
+     || ==8.2.2
+     || ==8.4.4
+     || ==8.6.5
+     || ==8.8.4
+     || ==8.10.7
+     || ==9.0.2
+     || ==9.2.7
+     || ==9.4.5
+     || ==9.6.2
+
+
+extra-source-files:
+                   changelog.md
+                   README.markdown
+                   tests/Tests/SpecFunctions/gen.py
+                   tests/tables/generate.py
+                   tests/tables/shell.nix
+                   tests/tables/*.dat
+                   tests/tables/inputs/*.dat
+                   doc/sinc.hs
+
+flag system-expm1
+     description: Use expm1 provided by GHC. On GHCJS we don't have one so we
+                  have to use hand-coded one.
+     default:     True
+     manual:      True
+
+flag system-erf
+     description: Use erf and erfc provided by system. On GHCJS
+                  version provided by library is used regardless of
+                  flag for that lack of libc.
+     default:     True
+     manual:      True
+
+library
+  default-language: Haskell2010
+  other-extensions:
+    BangPatterns
+    CPP
+    DeriveDataTypeable
+    FlexibleContexts
+    MultiParamTypeClasses
+    ScopedTypeVariables
+    TypeFamilies
+    DeriveGeneric
+
+  ghc-options:          -Wall -O2
+  build-depends:        base                >= 4.9 && < 5
+                      , deepseq
+                      , data-default-class  >= 0.1.2.0
+                      , vector              >= 0.11
+                      , primitive
+  if flag(system-expm1) && !impl(ghcjs)
+    cpp-options: -DUSE_SYSTEM_EXPM1
+  if flag(system-erf) && !impl(ghcjs)
+    cpp-options: -DUSE_SYSTEM_ERF
+  exposed-modules:
+    Numeric.MathFunctions.Constants
+    Numeric.MathFunctions.Comparison
+    Numeric.Polynomial
+    Numeric.Polynomial.Chebyshev
+    Numeric.RootFinding
+    Numeric.SpecFunctions
+    Numeric.SpecFunctions.Extra
+    Numeric.SpecFunctions.Internal
+    Numeric.Series
+    Numeric.Sum
+  other-modules:
+    Numeric.SpecFunctions.Compat
+
+test-suite math-function-tests
+  default-language: Haskell2010
+  other-extensions: ViewPatterns
+
+  type:           exitcode-stdio-1.0
+  ghc-options:    -Wall -threaded
+  if arch(i386)
+    -- The Sum tests require SSE2 on i686 to pass (because of excess precision)
+    ghc-options:  -msse2
+  hs-source-dirs: tests
+  main-is:        tests.hs
+  other-modules:
+    Tests.Helpers
+    Tests.Chebyshev
+    Tests.Comparison
+    Tests.RootFinding
+    Tests.SpecFunctions
+    Tests.SpecFunctions.Tables
+    Tests.Sum
+  if flag(system-erf)   && !impl(ghcjs)
+    cpp-options: -DUSE_SYSTEM_ERF
+  build-depends:    base >=4.5 && <5
+                  , math-functions
+                  , data-default-class  >= 0.1.2.0
+                  , deepseq
+                  , primitive
+                  , vector >= 0.7
+                  , vector-th-unbox
+                  , erf
+                  , QuickCheck       >= 2.7
+                  , tasty            >= 1.2
+                  , tasty-hunit      >= 0.10
+                  , tasty-quickcheck >= 0.10
+
+benchmark math-functions-bench
+  type:             exitcode-stdio-1.0
+  if impl(ghcjs)
+     buildable: False
+  default-language: Haskell2010
+  other-extensions:
+    BangPatterns
+    CPP
+    DeriveDataTypeable
+    FlexibleContexts
+    MultiParamTypeClasses
+    ScopedTypeVariables
+    TemplateHaskell
+    TypeFamilies
+    DeriveGeneric
+  ghc-options:          -Wall -O2
+  hs-source-dirs:       bench
+  Main-is:              bench.hs
+  build-depends:        base                >= 4.5 && < 5
+                      , math-functions
+                      , data-default-class
+                      , vector
+                      , random
+                      , tasty-bench         >=0.3.4
+
+source-repository head
+  type:     git
+  location: https://github.com/bos/math-functions
