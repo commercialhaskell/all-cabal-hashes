@@ -1,0 +1,92 @@
+cabal-version:      2.4
+name:               foreign
+version:            0.2.1.0
+synopsis:           A collection of helpers for ffi.
+description:
+  Please see the README on Github at <https://github.com/4eUeP/foreign#readme>
+
+license:            BSD-3-Clause
+license-file:       LICENSE
+copyright:          Copyright (c)
+author:             mu
+maintainer:         mu@laxcat.xyz
+tested-with:        GHC ==8.10.7 || ==9.2.5
+category:           Foreign
+homepage:           https://github.com/4eUeP/foreign
+bug-reports:        https://github.com/4eUeP/foreign/issues
+build-type:         Simple
+extra-source-files:
+  ChangeLog.md
+  include/**/*.h
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/4eUeP/foreign
+
+common common
+  default-language:   Haskell2010
+  default-extensions:
+    DeriveGeneric
+    DerivingStrategies
+    EmptyDataDeriving
+    GADTSyntax
+    GeneralizedNewtypeDeriving
+    LambdaCase
+    OverloadedStrings
+    RecordWildCards
+    ScopedTypeVariables
+    TypeApplications
+    UnliftedFFITypes
+    UnliftedNewtypes
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+
+library
+  import:          common
+  hs-source-dirs:  src
+  include-dirs:    include
+  cxx-sources:     cbits/hs_cpp_std.cpp
+  includes:        hs_foreign.h
+  exposed-modules:
+    HsForeign
+    HsForeign.AsyncFFI
+    HsForeign.CppStd
+    HsForeign.Primitive
+    HsForeign.String
+    HsForeign.Utils
+
+  -- We need to use primitive-unlifted < 1.0 to support ghc-9.*
+  -- See: https://gitlab.haskell.org/ghc/ghc/-/issues/20908
+  build-depends:
+    , base                >=4.14    && <5
+    , bytestring          >=0.10    && <0.12.0
+    , ghc-prim            >=0.5     && <1.0
+    , primitive           ^>=0.7
+    , primitive-unlifted  >=0.1.3.1 && <0.2
+
+  cxx-options:     -std=c++17 -Werror=switch
+  extra-libraries: stdc++
+
+test-suite foreign-test
+  import:             common
+  type:               exitcode-stdio-1.0
+  main-is:            Spec.hs
+  other-modules:
+    HsForeign.AsyncFFISpec
+    HsForeign.PrimitiveSpec
+    HsForeign.StringSpec
+
+  hs-source-dirs:     test
+  c-sources:          test/cbits/ffi.c
+  build-depends:
+    , base                  >=4.14 && <5
+    , foreign
+    , hspec
+    , QuickCheck
+    , quickcheck-instances
+
+  build-tool-depends: hspec-discover:hspec-discover >=2 && <3
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N
