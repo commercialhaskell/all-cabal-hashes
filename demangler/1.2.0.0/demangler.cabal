@@ -1,0 +1,101 @@
+cabal-version:      3.0
+name:               demangler
+version:            1.2.0.0
+synopsis:           Demangler for C++ mangled names.
+description:
+   Provides a demangler (and mangler) for C++ names, with an intermediate
+   representation that captures the nuances of each composite name to allow
+   for semantic utilization of different portions of a name.
+   .
+   Also provides text sharing for efficient storage of a large number of
+   demangled names.
+   .
+   See https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling for more
+   details on mangling
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Galois, Inc.
+maintainer:         kquick@galois.com
+-- copyright:
+category:           Development
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+                    README.org
+
+extra-source-files: test/initial-test-cases.txt
+                    test/full-test-cases.txt
+
+tested-with: GHC == 8.8.4
+           , GHC == 8.10.7
+           , GHC == 9.0.2
+           , GHC == 9.2.8
+           , GHC == 9.4.6
+           , GHC == 9.6.3
+
+source-repository head
+  type: git
+  location: https://github.com/GaloisInc/demangler
+
+flag debug
+  description: build with debug output and panics enabled
+  manual: True
+  default: False
+
+common config
+    ghc-options: -Wall
+                 -Wunbanged-strict-patterns
+                 -Wcompat
+                 -Wincomplete-uni-patterns
+                 -Wsimplifiable-class-constraints
+                 -Wpartial-fields
+                 -O2
+                 -funbox-strict-fields
+                 -fhide-source-paths
+                 -threaded
+
+library
+    import:           config
+    hs-source-dirs:   src
+    default-language: Haskell2010
+    exposed-modules:  Demangler
+    other-modules:    Demangler.Context
+                      Demangler.Engine
+                      Demangler.PPrint
+                      Demangler.Structure
+                      Demangler.Substitution
+    build-depends:    base >=4.10 && < 5
+                    , containers
+                    , lens >= 5.0 && < 5.3
+                    , sayable >= 1.2.3.0 && < 1.3
+                    , template-haskell
+                    , text
+    if flag(debug)
+      build-depends:  panic
+
+executable demangle
+    import:           config
+    hs-source-dirs:   app
+    default-language: Haskell2010
+    main-is:          Main.hs
+    build-depends:    base
+                    , demangler
+                    , sayable
+                    , text
+                    , transformers
+
+test-suite demangler-test
+    import:           config
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Test.hs
+    build-depends:    base
+                    , demangler
+                    , hspec >= 2.9 && < 2.12
+                    , prettyprinter
+                    , process >= 1.6 && < 1.7
+                    , sayable
+                    , tasty >= 1.4 && < 1.5
+                    , tasty-hspec >= 1.2 && < 1.3
+                    , text
+                    , transformers
