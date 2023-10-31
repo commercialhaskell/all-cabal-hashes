@@ -1,0 +1,191 @@
+cabal-version:      2.2
+name:               rere
+version:            0.2.0.1
+synopsis:
+  Regular-expressions extended with fixpoints for context-free powers
+
+category:           Parsing
+description:
+  By extending regular expressions with (explicit) fixed points
+  we can recognize context-free grammars.
+
+author:             Oleg Grenrus <oleg.grenrus@iki.fi>
+maintainer:         Oleg Grenrus <oleg.grenrus@iki.fi>
+license:            BSD-3-Clause
+license-file:       LICENSE
+extra-source-files:
+  changelog.md
+  jsverify.json
+  rere.sty
+
+tested-with:
+  GHC ==7.0.4
+   || ==7.2.2
+   || ==7.4.2
+   || ==7.6.3
+   || ==7.8.4
+   || ==7.10.3
+   || ==8.0.2
+   || ==8.2.2
+   || ==8.4.4
+   || ==8.6.5
+   || ==8.8.4
+   || ==8.10.7
+   || ==9.0.2
+   || ==9.2.8
+   || ==9.4.7
+   || ==9.6.3
+   || ==9.8.1
+
+source-repository head
+  type:     git
+  location: https://github.com/phadej/rere.git
+
+flag rere-cfg
+  description: CFG functionality, adds dependency on fin and vec
+  default:     True
+  manual:      True
+
+flag rere-intersection
+  description: Add intersection constructor. EXPERIMENTAL
+  default:     False
+  manual:      True
+
+library
+  default-language:  Haskell2010
+  hs-source-dirs:    src
+  ghc-options:       -Wall
+
+  if impl(ghc >=9)
+    ghc-options: -Wmissing-safe-haskell-mode -Winferred-safe-imports
+
+  -- GHC boot libraries
+  build-depends:
+    , base          >=4.3.0.0  && <4.20
+    , containers    ^>=0.4.0.0 || ^>=0.5.0.0 || ^>=0.6.0.1
+    , parsec        ^>=3.1.12.0
+    , transformers  ^>=0.3.0.0 || ^>=0.4.2.0 || ^>=0.5.2.0 || ^>=0.6.1.0
+
+  -- other dependencies
+  build-depends:     QuickCheck ^>=2.14.2
+
+  -- compat
+  if !impl(ghc >=7.10)
+    build-depends: void ^>=0.7.3
+
+  if !impl(ghc >=8.0)
+    build-depends: semigroups >=0.18.5 && <0.21
+
+  -- expose examples first, so `cabal repl` loads them.
+  exposed-modules:   RERE.Examples
+
+  if (flag(rere-cfg) && impl(ghc >=7.8))
+    exposed-modules: RERE.Examples.JSON
+
+  exposed-modules:
+    RERE
+    RERE.Absurd
+    RERE.CharClasses
+    RERE.CharSet
+    RERE.Gen
+    RERE.LaTeX
+    RERE.Ref
+    RERE.ST
+    RERE.Type
+    RERE.Var
+
+  other-modules:     RERE.Tuples
+
+  if (flag(rere-cfg) && impl(ghc >=7.8))
+    build-depends:
+      , fin  ^>=0.2 || ^>=0.3
+      , vec  ^>=0.4 || ^>=0.5
+
+    exposed-modules: RERE.CFG
+
+  else
+    cpp-options: -DRERE_NO_CFG
+
+  if flag(rere-intersection)
+    cpp-options: -DRERE_INTERSECTION
+
+  x-docspec-options: -XOverloadedStrings
+
+benchmark simple
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  hs-source-dirs:   bench
+  main-is:          Bench.hs
+  other-modules:    DerpConv
+  ghc-options:      -Wall -rtsopts
+  build-depends:
+    , base
+    , containers
+    , criterion   ^>=1.5.5.0 || ^>=1.6.0.0
+    , derp
+    , parsec
+    , rere
+
+  if !(flag(rere-cfg) && impl(ghc >=7.8))
+    cpp-options: -DRERE_NO_CFG
+
+  if flag(rere-intersection)
+    cpp-options: -DRERE_INTERSECTION
+
+  if !impl(ghc >=7.10)
+    build-depends: void ^>=0.7.2
+
+  if !impl(ghc >=7.4)
+    buildable: False
+
+benchmark json
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  hs-source-dirs:   bench
+  main-is:          JSON.hs
+  other-modules:    DerpConv
+  ghc-options:      -Wall -rtsopts
+  build-depends:
+    , aeson       ^>=1.4.6.0 || ^>=1.5.0.0 || ^>=2.0.0.0 || ^>=2.1.0.0 || ^>=2.2.1.0
+    , base
+    , bytestring
+    , clock       ^>=0.8
+    , containers
+    , criterion   ^>=1.5.5.0 || ^>=1.6.0.0
+    , derp
+    , fin
+    , parsec
+    , rere
+    , vec
+
+  if !impl(ghc >=8.0)
+    build-depends: semigroups >=0.18.4 && <0.21
+
+  if !impl(ghc >=7.10)
+    build-depends: void ^>=0.7.2
+
+  if flag(rere-intersection)
+    cpp-options: -DRERE_INTERSECTION
+
+  if !(flag(rere-cfg) && impl(ghc >=7.8))
+    buildable: False
+
+test-suite properties
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  hs-source-dirs:   test
+  main-is:          Tests.hs
+  build-depends:
+    , base
+    , containers
+    , QuickCheck
+    , quickcheck-instances  ^>=0.3.30
+    , rere
+    , tasty                 ^>=1.4.0.1 || ^>=1.5
+    , tasty-quickcheck      ^>=0.10.1.1
+
+  if flag(rere-intersection)
+    cpp-options: -DRERE_INTERSECTION
+
+  if !impl(ghc >=7.4)
+    buildable: False
