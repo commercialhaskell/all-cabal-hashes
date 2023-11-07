@@ -1,0 +1,225 @@
+cabal-version:      2.0
+name:               perceptual-hash
+version:            0.1.4.7
+license:            BSD3
+license-file:       LICENSE
+copyright:          Copyright: (c) 2019-2021 Vanessa McHale
+maintainer:         vamchale@gmail.com
+author:             Vanessa McHale
+synopsis:           Find duplicate images
+description:        Find similar images using perceptual hashes
+category:           Application, CommandLine, Images
+build-type:         Simple
+data-files:
+    demo-data/cat.png
+    demo-data/frog.jpeg
+    demo-data/frog.png
+    demo-data/meme.png
+    demo-data/meme-watermark.jpg
+    demo-data/liz-taylor.webp
+    demo-data/liz-taylor.png
+    demo-data/fashion.avif
+    demo-data/fashion.png
+
+extra-source-files: include/hs_phash.h
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+    type:     git
+    location: https://github.com/vmchale/phash
+
+flag with-phash
+    description: Use FFI bindings to pHash
+    default:     False
+    manual:      True
+
+flag disable-webp
+    description: Don't depend on webp FFI bindings
+    default:     False
+
+flag disable-avif
+    description: Don't depend on avif FFI bindings
+    default:     False
+
+flag llvm
+    description: Use LLVM backend to GHC rather than NCG
+    default:     False
+    manual:      True
+
+library
+    exposed-modules:    PerceptualHash
+    hs-source-dirs:     src
+    other-modules:      Median
+    default-language:   Haskell2010
+    other-extensions:   FlexibleContexts TypeFamilies
+    ghc-options:        -Wall -O2
+    build-tool-depends: cpphs:cpphs
+    build-depends:
+        base >=4.10 && <5,
+        hip,
+        vector-algorithms,
+        vector,
+        primitive,
+        bytestring,
+        JuicyPixels
+
+    if !flag(disable-webp)
+        build-depends: webp >=0.1.0.3
+        cpp-options: -DWEBP
+
+    if !flag(disable-avif)
+        build-depends: avif
+        cpp-options: -DAVIF
+
+    if flag(llvm)
+        ghc-options: -fllvm
+
+    if flag(with-phash)
+        extra-libraries: pHash
+
+    if flag(with-phash)
+        exposed-modules: ForeignHash
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+foreign-library hsphash
+    type:             native-shared
+    hs-source-dirs:   foreign-src
+    other-modules:    Export
+    default-language: Haskell2010
+    include-dirs:     include
+    install-includes: hs_phash.h
+    ghc-options:      -Wall
+    build-depends:
+        base,
+        perceptual-hash
+
+    lib-version-info: 1:0:0
+
+    if os(windows)
+        options: standalone
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+executable phash
+    main-is:            Main.hs
+    hs-source-dirs:     app
+    other-modules:
+        Paths_perceptual_hash
+        Parser
+        Parallel
+
+    autogen-modules:    Paths_perceptual_hash
+    default-language:   Haskell2010
+    other-extensions:   ScopedTypeVariables
+    ghc-options:        -Wall -threaded -rtsopts "-with-rtsopts=-N -qg"
+
+    if !flag(disable-webp)
+        cpp-options: -DWEBP
+
+    if !flag(disable-avif)
+        cpp-options: -DAVIF
+
+    build-tool-depends: cpphs:cpphs
+    build-depends:
+        base >=4.9 && <5,
+        perceptual-hash,
+        containers,
+        filepath,
+        optparse-applicative >=0.13.0.0,
+        par-traverse >=0.2.1.0,
+        stm >=2.3
+
+    if flag(llvm)
+        ghc-options: -fllvm
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+test-suite perceptual-hash-test
+    type:               exitcode-stdio-1.0
+    main-is:            Spec.hs
+    hs-source-dirs:     test
+    default-language:   Haskell2010
+    ghc-options:        -Wall -threaded -rtsopts "-with-rtsopts=-N -K1K"
+    build-tool-depends: cpphs:cpphs
+
+    if !flag(disable-webp)
+        cpp-options: -DWEBP
+
+    if !flag(disable-avif)
+        cpp-options: -DAVIF
+
+    build-depends:
+        base,
+        perceptual-hash,
+        hspec
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+benchmark phash-bench
+    type:               exitcode-stdio-1.0
+    main-is:            Bench.hs
+    build-tool-depends: cpphs:cpphs
+    hs-source-dirs:     bench
+    default-language:   Haskell2010
+    ghc-options:
+        -threaded -rtsopts "-with-rtsopts=-N -qg" -Wall
+        -Wincomplete-uni-patterns -Wincomplete-record-updates
+        -Wredundant-constraints
+
+    build-depends:
+        base,
+        perceptual-hash,
+        criterion,
+        filepath,
+        deepseq
+
+    if flag(llvm)
+        ghc-options: -fllvm
+
+    if flag(with-phash)
+        cpp-options: -DFOREIGN_PHASH
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
