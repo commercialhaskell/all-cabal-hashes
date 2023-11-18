@@ -1,0 +1,255 @@
+cabal-version: 2.2
+
+name:           fp-ieee
+version:        0.1.0.3
+synopsis:       IEEE 754-2019 compliant operations
+description:    Please see the README on GitHub at <https://github.com/minoki/haskell-floating-point/tree/master/fp-ieee#readme>
+category:       Numeric, Math
+homepage:       https://github.com/minoki/haskell-floating-point#readme
+bug-reports:    https://github.com/minoki/haskell-floating-point/issues
+author:         ARATA Mizuki
+maintainer:     minorinoki@gmail.com
+copyright:      2020-2023 ARATA Mizuki
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/minoki/haskell-floating-point
+  subdir: fp-ieee
+
+flag pure-hs
+  description: Disable FFI
+  manual: True
+  default: False
+
+flag sse4_1
+  description: Use SSE4.1 instructions on x86
+  manual: True
+  default: False
+
+flag fma3
+  description: Use FMA3 instructions on x86. On GHC 9.8 or later, this flag enables use of FMA primitives.
+  manual: True
+  default: False
+
+flag f16c
+  description: Use F16C instructions on x86
+  manual: True
+  default: False
+
+-- flag x87-long-double
+--   description: Support x87 "long double" via long-double package
+--   manual: True
+--   default: False
+
+flag float128
+  description: Support Float128 via float128 package
+  manual: True
+  default: False
+
+flag half
+  description: Support Half (float16) via half package
+  manual: True
+  default: False
+
+flag integer-gmp
+  description: Use integer-gmp package on GHC 8.x
+  manual: False
+  default: True
+
+flag ghc-bignum
+  description: Use ghc-bignum package on GHC 9.x
+  manual: False
+  default: True
+
+common deps
+  build-depends:
+      -- We use a post-GHC 8.6 language extension: NumericUnderscores
+      -- cast{Word32,Word64}To{Float,Double}, cast{Float,Double}To{Word32,Word64} are since base-4.10.0.0 (GHC 8.2)
+      -- Semigroup((<>)) is exported from Prelude since base-4.11.0.0 (GHC 8.4)
+      base >=4.12 && <4.20
+  if !flag(pure-hs)
+    cpp-options: -DUSE_FFI
+  if !flag(pure-hs) && os(windows)
+    -- mingw-w64 is not reliable
+    cpp-options: -DSOME_LIBC_FUNCTIONS_MIGHT_BE_BUGGY
+  if flag(float128)
+    -- Support Float128
+    cpp-options: -DUSE_FLOAT128
+    build-depends:
+        float128 ==0.1.*
+  if flag(half)
+    -- Support Half
+    -- Note that half-0.3's isInfinite is buggy (https://github.com/ekmett/half/issues/23)
+    cpp-options: -DUSE_HALF
+    build-depends:
+        half ==0.3.*
+  -- if flag(x87-long-double)
+  --   cpp-options: -DUSE_X87_LONG_DOUBLE
+  --   build-depends:
+  --       long-double ==???
+
+common options
+  ghc-options: -Wcompat
+  if arch(i386)
+    -- Always enable SSE2 on i386
+    ghc-options: -msse2
+    cc-options: -msse2 -mfpmath=sse
+
+library
+  import: deps, options
+  exposed-modules:
+      Numeric.Floating.IEEE
+      Numeric.Floating.IEEE.Internal
+      Numeric.Floating.IEEE.NaN
+  other-modules:
+      GHC.Float.Compat
+      MyPrelude
+      Numeric.Floating.IEEE.Internal.Augmented
+      Numeric.Floating.IEEE.Internal.Base
+      Numeric.Floating.IEEE.Internal.Classify
+      Numeric.Floating.IEEE.Internal.Conversion
+      Numeric.Floating.IEEE.Internal.FMA
+      Numeric.Floating.IEEE.Internal.GenericArith
+      Numeric.Floating.IEEE.Internal.IntegerInternals
+      Numeric.Floating.IEEE.Internal.MinMax
+      Numeric.Floating.IEEE.Internal.NaN
+      Numeric.Floating.IEEE.Internal.NextFloat
+      Numeric.Floating.IEEE.Internal.Remainder
+      Numeric.Floating.IEEE.Internal.RoundToIntegral
+      Numeric.Floating.IEEE.Internal.Rounding
+      Numeric.Floating.IEEE.Internal.Rounding.Common
+      Numeric.Floating.IEEE.Internal.Rounding.Encode
+      Numeric.Floating.IEEE.Internal.Rounding.Integral
+      Numeric.Floating.IEEE.Internal.Rounding.Rational
+  hs-source-dirs:
+      src
+  build-depends:
+      integer-logarithms >=1 && <1.1
+  ghc-options: -Wall
+  if flag(half)
+    other-modules:
+        Numeric.Floating.IEEE.Internal.Half
+  if flag(float128)
+    other-modules:
+        Numeric.Floating.IEEE.Internal.Float128
+  if flag(integer-gmp) && impl(ghc < 9.0.0)
+    build-depends:
+        -- integer-gmp-1.1 is based on ghc-bignum, which is not what we want
+        integer-gmp ==1.0.*
+  if flag(ghc-bignum) && impl(ghc >= 9.0.0)
+    build-depends:
+        ghc-bignum >=1.0 && <1.4
+  -- Fast roundeven: needs SSE4.1 on x86
+  if !flag(pure-hs) && (arch(i386) || arch(x86_64)) && flag(sse4_1)
+    cpp-options: -DHAS_FAST_ROUNDEVEN
+    cc-options: -msse4.1
+    c-sources:
+        cbits/roundeven.c
+  -- Fast roundeven: always available on AArch64
+  if !flag(pure-hs) && arch(aarch64)
+    cpp-options: -DHAS_FAST_ROUNDEVEN
+    c-sources:
+        cbits/roundeven.c
+  -- Fast FMA: needs FMA3 on x86 (FMA4 is not supported by this package)
+  if !flag(pure-hs) && (arch(i386) || arch(x86_64)) && flag(fma3) && impl(ghc < 9.8)
+    cpp-options: -DHAS_FAST_FMA
+    cc-options: -mfma
+    c-sources:
+        cbits/fma.c
+  if (arch(i386) || arch(x86_64)) && flag(fma3) && impl(ghc >= 9.8)
+    cpp-options: -DHAS_FMA_PRIM
+    ghc-options: -mfma
+  -- Fast FMA: always available on AArch64
+  if !flag(pure-hs) && arch(aarch64) && impl(ghc < 9.8)
+    cpp-options: -DHAS_FAST_FMA
+    c-sources:
+        cbits/fma.c
+  if !flag(pure-hs) && arch(aarch64) && impl(ghc >= 9.8)
+    cpp-options: -DHAS_FMA_PRIM
+  -- Enable use of libm's fma unless "pure-hs" is set; but not on Windows
+  -- (mingw-w64's fma is not reliable)
+  if !flag(pure-hs) && (arch(i386) || arch(x86_64)) && !os(windows)
+    cpp-options: -DUSE_C99_FMA
+  if (arch(i386) || arch(x86_64)) && os(windows)
+    cpp-options: -DDONT_INLINE_FMA_PRIM
+  -- Fast min/max: available on AArch64
+  if !flag(pure-hs) && arch(aarch64)
+    cpp-options: -DHAS_FAST_MINMAX
+    c-sources:
+        cbits/minmax.c
+  if !flag(pure-hs) && flag(half) && arch(x86_64) && flag(f16c)
+    cpp-options: -DHAS_FAST_HALF_CONVERSION
+    cc-options: -mf16c
+    c-sources:
+        cbits/half.c
+  if !flag(pure-hs) && flag(half) && arch(aarch64)
+    cpp-options: -DHAS_FAST_HALF_CONVERSION
+    c-sources:
+        cbits/half.c
+  if !flag(pure-hs) && (arch(aarch64) || arch(x86_64))
+    cpp-options: -DHAS_FAST_CANONICALIZE
+    c-sources:
+        cbits/canonicalize.c
+  default-language: Haskell2010
+
+test-suite fp-ieee-doctests
+  import: deps, options
+  type: exitcode-stdio-1.0
+  main-is: doctests.hs
+  build-depends:
+      doctest ^>=0.22.2
+    , QuickCheck ^>=2.14.3
+  default-language: Haskell2010
+  if impl(ghc >= 9.8)
+    buildable: False
+
+test-suite fp-ieee-test
+  import: deps, options
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      AugmentedArithSpec
+      ClassificationSpec
+      FMASpec
+      IntegerInternalsSpec
+      MinMaxSpec
+      NaNSpec
+      NextFloatSpec
+      RoundingSpec
+      RoundToIntegralSpec
+      TwoSumSpec
+      Util
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -fno-ignore-asserts
+  build-depends:
+      QuickCheck ^>=2.14.3
+    , fp-ieee
+    , hspec ^>=2.11.7
+    , hspec-core ^>=2.11.7
+    , integer-logarithms
+    , random ^>=1.2.1.1
+  if flag(half)
+    other-modules:
+        HalfSpec
+  if flag(float128)
+    other-modules:
+        Float128Spec
+  default-language: Haskell2010
+
+benchmark fp-ieee-benchmark
+  import: deps, options
+  type: exitcode-stdio-1.0
+  main-is: Benchmark.hs
+  hs-source-dirs:
+      benchmark
+  build-depends:
+      fp-ieee
+    , tasty-bench ^>=0.3.5
+  default-language: Haskell2010
