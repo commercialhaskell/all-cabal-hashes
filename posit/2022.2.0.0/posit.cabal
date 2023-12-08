@@ -1,0 +1,155 @@
+cabal-version: 1.12
+
+name:           posit
+version:        2022.2.0.0
+category:       Numeric, Math
+description:    The Posit Number format attempting to conform to the Posit Standard Versions 3.2 and 2022.  Where Real numbers are approximated by `Maybe Rational` and sampled in a similar way to the projective real line.
+homepage:       https://github.com/waivio/posit#readme
+bug-reports:    https://github.com/waivio/posit/issues
+author:         Nathan Waivio
+maintainer:     nathan.waivio@gmail.com
+copyright:      2021-2023 Nathan Waivio
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+tested-with:         GHC == 8.10.7,
+                     GHC == 9.0.2,
+                     GHC == 9.2.8,
+                     GHC == 9.4.8,
+                     GHC == 9.6.3
+  -- fails rewrite rules with ghc-9.6.3 bummer
+  -- Things before ghc-8.10.7 fail, don't care! 
+
+
+synopsis:       Posit Numbers
+extra-source-files:
+    README.md
+    ChangeLog.md
+    stack.yaml
+
+source-repository head
+  type: git
+  location: https://github.com/waivio/posit
+
+flag do-no-storable-random
+  description: Build without Storable or Random/Uniform Class support
+  manual:      True
+  default:     False
+
+flag do-liquid
+  description: Build with Liquid Haskell checking
+  manual:      True
+  default:     False
+
+flag do-rewrite
+  description: Build with Rewrite Rules for Fused Operations.
+  manual:      True
+  default:     False
+
+library
+  exposed-modules:
+      Posit
+      Posit.Internal.PositC
+  hs-source-dirs:
+      src
+  build-depends:
+      data-dword,
+      scientific
+  default-language: Haskell2010
+
+  -- Compiler options
+  ghc-options: -Wall -O2
+ 
+  if flag(do-rewrite)
+    cpp-options: -DO_REWRITE
+    ghc-options: -fforce-recomp -ddump-rule-firings
+
+  if flag(do-liquid)
+    ghc-options: -fplugin=LiquidHaskell -fplugin-opt=LiquidHaskell:--fast -fplugin-opt=LiquidHaskell:--no-termination -fplugin-opt=LiquidHaskell:--max-case-expand=4 -fplugin-opt=LiquidHaskell:--short-names
+ 
+  if flag(do-no-storable-random)
+    cpp-options: -DO_NO_STORABLE_RANDOM
+ 
+  if flag(do-liquid)
+    cpp-options: -DO_LIQUID -DO_NO_STORABLE_RANDOM
+ 
+ 
+  -- Other library packages from which modules are imported.
+  build-depends:
+    deepseq >=1.1 && <2
+ 
+  if !flag(do-liquid)
+    build-depends:
+      base >=4.7 && <5
+ 
+  if !flag(do-no-storable-random)
+    build-depends:
+      random
+ 
+  if flag(do-liquid)
+    build-depends:
+      liquid-base,
+      liquidhaskell
+
+-- perhaps one day: -threaded -rtsopts -with-rtsopts=-N
+test-suite posit-test
+  type: exitcode-stdio-1.0
+  main-is: TestPosit.hs
+  other-modules:
+      Test.Algorithms
+  hs-source-dirs:
+      test
+  ghc-options: -O2
+  build-depends:
+    base >=4.7 && <5,
+    posit
+  default-language: Haskell2010
+
+test-suite test-posit-functions
+  type: exitcode-stdio-1.0
+  main-is: TestElementaryFunctions.hs
+  hs-source-dirs:
+      test
+  ghc-options: -O2  -threaded -rtsopts -with-rtsopts=-N
+  cpp-options: -DO_REWRITE
+  build-depends:
+    base >= 4.7 && < 5,
+    posit >= 2022.0.1,
+    Chart,
+    Chart-cairo
+  default-language: Haskell2010
+
+-- Weigh based benchmark for Vector
+benchmark test-posit-weigh
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: WeighPosit.hs
+  ghc-options: -Wall -O2
+  build-depends:
+    base >= 4.7 && < 5,
+    posit,
+    vector,
+    weigh
+  default-language: Haskell2010
+
+-- Test `(show.read == id)`
+benchmark test-posit-readShowId
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: TestReadShow.hs
+  ghc-options: -Wall -O2
+  build-depends:
+    base >= 4.7 && < 5,
+    posit
+  default-language: Haskell2010
+
+-- Test the Rewrite Rules for FusedOps
+benchmark test-posit-fusedRewrite
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: TestFusedRewrite.hs
+  ghc-options: -Wall -O2
+  build-depends:
+    base >= 4.7 && < 5,
+    posit
+  default-language: Haskell2010
