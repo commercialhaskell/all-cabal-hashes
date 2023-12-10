@@ -1,0 +1,114 @@
+name:                html-parse
+version:             0.2.1.0
+synopsis:            A high-performance HTML tokenizer
+description:
+    This package provides a fast and reasonably robust HTML5 tokenizer built
+    upon the @attoparsec@ library. The parsing strategy is based upon the HTML5
+    parsing specification with few deviations.
+    .
+    For instance,
+    .
+    >>> parseTokens "<div><h1 class=widget>Hello World</h1><br/>"
+    [TagOpen "div" [],
+     TagOpen "h1" [Attr "class" "widget"],
+     ContentText "Hello World",
+     TagClose "h1",
+     TagSelfClose "br" []]
+    .
+    The package targets similar use-cases to the venerable @tagsoup@ library,
+    but is significantly more efficient, achieving parsing speeds of over 80
+    megabytes per second on modern hardware and typical web documents.
+    Here are some typical performance numbers taken from parsing a Wikipedia
+    article of moderate length:
+    .
+    @
+    benchmarking Forced/tagsoup fast Text
+    time                 186.1 ms   (175.3 ms .. 194.6 ms)
+                         0.999 R²   (0.995 R² .. 1.000 R²)
+    mean                 191.7 ms   (188.9 ms .. 198.3 ms)
+    std dev              5.053 ms   (1.092 ms .. 6.809 ms)
+    variance introduced by outliers: 14% (moderately inflated)
+    .
+    benchmarking Forced/tagsoup normal Text
+    time                 189.7 ms   (182.8 ms .. 197.7 ms)
+                         0.999 R²   (0.998 R² .. 1.000 R²)
+    mean                 196.5 ms   (193.1 ms .. 202.1 ms)
+    std dev              5.481 ms   (2.141 ms .. 7.383 ms)
+    variance introduced by outliers: 14% (moderately inflated)
+    .
+    benchmarking Forced/html-parser
+    time                 15.81 ms   (15.75 ms .. 15.89 ms)
+                         1.000 R²   (1.000 R² .. 1.000 R²)
+    mean                 15.72 ms   (15.66 ms .. 15.77 ms)
+    std dev              140.9 μs   (113.6 μs .. 174.5 μs)
+    @
+
+homepage:            http://github.com/bgamari/html-parse
+license:             BSD3
+license-file:        LICENSE
+author:              Ben Gamari
+maintainer:          ben@smart-cactus.org
+copyright:           (c) 2016 Ben Gamari
+category:            Text
+build-type:          Simple
+cabal-version:       >=1.10
+tested-with:         GHC==8.4.*, GHC==8.6.*, GHC==8.8.*, GHC==8.10.*, GHC==9.0.*, GHC==9.2.*, GHC==9.4.*
+extra-source-files:  changelog.md
+
+
+source-repository head
+  type:                git
+  location:            git://github.com/bgamari/html-parse
+
+library
+  exposed-modules:     Text.HTML.Parser, Text.HTML.Tree
+  other-modules:       Text.HTML.Parser.Entities, Data.Trie
+  ghc-options:         -Wall
+  hs-source-dirs:      src
+  other-extensions:    OverloadedStrings, DeriveGeneric
+  build-depends:       base >=4.7 && <4.20,
+                       deepseq >=1.3 && <1.6,
+                       attoparsec >=0.13 && <0.15,
+                       text >=1.2 && <2.2,
+                       containers >=0.5 && <0.8
+  default-language:    Haskell2010
+
+benchmark bench
+  type:                exitcode-stdio-1.0
+  main-is:             Benchmark.hs
+  other-extensions:    OverloadedStrings, DeriveGeneric
+  build-depends:       base,
+                       deepseq,
+                       attoparsec,
+                       text,
+                       tagsoup >= 0.13,
+                       criterion >= 1.1,
+                       html-parse
+  default-language:    Haskell2010
+
+test-suite spec
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      tests
+  main-is:             Spec.hs
+  other-modules:       Text.HTML.ParserSpec, Text.HTML.TreeSpec
+  ghc-options:         -Wall -with-rtsopts=-T
+  build-tool-depends:  hspec-discover:hspec-discover
+  build-depends:       base,
+                       containers,
+                       hspec,
+                       hspec-discover,
+                       html-parse,
+                       QuickCheck,
+                       quickcheck-instances,
+                       string-conversions,
+                       text
+  default-language:    Haskell2010
+
+-- For performance characterisation during optimisation
+executable html-parse-length
+  main-is:             app/Main.hs
+  buildable:           False
+  build-depends:       base,
+                       html-parse,
+                       text
+  default-language:    Haskell2010
