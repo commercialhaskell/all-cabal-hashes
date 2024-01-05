@@ -1,0 +1,113 @@
+Cabal-Version:    2.2
+Name:             coinor-clp
+Version:          0.0.0.2
+License:          BSD-3-Clause
+License-File:     LICENSE
+Author:           Henning Thielemann <haskell@henning-thielemann.de>
+Maintainer:       Henning Thielemann <haskell@henning-thielemann.de>
+Category:         Math
+Tested-With:      GHC ==8.6.5
+Build-Type:       Simple
+Synopsis:         Linear Programming using COIN-OR/CLP and comfort-array
+Description:
+  Simple interface to linear programming functions provided by COIN-OR
+  using the flexible Array shape framework from @comfort-array@.
+  .
+  E.g. you can use @Shape.Tuple@ to convert safely
+  between nested tuples and arrays with the same number of elements.
+  .
+  > type X = Shape.Element
+  > type PairShape = Shape.NestedTuple Shape.TupleIndex (X,X)
+  >
+  > case Shape.indexTupleFromShape (Shape.static :: PairShape) of
+  >   (posIx,negIx) ->
+  >     case mapSnd (mapSnd Array.toTuple) <$>
+  >          LP.simplex [] [[1.*posIx, (-1).*negIx] ==. 314]
+  >            (LP.Minimize,
+  >             Array.fromTuple (23,42) :: Array PairShape Double)
+  >       of
+  >         (Right (LP.Optimal, (absol, (pos, neg)))) ->
+  >           printf "absol %f,  pos %f, neg %f\n" absol pos neg
+  >         _ -> fail "COINOR solver failed"
+  .
+  Alternatives: @comfort-glpk@, @hmatrix-glpk@, @glpk-hs@
+
+Extra-Source-Files:
+  Makefile
+  include/support.h
+  nix/clp-extern-c.patch
+  nix/coin-utils.nix
+  nix/osi.nix
+  nix/clp.nix
+  shell.nix
+  tool/ltrace.config
+
+Flag debug
+  Description: Enable debug output
+  Default:     False
+  Manual:      True
+
+Source-Repository this
+  Tag:         0.0.0.2
+  Type:        darcs
+  Location:    https://hub.darcs.net/thielema/coinor-clp/
+
+Source-Repository head
+  Type:        darcs
+  Location:    https://hub.darcs.net/thielema/coinor-clp/
+
+Library
+  Build-Depends:
+    linear-programming >=0.0 && <0.1,
+    comfort-array >=0.4 && <0.6,
+    QuickCheck >=2 && <3,
+    deepseq >=1.3 && <1.6,
+    transformers >=0.3 && <0.7,
+    non-empty >=0.3.2 && <0.4,
+    utility-ht >=0.0.16 && <0.1,
+    base >=4.5 && <5
+
+  GHC-Options:      -Wall
+  Default-Language: Haskell98
+  Hs-Source-Dirs:   src
+  If flag(debug)
+    Hs-Source-Dirs: src/debug-on
+  Else
+    Hs-Source-Dirs: src/debug-off
+  Exposed-Modules:
+    Numeric.COINOR.CLP
+    Numeric.COINOR.CLP.Monad
+  Other-Modules:
+    Numeric.COINOR.CLP.FFI
+    Numeric.COINOR.CLP.Private
+    Numeric.COINOR.CLP.Debug
+
+  PkgConfig-Depends: clp, coinutils
+  Include-Dirs: include
+  Extra-Libraries: stdc++
+  Cxx-Sources:
+    cbits/support.cpp
+
+Test-Suite coinor-clp-test
+  Type: exitcode-stdio-1.0
+  Build-Depends:
+    coinor-clp,
+    linear-programming >= 0.0.1,
+    comfort-array >=0.5.2,
+    transformers,
+    non-empty,
+    utility-ht,
+    doctest-exitcode-stdio >=0.0 && <0.1,
+    doctest-lib >=0.1 && <0.2,
+    QuickCheck >=2.1 && <3,
+    random >=1.0 && <1.3,
+    base >=4.5 && <5
+
+  GHC-Options:      -Wall
+  Hs-Source-Dirs:   test
+  Default-Language: Haskell98
+  Main-Is: Main.hs
+  Other-Modules:
+    Test.Numeric.COINOR.CLP
+    Test.Numeric.COINOR.CLP.Monad
+    Test.Numeric.COINOR.CLP.Utility

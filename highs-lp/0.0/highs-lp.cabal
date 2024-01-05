@@ -1,0 +1,106 @@
+Cabal-Version:    2.2
+Name:             highs-lp
+Version:          0.0
+License:          BSD-3-Clause
+License-File:     LICENSE
+Author:           Henning Thielemann <haskell@henning-thielemann.de>
+Maintainer:       Henning Thielemann <haskell@henning-thielemann.de>
+Category:         Math
+Tested-With:      GHC ==8.6.5
+Build-Type:       Simple
+Synopsis:         Linear Programming using HiGHS and comfort-array
+Description:
+  Simple interface to linear programming functions provided by HiGHS
+  using the flexible Array shape framework from @comfort-array@.
+  .
+  E.g. you can use @Shape.Tuple@ to convert safely
+  between nested tuples and arrays with the same number of elements.
+  .
+  > type X = Shape.Element
+  > type PairShape = Shape.NestedTuple Shape.TupleIndex (X,X)
+  >
+  > case Shape.indexTupleFromShape (Shape.static :: PairShape) of
+  >   (posIx,negIx) ->
+  >     case fmap (mapSnd Array.toTuple) $ snd $
+  >          LP.solve LP.choose [] [[1.*posIx, (-1).*negIx] ==. 314]
+  >            (LP.Minimize,
+  >             Array.fromTuple (23,42) :: Array PairShape Double)
+  >       of
+  >         Just (absol, (pos, neg)) ->
+  >           printf "absol %f,  pos %f, neg %f\n" absol pos neg
+  >         _ -> fail "HiGHS solver failed"
+  .
+  Alternatives: @coinor-clp@, @comfort-glpk@, @hmatrix-glpk@, @glpk-hs@
+
+Extra-Source-Files:
+  Makefile
+
+Flag debug
+  Description: Enable debug output
+  Default:     False
+  Manual:      True
+
+Source-Repository this
+  Tag:         0.0
+  Type:        darcs
+  Location:    https://hub.darcs.net/thielema/highs-lp/
+
+Source-Repository head
+  Type:        darcs
+  Location:    https://hub.darcs.net/thielema/highs-lp/
+
+Library
+  Build-Depends:
+    linear-programming >=0.0 && <0.1,
+    comfort-array >=0.5.4 && <0.6,
+    guarded-allocation >=0.0.1 && <0.1,
+    QuickCheck >=2 && <3,
+    storable-record >=0.0.5 && <0.1,
+    deepseq >=1.3 && <1.6,
+    transformers >=0.3 && <0.7,
+    non-empty >=0.3.2 && <0.4,
+    utility-ht >=0.0.16 && <0.1,
+    base >=4.5 && <5
+
+  GHC-Options:      -Wall
+  Default-Language: Haskell98
+  Hs-Source-Dirs:   src
+  If flag(debug)
+    Hs-Source-Dirs: src/debug-on
+  Else
+    Hs-Source-Dirs: src/debug-off
+  Exposed-Modules:
+    Numeric.HiGHS.LP
+    Numeric.HiGHS.LP.Monad
+    Numeric.HiGHS.LP.Example
+  Other-Modules:
+    Numeric.HiGHS.LP.Enumeration
+    Numeric.HiGHS.LP.FFI
+    Numeric.HiGHS.LP.Private
+    Numeric.HiGHS.LP.Debug
+
+  PkgConfig-Depends: highs
+
+Test-Suite highs-lp-test
+  Type: exitcode-stdio-1.0
+  Build-Depends:
+    highs-lp,
+    linear-programming >=0.0.1,
+    comfort-array,
+    transformers,
+    non-empty,
+    utility-ht,
+    doctest-exitcode-stdio >=0.0 && <0.1,
+    doctest-lib >=0.1 && <0.2,
+    QuickCheck >=2.1 && <3,
+    random >=1.0 && <1.3,
+    base >=4.5 && <5
+
+  GHC-Options:      -Wall
+  Hs-Source-Dirs:   test
+  Default-Language: Haskell98
+  Main-Is: Main.hs
+  Other-Modules:
+    Test.Numeric.HiGHS.LP
+    Test.Numeric.HiGHS.LP.Monad
+    Test.Numeric.HiGHS.LP.Utility

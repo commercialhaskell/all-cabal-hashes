@@ -1,0 +1,152 @@
+cabal-version:       2.2
+name:                streamly-process
+version:             0.3.1
+synopsis:            Use OS processes as stream transformation functions
+description:
+  Use operating system (OS) commands in Haskell programs as if they were
+  native Haskell functions, by treating their inputs and outputs as
+  Haskell streams. This allows you to write high-level Haskell scripts
+  that can perform tasks similar to shell scripts, but with C-like
+  performance, and with strong safety guarantees, refactorability, and
+  modularity.
+homepage:            https://streamly.composewell.com
+bug-reports:         https://github.com/composewell/streamly-process/issues
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Composewell Technologies
+maintainer:          streamly@composewell.com
+copyright:           Composewell Technologies
+category:            Streamly, Streaming, System
+stability:           Experimental
+tested-with:         GHC==9.4.4
+                   , GHC==9.2.7
+                   , GHC==9.0.2
+                   , GHC==8.10.7
+                   , GHC==8.8.4
+                   , GHC==8.6.5
+build-type:          Simple
+extra-source-files:
+  CHANGELOG.md
+  NOTICE
+  README.md
+  design/proposal.md
+  src/DocTestCommand.hs
+  src/DocTestProcess.hs
+  test/data/failExec.bat
+  test/data/failExec.sh
+  test/data/passExec.bat
+  test/data/passExec.sh
+  test/data/writeTrToError.bat
+  test/data/writeTrToError.sh
+
+source-repository head
+  type: git
+  location: https://github.com/composewell/streamly-process
+
+flag fusion-plugin
+  description: Use fusion plugin for benchmarks and executables
+  manual: True
+  default: False
+
+flag use-native
+  description: Do not depend on the process package
+  manual: True
+  default: False
+
+common compile-options
+  default-language: Haskell2010
+  ghc-options:
+    -Weverything
+    -Wno-implicit-prelude
+    -Wno-missing-deriving-strategies
+    -Wno-missing-exported-signatures
+    -Wno-missing-import-lists
+    -Wno-missing-local-signatures
+    -Wno-missing-safe-haskell-mode
+    -Wno-missed-specialisations
+    -Wno-all-missed-specialisations
+    -Wno-monomorphism-restriction
+    -Wno-prepositive-qualified-module
+    -Wno-unsafe
+  if !impl(ghc < 9.2)
+    ghc-options:
+      -Wno-missing-kind-signatures
+
+common optimization-options
+  ghc-options:
+    -O2
+    -fdicts-strict
+    -fspec-constr-recursive=16
+    -fmax-worker-args=16
+  if flag(use-native)
+    cpp-options: -DUSE_NATIVE
+
+library
+  import: compile-options, optimization-options
+  include-dirs: src
+  hs-source-dirs: src
+  exposed-modules:
+    Streamly.System.Process
+    Streamly.System.Command
+    Streamly.Internal.System.Process
+    Streamly.Internal.System.Command
+  if flag (use-native) && !os(windows)
+    exposed-modules:
+      Streamly.Internal.System.Process.Posix
+  build-depends:
+      base              >= 4.8   && < 5
+    , exceptions        >= 0.8   && < 0.11
+    -- Uses internal APIs
+    , streamly          >= 0.9 && < 0.10
+    , streamly-core     >= 0.1 && < 0.2
+  if !flag(use-native)
+    build-depends: process >= 1.0 && < 1.7
+  else
+     if !os(windows)
+       build-depends:
+         unix >= 2.5 && < 2.8
+
+-------------------------------------------------------------------------------
+-- Benchmarks
+-------------------------------------------------------------------------------
+
+common threading-options
+  ghc-options:
+    -threaded
+    -with-rtsopts=-N
+
+benchmark Benchmark.System.Process
+  import: compile-options, optimization-options
+  if flag(fusion-plugin) && !impl(ghc < 8.6)
+    ghc-options: -fplugin Fusion.Plugin
+  type: exitcode-stdio-1.0
+  main-is: Benchmark/System/Process.hs
+  build-depends:
+      streamly-process
+    , base              >= 4.8   && < 5
+    , directory         >= 1.2.2 && < 1.4
+    -- Uses internal APIs
+    , streamly-core
+    , tasty-bench >= 0.2.5 && < 0.4
+
+  if flag(fusion-plugin) && !impl(ghc < 8.6)
+    build-depends:
+        fusion-plugin     >= 0.2   && < 0.3
+
+-------------------------------------------------------------------------------
+-- Test Suites
+-------------------------------------------------------------------------------
+
+test-suite Test.System.Process
+  import: compile-options, optimization-options, threading-options
+  type: exitcode-stdio-1.0
+  main-is: test/Streamly/System/Process.hs
+  build-depends:
+      streamly-process
+    , base              >= 4.8   && < 5
+    , directory         >= 1.2.2 && < 1.4
+    , exceptions        >= 0.8   && < 0.11
+    , hspec             >= 2.0   && < 3
+    , QuickCheck        >= 2.10  && < 2.15
+    -- Uses internal APIs
+    , streamly-core

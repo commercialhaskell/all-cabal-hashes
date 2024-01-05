@@ -1,0 +1,126 @@
+cabal-version:      3.0
+name:               libphonenumber
+version:            0.1.3.0
+category:           Data
+synopsis:           Parsing, formatting, and validating international phone
+                    numbers
+description:
+                    This package provides bindings for the C++ version of the
+                    <https://github.com/google/libphonenumber libphonenumber library>.
+                    The bindings currently do not include @AsYouTypeFormatter@
+                    and @ShortNumberInfo@. The C++ library must be of version
+                    >= 8.7.0.
+
+                    The interface largely resembles that of the original unified
+                    C++, Java, and JavaScript version of the library, with some
+                    minor changes to make the interface more Haskell-like.
+
+                    The provided functions are pure, under the assumption that
+                    we are the only user of the C++ library, i.e. that no one
+                    else has installed a global logger which could observe
+                    side-effects from library calls.
+
+                    The underlying library internally uses UTF-8 encoded byte
+                    strings. To avoid decoding overhead where it is unnecessary,
+                    and to avoid a dependency on @text@, we use 'ByteString'
+                    throughout the library instead of 'Data.Text.Text'.
+
+copyright:          2023 Typeable
+author:             Typeable
+maintainer:         mniip@typeable.io
+homepage:           https://github.com/typeable/libphonenumber/
+license:            MIT
+license-file:       LICENSE
+
+tested-with:
+    , GHC == 8.6.5
+    , GHC == 8.8.4
+    , GHC == 8.10.7
+    , GHC == 9.0.2
+    , GHC == 9.2.8
+    , GHC == 9.4.8
+    , GHC == 9.6.3
+    , GHC == 9.8.1
+
+build-type: Simple
+
+extra-source-files:
+    , include/*.h
+    , test/libphonenumber.supp
+
+source-repository head
+    type: git
+    location: https://github.com/typeable/libphonenumber/
+
+library
+    exposed-modules:
+        , Data.PhoneNumber.Number
+        , Data.PhoneNumber.Util
+    other-modules:
+        , Data.PhoneNumber.Internal.Common
+        , Data.PhoneNumber.Internal.Number
+        , Data.PhoneNumber.Internal.Util
+    build-depends:
+        , base >= 4.12 && < 4.20
+        , bytestring >= 0.10.8 && < 0.13
+        , containers >= 0.6.0 && < 0.8
+        , deepseq >= 1.4.4 && < 1.6
+        , transformers >= 0.5.5 && < 0.7
+    build-tool-depends: c2hs:c2hs
+    include-dirs: include
+    includes:
+        , c_phonenumber.h
+        , c_phonenumberutil.h
+    cxx-sources:
+        , cxxbits/c_phonenumber.cpp
+        , cxxbits/c_phonenumberutil.cpp
+    extra-libraries:
+        , phonenumber
+        , protobuf
+    if impl(ghc >= 9.4)
+        build-depends: system-cxx-std-lib
+    else
+        extra-libraries: stdc++
+    hs-source-dirs: src
+    default-language: Haskell2010
+    default-extensions:
+        , DeriveAnyClass
+        , DeriveDataTypeable
+        , DeriveGeneric
+        , DerivingStrategies
+        , GeneralizedNewtypeDeriving
+        , LambdaCase
+        , NamedFieldPuns
+        , OverloadedStrings
+        , PatternSynonyms
+        , StandaloneDeriving
+        , RecordWildCards
+        , ViewPatterns
+    if impl(ghc >= 9.2)
+        default-extensions: NoFieldSelectors
+    ghc-options: -Wall -Wextra
+
+test-suite spec_test
+    type: exitcode-stdio-1.0
+    build-depends:
+        , base
+        , bytestring
+        , containers
+        , hspec >= 2.10.8 && < 2.12
+        , libphonenumber
+        , QuickCheck >= 2.13.1 && < 2.15
+    main-is: Spec.hs
+    hs-source-dirs: test
+    default-language: Haskell2010
+    ghc-options: -Wall -Wextra
+
+test-suite leak_test
+    type: exitcode-stdio-1.0
+    build-depends:
+        , base
+        , libphonenumber
+        , process >= 1.6.5 && < 1.7
+    main-is: Leak.hs
+    hs-source-dirs: test
+    default-language: Haskell2010
+    ghc-options: -Wall -Wextra
