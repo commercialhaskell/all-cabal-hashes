@@ -1,0 +1,106 @@
+cabal-version:   3.0
+name:            e11y
+version:         0.1.0.0
+synopsis:        An event-oriented observability library
+description:
+  Instrument your Haskell codebase with [wide, semantically meaningful events](https://charity.wtf/2022/08/15/live-your-best-life-with-structured-events/).
+
+  This library is designed with separating the following concerns in mind:
+
+  [@Writing instrumentation@] When instrumenting code, I want to think in terms of my
+  application domain and report any information I might need in order to infer internal
+  application-level state and understand the behavior of my program/library.
+
+  [@Consuming instrumentation@] When consuming instrumentation, I want to think in
+  terms of the API of the specific backend I'm supporting (writing to @stderr@,
+  serving a @Prometheus@ page, posting to @OpenTelemetry@) and what is needed to
+  render to that API.
+
+  [@Initializing instrumentation in an application@] When I'm ready to tie it all
+  together, I want to identify the specific backends I want to post to and provide
+  the bridge code to render the domain-specific instrumentation as needed for those
+  backends. I also want to handle concerns like sampling or client-side aggregation
+  of domain-specific instrumentation to keep usage manageable.
+
+  See "Observe.Event" for detailed documentation on instrumenting your code.
+
+  See "Observe.Event.Backend" for creating a new @EventBackend@ to consume instrumentation.
+
+  See "Observe.Event.Backend.Data" for an @EventBackend@ that represents the stream of events as
+  ordinary Haskell data.
+
+  See [e11y-otel](https://hackage.haskell.org/package/e11y-otel) for an OpenTelemetry-based
+  backend.
+
+  This is a rewrite of [eventuo11y](https://hackage.haskell.org/package/eventuo11y), designed
+  to be easier to use, less intrusive, and not nearly as annoying to write/say. The name
+  is a shortening of "event-based observability" (event-based -> e, observability -> o11y), and
+  can be pronounced "eh-lee" or "ee-eleven-why".
+bug-reports:     https://github.com/shlevy/e11y/issues
+homepage:        https://github.com/shlevy/e11y
+license:         Apache-2.0
+license-file:    LICENSE
+author:          Shea Levy
+maintainer:      shea@shealevy.com
+copyright:
+  Copyright 2024 Shea Levy
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+category:        Observability
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+tested-with:     GHC == { 9.2.8, 9.4.8, 9.6.4, 9.8.1 }
+
+source-repository head
+  type:     git
+  location: https://github.com/shlevy/e11y
+
+library
+  exposed-modules:
+    Observe.Event
+    Observe.Event.Backend
+    Observe.Event.Backend.Data
+    Observe.Event.Compat
+
+  build-depends:
+    , base               ^>= { 4.16, 4.17, 4.18, 4.19 }
+    , containers         ^>= { 0.6, 0.7 }
+    , general-allocate   ^>= { 0.2.3 }
+    , parametric-functor ^>= { 0.1.1 }
+    , primitive          ^>= { 0.9 }
+    , transformers       ^>= { 0.5, 0.6 }
+
+  hs-source-dirs:   src
+  if impl(ghc >= 9.6)
+    hs-source-dirs: compat/new
+  else
+    hs-source-dirs: compat/old
+
+  default-language: GHC2021
+
+test-suite e11y
+  type:             exitcode-stdio-1.0
+  main-is:          Test.hs
+  hs-source-dirs:   test
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , base
+    , containers
+    , e11y
+    , exceptions      ^>= { 0.10 }
+    , general-allocate
+    , strict-identity ^>= { 0.1 }
+    , sydtest         ^>= { 0.15 }
+    , transformers
+
+  default-language: GHC2021
