@@ -1,0 +1,180 @@
+cabal-version: 2.2
+
+name:                   rds-data-codecs
+version:                0.0.0.3
+synopsis:               Codecs for use with AWS rds-data
+description:            Codecs for use with AWS rds-data.
+category:               Data
+stability:              Experimental
+homepage:               http://github.com/haskell-works/rds-data-codecs#readme
+bug-reports:            https://github.com/haskell-works/rds-data-codecs/issues
+author:                 John Ky
+maintainer:             newhoggy@gmail.com
+copyright:              2024 John Ky
+license:                BSD-3-Clause
+license-file:           LICENSE
+tested-with:            GHC == 9.8.2, GHC == 9.6.4, GHC == 9.4.8
+build-type:             Simple
+extra-source-files:     README.md
+                        test/files/golden/rds-row.json
+                        test/files/golden/row.json
+                        test/files/rds-schema.sql
+                        test/files/rds-value.sql
+                        test/files/row.json
+                        test/files/schema.sql
+                        test/files/value.sql
+
+source-repository head
+  type:                 git
+  location:             https://github.com/haskell-works/rds-data-codecs
+
+flag bounds-checking-enabled
+  description:          Enable bmi2 instruction set
+  manual:               False
+  default:              False
+
+common base                       { build-depends: base                       >= 4.11       && < 5      }
+
+common aeson                      { build-depends: aeson                      >= 2.2        && < 2.3    }
+common aeson-pretty               { build-depends: aeson-pretty               >= 0.8        && < 1.0    }
+common amazonka                   { build-depends: amazonka                   >= 2.0        && < 3      }
+common amazonka-core              { build-depends: amazonka-core              >= 2.0        && < 3      }
+common amazonka-rds-data          { build-depends: amazonka-rds-data          >= 2.0        && < 3      }
+common bytestring                 { build-depends: bytestring                 >= 0.11       && < 0.13   }
+common contravariant              { build-depends: contravariant              >= 1.5.5      && < 2      }
+common doctest                    { build-depends: doctest                    >= 0.22.2     && < 0.23   }
+common doctest-discover           { build-depends: doctest-discover           >= 0.2        && < 0.3    }
+common generic-lens               { build-depends: generic-lens               >= 2.2.2.0    && < 3      }
+common hedgehog                   { build-depends: hedgehog                   >= 1.4        && < 2      }
+common hedgehog-extras            { build-depends: hedgehog-extras            >= 0.6.0.2    && < 0.7    }
+common http-client                { build-depends: http-client                >= 0.5.14     && < 0.8    }
+common lens                       { build-depends: lens                       >= 5.2.3      && < 6      }
+common mtl                        { build-depends: mtl                        >= 2          && < 3      }
+common optparse-applicative       { build-depends: optparse-applicative       >= 0.18.1.0   && < 0.19   }
+common tasty                      { build-depends: tasty                      >= 1.5        && < 2      }
+common tasty-hedgehog             { build-depends: tasty-hedgehog             >= 1.4        && < 2      }
+common text                       { build-depends: text                       >= 2.1        && < 3      }
+common time                       { build-depends: time                       >= 1.12.2     && < 2      }
+common transformers               { build-depends: transformers               >= 0.5        && < 0.7    }
+common ulid                       { build-depends: ulid                       >= 0.3.2.0    && < 0.4    }
+common uuid                       { build-depends: uuid                       >= 1.3.15     && < 1.4    }
+
+common rds-data-codecs
+  build-depends:        rds-data-codecs
+
+common project-config
+  default-language:     Haskell2010
+
+  ghc-options:          -Wall
+                        -Wcompat
+                        -Wincomplete-record-updates
+                        -Wincomplete-uni-patterns
+                        -Wno-unticked-promoted-constructors
+                        -Wpartial-fields
+                        -Wredundant-constraints
+                        -Wunused-imports
+
+  if impl(ghc < 9.8)
+    ghc-options:        -Wno-unused-imports
+
+library
+  import:               base, project-config
+                      , aeson
+                      , amazonka-core
+                      , amazonka-rds-data
+                      , bytestring
+                      , contravariant
+                      , generic-lens
+                      , lens
+                      , mtl
+                      , text
+                      , time
+                      , transformers
+                      , ulid
+                      , uuid
+  exposed-modules:      Data.RdsData
+                        Data.RdsData.Decode.Array
+                        Data.RdsData.Decode.Row
+                        Data.RdsData.Decode.Value
+                        Data.RdsData.Encode.Array
+                        Data.RdsData.Encode.Param
+                        Data.RdsData.Encode.Params
+                        Data.RdsData.Encode.Row
+                        Data.RdsData.Encode.Value
+                        Data.RdsData.Internal.Aeson
+                        Data.RdsData.Internal.Convert
+                        Data.RdsData.Internal.Maybe
+                        Data.RdsData.Types
+                        Data.RdsData.Types.Array
+                        Data.RdsData.Types.Param
+                        Data.RdsData.Types.Value
+  other-modules:        Paths_rds_data_codecs
+  autogen-modules:      Paths_rds_data_codecs
+  hs-source-dirs:       src
+
+executable rds-data-codecs
+  import:               base, project-config
+                      , aeson
+                      , amazonka
+                      , amazonka-rds-data
+                      , bytestring
+                      , generic-lens
+                      , http-client
+                      , lens
+                      , optparse-applicative
+                      , text
+                      , time
+                      , ulid
+                      , uuid
+  main-is:              Main.hs
+  other-modules:        App.AWS.Env
+                        App.Cli.Options
+                        App.Cli.Run
+                        App.Cli.Run.BatchExecuteStatement
+                        App.Cli.Run.Example
+                        App.Cli.Run.ExecuteStatement
+                        App.Cli.Types
+                        App.Config
+                        App.Console
+                        App.Options
+                        App.Show
+  hs-source-dirs:       app
+  ghc-options:          -threaded "-with-rtsopts=-I0 -A16m -N2 --disable-delayed-os-memory-return"
+  build-depends:        rds-data-codecs
+
+test-suite rds-data-codecs-test
+  import:               base, project-config
+                      , aeson
+                      , aeson-pretty
+                      , amazonka-rds-data
+                      , bytestring
+                      , generic-lens
+                      , hedgehog
+                      , hedgehog-extras
+                      , lens
+                      , rds-data-codecs
+                      , tasty
+                      , tasty-hedgehog
+                      , text
+                      , time
+                      , ulid
+                      , uuid
+  type:                 exitcode-stdio-1.0
+  main-is:              Spec.hs
+  other-modules:        Data.RdsData.TestTypes
+                        Data.RdsDataSpec
+  hs-source-dirs:       test
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:   tasty-discover:tasty-discover
+
+test-suite doctest
+  import:               base, project-config
+                      , doctest
+                      , doctest-discover
+                      , rds-data-codecs
+  default-language:     Haskell2010
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  main-is:              DoctestDriver.hs
+  HS-Source-Dirs:       doctest
+  build-tool-depends:   doctest-discover:doctest-discover
