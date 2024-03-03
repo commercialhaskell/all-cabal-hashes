@@ -1,0 +1,149 @@
+cabal-version: 2.2
+
+author: Mitchell Rosen, Travis Staton
+bug-reports: https://github.com/awkward-squad/queues/issues
+category: Data
+copyright: Copyright (C) 2023-2024 Mitchell Rosen, Travis Staton
+homepage: https://github.com/awkward-squad/queues
+license: BSD-3-Clause
+license-file: LICENSE
+maintainer: Mitchell Rosen <mitchellwrosen@gmail.com>, Travis Staton <hello@travisstaton.com>
+name: queues
+synopsis: Queue data structures.
+tested-with: GHC == 9.4.8, GHC == 9.6.4, GHC == 9.8.2
+version: 1.0.0
+
+description:
+  Queue data structures, as described in
+  .
+    * Okasaki, Chris. "Simple and efficient purely functional queues and deques." /Journal of functional programming/ 5.4 (1995): 583-592.
+    * Okasaki, Chris. /Purely Functional Data Structures/. Diss. Princeton University, 1996.
+  .
+  A queue has a \"back\" where new elements are enqueued, and a \"front\" where elements are dequeued in the order that
+  they were enqueued (last in, first out).
+  .
+  The queues provided in this library also support an \"enqueue at front\" operation, because the underlying
+  representations happen to support it, so you might technically refer to these data structures as
+  /output-restricted deques/.
+  .
+  In this library, it is helpful to think of the \"front\" being on the /left/, because (though the direction is
+  arbitrary) we are consistent throughout, where it matters:
+  .
+    * List conversion functions associate the head of a list with the front of a queue.
+    * The append operator @xs <> ys@ creates a queue with @xs@ in front of @ys@.
+    * The `Show` instances draw the front of the queue on the left.
+  .
+  Under \"ephemeral\" (or \"single-threaded\", or \"linear\") usage, wherein one does not need to refer to an old
+  version of a data structure after mutating it:
+  .
+    * @EphemeralQueue@ is __2.5x faster__ than and __allocates 0.50x as much__ memory as @Queue@.
+    * @Queue@ is __2.6x faster__ than and __allocates 0.40x as much__ memory as @Seq@ (from @containers@).
+  .
+  (These numbers vary from benchmark to benchmark and machine to machine. Always perform your own experiments!)
+  .
+  While it is certainly common to use a queue ephemerally, it is unusual for a Haskell data structure to require
+  ephemeral usage to achieve its stated bounds. A refactoring or change in requirements might cause surprising changes
+  in performance. That is why @EphemeralQueue@ has a longer name and module name. When in doubt, use @Queue@.
+
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type: git
+  location: https://github.com/awkward-squad/queues.git
+
+common component
+  default-extensions:
+    BangPatterns
+    BlockArguments
+    ConstraintKinds
+    DataKinds
+    DeriveFunctor
+    DerivingStrategies
+    DuplicateRecordFields
+    ExistentialQuantification
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    InstanceSigs
+    LambdaCase
+    NamedFieldPuns
+    OverloadedStrings
+    PatternSynonyms
+    QuantifiedConstraints
+    RankNTypes
+    ScopedTypeVariables
+    StandaloneKindSignatures
+    TypeOperators
+    ViewPatterns
+  default-language: Haskell2010
+  ghc-options:
+    -Weverything
+    -Wno-all-missed-specialisations
+    -Wno-implicit-prelude
+    -Wno-missed-specialisations
+    -Wno-missing-import-lists
+    -Wno-missing-safe-haskell-mode
+    -Wno-prepositive-qualified-module
+    -Wno-safe
+    -Wno-unsafe
+  if impl(ghc >= 9.2)
+    ghc-options:
+      -Wno-missing-kind-signatures
+  if impl(ghc >= 9.8)
+    ghc-options:
+      -Wno-missing-role-annotations
+
+library
+  import: component
+  build-depends:
+    base ^>= 4.15 || ^>= 4.16 || ^>= 4.17 || ^>= 4.18 || ^>= 4.19,
+  exposed-modules:
+    Queue
+    Queue.Ephemeral
+  hs-source-dirs: src
+
+test-suite test
+  import: component
+  build-depends:
+    base,
+    containers ^>= 0.6.7 || ^>= 0.7,
+    hedgehog ^>= 1.4,
+    queues,
+  ghc-options: -rtsopts -threaded "-with-rtsopts=-N4"
+  hs-source-dirs: test
+  main-is: Main.hs
+  type: exitcode-stdio-1.0
+
+benchmark bench-ephemeral-queue
+  import: component
+  build-depends:
+    base,
+    queues,
+    tasty-bench ^>= 0.3.5,
+  ghc-options: -fproc-alignment=64 -rtsopts -threaded
+  hs-source-dirs: bench/ephemeral-queue
+  main-is: Main.hs
+  type: exitcode-stdio-1.0
+
+benchmark bench-real-time-queue
+  import: component
+  build-depends:
+    base,
+    queues,
+    tasty-bench ^>= 0.3.5,
+  ghc-options: -fproc-alignment=64 -rtsopts -threaded
+  hs-source-dirs: bench/real-time-queue
+  main-is: Main.hs
+  type: exitcode-stdio-1.0
+
+benchmark bench-sequence-queue
+  import: component
+  build-depends:
+    base,
+    containers ^>= 0.6.7 || ^>= 0.7,
+    tasty-bench ^>= 0.3.5,
+  ghc-options: -fproc-alignment=64 -rtsopts -threaded
+  hs-source-dirs: bench/sequence-queue
+  main-is: Main.hs
+  type: exitcode-stdio-1.0
