@@ -1,0 +1,178 @@
+cabal-version:       3.4
+name:                gibberish
+version:             3.0.0.0
+synopsis:            Generate easy-to-remember, hard-to-guess passwords
+homepage:            https://www.github.com/sgillespie/gibberish
+license:             MIT
+license-file:        LICENSE
+author:              Sean D Gillespie
+maintainer:          sean@mistersg.net
+category:            Cryptography
+build-type:          Simple
+
+description:
+  Generates pronounceable passwords that are easy-to-remember and hard-to-guess.
+
+extra-source-files:
+  README.md,
+  test/*.hs,
+
+data-files:
+  data/dicts/*.txt
+  data/trigraphs/*.json
+
+common common-options
+  build-depends:
+    base >=4.16 && <4.20,
+    containers ^>=0.6,
+    mtl ^>=2.3,
+    text >=1.2 && <2.2,
+    text-show ^>=3.10,
+    transformers ^>=0.6.1
+  ghc-options:
+    -Wall
+    -Wcompat
+    -- Not yet
+    -- -Werror
+    -Widentities
+    -Wderiving-defaults
+    -Wmissing-deriving-strategies
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+    -Wnoncanonical-monad-instances
+    -fhide-source-paths
+    -Wmissing-export-lists
+    -Wpartial-fields
+  default-extensions:
+    DeriveAnyClass,
+    DerivingStrategies,
+    LambdaCase,
+    OverloadedStrings,
+    RecordWildCards
+  other-extensions:
+    OverloadedLists,
+    TemplateHaskell
+  default-language: GHC2021
+
+common common-exe
+  import:         common-options
+  build-depends:
+    gibberish,
+    aeson ^>=2.2,
+    aeson-pretty ^>=0.8.10,
+    bytestring >=0.11 && <0.13,
+    optparse-applicative ^>=0.18.1,
+    random ^>=1.2
+  hs-source-dirs: app
+
+common common-test
+  import:         common-options
+  build-depends:
+    gibberish:{gibberish, testlib},
+    MonadRandom ^>=0.6,
+    aeson ^>=2.2,
+    aeson-pretty ^>=0.8.10,
+    bytestring >=0.11 && <0.13,
+    filepath ^>=1.4,
+    hedgehog ^>=1.4,
+    hspec ^>=2.11,
+    hspec-hedgehog ^>=0.1.1,
+    random ^>=1.2,
+    tasty ^>=1.5,
+    tasty-golden ^>=2.3.5,
+    tasty-hedgehog ^>=1.4.0,
+    tasty-th ^>=0.1.7
+  hs-source-dirs: test
+
+library
+  import:          common-options
+  exposed-modules:
+    Data.Gibberish,
+    Data.Gibberish.Errors,
+    Data.Gibberish.Formatting,
+    Data.Gibberish.Gen,
+    Data.Gibberish.Gen.Pass,
+    Data.Gibberish.Gen.Trigraph,
+    Data.Gibberish.Monad.Pass,
+    Data.Gibberish.Types,
+    Data.Gibberish.Utils
+  other-modules:
+    Paths_gibberish
+  build-depends:
+    MonadRandom ^>=0.6,
+    aeson ^>=2.2,
+    deepseq >=1.4 && <1.6,
+    directory ^>=1.3,
+    filepath ^>=1.4,
+    random ^>=1.2
+  hs-source-dirs:  src
+
+executable gibber
+  import:         common-exe
+  main-is:        Main.hs
+  other-modules:
+    Paths_gibberish
+  autogen-modules:
+    Paths_gibberish
+  hs-source-dirs: app
+
+executable gibber-gen-trigraph
+  import:         common-exe
+  main-is:        gen-trigraph.hs
+  hs-source-dirs: app
+
+library testlib
+  import:         common-options
+  exposed-modules:
+    Test.Gibberish.Gen
+  build-depends:
+    gibberish,
+    MonadRandom ^>=0.6,
+    hedgehog ^>=1.4
+  hs-source-dirs:
+    testlib
+
+test-suite spec
+  import:         common-test
+  main-is:        Spec.hs
+  type:           exitcode-stdio-1.0
+  build-tool-depends:
+    hspec-discover:hspec-discover
+  other-modules:
+    Data.Gibberish.FormattingSpec
+    Data.Gibberish.Gen.PassSpec
+    Data.Gibberish.Gen.TrigraphSpec
+    Data.Gibberish.TypesSpec
+    Data.Gibberish.UtilsSpec
+    Paths_gibberish
+  autogen-modules:
+    Paths_gibberish
+  other-extensions:
+    OverloadedLists
+
+test-suite golden
+  import:         common-test
+  main-is:        Golden.hs
+  other-modules:
+    Paths_gibberish,
+  autogen-modules:
+    Paths_gibberish
+  type:
+    exitcode-stdio-1.0
+
+benchmark main
+  import:         common-options
+  build-depends:
+    gibberish,
+    aeson ^>=2.2,
+    criterion ^>=1.6,
+    deepseq >=1.4 && <1.6,
+    filepath ^>=1.4
+
+  type:           exitcode-stdio-1.0
+  main-is:        Main.hs
+  hs-source-dirs: bench
+  other-modules:
+    Paths_gibberish
+  autogen-modules:
+    Paths_gibberish
