@@ -1,0 +1,100 @@
+cabal-version:      2.2
+name:               xxhash-ffi
+version:            0.3
+license:            BSD-3-Clause
+license-file:       LICENSE
+copyright:          2017 Henri Verroken
+maintainer:         Bodigrim
+author:             Henri Verroken
+tested-with:
+    ghc ==9.10.1 ghc ==9.8.2 ghc ==9.6.4 ghc ==9.4.8 ghc ==9.2.8
+    ghc ==9.0.2 ghc ==8.10.7 ghc ==8.8.4 ghc ==8.6.5 ghc ==8.4.4
+    ghc ==8.2.2
+
+homepage:           https://github.com/haskell-haskey/xxhash-ffi#readme
+synopsis:           Bindings and high-level helpers for xxHash
+description:
+    Bindings and high-level helpers for xxHash family
+    of extremely fast non-cryptographic hash functions.
+
+category:           Cryptography
+build-type:         Simple
+extra-source-files:
+    src-c/xxhash.h
+    src-c/LICENSE
+
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+    type:     git
+    location: https://github.com/hverr/xxhash-ffi
+
+flag pkg-config
+    description: Use @pkg-config(1)@ to locate foreign @xxhash@ library.
+
+library
+    exposed-modules:
+        Data.Digest.XXHash.FFI
+        Data.Digest.XXHash.FFI.C
+
+    hs-source-dirs:   src
+    default-language: Haskell2010
+    ghc-options:      -Wall
+    build-depends:
+        base >=4.10 && <5,
+        bytestring <0.13,
+        hashable <1.5,
+        text <2.2
+
+    if impl(ghc <9.4)
+        build-depends: data-array-byte <0.2
+
+    if (flag(pkg-config) && (impl(ghc <8.4) || impl(ghc >=8.10)))
+        pkgconfig-depends: libxxhash >=0.8
+
+    else
+        c-sources:    src-c/xxhash.c
+        include-dirs: src-c
+        includes:     xxhash.h
+
+test-suite xxhash-ffi-test
+    type:             exitcode-stdio-1.0
+    main-is:          Spec.hs
+    hs-source-dirs:   test
+    default-language: Haskell2010
+    ghc-options:      -rtsopts -Wall
+    build-depends:
+        base,
+        xxhash-ffi,
+        QuickCheck,
+        bytestring,
+        tasty,
+        tasty-quickcheck,
+        hashable,
+        text <2.2
+
+    if impl(ghc <9.4)
+        build-depends: data-array-byte <0.2
+
+    if !arch(wasm32)
+        ghc-options: -threaded -with-rtsopts=-N
+
+benchmark xxhash-ffi-bench
+    type:             exitcode-stdio-1.0
+    main-is:          Bench.hs
+    hs-source-dirs:   bench
+    default-language: Haskell2010
+    ghc-options:      -Wall
+    build-depends:
+        base,
+        xxhash-ffi,
+        bytestring,
+        tasty-bench,
+        deepseq,
+        digest,
+        murmur-hash
+
+    if impl(ghc <9.10)
+        build-depends: hashable
