@@ -1,0 +1,93 @@
+cabal-version:      3.0
+
+name:               RoundingFiasco
+
+version:            0.1.0.0
+
+synopsis:
+    rounding variants floor, ceil and truncate for floating point operations +-*/√…
+
+description:
+    There is an exact definition for `+-*/√` over the real numbers in mathematics.
+    However for performant, flexible and ergonomic numerical computations one ought
+    to restrict oneself only having a finite subset of rational numbers. The most
+    common data type for such use cases is the single and double floating point
+    format.
+
+    Combining two real floating point numbers by an operator yield a mathematical
+    and exactly defined result. This exact result might not be representable as a
+    floating point number. One has to round. The most common way of rounding is
+    rounding to the nearest representable float. This rounding variant helps to
+    minimize the accumulation of rounding errors over several floating point
+    operations.
+
+    Other rounding variants floor, ceil and truncate are useful for computing
+    error bounds of chained floating point instructions. floor chooses the lesser
+    neighbor of the representable results. ceil chooses the greater float. truncate
+    chooses the float that is closest to zero.
+
+    This library implements the floating point instructions in pure hasekell. They
+    do not use `c++` with `fegetround` for example. That way they can be used in
+    the WebAssembly backend of ghc since WebAssembly does neither support rounding
+    variants nor `fegetround`.
+
+    This module is supposed to expose the fastest possible clean interface of
+    rounding variants. Should there ever be some compiler intrinsics for rounding
+    variants then these shall be used in a future version.
+
+    Internally the module heavily utilizes the `Rational` data type. First the
+    operations result is calculated twice. One time exact with the help of
+    `Rational`. Then there is also a round-to-nearest-even-on-tie result
+    calculated. After that both numbers are compared to investigate if the
+    round-to-nearest-even-on-tie result was rounded in the correct direction by
+    chance. Should that not be the case the other neighbor is determined and
+    returned.
+
+    Every combination of number type (`Float`, `Double`) and operator
+    (`+`,`-`,`*`,`/`,`√`,`id`) is exported separately. The exported functions are
+    supposed to be useful for interval arithmetic.
+
+homepage:
+    https://gitlab.com/pauldennis/rounding-fiasco-hackage-package/-/tree/master/rounding-fiasco-hackage-package/processing/RoundingFiasco
+
+license:            MIT
+
+license-file:       LICENSE
+
+author:             Paul Dennis
+
+maintainer:         paul.dennis2@gmx.de
+
+category:           Numerical,Rounding,Interval,Mathematics
+build-type:         Simple
+
+extra-doc-files:    CHANGELOG.md
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+
+    exposed-modules:  Rounding
+
+    build-depends:    base ^>=4.19.0.0
+
+    hs-source-dirs:   source
+
+    default-language: GHC2021
+
+test-suite RoundingFiasco-test
+    import:           warnings
+
+    default-language: GHC2021
+
+    type:             exitcode-stdio-1.0
+
+    hs-source-dirs:   test
+
+    main-is:          Main.hs
+
+    build-depends:
+        base ^>=4.19.0.0,
+        RoundingFiasco
