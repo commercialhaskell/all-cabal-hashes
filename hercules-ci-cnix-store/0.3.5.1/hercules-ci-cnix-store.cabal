@@ -1,0 +1,159 @@
+cabal-version: 2.4
+
+name:           hercules-ci-cnix-store
+version:        0.3.5.1
+synopsis:       Haskell bindings for Nix's libstore
+category:       Nix
+homepage:       https://docs.hercules-ci.com
+bug-reports:    https://github.com/hercules-ci/hercules-ci-agent/issues
+author:         Hercules CI contributors
+maintainer:     info@hercules-ci.com
+copyright:      2018-2021 Hercules CI
+license:        Apache-2.0
+build-type:     Custom
+extra-source-files:
+    CHANGELOG.md
+    test/data/*.drv
+
+source-repository head
+  type: git
+  location: https://github.com/hercules-ci/hercules-ci-agent
+
+-- Deprecated
+flag nix-2_4
+  description: Build for Nix >=2.4pre*
+  default: True
+
+flag nix-2_15
+  description: Build for Nix >=2.15.0
+  default: False
+
+flag ide
+  description: Whether to enable IDE workarounds. You shouldn't need this.
+  default: False
+
+-- match the C++ language standard Nix is using
+common cxx-opts
+  if flag(nix-2_15)
+    cxx-options:
+      -std=c++2a
+  else
+    cxx-options:
+      -std=c++17
+
+  cxx-options:
+    -Wall
+    -- GHC does _not_ produce declarations, so this only applies to cxx-sources.
+    -Werror=missing-declarations
+  extra-libraries: stdc++
+
+  if os(darwin)
+    -- avoid https://gitlab.haskell.org/ghc/ghc/issues/11829
+    ld-options:  -Wl,-keep_dwarf_unwind
+
+  if impl(ghc >= 8.10)
+    ghc-options:
+      -optcxx-Wall
+    if flag(nix-2_15)
+      ghc-options:
+        -optcxx-std=c++2a
+    else
+      ghc-options:
+        -optcxx-std=c++17
+  else
+    -- Remove soon
+    ghc-options:
+      -optc-std=c++17
+      -optc-Wall
+    if os(darwin)
+      ghc-options: -pgmc=clang++
+
+custom-setup
+  setup-depends:
+    base < 5
+    , Cabal >= 2.2.0.0 && < 4
+    , cabal-pkg-config-version-hook
+
+library
+  import: cxx-opts
+  exposed-modules:
+      Hercules.CNix
+      Hercules.CNix.Encapsulation
+      Hercules.CNix.Exception
+      Hercules.CNix.Settings
+      Hercules.CNix.Std.Set
+      Hercules.CNix.Std.String
+      Hercules.CNix.Std.String.Context
+      Hercules.CNix.Std.String.Instances
+      Hercules.CNix.Std.Vector
+      Hercules.CNix.Store
+      Hercules.CNix.Store.Context
+      Hercules.CNix.Store.Instances
+      Hercules.CNix.Util
+      Hercules.CNix.Verbosity
+  include-dirs:
+      include
+  pkgconfig-depends:
+      nix-store (>= 2.4 && < 2.19) || (>= 2.19.3 && < 2.21)
+    , nix-main >= 2.4 && < 2.19 || (>= 2.19.3 && < 2.21)
+  install-includes:
+      hercules-ci-cnix/store.hxx
+      hercules-ci-cnix/string.hxx
+  hs-source-dirs: src
+  cxx-sources:
+      cbits/string.cxx
+  build-depends:
+      base >= 4.7 && <5
+    , inline-c
+    , inline-c-cpp >= 0.5.0.0
+    , bytestring
+    , conduit
+    , containers
+    , protolude
+    , template-haskell
+    , unix
+    , unliftio-core
+    , vector
+  if ! flag(ide)
+    extra-libraries:
+      boost_context
+  default-language: Haskell2010
+  default-extensions: DeriveGeneric DeriveTraversable DisambiguateRecordFields FlexibleContexts InstanceSigs LambdaCase MultiParamTypeClasses NoImplicitPrelude OverloadedStrings RankNTypes TupleSections TypeApplications TypeOperators
+  ghc-options:
+    -Werror=incomplete-patterns -Werror=missing-fields
+    -Wall
+    -fwarn-tabs
+    -fwarn-unused-imports
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fwarn-incomplete-patterns
+
+test-suite hercules-ci-cnix-store-unit-tests
+  type: exitcode-stdio-1.0
+  main-is: TestMain.hs
+  other-modules:
+      Spec
+      Hercules.CNix.Std.SetSpec
+      Hercules.CNix.Store.DerivationSpec
+      Hercules.CNix.Store.TestUtil
+      Hercules.CNix.SettingsSpec
+      Hercules.CNix.VerbositySpec
+  hs-source-dirs:
+      test
+  default-extensions: DeriveGeneric DeriveTraversable DisambiguateRecordFields FlexibleContexts InstanceSigs LambdaCase MultiParamTypeClasses NoImplicitPrelude OverloadedStrings RankNTypes TupleSections TypeApplications TypeOperators
+  ghc-options: -Werror=incomplete-patterns -Werror=missing-fields -Wall -fwarn-tabs -fwarn-unused-imports -fwarn-missing-signatures -fwarn-name-shadowing -fwarn-incomplete-patterns -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , base
+    , bytestring
+    , containers
+    , exceptions
+    , hercules-ci-cnix-store
+    , hspec
+    , inline-c
+    , inline-c-cpp
+    , protolude
+    , temporary
+    , text
+  build-tool-depends:
+      hspec-discover:hspec-discover
+  default-language: Haskell2010
