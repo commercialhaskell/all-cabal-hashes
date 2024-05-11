@@ -1,0 +1,107 @@
+cabal-version: 3.4
+name: ghc-lib-parser-ex
+version: 9.10.0.0
+description: Please see the README on GitHub at <https://github.com/shayne-fletcher/ghc-lib-parser-ex#readme>
+homepage: https://github.com/shayne-fletcher/ghc-lib-parser-ex#readme
+bug-reports: https://github.com/shayne-fletcher/ghc-lib-parser-ex/issues
+author: Shayne Fletcher
+maintainer: shayne@shaynefletcher.org
+copyright: Copyright © 2020-2024 Shayne Fletcher. All rights reserved.
+license: BSD-3-Clause
+license-file:   LICENSE
+category: Development
+synopsis: Programming with GHC parse trees
+build-type: Simple
+extra-source-files:
+    README.md ChangeLog.md cbits/ghclib_api.h
+
+source-repository head
+  type: git
+  location: https://github.com/shayne-fletcher/ghc-lib-parser-ex
+
+flag auto
+  default: False
+  manual: True
+  description: Use default configuration
+
+flag no-ghc-lib
+  default: False
+  manual: True
+  description: Do not link ghc-lib. Use the native GHC libs
+
+common base
+  default-language: Haskell2010
+  ghc-options:
+    -Wall -Wincomplete-record-updates
+    -Wredundant-constraints -Widentities
+    -Wno-simplifiable-class-constraints
+  build-depends:
+      base >=4.7 && <5
+
+common ghc_libs
+  include-dirs: cbits
+  default-extensions: CPP
+  if flag(auto) && impl(ghc >= 9.10.0) && impl(ghc < 9.11.0)
+    build-depends:
+      ghc == 9.10.*,
+      ghc-boot-th,
+      ghc-boot
+  else
+    if flag(auto)
+      build-depends:
+        ghc-lib-parser == 9.10.*
+    else
+      if flag(no-ghc-lib)
+        build-depends:
+          ghc == 9.10.*,
+          ghc-boot-th,
+          ghc-boot
+      else
+        build-depends:
+          ghc-lib-parser == 9.10.*
+
+common lib
+  import: base, ghc_libs
+  build-depends:
+      uniplate >= 1.5,
+      bytestring >= 0.10.8.2,
+      containers >= 0.5.8.1
+
+library
+  import: lib
+  exposed-modules:
+      Language.Haskell.GhclibParserEx.Dump
+      Language.Haskell.GhclibParserEx.Fixity
+      Language.Haskell.GhclibParserEx.GHC.Settings.Config
+      Language.Haskell.GhclibParserEx.GHC.Driver.Flags
+      Language.Haskell.GhclibParserEx.GHC.Driver.Session
+      Language.Haskell.GhclibParserEx.GHC.Hs
+      Language.Haskell.GhclibParserEx.GHC.Hs.Dump
+      Language.Haskell.GhclibParserEx.GHC.Hs.Expr
+      Language.Haskell.GhclibParserEx.GHC.Hs.Pat
+      Language.Haskell.GhclibParserEx.GHC.Hs.Type
+      Language.Haskell.GhclibParserEx.GHC.Hs.Types
+      Language.Haskell.GhclibParserEx.GHC.Hs.Decls
+      Language.Haskell.GhclibParserEx.GHC.Hs.Binds
+      Language.Haskell.GhclibParserEx.GHC.Hs.ImpExp
+      Language.Haskell.GhclibParserEx.GHC.Hs.ExtendInstances
+      Language.Haskell.GhclibParserEx.GHC.Parser
+      Language.Haskell.GhclibParserEx.GHC.Types.Name.Reader
+      Language.Haskell.GhclibParserEx.GHC.Utils.Outputable
+  autogen-modules: Paths_ghc_lib_parser_ex
+  other-modules: Paths_ghc_lib_parser_ex
+  hs-source-dirs: src
+
+common test
+  import: lib
+  build-depends:
+    tasty >= 1.2, tasty-hunit >= 0.10.0, directory >= 1.3.3,
+    filepath >= 1.4.2, extra >=1.6, uniplate >= 1.6.12,
+    ghc-lib-parser-ex
+
+test-suite ghc-lib-parser-ex-test
+  import: test
+  type: exitcode-stdio-1.0
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  main-is: Test.hs
+  hs-source-dirs: test
