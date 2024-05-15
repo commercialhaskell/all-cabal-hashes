@@ -1,0 +1,123 @@
+cabal-version:      2.4
+name:               playlists
+version:            0.5.2
+homepage:           https://github.com/pjones/playlists
+bug-reports:        https://github.com/pjones/playlists/issues
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Peter Jones <pjones@devalot.com>
+maintainer:         Peter Jones <pjones@devalot.com>
+copyright:          Copyright (c) 2013-2024 Peter Jones
+category:           Text
+build-type:         Simple
+tested-with:        GHC==8.10.7, GHC==9.4.8, GHC==9.6.5, GHC==9.8.2
+synopsis:           Library and executable for working with playlist files.
+description:
+  Playlists is a library for working with media playlist files.  The
+  original motivation for the library was extracting URLs for
+  streaming radio stations that use PLS and M3U playlist files.
+  .
+  The package also includes an executable that can dump the URLs from
+  a playlist file and convert between playlist file formats.
+  .
+  /Example:/
+  .
+  > import qualified Data.ByteString as BS
+  > import Text.Playlist
+  >
+  > readPlaylist :: Format -> IO Playlist
+  > readPlaylist fmt = do
+  >   content <- BS.getContents
+  >   case parsePlaylist fmt content of
+  >     Left err -> fail $ "failed to parse playlist on stdin: " ++ err
+  >     Right x  -> return x
+  .
+  /Playlist Executable Examples:/
+  .
+  > $ playlist urls --format PLS < somefile.pls
+  >
+  > $ playlist convert --from PLS --to M3U < somefile.pls
+
+--------------------------------------------------------------------------------
+extra-source-files:
+  test/*.m3u
+  test/*.pls
+
+extra-doc-files:
+  README.md
+  CHANGES.md
+
+--------------------------------------------------------------------------------
+source-repository head
+  type:     git
+  location: https://github.com/pjones/playlists.git
+
+--------------------------------------------------------------------------------
+common dependencies
+  build-depends:
+    , attoparsec  >=0.10 && <0.15
+    , base        >=4.6  && <5
+    , bytestring  >=0.10 && <0.13
+    , filepath    >=1.3  && <1.6
+    , text        >=0.11 && <2.2
+    , word8       >=0.0  && <0.2
+
+--------------------------------------------------------------------------------
+common options
+  default-language: Haskell2010
+  ghc-options:
+    -Wall -Wno-name-shadowing -Werror=incomplete-record-updates
+    -Werror=incomplete-uni-patterns -Werror=missing-home-modules
+    -Widentities -Wmissing-export-lists -Wredundant-constraints
+
+--------------------------------------------------------------------------------
+library
+  import:          dependencies, options
+  hs-source-dirs:  src
+  exposed-modules: Text.Playlist
+  other-modules:
+    Text.Playlist.Internal.Attoparsec
+    Text.Playlist.Internal.Format
+    Text.Playlist.Internal.ReadWrite
+    Text.Playlist.Internal.Resolve
+    Text.Playlist.M3U.Reader
+    Text.Playlist.M3U.Writer
+    Text.Playlist.PLS.Reader
+    Text.Playlist.PLS.Writer
+    Text.Playlist.Types
+
+--------------------------------------------------------------------------------
+executable playlist
+  import:         dependencies, options
+  hs-source-dirs: util
+  main-is:        playlist.hs
+  build-depends:
+    , optparse-applicative  >=0.10 && <0.19
+    , playlists
+
+--------------------------------------------------------------------------------
+test-suite test
+  import:         dependencies, options
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  other-modules:
+    Examples
+    Helper
+    M3USpec
+    PLSSpec
+    ResolveSpec
+
+  build-depends:
+    , hspec      >=1.4.0
+    , playlists
+
+------------------------------------------------------------------------------
+-- test-suite doctests
+--   import:           dependencies, options
+--   type:             exitcode-stdio-1.0
+--   default-language: Haskell2010
+--   hs-source-dirs:   test
+--   main-is:          doctest.hs
+--   ghc-options:      -threaded
+--   build-depends:    doctest >=0.9.11 && <0.18
