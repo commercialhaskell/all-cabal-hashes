@@ -1,0 +1,108 @@
+cabal-version: 3.0
+
+author: Mitchell Dalvi Rosen
+bug-reports: https://github.com/awkward-squad/timer-wheel/issues
+build-type: Simple
+category: Data
+copyright: (c) 2018-2024 Mitchell Dalvi Rosen, Travis Staton
+homepage: https://github.com/awkward-squad/timer-wheel
+license-file: LICENSE
+license: BSD-3-Clause
+maintainer: Mitchell Dalvi Rosen <mitchellwrosen@gmail.com>, Travis Staton <hello@travisstaton.com>
+name: timer-wheel
+synopsis: A timer wheel
+tested-with: GHC == 9.6.5, GHC == 9.8.2, GHC == 9.10.1
+version: 1.0.0.1
+
+description:
+  This library provides a timer wheel data structure for registering one-shot or recurring @IO@ actions to fire after a
+  given amount of time.
+  .
+  It is similar to @TimerManager@ from @GHC.Event@, but supports recurring actions, and can scale to handle many more
+  registered actions.
+
+extra-source-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type: git
+  location: git://github.com/awkward-squad/timer-wheel.git
+
+common component
+  build-depends:
+    base ^>= 4.16 || ^>= 4.17 || ^>= 4.18 || ^>= 4.19 || ^>= 4.20,
+  default-extensions:
+    BlockArguments
+    DeriveAnyClass
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    MultiWayIf
+    NamedFieldPuns
+    NoFieldSelectors
+    OverloadedRecordDot
+    ViewPatterns
+  default-language: GHC2021
+  ghc-options:
+    -Weverything
+    -Wno-all-missed-specialisations
+    -Wno-implicit-prelude
+    -Wno-missing-import-lists
+    -Wno-unsafe
+  -- Buggy false-positives on unused-top-binds
+  if impl(ghc == 8.6.*) || impl(ghc == 8.8.*)
+    ghc-options:
+      -Wno-unused-top-binds
+  if impl(ghc >= 8.10)
+    ghc-options:
+      -Wno-missing-safe-haskell-mode
+      -Wno-prepositive-qualified-module
+  if impl(ghc >= 9.2)
+    ghc-options:
+      -Wno-missing-kind-signatures
+  if impl(ghc >= 9.8)
+    ghc-options:
+      -Wno-missing-role-annotations
+
+library
+  import: component
+  build-depends:
+    atomic-primops ^>= 0.8,
+    ki ^>= 1.0.0,
+    primitive ^>= 0.7 || ^>= 0.8 || ^>= 0.9,
+  exposed-modules:
+    TimerWheel
+  hs-source-dirs: src
+  other-modules:
+    TimerWheel.Internal.Alarm
+    TimerWheel.Internal.AlarmBuckets
+    TimerWheel.Internal.Bucket
+    TimerWheel.Internal.Counter
+    TimerWheel.Internal.Nanoseconds
+    TimerWheel.Internal.Prelude
+    TimerWheel.Internal.Timer
+    TimerWheel.Internal.Timestamp
+
+test-suite tests
+  import: component
+  build-depends:
+    ki,
+    random ^>= 1.2,
+    timer-wheel,
+  ghc-options: -threaded -with-rtsopts=-N2
+  hs-source-dirs: test
+  main-is: Main.hs
+  type: exitcode-stdio-1.0
+
+benchmark bench
+  import: component
+  build-depends:
+    ki,
+    random ^>= 1.2,
+    tasty-bench ^>= 0.3.5,
+    timer-wheel,
+  ghc-options: -fproc-alignment=64 -rtsopts -threaded "-with-rtsopts=-N2 -T -A32m"
+  hs-source-dirs: bench
+  main-is: Main.hs
+  type: exitcode-stdio-1.0
