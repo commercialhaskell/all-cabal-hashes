@@ -1,0 +1,168 @@
+cabal-version:       2.4
+name:                ghc-exactprint
+version:             1.9.0.0
+synopsis:            ExactPrint for GHC
+description:         Using the API Annotations available from GHC 9.2.1, this
+                     library provides a means to round trip any code that can
+                     be compiled by GHC, currently excluding lhs files.
+                     .
+                     Note: requires GHC 9.10.*. For earlier GHC
+                     versions see lower version numbers.
+                     .
+
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Alan Zimmerman, Matthew Pickering
+maintainer:          alan.zimm@gmail.com
+category:            Development
+build-type:          Simple
+tested-with:         GHC == 9.10.1
+extra-doc-files:     ChangeLog
+extra-source-files:  tests/examples/failing/*.hs
+                     tests/examples/failing/*.hs.bad
+                     tests/examples/ghc910/*.hs
+                     tests/examples/pre-ghc910/*.hs
+                     tests/examples/pre-ghc910/*.hs-boot
+                     tests/examples/transform/*.hs
+                     tests/examples/transform/*.hs.expected
+
+source-repository head
+  type:     git
+  location: https://github.com/alanz/ghc-exactprint.git
+
+Flag roundtrip {
+  Description: Build roundtripping executables
+  Default:     False
+}
+
+Flag dev {
+  Description: Development mode, do not use ghc-exactprint lib in the tests
+  Default:     False
+}
+
+common warnings
+  GHC-options: -Wall -Wredundant-constraints -Wunused-packages
+
+library
+  import: warnings
+  exposed-modules:     Language.Haskell.GHC.ExactPrint
+                     , Language.Haskell.GHC.ExactPrint.ExactPrint
+                     , Language.Haskell.GHC.ExactPrint.Lookup
+                     , Language.Haskell.GHC.ExactPrint.Parsers
+                     , Language.Haskell.GHC.ExactPrint.Preprocess
+                     , Language.Haskell.GHC.ExactPrint.Transform
+                     , Language.Haskell.GHC.ExactPrint.Types
+                     , Language.Haskell.GHC.ExactPrint.Utils
+
+  hs-source-dirs:      src
+  build-depends:       base >=4.20 && <4.21
+                     , containers >= 0.5  && < 0.8
+                     , ghc       >= 9.10 && < 9.11
+                     , ghc-boot  >= 9.10 && < 9.11
+                     , mtl       >= 2.2.1 && < 2.5
+                     , syb       >= 0.5 && < 0.8
+
+  default-language:    Haskell2010
+  if impl (ghc < 9.10)
+    buildable: False
+
+Test-Suite test
+  import: warnings
+  type:                exitcode-stdio-1.0
+  if flag (dev)
+    hs-source-dirs:      tests
+                         src
+  else
+    hs-source-dirs:      tests
+
+  main-is:             Test.hs
+  other-modules:       Test.Common
+                     , Test.CommonUtils
+                     , Test.NoAnnotations
+                     , Test.Transform
+  GHC-Options:         -threaded
+  Default-language:    Haskell2010
+  Build-depends:       base < 4.21
+                     , HUnit >= 1.2
+                     , containers >= 0.5
+                     , Diff
+                     , directory >= 1.2
+                     , extra
+                     , filepath  >= 1.4
+                     , ghc       >= 9.10
+                     , ghc-paths  >= 0.1
+                     , syb        >= 0.5
+                     , silently   >= 1.2
+                     , ghc-boot
+                     -- , os-string >= 2.0.2
+  if flag (dev)
+      build-depends:
+                     mtl        >= 2.2.1
+  else
+      build-depends: ghc-exactprint
+  if impl (ghc < 9.10)
+      buildable: False
+
+executable roundtrip
+  import: warnings
+  main-is: Roundtrip.hs
+  hs-source-dirs: tests
+  other-modules: Test.Common
+                 Test.CommonUtils
+  default-language:    Haskell2010
+  if impl (ghc >= 9.10) && flag (roundtrip)
+    build-depends:
+                 HUnit      < 1.7
+               , base       < 4.21
+               , containers < 0.8
+               , directory  < 1.4
+               , extra      < 1.8
+               , filepath   < 1.6
+               , ghc        >= 9.10 && < 9.11
+               , ghc-exactprint
+               , ghc-paths  < 0.2
+               , time       < 1.13
+               , ghc-boot
+    buildable: True
+  else
+    buildable: False
+  GHC-Options: -threaded
+
+executable static
+  import: warnings
+  main-is: Static.hs
+  hs-source-dirs: tests
+  other-modules: Test.CommonUtils
+  default-language:    Haskell2010
+  if flag (roundtrip)
+    build-depends: base < 4.21
+                 , directory < 1.4
+                 , extra     < 1.8
+                 , filepath  < 1.6
+                 , ghc       >= 9.10 && < 9.11
+                 , Diff      < 0.6
+    buildable: True
+  else
+    buildable: False
+  GHC-Options: -threaded
+
+-- executable prepare-hackage
+--   import: warnings
+--   main-is: PrepareHackage.hs
+--   other-modules: Test.CommonUtils
+--   hs-source-dirs: tests
+--   default-language:    Haskell2010
+--   if flag (roundtrip)
+--     build-depends: base < 4.21
+--                  , containers
+--                  , directory
+--                  , extra
+--                  , filepath
+--                  , ghc       >= 9.10
+--                  , HUnit
+--                  , text   >= 1.2.2
+--                  , turtle >= 1.3.0
+--     buildable: True
+--   else
+--     buildable: False
+--   GHC-Options: -threaded
