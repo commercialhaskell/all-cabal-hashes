@@ -1,0 +1,149 @@
+name:            aivika-distributed
+version:         1.5
+synopsis:        Parallel distributed discrete event simulation module for the Aivika library
+description:
+    This package extends the aivika-transformers [1] package and allows running parallel distributed simulations.
+    It uses an optimistic strategy known as the Time Warp method. To synchronize the global virtual time, 
+    it uses Samadi's algorithm. 
+    .
+    Moreover, this package uses the author's modification that allows recovering the distributed
+    simulation after temporary connection errors whenever possible. For that, you have to enable explicitly 
+    the recovering mode and enable the monitoring of all logical processes including the specialized Time Server process 
+    as it is shown in one of the test examples included in the distribution.
+    .
+    With the recovering mode enabled, you can try to build a distributed simulation using ordinary computers connected
+    via the ordinary net. For example, such a distributed model could even consist of computers located in different 
+    continents of the Earth, where the computers could be connected through the Internet. Here the most exciting thing 
+    is that this is the optimistic distributed simulation with possible rollbacks. It is assumed that optimistic methods 
+    tend to better support the parallelism inherited in the models. 
+    .
+    You can test the distributed simulation using your own laptop, although the package is still destined to be 
+    used with a multi-core computer, or computers connected in the distributed cluster.
+    .
+    There are additional packages that allow you to run the distributed simulation experiments by using
+    the Monte-Carlo method. They allow you to save the simulation results in SQL databases and then generate a report 
+    or a set of reports consisting of HTML pages with charts, histograms, links to CSV tables, summary statistics etc.
+    .
+    Regarding the speed of simulation, the recent rough estimation is as follows. This estimation may change from 
+    version to version. For example, in version 1.0 the rollback log was rewritten, which had a significant effect.
+    .
+    When simulating sequential models, the speed of single logical process of the distributed module in comparison with 
+    the sequential aivika [2] module varies and depends essentially on the number of 
+    simultaneously processed discrete events, or the number of simultaneously running discontinuous processes, 
+    which is very close. If there are many simultaneous events, then the distributed module can be slower in 4-5 times only. 
+    The more simultaneous events are defined in the model, the less is a gap in the speed between modules.
+    But if the simultaneous events are rare, then the distributed module can be slower even in 15 times, 
+    where the sequential module can be exceptionally fast. At the same time, the message passing between the logical 
+    processes can dramatically decrease the speed of distributed simulation, especially if the messages cause rollbacks. 
+    Then it makes sense to define the time horizon parameter. Thus, much depends on the distributed model itself.
+    .
+    When residing the logical processes in a computer with multi-core processor, you should follow the next recommendations. 
+    You should reserve at least 1 core for each logical process, or even reserve 2 cores if the logical process extensively 
+    sends and receives messages. Also you should additionally reserve at least 1 or 2 cores for each computational node. 
+    These additional processor cores will be used by the GHC run-time system that includes the garbage collector as well. 
+    The Aivika distributed module creates a huge amount of short-living small objects. Therefore, the garbage collector 
+    needs at least one core to utilize efficiently these objects.
+    .
+    You should compile your code with options -O2 and -threaded, but then launch it with run-time options +RTS -N.
+    .
+    \[1] <http://hackage.haskell.org/package/aivika-transformers>
+    .
+    \[2] <http://hackage.haskell.org/package/aivika>
+    .
+category:        Simulation
+license:         BSD3
+license-file:    LICENSE
+copyright:       (c) 2015-2024. David Sorokin <davsor@mail.ru>
+author:          David Sorokin
+maintainer:      David Sorokin <davsor@mail.ru>
+homepage:        https://gitflic.ru/project/dsorokin/aivika-distributed
+cabal-version:   >= 1.10
+build-type:      Simple
+tested-with:     GHC == 7.10.1
+
+extra-source-files:  tests/Guard1.hs
+                     tests/MachRep1.hs
+                     tests/MachRep1Simple.hs
+                     tests/MachRep1SimpleWithMonitoring.hs
+                     tests/MachRep2.hs
+                     tests/MachRep2Distributed.hs
+                     tests/MachRep2DistributedReproducible.hs
+                     tests/MachRep2DistributedReproducibleFaultTolerant.hs
+                     tests/MachRep2DistributedWithMonitoring.hs
+                     tests/MachRep2Reproducible.hs
+                     tests/MachRep2Sync.hs
+                     tests/MachRep2SyncIO.hs
+                     tests/MachRep2WithMonitoring.hs
+                     tests/SimpleLocalnetHelper.hs
+                     tests/cluster.conf
+                     CHANGELOG.md
+
+library
+
+    exposed-modules: Simulation.Aivika.Distributed
+                     Simulation.Aivika.Distributed.Optimistic
+                     Simulation.Aivika.Distributed.Optimistic.DIO
+                     Simulation.Aivika.Distributed.Optimistic.Event
+                     Simulation.Aivika.Distributed.Optimistic.Guard
+                     Simulation.Aivika.Distributed.Optimistic.Generator
+                     Simulation.Aivika.Distributed.Optimistic.QueueStrategy
+                     Simulation.Aivika.Distributed.Optimistic.Message
+                     Simulation.Aivika.Distributed.Optimistic.Priority
+                     Simulation.Aivika.Distributed.Optimistic.Ref.Base
+                     Simulation.Aivika.Distributed.Optimistic.Ref.Base.Lazy
+                     Simulation.Aivika.Distributed.Optimistic.Ref.Base.Strict
+                     Simulation.Aivika.Distributed.Optimistic.State
+                     Simulation.Aivika.Distributed.Optimistic.TimeServer
+
+    other-modules:   Simulation.Aivika.Distributed.Optimistic.Internal.AcknowledgementMessageQueue
+                     Simulation.Aivika.Distributed.Optimistic.Internal.Channel
+                     Simulation.Aivika.Distributed.Optimistic.Internal.ConnectionManager
+                     Simulation.Aivika.Distributed.Optimistic.Internal.DIO
+                     Simulation.Aivika.Distributed.Optimistic.Internal.Event
+                     Simulation.Aivika.Distributed.Optimistic.Internal.Expect
+                     Simulation.Aivika.Distributed.Optimistic.Internal.InputMessageQueue
+                     Simulation.Aivika.Distributed.Optimistic.Internal.IO
+                     Simulation.Aivika.Distributed.Optimistic.Internal.Message
+                     Simulation.Aivika.Distributed.Optimistic.Internal.OutputMessageQueue
+                     Simulation.Aivika.Distributed.Optimistic.Internal.Priority
+                     Simulation.Aivika.Distributed.Optimistic.Internal.Ref
+                     Simulation.Aivika.Distributed.Optimistic.Internal.Ref.Lazy
+                     Simulation.Aivika.Distributed.Optimistic.Internal.Ref.Strict
+                     Simulation.Aivika.Distributed.Optimistic.Internal.SignalHelper
+                     Simulation.Aivika.Distributed.Optimistic.Internal.TimeServer
+                     Simulation.Aivika.Distributed.Optimistic.Internal.TimeWarp
+                     Simulation.Aivika.Distributed.Optimistic.Internal.TransientMessageQueue
+                     Simulation.Aivika.Distributed.Optimistic.Internal.UndoableLog
+
+    build-depends:   base >= 4.6.0.0 && < 6,
+                     mtl >= 2.1.1,
+                     array >= 0.3.0.0,
+                     stm >= 2.4.2,
+                     random >= 1.0.0.3,
+                     mwc-random >= 0.13.1.0,
+                     binary >= 0.6.4.0,
+                     time >= 1.5.0.1,
+                     containers >= 0.4.0.0,
+                     exceptions >= 0.8.0.2,
+                     distributed-process >= 0.7.6,
+                     vector >= 0.10.0.1,
+                     aivika >= 6.0.0,
+                     aivika-transformers >= 6.0.0
+
+    other-extensions: MultiParamTypeClasses,
+                      FlexibleInstances,
+                      FlexibleContexts,
+                      TypeFamilies,
+                      RankNTypes,
+                      DeriveGeneric,
+                      DeriveDataTypeable,
+                      MonoLocalBinds
+
+    ghc-options:     -O2
+
+    default-language:   Haskell2010
+
+source-repository head
+
+    type:     git
+    location: https://gitflic.ru/project/dsorokin/aivika-distributed
