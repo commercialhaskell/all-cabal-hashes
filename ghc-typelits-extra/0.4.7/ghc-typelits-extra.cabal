@@ -1,0 +1,125 @@
+name:                ghc-typelits-extra
+version:             0.4.7
+synopsis:            Additional type-level operations on GHC.TypeLits.Nat
+description:
+  Additional type-level operations on @GHC.TypeLits.Nat@:
+  .
+  * @Max@: type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:max max>
+  .
+  * @Min@: type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:min min>
+  .
+  * @Div@: type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:div div>
+  .
+  * @Mod@: type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:mod mod>
+  .
+  * @FLog@: type-level equivalent of <https://hackage.haskell.org/package/base-4.17.0.0/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+    i.e. the exact integer equivalent to @floor (logBase x y)@
+  .
+  * @CLog@: type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/base-4.17.0.0/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+    i.e. the exact integer equivalent to @ceiling (logBase x y)@
+  .
+  * @Log@: type-level equivalent of <https://hackage.haskell.org/package/base-4.17.0.0/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+     where the operation only reduces when @floor (logBase b x) ~ ceiling (logBase b x)@
+  .
+  * @GCD@: a type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:gcd gcd>
+  .
+  * @LCM@: a type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:lcm lcm>
+  .
+  And a custom solver for the above operations defined in
+  @GHC.TypeLits.Extra.Solver@ as a GHC type-checker plugin. To use the plugin,
+  add the
+  .
+  @
+  OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver
+  @
+  .
+  pragma to the header of your file.
+homepage:            http://www.clash-lang.org/
+bug-reports:         http://github.com/clash-lang/ghc-typelits-extra/issues
+license:             BSD2
+license-file:        LICENSE
+author:              Christiaan Baaij
+maintainer:          christiaan.baaij@gmail.com
+copyright:           Copyright © 2015-2016, University of Twente,
+                                 2017-2018, QBayLogic B.V.
+category:            Type System
+build-type:          Simple
+extra-source-files:  README.md
+                     CHANGELOG.md
+cabal-version:       >=1.10
+tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5,
+                     GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.8,
+                     GHC == 9.4.7, GHC == 9.6.3, GHC == 9.8.2, GHC == 9.10.1
+
+
+source-repository head
+  type: git
+  location: https://github.com/clash-lang/ghc-typelits-extra.git
+
+flag deverror
+  description:
+    Enables `-Werror` for development mode and TravisCI
+  default: False
+  manual: True
+
+library
+  exposed-modules:     GHC.TypeLits.Extra,
+                       GHC.TypeLits.Extra.Solver
+  other-modules:       GHC.TypeLits.Extra.Solver.Unify
+                       GHC.TypeLits.Extra.Solver.Operations
+  build-depends:       base                      >= 4.8     && <5,
+                       containers                >= 0.5.7.1 && <0.8,
+                       ghc                       >= 7.10    && <9.12,
+                       ghc-prim                  >= 0.5     && <1.0,
+                       ghc-tcplugins-extra       >= 0.3.1,
+                       ghc-typelits-knownnat     >= 0.7.2   && <0.8,
+                       ghc-typelits-natnormalise >= 0.7.1   && <0.8,
+                       transformers              >= 0.4.2.0 && <0.7
+  if impl(ghc >= 9.0.0)
+    build-depends:     ghc-bignum >=1.0 && <1.4
+  else
+    build-depends:     integer-gmp >=1.0 && <1.1
+  hs-source-dirs:      src
+  if impl(ghc >= 8.0) && impl(ghc < 9.4)
+    hs-source-dirs:    src-pre-ghc-9.4
+  if impl(ghc >= 9.4) && impl(ghc < 9.12)
+    hs-source-dirs:    src-ghc-9.4
+    build-depends:     template-haskell          >= 2.17    && <2.23
+  default-language:    Haskell2010
+  other-extensions:    DataKinds
+                       FlexibleInstances
+                       GADTs
+                       MagicHash
+                       MultiParamTypeClasses
+                       ScopedTypeVariables
+                       TemplateHaskell
+                       TupleSections
+                       TypeApplications
+                       TypeFamilies
+                       TypeOperators
+                       UndecidableInstances
+  if flag(deverror)
+    ghc-options:         -Wall -Werror
+  else
+    ghc-options:         -Wall
+
+test-suite test-ghc-typelits-extra
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  Other-Modules:       ErrorTests
+  build-depends:       base                      >= 4.8 && <5,
+                       ghc-typelits-extra,
+                       ghc-typelits-knownnat     >= 0.7.2,
+                       ghc-typelits-natnormalise >= 0.7.1,
+                       tasty                     >= 0.10,
+                       tasty-hunit               >= 0.9
+  hs-source-dirs:      tests
+  if impl(ghc >= 8.0) && impl(ghc < 9.4)
+    hs-source-dirs:    tests-pre-ghc-9.4
+  if impl(ghc >= 9.4) && impl(ghc < 9.12)
+    hs-source-dirs:    tests-ghc-9.4
+  default-language:    Haskell2010
+  other-extensions:    DataKinds
+                       TypeOperators
+  if flag(deverror)
+    ghc-options:       -dcore-lint
