@@ -1,0 +1,132 @@
+cabal-version:      2.2
+name:               zoovisitor
+version:            0.2.7.0
+synopsis:
+  A haskell binding to Apache Zookeeper C library(mt) using Haskell Z project.
+
+description:
+  Please see the README on Github at <https://github.com/ZHaskell/zoovisitor#readme>
+
+license:            BSD-3-Clause
+license-file:       LICENSE
+copyright:          Copyright (c)
+author:             mu
+maintainer:         mu@laxcat.xyz
+tested-with:        GHC ==8.10.7 || ==9.0.2 || ==9.2.8 || ==9.4.8
+category:           Database
+homepage:           https://github.com/ZHaskell/zoovisitor
+bug-reports:        https://github.com/ZHaskell/zoovisitor/issues
+build-type:         Simple
+extra-source-files:
+  ChangeLog.md
+  include/hs_zk.h
+  LICENSE_ZOOKEEPER
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/ZHaskell/zoovisitor
+
+-- XXX: Hackage requires 'cabal-version' must be at most 3.0.
+-- But the flag 'zoovisitor_enable_asan' use 'hsc2hs-options' requres >= 3.6.
+-- flag zoovisitor_enable_asan
+--   default:     False
+--   description:
+--     Enable AddressSanitizer. This is only for local debug usage.
+--     Also, do not forget to set cabal-version to 3.6 manually.
+
+-- XXX: require cabal-version >= 3.6
+-- Tricky options to link static archive, see: https://github.com/haskell/cabal/issues/4677
+-- common link-asan
+--   if os(osx)
+--     ghc-options: "-optl-Wl,-lasan"
+--
+--   if !os(osx)
+--     ghc-options:
+--       -pgml g++ "-optl-Wl,--allow-multiple-definition"
+--       "-optl-Wl,--whole-archive" "-optl-Wl,-Bstatic" "-optl-Wl,-lasan"
+--       "-optl-Wl,-Bdynamic" "-optl-Wl,--no-whole-archive"
+
+library
+  hs-source-dirs:     src
+  exposed-modules:
+    ZooKeeper
+    ZooKeeper.Exception
+    ZooKeeper.Recipe
+    ZooKeeper.Types
+
+  other-modules:
+    ZooKeeper.Internal.FFI
+    ZooKeeper.Internal.Types
+    ZooKeeper.Internal.Utils
+    ZooKeeper.Recipe.Election
+    ZooKeeper.Recipe.Lock
+    ZooKeeper.Recipe.Utils
+
+  build-depends:
+    , base        >=4.12      && <5
+    , bytestring  >=0.10.10.0 && <0.13
+    , exceptions  ^>=0.10
+    , Z-Data      >=0.7.2     && <1.5  || ^>=2.0
+
+  includes:           hs_zk.h
+  c-sources:          cbits/hs_zk.c
+  include-dirs:       include /usr/local/include
+  build-tool-depends: hsc2hs:hsc2hs
+  extra-libraries:    zookeeper_mt
+
+  -- XXX: require cabal-version >= 3.6
+  -- if flag(zoovisitor_enable_asan)
+  --   cc-options:
+  --     -fsanitize=address -fno-omit-frame-pointer -static-libasan
+
+  --   hsc2hs-options:
+  --     "--cflag=-fsanitize=address" "--lflag=-fsanitize=address"
+  --     "--cflag=-static-libasan" "--lflag=-static-libasan"
+
+  default-language:   Haskell2010
+  default-extensions:
+    BangPatterns
+    ConstraintKinds
+    DeriveGeneric
+    DerivingStrategies
+    EmptyDataDeriving
+    ExistentialQuantification
+    GADTSyntax
+    GeneralisedNewtypeDeriving
+    MagicHash
+    OverloadedStrings
+    PatternSynonyms
+    PolyKinds
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    StandaloneDeriving
+    TypeApplications
+    TypeOperators
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+
+test-suite zoovisitor-test
+  -- XXX: require cabal-version >= 3.6
+  -- if flag(zoovisitor_enable_asan)
+  --   import: link-asan
+
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  hs-source-dirs:   test
+  build-depends:
+    , async       ^>=2.2
+    , base        >=4.12  && <5
+    , hspec       ^>=2.11
+    , uuid        ^>=1.3
+    , Z-Data
+    , zoovisitor
+
+  default-language: Haskell2010
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+    -threaded -rtsopts -with-rtsopts=-N
