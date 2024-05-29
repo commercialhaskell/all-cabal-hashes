@@ -1,0 +1,263 @@
+cabal-version:   3.0
+name:            kempe
+version:         0.2.0.14
+license:         BSD-3-Clause
+license-file:    LICENSE
+copyright:       Copyright: (c) 2020-2022 Vanessa McHale
+maintainer:      vamchale@gmail.com
+author:          Vanessa McHale
+synopsis:        Kempe compiler
+description:     Kempe is a stack-based language
+category:        Language, Compilers
+build-type:      Simple
+data-files:
+    test/data/*.kmp
+    test/data/diamond/*.kmp
+    test/err/*.kmp
+    test/examples/*.kmp
+    test/golden/*.out
+    test/golden/*.ir
+    test/include/*.h
+    test/harness/*.c
+    examples/*.kmp
+    prelude/*.kmp
+    lib/*.kmp
+    docs/manual.pdf
+    .ctags
+
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+    type:     git
+    location: https://github.com/vmchale/kempe
+
+flag cross
+    description: Enable to ease cross-compiling
+    default:     False
+    manual:      True
+
+library kempe-modules
+    exposed-modules:
+        Kempe.File
+        Kempe.Lexer
+        Kempe.Parser
+        Kempe.AST
+        Kempe.TyAssign
+        Kempe.Monomorphize
+        Kempe.Pipeline
+        Kempe.Shuttle
+        Kempe.Inline
+        Kempe.Module
+        Kempe.Check.Pattern
+        Kempe.IR
+        Kempe.IR.Opt
+        Kempe.Asm.Liveness
+        Kempe.Asm.X86.Trans
+        Kempe.Asm.X86.ControlFlow
+        Kempe.Asm.X86.Linear
+        Kempe.Asm.Arm.Trans
+        Kempe.Asm.Arm.ControlFlow
+        Kempe.Asm.Arm.Linear
+        Language.C.AST
+
+    hs-source-dirs:   src
+    other-modules:
+        Kempe.Check.Restrict
+        Kempe.Check.TopLevel
+        Kempe.Check.Lint
+        Kempe.Unique
+        Kempe.Name
+        Kempe.Error
+        Kempe.Error.Warning
+        Kempe.AST.Size
+        Kempe.Asm.Arm.Type
+        Kempe.Asm.Arm.Opt
+        Kempe.Asm.X86.Type
+        Kempe.Asm.Type
+        Kempe.Asm.Pretty
+        Kempe.IR.Type
+        Kempe.IR.Monad
+        Kempe.CGen
+        Kempe.Proc.Nasm
+        Kempe.Proc.As
+        Kempe.Debug
+        Prettyprinter.Ext
+        Prettyprinter.Debug
+        Data.Foldable.Ext
+        Data.Copointed
+        Data.Tuple.Ext
+
+    default-language: Haskell2010
+    other-extensions:
+        DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable
+        FlexibleContexts GeneralizedNewtypeDeriving OverloadedStrings
+        StandaloneDeriving TupleSections DeriveAnyClass
+
+    ghc-options:      -Wall
+    build-depends:
+        base >=4.19 && <5,
+        array,
+        bytestring,
+        containers >=0.6.0.0,
+        deepseq,
+        text,
+        mtl,
+        microlens,
+        transformers,
+        prettyprinter >=1.7.0,
+        composition-prelude >=2.0.2.0,
+        microlens-mtl >=0.1.8.0,
+        process >=1.2.3.0,
+        temporary
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+    if !flag(cross)
+        build-tool-depends: alex:alex >=3.3.0.0, happy:happy
+
+executable kc
+    main-is:          Main.hs
+    hs-source-dirs:   run
+    other-modules:    Paths_kempe
+    autogen-modules:  Paths_kempe
+    default-language: Haskell2010
+    ghc-options:      -Wall -rtsopts -with-rtsopts=-A4m
+    build-depends:
+        base,
+        optparse-applicative,
+        kempe-modules,
+        prettyprinter >=1.7.0,
+        bytestring,
+        text
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+test-suite kempe-test
+    type:             exitcode-stdio-1.0
+    main-is:          Spec.hs
+    hs-source-dirs:   test
+    other-modules:
+        Parser
+        Type
+        Backend
+        Abi
+
+    default-language: Haskell2010
+    ghc-options:      -threaded -rtsopts "-with-rtsopts=-N -K1K" -Wall
+    build-depends:
+        base,
+        kempe-modules,
+        tasty,
+        tasty-hunit,
+        bytestring,
+        prettyprinter >=1.7.0,
+        deepseq,
+        tasty-golden,
+        text,
+        composition-prelude
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+test-suite kempe-golden
+    type:             exitcode-stdio-1.0
+    main-is:          Golden.hs
+    hs-source-dirs:   golden
+    other-modules:
+        Harness
+        CDecl
+
+    default-language: Haskell2010
+    ghc-options:      -threaded -rtsopts "-with-rtsopts=-N -K1K" -Wall
+    build-depends:
+        base,
+        kempe-modules,
+        tasty,
+        bytestring,
+        process,
+        temporary,
+        filepath,
+        tasty-golden,
+        extra,
+        prettyprinter,
+        text
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
+
+benchmark kempe-bench
+    type:             exitcode-stdio-1.0
+    main-is:          Bench.hs
+    hs-source-dirs:   bench
+    default-language: Haskell2010
+    ghc-options:      -Wall -rtsopts -with-rtsopts=-A4m
+    build-depends:
+        base,
+        kempe-modules,
+        bytestring,
+        criterion,
+        prettyprinter,
+        text,
+        temporary
+
+    if impl(ghc >=8.0)
+        ghc-options:
+            -Wincomplete-uni-patterns -Wincomplete-record-updates
+            -Wredundant-constraints -Widentities
+
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists
+
+    if impl(ghc >=8.2)
+        ghc-options: -Wcpp-undef
+
+    if impl(ghc >=8.10)
+        ghc-options: -Wunused-packages
