@@ -1,0 +1,242 @@
+cabal-version:       2.4
+name:                tomland
+version:             1.3.3.3
+synopsis:            Bidirectional TOML serialization
+description:
+    Implementation of bidirectional TOML serialization. Simple codecs look like this:
+    .
+    @
+    __data__ User = User
+    \    { userName :: Text
+    \    , userAge  :: Int
+    \    }
+    \
+    \userCodec :: TomlCodec User
+    \userCodec = User
+    \    \<$\> Toml.text "name" .= userName
+    \    \<*\> Toml.int  "age"  .= userAge
+    @
+    .
+    The following blog post has more details about library design:
+    .
+    * [tomland: Bidirectional TOML serialization](https://kowainik.github.io/posts/2019-01-14-tomland)
+
+homepage:            https://github.com/kowainik/tomland
+bug-reports:         https://github.com/kowainik/tomland/issues
+license:             MPL-2.0
+license-file:        LICENSE
+author:              Dmitrii Kovanikov, Veronika Romashkina
+maintainer:          Kowainik <xrom.xkov@gmail.com>
+copyright:           2018-2023 Kowainik
+category:            TOML, Text, Configuration
+build-type:          Simple
+extra-doc-files:     README.md
+                     CHANGELOG.md
+extra-source-files:  test/golden/*.golden
+                     test/examples/*.toml
+tested-with:         GHC == 8.4.4
+                     GHC == 8.6.5
+                     GHC == 8.8.4
+                     GHC == 8.10.7
+                     GHC == 9.0.2
+                     GHC == 9.2.7
+                     GHC == 9.4.4
+                     GHC == 9.6.3
+                     GHC == 9.8.1
+
+source-repository head
+  type:                git
+  location:            https://github.com/kowainik/tomland.git
+
+flag build-readme
+  description:         Build README generator.
+  default:             False
+  manual:              True
+
+flag build-play-tomland
+  description:         Build play-tomland executable.
+  default:             False
+  manual:              True
+
+common common-options
+  build-depends:       base >= 4.11 && < 4.21
+
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wredundant-constraints
+                       -fhide-source-paths
+                       -freverse-errors
+  if impl(ghc >= 8.4)
+    ghc-options:       -Wmissing-export-lists
+                       -Wpartial-fields
+  if impl(ghc >= 8.8.1)
+    ghc-options:       -Wmissing-deriving-strategies
+                       -Werror=missing-deriving-strategies
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages
+  if impl(ghc >= 9.2)
+    ghc-options:
+                       -Wredundant-bang-patterns
+
+  default-language:    Haskell2010
+  default-extensions:  DeriveGeneric
+                       DerivingStrategies
+                       GeneralizedNewtypeDeriving
+                       InstanceSigs
+                       LambdaCase
+                       OverloadedStrings
+                       RecordWildCards
+                       ScopedTypeVariables
+                       TypeApplications
+
+library
+  import:              common-options
+  hs-source-dirs:      src
+
+  exposed-modules:     Toml
+                         Toml.Codec
+                           Toml.Codec.BiMap
+                             Toml.Codec.BiMap.Conversion
+                           Toml.Codec.Code
+                           Toml.Codec.Combinator
+                             Toml.Codec.Combinator.Common
+                             Toml.Codec.Combinator.Custom
+                             Toml.Codec.Combinator.List
+                             Toml.Codec.Combinator.Map
+                             Toml.Codec.Combinator.Monoid
+                             Toml.Codec.Combinator.Primitive
+                             Toml.Codec.Combinator.Set
+                             Toml.Codec.Combinator.Table
+                             Toml.Codec.Combinator.Time
+                             Toml.Codec.Combinator.Tuple
+                           Toml.Codec.Di
+                           Toml.Codec.Error
+                           Toml.Codec.Generic
+                           Toml.Codec.Types
+                         Toml.Parser
+                           Toml.Parser.Core
+                           Toml.Parser.Item
+                           Toml.Parser.Key
+                           Toml.Parser.String
+                           Toml.Parser.Validate
+                           Toml.Parser.Value
+                         Toml.Type
+                           Toml.Type.AnyValue
+                           Toml.Type.Edsl
+                           Toml.Type.Key
+                           Toml.Type.PrefixTree
+                           Toml.Type.Printer
+                           Toml.Type.TOML
+                           Toml.Type.UValue
+                           Toml.Type.Value
+
+  build-depends:       bytestring >= 0.10 && < 0.13
+                     , containers >= 0.5.7 && < 0.8
+                     , deepseq >= 1.4 && < 1.6
+                     , hashable >= 1.3.1.0 && < 1.5
+                     , megaparsec >= 7.0.5 && < 9.7
+                     , mtl >= 2.2 && < 2.4
+                     , parser-combinators >= 1.1.0 && < 1.4
+                     , text >= 1.2 && < 2.2
+                     , time >= 1.8 && < 1.15
+                     , unordered-containers ^>= 0.2.7
+                     , validation-selective >= 0.1.0 && < 0.3
+
+executable readme
+  import:              common-options
+  -- doesn't work on windows for unknown reasons
+  if !flag(build-readme) || os(windows)
+    buildable: False
+  main-is:             README.lhs
+  build-depends:       tomland
+                     , text
+                     , time
+
+  build-tool-depends:  markdown-unlit:markdown-unlit
+  ghc-options:         -pgmL markdown-unlit
+
+executable play-tomland
+  import:              common-options
+  -- We are using DerivingVia that works only with > 8.6
+  if !flag(build-play-tomland) || impl(ghc < 8.6)
+    buildable: False
+  main-is:             Main.hs
+  build-depends:       tomland
+                     , bytestring
+                     , containers
+                     , hashable
+                     , text
+                     , time
+                     , unordered-containers
+
+  hs-source-dirs:      examples
+  ghc-options:         -threaded -Wall
+
+test-suite tomland-test
+  import:              common-options
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+
+  other-modules:       Test.Toml.Codec
+                         Test.Toml.Codec.BiMap
+                           Test.Toml.Codec.BiMap.Conversion
+                         Test.Toml.Codec.Code
+                         Test.Toml.Codec.Combinator
+                           Test.Toml.Codec.Combinator.Common
+                           Test.Toml.Codec.Combinator.Custom
+                           Test.Toml.Codec.Combinator.List
+                           Test.Toml.Codec.Combinator.Map
+                           Test.Toml.Codec.Combinator.Monoid
+                           Test.Toml.Codec.Combinator.Primitive
+                           Test.Toml.Codec.Combinator.Set
+                           Test.Toml.Codec.Combinator.Table
+                           Test.Toml.Codec.Combinator.Time
+                           Test.Toml.Codec.Combinator.Tuple
+                         Test.Toml.Codec.Di
+                         Test.Toml.Codec.Generic
+                         Test.Toml.Codec.SmallType
+
+                       Test.Toml.Parser
+                         Test.Toml.Parser.Examples
+                         Test.Toml.Parser.Property
+                         Test.Toml.Parser.Validate
+                         -- unit tests for parsing different parts of TOML ast
+                         Test.Toml.Parser.Array
+                         Test.Toml.Parser.Bool
+                         Test.Toml.Parser.Common
+                         Test.Toml.Parser.Date
+                         Test.Toml.Parser.Double
+                         Test.Toml.Parser.Integer
+                         Test.Toml.Parser.Key
+                         Test.Toml.Parser.Text
+                         Test.Toml.Parser.Toml
+
+                       Test.Toml.Type
+                         Test.Toml.Type.Key
+                         Test.Toml.Type.PrefixTree
+                         Test.Toml.Type.Printer
+                         Test.Toml.Type.TOML
+
+                       -- helpers
+                       Test.Toml.Gen
+                       Test.Toml.Property
+
+  build-depends:       bytestring
+                     , containers >= 0.5.7 && < 0.8
+                     , hashable
+                     , hedgehog >= 1.0.1 && < 1.5
+                     , hspec >= 2.7.1 && < 2.12
+                     , hspec-hedgehog >= 0.0.1.1 && < 0.2
+                     , hspec-megaparsec >= 2.0.0 && < 2.3.0
+                     , megaparsec
+                     , directory ^>= 1.3
+                     , text
+                     , time
+                     , tomland
+                     , unordered-containers
+
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
