@@ -1,0 +1,164 @@
+cabal-version: 2.4
+
+name:           hercules-ci-cnix-expr
+version:        0.3.6.4
+synopsis:       Bindings for the Nix evaluator
+category:       Nix, CI, Testing, DevOps
+homepage:       https://docs.hercules-ci.com
+bug-reports:    https://github.com/hercules-ci/hercules-ci-agent/issues
+author:         Hercules CI contributors
+maintainer:     info@hercules-ci.com
+copyright:      2018-2021 Hercules CI
+license:        Apache-2.0
+build-type:     Custom
+extra-source-files:
+    CHANGELOG.md
+    test/data/sample.json
+    test/data/simple-flake/flake.nix
+
+source-repository head
+  type: git
+  location: https://github.com/hercules-ci/hercules-ci-agent
+
+flag nix-2_8
+  description: Build for Nix >=2.8
+  default: True
+
+-- Deprecated
+flag nix-2_4
+  description: Build for Nix >=2.4pre*
+  default: True
+
+flag nix-2_15
+  description: Build for Nix >=2.5pre*
+  default: False
+
+flag ide
+  description: Whether to enable IDE workarounds. You shouldn't need this.
+  default: False
+
+-- match the C++ language standard Nix is using
+common cxx-opts
+  if flag(nix-2_15)
+    cxx-options:
+      -std=c++2a
+  else
+    cxx-options:
+      -std=c++17
+
+  cxx-options:
+    -Wall
+  extra-libraries: stdc++
+
+  if os(darwin)
+    -- avoid https://gitlab.haskell.org/ghc/ghc/issues/11829
+    ld-options:  -Wl,-keep_dwarf_unwind
+
+  if impl(ghc >= 8.10)
+    ghc-options:
+      -optcxx-Wall
+    if flag(nix-2_15)
+      ghc-options:
+        -optcxx-std=c++2a
+    else
+      ghc-options:
+        -optcxx-std=c++17
+  else
+    -- Remove soon
+    ghc-options:
+      -optc-std=c++17
+      -optc-Wall
+    if os(darwin)
+      ghc-options: -pgmc=clang++
+
+custom-setup
+  setup-depends:
+    base < 5
+    , Cabal >= 2.2.0.0 && < 4
+    , cabal-pkg-config-version-hook
+
+
+library
+  import: cxx-opts
+  exposed-modules:
+      Hercules.CNix.Expr
+      Hercules.CNix.Expr.Context
+      Hercules.CNix.Expr.Raw
+      Hercules.CNix.Expr.Typed
+      Hercules.CNix.Expr.Schema
+
+  hs-source-dirs:
+      src
+  default-extensions: DeriveGeneric DeriveTraversable DisambiguateRecordFields FlexibleContexts InstanceSigs LambdaCase MultiParamTypeClasses NoImplicitPrelude OverloadedStrings RankNTypes TupleSections TypeApplications TypeOperators
+  ghc-options: -Wall -fwarn-tabs -fwarn-unused-imports -fwarn-missing-signatures -fwarn-name-shadowing -fwarn-incomplete-patterns
+  build-depends:
+      aeson >= 2
+    , base >=4.7 && <5
+    , bytestring
+    , conduit
+    , directory
+    , filepath
+    , hercules-ci-cnix-store
+    , containers
+    , exceptions
+    , inline-c
+    , inline-c-cpp
+    , protolude >= 0.3
+    , scientific
+    , text
+    , unliftio
+    , unordered-containers
+    , vector
+  default-language: Haskell2010
+  include-dirs:
+      include
+  install-includes:
+      hercules-ci-cnix/expr.hxx
+  if ! flag(ide)
+    extra-libraries:
+        boost_context
+  pkgconfig-depends:
+      nix-store >= 2.4
+    , nix-expr >= 2.4
+    , nix-main >= 2.4
+  if flag(nix-2_8)
+    pkgconfig-depends:
+      -- MixEvalArgs has moved here
+      nix-cmd >= 2.8
+
+
+test-suite hercules-ci-cnix-expr-unit-tests
+  type: exitcode-stdio-1.0
+  main-is: TestMain.hs
+  other-modules:
+      Hercules.CNix.ExprSpec
+      Hercules.CNix.Store.TestUtil
+      Hercules.CNix.Expr.SchemaSpec
+      SingleState
+      Spec
+  hs-source-dirs:
+      test
+  default-extensions: DeriveGeneric DeriveTraversable DisambiguateRecordFields FlexibleContexts InstanceSigs LambdaCase MultiParamTypeClasses NoImplicitPrelude OverloadedStrings RankNTypes TupleSections TypeApplications TypeOperators
+  ghc-options: -Wall -fwarn-tabs -fwarn-unused-imports -fwarn-missing-signatures -fwarn-name-shadowing -fwarn-incomplete-patterns -threaded -rtsopts -with-rtsopts=-N
+  -- trace on exception (profiling):
+  -- -with-rtsopts=-xc
+  build-depends:
+      aeson
+    , base
+    , bytestring
+    , containers
+    , filepath
+    , hercules-ci-cnix-expr
+    , hercules-ci-cnix-store
+    , hspec
+    , process
+    , protolude
+    , QuickCheck
+    , scientific
+    , temporary
+    , text
+    , unordered-containers
+    , vector
+  build-tool-depends:
+      hspec-discover:hspec-discover == 2.*
+  default-language: Haskell2010
