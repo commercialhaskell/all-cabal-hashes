@@ -1,0 +1,902 @@
+cabal-version: 3.0
+
+name:    raaz
+version: 0.3.10
+stability: experimental
+
+synopsis: Fast and type safe cryptography.
+
+description:
+
+  Raaz is a cryptographic library which provides the state of the art
+  cryptographic primitives via a high-level, type safe interface. The
+  default interface provided to the user is through the top level
+  module "Raaz". Rather than bothering the user with low-level details
+  like the selection of primitives or entropy sources, this top level
+  module only talks about the desired cryptographic operation (whether
+  it is message digest or message encryption etc). A standalone
+  application that needs cryptography should stick to using this top
+  level interface.
+
+  Sometimes the selection of primitives is not in our hands --- we may
+  need to interface with other programs written in other languages or
+  using other libraries. For such situation, raaz exposes a primitive
+  specific interface. As an example @raaz@ exposes the
+  @Raaz.Digest.Sha256@ module that gives the same interface as that of
+  "Raaz.Digest" but uses sha256 as the underlying cryptographic hash.
+
+
+  -- Uncomment this part of the doucmentation when the visibility field is
+  -- supported
+
+  -- == Tweaking Implementations (Only for advanced users)
+
+  -- Despite the high level interface, users who are willing to go down
+  -- the abstraction layers, can tweak the underlying low level
+  -- primitives used by @raaz@. For example, one might have a custom
+  -- hardware where a particular primitive can be made much more
+  -- performant, or maybe for the given platform (say in a virtualised
+  -- environment) you might have a better entropy source than the
+  -- default. Raaz uses backpack signatures and modules to make such
+  -- customisation relatively painless to integrate into your
+  -- application.
+
+  -- To exploit this facility, you need to have some idea on the internal
+  -- structure of the @raaz@ package which consists of a few components.
+  -- Each cryptographic operation is captured by an api component and it
+  -- expects a module satisfying the appropriate @Implementation@
+  -- signature. The api subcomponent in turn provide the @Interface@
+  -- module which is what the user of the @raaz@ library sees. So as far
+  -- as changing the implementation is concerned, one needs to change the
+  -- @Implementation@ provided to the api subcomponent.
+
+  -- The @raaz:implementation@ subcomponent, as the name suggests exposes
+  -- a set of implementations of each primitive supported. When there are
+  -- multiple implementations for a given primitive, it also has a
+  -- default implementation selected.  For example, there might be two
+  -- different implementation for chacha20 cipher say foo and bar.  The
+  -- implementation subcomponent in that case has the modules
+  -- @ChaCha20.Foo@ and @ChaCha20.Bar@. Furthermore, if the foo
+  -- implementation is the prefered one, @raaz:implementation@ also
+  -- reexport @ChaCha20.Foo@ as @ChaCha20.Implementation@. The raaz
+  -- library just mixes in the implementation subcomponent and hence the
+  -- requirement for chacha20 implementation is taken care of by
+  -- @ChaCha20.Implementation@ (which is actually @ChaCha20.Foo@ in the
+  -- above example).
+
+
+  -- >
+  -- >                           raaz
+  -- >                             |
+  -- >                             |       +---------------------+
+  -- >                             +<------| raaz:implementation |
+  -- >                             |       +---------------------+
+  -- >                           +---+
+  -- >                ---------->| + |<-------------
+  -- >               /           +---+              \
+  -- >              /              ^                 \
+  -- >             /               |                  \
+  -- >            /                |                   \
+  -- >           /                 |                    \
+  -- >       Interface          Interface            Interface
+  -- >          ^                  ^                     ^
+  -- >          |                  |                     |
+  -- >    +------------+    +--------------+       +--------------+
+  -- >    | digest-api |    |  entropy-api |       |  encrypt-api |
+  -- >    |            |    |              |       |              |
+  -- >    |            |    |              |       |              |
+  -- >    +------------+    +--------------+       +--------------+
+  -- >    |  +digest   |    |  +entropy    |       |  +encrypt    |
+  -- >    |constraints |    |  constraints |       | constraints  |
+  -- >    +------------+    +--------------+       +--------------+
+  -- >              \            |                    /
+  -- >               \           |                   /
+  -- >                \          |                  /
+  -- >                 \         |                 /
+  -- >                +----------------------------+
+  -- >                | indef:Implementation.hsig  |
+  -- >                +----------------------------+
+  -- >
+
+  -- == Tweaking randomness.
+
+  -- There are two components of the CSPRG exposed by @raaz@ --- an
+  -- entropy source, and a seed stretcher. The entropy source needs to
+  -- satisfy the signature @raaz:random-api:Entropy@ where as the seed
+  -- stretcher needs to satisfy the signature
+  -- @raaz:random-api:Implementation@ which adds some member function to
+  -- the @indef:Implementation@ signature as well as thins it. The
+  -- @raaz:raaz-indef@ component expects its seed stretcher to come from
+  -- @Random.Implementation@ exposed by @raaz:implementation@ (currently
+  -- a chacha20 based keystream is used for this purpose). This can also
+  -- be overridden if one wants. See the documentation of
+  -- @raaz:random-api:Implementation@ for details.
+
+homepage: https://github.com/raaz-crypto/raaz
+
+copyright: (c) 2012 Piyush P Kurur
+license:      Apache-2.0 OR BSD-3-Clause
+license-files: LICENSE-BSD3
+               LICENSE-APACHE-2.0
+
+author:       Piyush P Kurur
+maintainer:   ppk@cse.iitk.ac.in
+
+category:      Codec, Raaz
+build-type:    Simple
+
+data-files: tests/standard-test-vectors/blake2/tests.json
+
+extra-source-files: CHANGELOG.md
+                  , README.md
+                  --
+                  -- C Header files are not included in cabal sdist
+                  -- even if specified in include.
+                  --
+                  , core/cbits/raaz/core/endian.h
+
+                  , libverse/verse.h
+
+                  , implementation/cbits/raaz/hash/blake2/common.h
+                  , implementation/cbits/raaz/hash/blake2/blake2b/constants.h
+                  , implementation/cbits/raaz/hash/blake2/blake2s/constants.h
+                  , implementation/cbits/raaz/cipher/chacha20/common.h
+
+
+                  , monocypher/monocypher-3.0.0/optional/monocypher-ed25519.h
+                  , monocypher/monocypher-3.0.0/monocypher.h
+
+bug-reports: https://github.com/raaz-crypto/raaz/issues
+
+source-repository head
+  type: git
+  location: https://github.com/raaz-crypto/raaz
+
+
+
+------------------------- Flags -------------------------------------------------------------
+
+flag linux-getrandom
+
+     Description: Use the getrandom for system entropy instead of
+       /dev/urandom. Enabled by default but disable this when building
+       for kernel < 3.17.
+
+     Default: True
+     Manual: True
+
+flag native
+
+     Description: Compile for native architecture. Often this enables
+       a lot of platform specific optimisation which lead to better
+       performance. Do not enable this when packaging though. Also
+       tested only with gcc
+
+     Default: False
+     Manual: True
+
+flag wipe-memset
+
+     Description: Use plain memset for wiping memory. The problem with
+       its use is that agressive compilers often optimise it out. Raaz
+       uses platform specific functions designed specifically to avoid
+       this and hence enabling this flag is STRONGLY DISCOURAGED.  Use
+       it only if your platform does not support such a call.
+
+     Default: False
+     Manual: True
+
+---------------------------- The common clause ------------------------------------------------
+
+common defaults
+  default-language: Haskell2010
+  ghc-options: -Wall
+  default-extensions: NoImplicitPrelude
+  build-depends: base                    >= 4.11 &&  < 4.21
+               , bytestring              >= 0.10 &&  < 0.13
+               , deepseq                 >= 1.4  &&  < 1.6
+               , vector                  >= 0.12 &&  < 0.14
+
+  ------------------------ Compiler optimisation flags -------------------------------------
+  if flag(native) { cc-options: -march=native  }
+
+  ------------------------ Memory wiping calls  -------------------------------------------
+  if !flag(wipe-memset)
+     if   os(netbsd)  { cc-options: -DHAVE_EXPLICIT_MEMSET    }
+     elif os(windows) { cc-options: -DHAVE_SECURE_ZERO_MEMORY }
+     elif !os(osx)    { cc-options: -DHAVE_EXPLICIT_BZERO     }
+
+  ----------------------- System specific configurations ----------------------------------
+  if os(linux)   { cc-options: -DPLATFORM_LINUX   }
+  if os(osx)     { cc-options: -DPLATFORM_OSX     }
+  if os(openbsd) { cc-options: -DPLATFORM_OPENBSD }
+  if os(windows)
+     cc-options: -DPLATFORM_WINDOWS -DUNICODE
+     cpp-options: -DPLATFORM_WINDOWS
+     extra-libraries: Advapi32, Kernel32
+     build-tool-depends: hsc2hs:hsc2hs
+
+  if arch(x86_64)
+     cc-options: -DARCH_X86_64
+
+----------------------------- The core library ------------------------------------------------
+library core
+  import: defaults
+  -- visibility: public
+  hs-source-dirs: core
+  exposed-modules: Raaz.Core
+                 , Raaz.Core.CpuSupports
+                 , Raaz.Core.Encode
+                 , Raaz.Core.Memory
+                 , Raaz.Core.Prelude
+                 , Raaz.Core.Transfer
+                 , Raaz.Core.Transfer.Unsafe
+                 , Raaz.Core.Types
+                 , Raaz.Core.Types.Internal
+                 , Raaz.Primitive.AEAD.Internal
+                 , Raaz.Primitive.Blake2.Internal
+                 , Raaz.Primitive.Sha2.Internal
+                 , Raaz.Primitive.ChaCha20.Internal
+                 , Raaz.Primitive.Poly1305.Internal
+                 , Raaz.Primitive.HashMemory
+                 , Raaz.Primitive.Keyed.Internal
+
+  other-modules: Raaz.Core.ByteSource
+               , Raaz.Core.MonoidalAction
+               , Raaz.Core.Parse
+               , Raaz.Core.Parse.Unsafe
+               , Raaz.Core.Primitive
+               , Raaz.Core.Constants
+               , Raaz.Core.Encode.Internal
+               , Raaz.Core.Encode.Base16
+               , Raaz.Core.Encode.Base64
+               , Raaz.Core.Util.ByteString
+               , Raaz.Core.Types.Pointer
+               , Raaz.Core.Types.Tuple
+               , Raaz.Core.Types.Equality
+               , Raaz.Core.Types.Endian
+               , Raaz.Core.Types.Copying
+
+  c-sources: core/cbits/raaz/core/endian.c
+           , core/cbits/raaz/core/memory.c
+           , core/cbits/raaz/core/cpusupports.c
+  include-dirs: core/cbits
+  includes: raaz/core/endian.h
+  install-includes: raaz/core/endian.h
+
+----------------------------- Libverse as a sublibrary -----------------------------
+
+library libverse
+  import: defaults
+  build-depends: core
+  hs-source-dirs: libverse
+  exposed-modules: Raaz.Verse.ChaCha20.C.Portable
+                 , Raaz.Verse.Sha512.C.Portable
+                 , Raaz.Verse.Sha256.C.Portable
+                 , Raaz.Verse.Blake2b.C.Portable
+                 , Raaz.Verse.Poly1305.C.Portable
+  c-sources: libverse/chacha20/c/portable.c
+           , libverse/sha256/c/portable.c
+           , libverse/sha512/c/portable.c
+           , libverse/blake2b/c/portable.c
+           , libverse/poly1305/c/portable.c
+           , libverse/verse.c
+  include-dirs: libverse
+  includes: verse.h
+  install-includes: verse.h
+
+---------------------- Implementation signature packages -------------
+--
+-- The signature package that exposes an implementation of a
+-- primitive.
+---
+
+library indef
+  import: defaults
+  -- visibility: public
+  build-depends: core
+  hs-source-dirs: indef
+  signatures: Implementation
+
+
+-- Library exposing a buffer for cryptographic primitives. For a
+-- natural number n, a Buffer n is a pointer which has enough to
+-- process n blocks of the primitive at a time. It also takes care of
+-- the alignment requirements for the implementation. Not everything
+-- related to an Implementation is required here and hence it uses a
+-- thinned down version of the Implementation signature.
+
+library buffer
+  import: defaults
+  build-depends: core
+               , indef
+  hs-source-dirs: indef/buffer
+  signatures: Implementation
+  exposed-modules: Buffer
+                 , Context
+
+-- The utility package that defines generic interface that is useful
+-- for all primitives.
+library utils
+  import: defaults
+  build-depends: core
+               , indef
+               , buffer
+  hs-source-dirs: indef
+  exposed-modules: Utils
+
+-------------------- Derived Implementations ----------------------------
+--
+-- Certain primitives are defined based on other primitive. Given
+-- below are indef packages for these.
+--
+-- mac-indef: Certain hashes like blake2 supports a simple keyed
+--   hashing algorithm that can be used as message authentication
+--   code. This module exposes the module `Mac.Implementation` which
+--   can be mixed into the auth-api module to satisfy its
+--   requirement of an `Implementation` module.
+--
+-- xchacha-indef: Implementation of the xchacha20 cipher based on an
+--   underlying implementation of chacha20 and hchacha20 hashing.
+
+library mac-indef
+  import: defaults
+  -- visibility: public
+  hs-source-dirs: indef/keyed/hash
+  signatures: Implementation
+  build-depends: buffer
+               , core
+               , indef
+               , utils
+  exposed-modules: Mac.Implementation
+
+library xchacha-indef
+  import: defaults
+  -- visibility: public
+  hs-source-dirs: indef/chacha20
+  signatures: Implementation
+  build-depends: core
+               , indef
+  exposed-modules: XChaCha20.Implementation
+
+-------- API packages ----------------------------------------------
+--
+-- An api package provides an `Interface` module for some common
+-- cryptographic operations. Typically they depend on one or more of
+-- the implementation modules.
+--
+
+-- API package for message digest.
+library digest-api
+  import: defaults
+  -- visibility: public
+  hs-source-dirs: api/digest/
+  signatures: Implementation
+  build-depends: core
+               , indef
+               , buffer
+               , utils
+  exposed-modules: Interface
+
+-- API package for message authenticator.
+library auth-api
+  import: defaults
+  -- visibility: public
+  hs-source-dirs: api/auth
+  signatures: Implementation
+  build-depends: core
+               , indef
+               , utils
+               , buffer
+  exposed-modules: Interface
+
+-- API package for random bytes generator. The Implementation
+-- signature captures the primitive that stretches the seed and the
+-- Entroy signature captures entropy sources.
+library random-api
+  import: defaults
+  -- visibility: public
+  hs-source-dirs: api/random
+  build-depends: core
+               , indef
+               , buffer
+  signatures: Implementation
+            , Entropy
+  exposed-modules: Internal
+                 , PRGenerator
+
+-- API package for encryption.
+library encrypt-api
+  import: defaults
+  -- visibility: public
+  hs-source-dirs: api/encrypt
+  signatures: Implementation
+  build-depends: core
+               , indef
+               , utils
+  exposed-modules: Interface
+
+-- API package for aead implementation.
+library aead-api
+  import: defaults
+  -- visibility: public
+  hs-source-dirs: api/aead
+  build-depends: core
+               , indef
+               , utils
+               , buffer
+  signatures: Cipher.Implementation
+            , Auth.Implementation
+  exposed-modules: Interface
+  mixins: indef requires (Implementation as Cipher.Implementation)
+        , indef requires (Implementation as Auth.Implementation)
+        , utils (Utils as Cipher.Utils) requires (Implementation as Cipher.Implementation)
+        , utils (Utils as Auth.Utils)   requires (Implementation as Auth.Implementation)
+        , buffer (Buffer as Cipher.Buffer) requires (Implementation as Cipher.Implementation)
+
+--------------------  The implementation modules ----------------------------------
+--
+-- This package exposes all the implementations provided by the raaz
+-- library. In addition, for all primitives Prim supported by raaz, it
+-- exposes a default Prim.Implementation module. Therefore, adding
+-- this package to the dependency of another package that needs an
+-- implementation of Prim (via the module hole Prim.Implementation)
+-- satisfies the requirement.
+--
+-- One can selectively override the implementation used by a primitive
+-- using the idiom
+--
+-- build-depends: raaz-indef
+--              , implementation
+-- mixins: raaz-indef requires (ChaCha20.Implementation as ChaCha20.CHandWritten)
+--
+--
+-- The above lines ensures that the interface provided by raaz-indef
+-- for ChaCha20, uses the the Hand Written implementation while all
+-- other primitives uses the default implementation (set in the
+-- implementation package).
+
+library implementation
+  import: defaults
+  -- visibility: public
+  build-depends: core
+               , libverse
+  hs-source-dirs: implementation
+
+  exposed-modules: Blake2b.CPortable
+                 , Sha256.CPortable
+                 , ChaCha20.CPortable
+                 , ChaCha20.Random.CPortable
+                 , Sha512.CPortable
+                 -- Implementation hand written in C
+                 , ChaCha20.CHandWritten
+                 , Blake2b.CHandWritten
+                 , Blake2s.CHandWritten
+                 , Poly1305.CPortable
+                 , Sha256.CHandWritten
+                 , Sha512.CHandWritten
+
+  -- By re-exporting the modules, we are giving a default selection
+  -- for implementations.
+  reexported-modules: Blake2b.CPortable as Blake2b.Implementation
+                    , Blake2s.CHandWritten as Blake2s.Implementation
+                    , ChaCha20.CPortable   as ChaCha20.Implementation
+                    , ChaCha20.Random.CPortable as Random.Implementation
+                    , Sha256.CPortable     as Sha256.Implementation
+                    , Poly1305.CPortable   as Poly1305.Implementation
+                    , Sha512.CPortable     as Sha512.Implementation
+  other-modules: Poly1305.Memory
+  c-sources: implementation/cbits/raaz/hash/blake2/blake2b/portable.c
+           , implementation/cbits/raaz/hash/blake2/blake2s/portable.c
+           , implementation/cbits/raaz/hash/sha1/portable.c
+           , implementation/cbits/raaz/hash/sha256/portable.c
+           , implementation/cbits/raaz/hash/sha512/portable.c
+           , implementation/cbits/raaz/cipher/chacha20/cportable.c
+  include-dirs: implementation/cbits/
+  includes: raaz/hash/blake2/common.h
+          , raaz/hash/blake2/blake2b/constants.h
+          , raaz/hash/blake2/blake2s/constants.h
+          , raaz/cipher/chacha20/common.h
+  install-includes: raaz/hash/blake2/common.h
+                  , raaz/hash/blake2/blake2b/constants.h
+                  , raaz/hash/blake2/blake2s/constants.h
+                  , raaz/cipher/chacha20/common.h
+
+
+
+  -------------------------- Implementation of system entropy ----------------------------
+  --
+  -- Exposing the most suitable source of entropy in the system.
+  --
+
+  if os(windows)
+     hs-source-dirs: implementation/entropy/windows/
+  else
+     if os(openbsd) || os(netbsd)
+        hs-source-dirs: implementation/entropy/arc4random/
+     elif os(linux)   && flag(linux-getrandom)
+        hs-source-dirs: implementation/entropy/getrandom/
+     else
+        hs-source-dirs: implementation/entropy/urandom/
+
+  exposed-modules: Entropy
+
+-------------------------------- The main raaz library -------------------------------------
+
+library
+  import: defaults
+  hs-source-dirs: raaz
+  build-depends: core
+               , mac-indef
+               , xchacha-indef
+               , aead-api
+               , auth-api
+               , digest-api
+               , libverse
+               , random-api
+               , implementation
+
+  exposed-modules: Raaz
+                 , Raaz.Auth
+                 , Raaz.AuthEncrypt
+                 , Raaz.AuthEncrypt.Unsafe
+                 , Raaz.Digest
+                 , Raaz.Random
+  reexported-modules: Raaz.Auth.Blake2b
+                    , Raaz.Auth.Blake2s
+                    , Raaz.AuthEncrypt.Unsafe.XChaCha20Poly1305
+                    , Raaz.AuthEncrypt.Unsafe.ChaCha20Poly1305
+                    , Raaz.Digest.Blake2b
+                    , Raaz.Digest.Blake2s
+                    , Raaz.Digest.Sha512
+                    , Raaz.Digest.Sha256
+                    , Raaz.Random.Internal
+
+  mixins:
+        --
+        -- Message digests
+        --
+          digest-api (Interface as Raaz.Digest.Blake2b)
+            requires (Implementation as Blake2b.Implementation)
+        , digest-api (Interface as Raaz.Digest.Blake2s)
+            requires (Implementation as Blake2s.Implementation)
+        , digest-api (Interface as Raaz.Digest.Sha512)
+            requires (Implementation as Sha512.Implementation)
+        , digest-api (Interface as Raaz.Digest.Sha256)
+            requires (Implementation as Sha256.Implementation)
+
+        --
+        -- Message Authentication
+        --
+        , mac-indef (Mac.Implementation as Blake2b.Mac.Implementation)
+            requires (Implementation as Blake2b.Implementation)
+        , mac-indef (Mac.Implementation as Blake2s.Mac.Implementation)
+            requires (Implementation as Blake2s.Implementation)
+
+        , auth-api (Interface as Raaz.Auth.Blake2b)
+             requires (Implementation as Blake2b.Mac.Implementation)
+        , auth-api (Interface as Raaz.Auth.Blake2s)
+             requires (Implementation as Blake2s.Mac.Implementation)
+
+
+        --
+        -- Encrypted authentication
+        --
+        , xchacha-indef requires (Implementation as ChaCha20.Implementation)
+        , aead-api (Interface as Raaz.AuthEncrypt.Unsafe.XChaCha20Poly1305)
+            requires ( Cipher.Implementation as XChaCha20.Implementation
+                     , Auth.Implementation as Poly1305.Implementation
+                     )
+
+        -- Using Chacha20
+        , aead-api (Interface as Raaz.AuthEncrypt.Unsafe.ChaCha20Poly1305)
+            requires ( Cipher.Implementation as ChaCha20.Implementation
+                     , Auth.Implementation as Poly1305.Implementation
+          )
+
+        --
+        -- Cryptographic randomness
+        --
+        , random-api (PRGenerator, Internal as Raaz.Random.Internal)
+             requires (Implementation as Random.Implementation)
+
+
+  reexported-modules: Raaz.Core
+                    , Raaz.Core.Types
+                    , Raaz.Core.Encode
+  autogen-modules: Paths_raaz
+  other-modules: Paths_raaz
+               -- Will be exposed when we hit V2.
+               --
+               , Raaz.V1.Auth
+               , Raaz.V1.Digest
+               , Raaz.V1.AuthEncrypt
+               , Raaz.V1.AuthEncrypt.Unsafe
+
+---------------------------- Executables -------------------------------------------------
+
+executable raaz
+  import: defaults
+  hs-source-dirs: raaz/bin
+  main-is: Main.hs
+  other-modules: Command.Rand
+               , Command.Info
+               , Command.Checksum
+               , Usage
+  build-depends: optparse-applicative >= 0.13.0.0 && < 0.19
+               , core
+               , raaz
+
+---------------------------------- Test suit -----------------------------------------------------
+common test-defaults
+  import: defaults
+  build-depends: core
+               , HUnit                          >= 1.2  && < 1.7
+               , QuickCheck                     >= 2.4  && < 2.16
+               , hspec                          >= 2.10.6 && < 2.12
+
+library test-core
+  import: test-defaults
+  hs-source-dirs: tests/core
+  exposed-modules: Tests.Core
+                 , Tests.Core.Imports
+                 , Tests.Core.Instances
+                 , Tests.Core.Utils
+
+library test-cipher
+  import: test-defaults
+  hs-source-dirs: tests/cipher
+  build-depends: test-core
+               , encrypt-api
+  exposed-modules: Tests.Cipher
+
+library test-digest
+  import: test-defaults
+  hs-source-dirs: tests/message-digest
+  signatures: Implementation
+  build-depends: test-core
+               , indef
+               , digest-api
+  exposed-modules: Tests.Digest
+
+library test-auth
+  import: test-defaults
+  hs-source-dirs: tests/auth
+  signatures: Implementation
+  build-depends: test-core
+               , indef
+               , auth-api
+  exposed-modules: Tests.Auth
+
+
+library test-auth-implementation
+  import: test-defaults
+  hs-source-dirs: tests/auth/implementation
+  build-depends: test-core
+               , implementation
+               , mac-indef
+  mixins: mac-indef (Mac.Implementation as Blake2s.Mac.Implementation)
+            requires (Implementation as Blake2s.Implementation)
+        , mac-indef (Mac.Implementation as Blake2b.Mac.Implementation)
+            requires (Implementation as Blake2b.Implementation)
+
+  exposed-modules: Auth.Poly1305
+                 , Auth.Mac.Blake2s
+                 , Auth.Mac.Blake2b
+
+-------------------------- The test suits -------------------------
+
+test-suite tests
+  import: test-defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is: Spec.hs
+  build-depends: hspec-discover
+               , attoparsec
+               , test-core
+               , test-cipher
+               , test-digest
+               , test-auth
+               , test-auth-implementation
+               , implementation
+               , xchacha-indef
+               , raaz
+  build-tool-depends: hspec-discover:hspec-discover
+  if !os(windows)
+    cpp-options: -DHAVE_DEV_NULL
+
+  other-modules: Raaz.Core.ByteSourceSpec
+               , Raaz.Core.EncodeSpec
+               , Raaz.Core.MemorySpec
+               , Raaz.Core.Types.WordSpec
+               , Raaz.Core.Util.ByteStringSpec
+               , Raaz.RandomSpec
+               , Raaz.Cipher.ChaCha20Spec
+               , Raaz.Cipher.XChaCha20Spec
+               , Raaz.Digest.Sha256Spec
+               , Raaz.Digest.Sha512Spec
+               , Raaz.Digest.Blake2Spec
+               , Raaz.Mac.Poly1305Spec
+               , Paths_raaz
+
+  mixins: test-cipher requires (Implementation as ChaCha20.Implementation)
+        , test-digest (Tests.Digest as Sha256.Digest)
+          requires (Implementation as Sha256.Implementation)
+
+        , test-digest (Tests.Digest as Sha512.Digest)
+          requires (Implementation as Sha512.Implementation)
+
+        , test-digest (Tests.Digest as Blake2b.Digest)
+          requires (Implementation as Blake2b.Implementation)
+
+        , test-digest (Tests.Digest as Blake2s.Digest)
+          requires (Implementation as Blake2s.Implementation)
+
+
+        , test-auth (Tests.Auth as Poly1305.Auth) requires (Implementation as Auth.Poly1305)
+
+        , test-auth (Tests.Auth as Blake2s.Auth)  requires (Implementation as Auth.Mac.Blake2s)
+        , test-auth (Tests.Auth as Blake2b.Auth)  requires (Implementation as Auth.Mac.Blake2b)
+
+        , xchacha-indef requires (Implementation as ChaCha20.Implementation)
+
+-- Testing Interfaces with all implementations.
+test-suite tests-comparative
+  import: test-defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: tests/comparative
+  main-is: Main.hs
+  build-depends: implementation
+               , digest-api
+               , encrypt-api
+               , aead-api
+               , test-core
+
+  other-modules: Compare
+               , Digest
+               , Digest.Blake2bSpec
+               , Digest.Sha512Spec
+               , Digest.Sha256Spec
+               , Encrypt
+               , Encrypt.ChaCha20Spec
+               , AuthEncrypt
+               , AuthEncrypt.ChaCha20Poly1305Spec
+
+  mixins: digest-api (Interface as Digest.Blake2b.CHandWritten)
+            requires (Implementation as Blake2b.CHandWritten)
+        , digest-api (Interface as Digest.Blake2b.CPortable)
+            requires (Implementation as Blake2b.CPortable)
+
+        , digest-api (Interface as Digest.Sha512.CHandWritten)
+            requires (Implementation as Sha512.CHandWritten)
+        , digest-api (Interface as Digest.Sha512.CPortable)
+            requires (Implementation as Sha512.CPortable)
+
+        , digest-api (Interface as Digest.Sha256.CHandWritten)
+            requires (Implementation as Sha256.CHandWritten)
+        , digest-api (Interface as Digest.Sha256.CPortable)
+            requires (Implementation as Sha256.CPortable)
+
+        , encrypt-api (Interface as Encrypt.ChaCha20.CHandWritten)
+            requires (Implementation as ChaCha20.CHandWritten)
+        , encrypt-api (Interface as Encrypt.ChaCha20.CPortable)
+            requires (Implementation as ChaCha20.CPortable)
+
+        , aead-api (Interface as AuthEncrypt.ChaCha20Poly1305.CHandWritten)
+            requires ( Cipher.Implementation as ChaCha20.CHandWritten
+                     , Auth.Implementation as Poly1305.Implementation
+                     )
+
+        , aead-api (Interface as  AuthEncrypt.ChaCha20Poly1305.CPortable)
+            requires ( Cipher.Implementation as ChaCha20.CPortable
+                     , Auth.Implementation as Poly1305.Implementation
+                     )
+
+
+  build-tool-depends: hspec-discover:hspec-discover
+
+-- Test suits comparing with monocypher.
+test-suite monocypher
+  import: test-defaults
+  type: exitcode-stdio-1.0
+  main-is: Monocypher.hs
+  other-modules: Monocypher.Blake2bSpec
+               , Monocypher.Sha512Spec
+               , Monocypher.ChaCha20Spec
+  build-depends: raaz
+               , test-core
+               , xchacha-indef
+               , encrypt-api
+               , implementation
+  hs-source-dirs: monocypher/tests
+  c-sources: monocypher/monocypher-3.0.0/monocypher.c
+           , monocypher/monocypher-3.0.0/optional/monocypher-ed25519.c
+
+  include-dirs: monocypher/monocypher-3.0.0/
+              , monocypher/monocypher-3.0.0/optional/
+
+  includes: monocypher-ed25519.h
+          , monocypher.h
+
+  build-tool-depends: hspec-discover:hspec-discover
+  mixins: xchacha-indef requires (Implementation as ChaCha20.Implementation)
+        , encrypt-api (Interface as Raaz.Encrypt.ChaCha20)
+            requires (Implementation as ChaCha20.Implementation)
+
+        , encrypt-api (Interface as Raaz.Encrypt.XChaCha20)
+            requires (Implementation as XChaCha20.Implementation)
+
+
+--------------------------- Benchmarkings ---------------------------------------------
+common bench-defaults
+ import:defaults
+ hs-source-dirs: benchmarks/internal
+ build-depends:  criterion-measurement     >= 0.1 && < 0.3
+               , pretty >= 1.1.3 && < 1.2
+               , core
+
+library bench-types
+  import: bench-defaults
+  exposed-modules: Benchmark.Types
+
+library bench-prim
+  import: bench-defaults
+  build-depends: bench-types
+               , indef
+               , buffer
+  other-modules: Benchmark.Types
+  exposed-modules: Benchmark.Primitive
+
+library bench-csprg
+  import: bench-defaults
+  build-depends: bench-types
+               , buffer
+               , random-api
+  exposed-modules: Benchmark.CSPRG
+  other-modules: Benchmark.Types
+
+
+benchmark primitives
+  import: bench-defaults
+  hs-source-dirs: benchmarks
+  main-is: Main.hs
+  type: exitcode-stdio-1.0
+  build-depends: pretty >= 1.1.3 && < 1.2
+               , core
+               , implementation
+               , bench-types
+               , bench-prim
+               , bench-csprg
+  other-modules: Benchmark.Types
+  mixins: bench-prim (Benchmark.Primitive as Benchmark.Blake2b.CPortable)
+          requires   (Implementation as Blake2b.CPortable)
+
+        , bench-prim (Benchmark.Primitive as Benchmark.Blake2b.CHandWritten)
+          requires   (Implementation as Blake2b.CHandWritten)
+
+        , bench-prim (Benchmark.Primitive as Benchmark.Blake2s.CHandWritten)
+          requires   (Implementation as Blake2s.CHandWritten)
+
+        , bench-prim (Benchmark.Primitive as Benchmark.ChaCha20.CPortable)
+          requires   (Implementation as ChaCha20.CPortable)
+
+        , bench-prim (Benchmark.Primitive as Benchmark.ChaCha20.CHandWritten)
+          requires   (Implementation as ChaCha20.CHandWritten)
+
+        , bench-prim (Benchmark.Primitive as Benchmark.Poly1305.CPortable)
+          requires   (Implementation as Poly1305.CPortable)
+
+        , bench-prim (Benchmark.Primitive as Benchmark.Sha256.CPortable)
+          requires   (Implementation as Sha256.CPortable)
+
+        , bench-prim (Benchmark.Primitive as Benchmark.Sha256.CHandWritten)
+          requires   (Implementation as Sha256.CHandWritten)
+
+        , bench-prim (Benchmark.Primitive as Benchmark.Sha512.CPortable)
+          requires (Implementation as Sha512.CPortable)
+
+        , bench-prim (Benchmark.Primitive as Benchmark.Sha512.CHandWritten)
+          requires (Implementation as Sha512.CHandWritten)
+
+        , bench-csprg (Benchmark.CSPRG as Benchmark.CSPRG.CPortable)
+          requires (Implementation as ChaCha20.Random.CPortable)
