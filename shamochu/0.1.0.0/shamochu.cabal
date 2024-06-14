@@ -1,0 +1,100 @@
+cabal-version:      3.0
+name:               shamochu
+version:            0.1.0.0
+synopsis:           “Shuffle and merge overlapping chunks” lossless compression
+description:
+  Shamochu is short for “__Sh__uffle __a__nd __m__erge __o__verlapping __chu__nks”
+  lossless compression.
+
+  The idea for the compression is:
+
+  1. Split the input array in chunks of a given size.
+  2. Rearrange the order of the chunks in order to optimize consecutive
+     chunks overlaps.
+  3. Create a data table with the reordered chunks and an index table that
+     maps the original chunk index to its offset in the data table.
+
+  Then the data can be accessed in \(\mathcal{O}(1)\) via a few bitwise
+  operations and indexing two arrays.
+
+  The same operation can then be applied to the index table and may lead to
+  further compression.
+
+  Trivial example (chunk size: 4):
+
+  @
+    [1, 2, 3, 4, 2, 3, 4, 5, 0, 1, 2, 3]          # source data
+    -> [[1, 2, 3, 4], [2, 3, 4, 5], [0, 1, 2, 3]] # make chunks
+    -> [[0, 1, 2, 3], [1, 2, 3, 4], [2, 3, 4, 5]] # rearrange to have best overlaps
+    -> {data: [0, 1, 2, 3, 4, 5], offsets: [1, 2, 0]} # overlap chunks & compute
+                                                      # their offsets
+  @
+
+  Then we can retrieve the data from the original array at index i with the
+  following formula:
+
+  @
+      mask = (1 << chunk_size) - 1
+      original[i] = data[offsets[i >> chunk_size] + (i & mask)]
+  @
+
+  Since the index array is itself quite repetitive with the real data, we can
+  apply the compression a second time to the offsets table.
+
+  The complete algorithm optimizes the chunk sizes for both arrays in order to
+  get the lowest total data size. Given the chunks sizes @cs_data@ and
+  @cs_offsets@:
+
+  1. We compute the corresponding masks:
+
+      * @mask_data = (1 << cs_data) - 1@ and
+      * @mask_offsets = (1 << cs_offsets) - 1@.
+
+  2. We can retrieve the original value at index @k@ with the following
+    formula:
+
+  @
+      data[
+          offsets1[
+              offsets2[i >> (cs_data + cs_offsets)] +
+              ((i >> cs_data) & mask_offsets)
+          ] +
+          (i & mask_data)
+      ];
+  @
+
+  == Notes
+
+  This work took inspiration from
+  “<https://github.com/apankrat/notes/blob/3c551cb028595fd34046c5761fd12d1692576003/fast-case-conversion/README.md Fast character case conversion… or how to really compress sparse arrays>”
+  by Alexander Pankratov.
+
+homepage:           https://gitlab.com/Wismill/shamochu
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Pierre Le Marre
+maintainer:         dev@wismill.eu
+copyright:          2024 Pierre Le Marre
+category:           Codec
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+
+common compile-options
+  ghc-options: -Wall
+  default-language: GHC2021
+
+common default-extensions
+  default-extensions:
+    BlockArguments, LambdaCase, UnicodeSyntax, PatternSynonyms,
+    ViewPatterns, OverloadedStrings, DerivingStrategies, RecordWildCards,
+    OverloadedRecordDot, DisambiguateRecordFields, DuplicateRecordFields,
+    DataKinds
+
+library
+  import:           compile-options, default-extensions
+  exposed-modules:  Shamochu
+  build-depends:
+      base       >= 4.14   && < 5,
+      containers >= 0.6.5  && < 0.8,
+      vector     >= 0.13.0 && < 0.14
+  hs-source-dirs:   lib
