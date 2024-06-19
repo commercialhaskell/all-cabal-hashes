@@ -1,0 +1,101 @@
+cabal-version:       3.0
+name:                json-spec-openapi
+version:             0.3.1.0
+synopsis:            json-spec-openapi
+description:
+  This package provides a way to produce
+  [openapi3](https://hackage.haskell.org/package/openapi3) documentation from a
+  [json-spec](https://hackage.haskell.org/package/json-spec-0.1.0.0)
+  specification.
+
+  = Example
+
+  Given this data type:
+
+  > data User = User
+  >   {      name :: Text
+  >   , lastLogin :: Maybe UTCTime
+  >   }
+  >   deriving ToSchema via (EncodingSchema User) -- <-- ToSchema instance defined here
+  > instance HasJsonEncodingSpec User where
+  >   type EncodingSpec User =
+  >     JsonObject
+  >       '[ Required "name" JsonString
+  >        , Optional "last-login" JsonDateTime
+  >        ]
+  >   toJSONStructure user =
+  >     (Field @"name" (name user),
+  >     (fmap (Field @"last-login") (lastLogin user),
+  >     ()))
+
+  Calling `Data.Aeson.encode (Data.OpenApi3.toSchema (Proxy :: Proxy User))`
+  will produce the following Schema:
+
+  > {
+  >   "additionalProperties": false,
+  >   "properties": {
+  >     "last-login": {
+  >       "format": "date-time",
+  >       "type": "string"
+  >     },
+  >     "name": {
+  >       "type": "string"
+  >     }
+  >   },
+  >   "required": [
+  >     "name"
+  >   ],
+  >   "type": "object"
+  > }
+homepage:            https://github.com/owensmurray/json-spec-openapi
+license:             MIT
+license-file:        LICENSE
+author:              Rick Owens
+maintainer:          rick@owensmurray.com
+copyright:           2022 Rick Owens
+category:            JSON, OpenApi
+build-type:          Simple
+extra-source-files:
+  README.md
+  LICENSE
+
+common dependencies
+  build-depends:
+    , aeson                     >= 2.2.1.0  && < 2.3
+    , base                      >= 4.19.0.0 && < 4.20
+    , insert-ordered-containers >= 0.2.5.3  && < 0.3
+    , json-spec                 >= 0.5.0.0  && < 0.6
+    , lens                      >= 5.2.3    && < 5.3
+    , openapi3                  >= 3.2.4    && < 3.3
+    , text                      >= 2.1      && < 2.2
+
+common warnings
+  ghc-options:
+    -Wmissing-deriving-strategies
+    -Wmissing-export-lists
+    -Wmissing-import-lists
+    -Wredundant-constraints
+    -Wall
+    -Wunused-packages
+
+library
+  import: dependencies, warnings
+  exposed-modules:     
+    Data.JsonSpec.OpenApi
+  -- other-modules:       
+  -- other-extensions:    
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+test-suite json-spec-openapi-tests
+  import: dependencies, warnings
+  main-is: test.hs
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  default-language: Haskell2010
+  build-depends:
+    , json-spec-openapi
+
+    , hspec      >= 2.11.1 && < 2.12
+    , time       >= 1.12.2 && < 1.13
+
