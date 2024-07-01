@@ -1,0 +1,140 @@
+cabal-version:      3.0
+name:               glualint
+version:            1.29.0
+synopsis:           Attempts to fix your syntax erroring Lua files.
+description:
+  Linter for Lua, specifically the variant used in Garry's mod.
+
+homepage:           https://github.com/FPtje/GLuaFixer
+bug-reports:        https://github.com/FPtje/GLuaFixer/issues
+license:            LGPL-2.1-or-later
+license-file:       LICENSE
+author:             Falco Peijnenburg
+maintainer:         fpeijnenburg@gmail.com
+copyright:          Falco Peijnenburg
+category:           Language
+build-type:         Simple
+extra-source-files:
+  README.md
+  tests/golden/data/input/*.lua
+  tests/golden/data/output/*.lua
+
+source-repository head
+  type:     git
+  location: git@github.com:FPtje/GLuaFixer.git
+
+library
+  default-language: Haskell2010
+  build-depends:
+    , aeson        >=2       && <3
+    , base         >=4.5     && <5
+    , bytestring   >=0.11    && <1
+    , containers   >=0.6     && <1
+    , parsec       >=3       && <4
+    , pretty       >=1.1     && <1.2
+    , uuagc        >=0.9.56  && <0.10
+    , uuagc-cabal  >=1.3.0.0 && <2
+
+  hs-source-dirs:   src
+  exposed-modules:
+    GLua.AG.AST
+    GLua.AG.PrettyPrint
+    GLua.AG.Token
+    GLua.ASTInstances
+    GLua.EncodingOptions
+    GLua.Lexer
+    GLua.LineLimitParser
+    GLua.ParseError
+    GLua.Parser
+    GLua.Position
+    GLua.TokenTypes
+    GLuaFixer.AG.ASTLint
+    GLuaFixer.AG.LexLint
+    GLuaFixer.BadSequenceFinder
+    GLuaFixer.Interface
+    GLuaFixer.LintMessage
+    GLuaFixer.LintSettings
+
+  ghc-options:      -Wall -fno-warn-unused-do-bind
+  other-extensions:
+    CPP
+    FlexibleContexts
+    FlexibleInstances
+    MultiParamTypeClasses
+    NoMonomorphismRestriction
+    Rank2Types
+    TypeSynonymInstances
+
+test-suite golden
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  hs-source-dirs:   tests/golden
+  build-depends:
+    , base
+    , bytestring
+    , filepath      >=1.4 && <1.5
+    , glualint
+    , tasty         >=1.4 && <2
+    , tasty-golden  >=2.3 && <2.4
+
+  default-language: Haskell2010
+
+test-suite linttest
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  hs-source-dirs:   tests/linttest
+  build-depends:
+    , base
+    , bytestring
+    , glualint
+    , tasty        >=1.4  && <2
+    , tasty-hunit  >=0.10 && <0.12
+
+  default-language: Haskell2010
+
+executable glualint
+  -- Disable the executable for ghcjs and older versions of ghc. The executable
+  -- uses functions only available in ghc 8+
+  if !impl(ghc >=8.0.0)
+    buildable: False
+
+  main-is:          GLuaFixer/Main.hs
+  other-modules:
+    GLuaFixer.Cli
+    GLuaFixer.Effects.AnalyseGlobals
+    GLuaFixer.Effects.Cli
+    GLuaFixer.Effects.Files
+    GLuaFixer.Effects.Interruptible
+    GLuaFixer.Effects.Logging
+    GLuaFixer.Effects.Run
+    GLuaFixer.Effects.Settings
+    GLuaFixer.Version
+    Paths_glualint
+
+  autogen-modules:  Paths_glualint
+  other-extensions:
+    CPP
+    FlexibleContexts
+    FlexibleInstances
+    MultiParamTypeClasses
+    NoMonomorphismRestriction
+    Rank2Types
+    TypeSynonymInstances
+
+  build-depends:
+    , aeson
+    , base
+    , bytestring
+    , containers
+    , deepseq               >=1.4  && <2
+    , directory             >=1.3  && <2
+    , effectful             >=2.2  && <3
+    , filemanip             >=0.3  && <0.4
+    , filepath
+    , glualint
+    , optparse-applicative  >=0.17 && <1
+    , signal                >=0.1  && <0.2
+
+  hs-source-dirs:   app
+  ghc-options:      -O2 -Wall
+  default-language: Haskell2010
