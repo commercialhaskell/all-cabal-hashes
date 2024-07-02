@@ -1,0 +1,141 @@
+name:          language-c-quote
+version:       0.13.0.2
+cabal-version: 2.0
+license:       BSD3
+license-file:  LICENSE
+copyright:     (c) 2006-2011 Harvard University
+               (c) 2011-2013 Geoffrey Mainland
+               (c) 2013 Manuel M. T. Chakravarty
+               (c) 2013-2024 Drexel University
+author:        Geoffrey Mainland <mainland@drexel.edu>
+maintainer:    Geoffrey Mainland <mainland@drexel.edu>
+stability:     alpha
+homepage:      https://github.com/mainland/language-c-quote
+bug-reports:   https://github.com/mainland/language-c-quote/issues
+category:      Language
+synopsis:      C/CUDA/OpenCL/Objective-C quasiquoting library.
+tested-with:   GHC==8.0.2,
+               GHC==8.2.2,
+               GHC==8.4.3,
+               GHC==8.6.5,
+               GHC==8.8.4,
+               GHC==8.10.7,
+               GHC==9.0.2,
+               GHC==9.2.2,
+               GHC==9.4.8,
+               GHC==9.6.4,
+               GHC==9.8.2,
+               GHC==9.10.1
+
+description:
+  This package provides a general parser for the C language, including most GCC
+  extensions and some CUDA and OpenCL extensions as well as the entire Objective-C
+  language.
+
+build-type: Simple
+
+extra-source-files:
+  Language/C/Syntax-instances.hs
+  CHANGELOG.md
+
+flag full-haskell-antiquotes
+  description: Support full Haskell expressions/patterns in antiquotes. This
+               adds a dependency on haskell-src-meta, which increases
+               compilation time.
+  default:     True
+  manual:      True
+
+library
+  default-language: Haskell2010
+
+  build-depends:
+    array                  >= 0.2   && < 0.6,
+    base                   >= 4.5   && < 5,
+    bytestring             >= 0.9   && < 0.13,
+    containers             >= 0.4   && < 0.8,
+    exception-mtl          >= 0.3   && < 0.5,
+    exception-transformers >= 0.3   && < 0.5,
+    filepath               >= 1.2   && < 1.6,
+    mainland-pretty        >= 0.7   && < 0.8,
+    mtl                    >= 2.0   && < 3,
+    srcloc                 >= 0.4   && < 0.7,
+    syb                    >= 0.3   && < 0.8,
+    template-haskell
+
+  if flag(full-haskell-antiquotes)
+    if impl(ghc < 7.8)
+      build-depends: safe <= 0.3.9
+
+    if impl(ghc >= 8.0) && impl(ghc < 8.1)
+      build-depends: haskell-src-meta >= 0.4 && < 0.8.7
+    else
+      if impl(ghc >= 7.6)
+        build-depends: haskell-src-meta >= 0.4 && < 0.9
+      else
+        build-depends: haskell-src-meta >= 0.4 && < 0.7
+  else
+    build-depends: haskell-exp-parser >= 0.1 && < 0.2
+
+  if impl(ghc < 7.4)
+    build-tool-depends:
+      alex:alex,
+      happy:happy
+
+  if impl(ghc >= 7.4)
+    build-tool-depends:
+      alex:alex >=3,
+      happy:happy
+
+  exposed-modules:
+    Language.C
+    Language.C.Parser
+    Language.C.Parser.Lexer
+    Language.C.Parser.Monad
+    Language.C.Parser.Parser
+    Language.C.Parser.Tokens
+    Language.C.Pretty
+    Language.C.Quote
+    Language.C.Quote.Base
+    Language.C.Quote.C
+    Language.C.Quote.CUDA
+    Language.C.Quote.GCC
+    Language.C.Quote.ObjC
+    Language.C.Quote.OpenCL
+    Language.C.Smart
+    Language.C.Syntax
+
+  include-dirs: .
+
+  ghc-options: -Wall
+
+  if flag(full-haskell-antiquotes)
+    cpp-options: -DFULL_HASKELL_ANTIQUOTES
+
+test-suite unit
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   tests/unit
+  main-is:          Main.hs
+  other-modules:
+    CUDA
+    GCC
+    Objc
+    MainCPP
+
+  default-language: Haskell2010
+
+  build-depends:
+    HUnit                >= 1.2 && < 1.7,
+    base                 >= 4   && < 5,
+    bytestring           >= 0.9 && < 0.13,
+    language-c-quote,
+    mainland-pretty      >= 0.7 && < 0.8,
+    srcloc               >= 0.4 && < 0.7,
+    test-framework       >= 0.8 && < 0.9,
+    test-framework-hunit >= 0.3 && < 0.4
+
+  if flag(full-haskell-antiquotes)
+    cpp-options: -DFULL_HASKELL_ANTIQUOTES
+
+source-repository head
+  type:     git
+  location: git://github.com/mainland/language-c-quote.git
