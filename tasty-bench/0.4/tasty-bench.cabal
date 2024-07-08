@@ -1,0 +1,72 @@
+name:          tasty-bench
+version:       0.4
+cabal-version: 1.18
+build-type:    Simple
+license:       MIT
+license-file:  LICENSE
+copyright:     2021 Andrew Lelechenko
+author:        Andrew Lelechenko
+maintainer:    Andrew Lelechenko <andrew.lelechenko@gmail.com>
+homepage:      https://github.com/Bodigrim/tasty-bench
+bug-reports:   https://github.com/Bodigrim/tasty-bench/issues
+category:      Development, Performance, Testing, Benchmarking
+synopsis:      Featherlight benchmark framework
+description:
+  Featherlight framework (only one file!)
+  for performance measurement with API mimicking
+  @criterion@ and @gauge@, featuring built-in comparison
+  against previous runs and between benchmarks. Our benchmarks are just
+  regular @tasty@ tests.
+
+extra-source-files:
+  compare_benches.sh
+extra-doc-files:
+  changelog.md
+  example.svg
+  README.md
+
+tested-with: GHC == 9.10.1, GHC == 9.8.2, GHC == 9.6.6, GHC == 9.4.8, GHC == 9.2.8, GHC==9.0.2, GHC==8.10.7, GHC==8.8.4, GHC==8.6.5, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2
+
+source-repository head
+  type: git
+  location: https://github.com/Bodigrim/tasty-bench
+
+flag tasty
+  default: True
+  manual: True
+  description:
+    When disabled, reduces API to functions independent of @tasty@: combinators
+    to construct @Benchmarkable@ and @measureCpuTime@.
+
+library
+  exposed-modules:  Test.Tasty.Bench
+  hs-source-dirs:   src
+  default-language: Haskell2010
+  ghc-options:      -O2 -Wall -fno-warn-unused-imports
+  if impl(ghc < 7.10)
+    ghc-options:    -fcontext-stack=30
+  if impl(ghc >= 8.0)
+    ghc-options:    -Wcompat -Widentities
+
+  build-depends:
+    base >= 4.3 && < 5,
+    deepseq >= 1.1 && < 1.6,
+    ghc-prim < 0.12
+  if flag(tasty)
+    build-depends:
+      containers >= 0.4 && < 0.8,
+      tasty >= 1.4 && < 1.6
+  if impl(ghc < 7.8)
+    build-depends:
+      tagged >= 0.2 && < 0.9
+  if impl(ghc < 8.4)
+    build-depends:
+      time >= 1.2 && < 1.13
+
+benchmark bench-fibo
+  default-language: Haskell2010
+  hs-source-dirs:   bench
+  main-is:          bench-fibo.hs
+  type:             exitcode-stdio-1.0
+  build-depends:    base, tasty-bench
+  ghc-options:      "-with-rtsopts=-A32m"
