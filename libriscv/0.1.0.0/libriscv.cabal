@@ -1,0 +1,141 @@
+cabal-version:      2.4
+name:               libriscv
+version:            0.1.0.0
+
+synopsis:           A versatile, flexible and executable formal model for the RISC-V architecture.
+description:
+  A formal model for the <https://riscv.org/ RISC-V> /Instruction Set Architecture/ (ISA).
+  Contrary to other Haskell RISC-V ISA models, like <https://github.com/GaloisInc/grift GRIFT>
+  or <https://github.com/mit-plv/riscv-semantics riscv-semantics>, LibRISCV is specifically
+  tailored to the creation of custom ISA interpreters. To this end, it is designed for
+  flexibility, allowing a versatile representation of instruction operands. For example,
+  instruction operands can be <https://en.wikipedia.org/wiki/Satisfiability_modulo_theories SMT>
+  expressions for <https://doi.org/10.48550/arXiv.2404.04132 symbolic execution> of binary code.
+  .
+  LibRISCV abstractly describes instruction semantics using an /Embedded Domain Specific Language/
+  (EDSL) with <https://doi.org/10.1145/2887747.2804319 free(r) monads>. This Haskell library
+  is intended to build custom interpreters for this free monad. The entry point for this purpose is
+  the 'LibRISCV.Semantics.buildAST' function which obtains the free monad AST based on an entry address.
+  The entry address can be obtained from a provided ELF loader implementation, this "Loader" module
+  is also responsible for loading binary instructions into a provided memory implementation. Refer to
+  provided example interpreters in the <https://github.com/agra-uni-bremen/libriscv GitHub repository>
+  for practical usage instruction. More detailed information on LibRISCV and its concepts is also
+  available in a <https://doi.org/10.1007/978-3-031-38938-2_2 TFP'23 publication>.
+
+homepage:           https://github.com/agra-uni-bremen/libriscv
+bug-reports:        https://github.com/agra-uni-bremen/libriscv/issues
+license:            MIT
+license-file:       LICENSE.txt
+author:             Sören Tempel, Tobias Brandt, and Christoph Lüth
+maintainer:         Group of Computer Architecture <riscv@informatik.uni-bremen.de>
+copyright:          (c) 2022-2024 University of Bremen
+data-files:         data/instr_dict.yaml
+category:           Formal Languages
+
+source-repository head
+    type: git
+    location: https://github.com/agra-uni-bremen/libriscv.git
+
+common opts
+    ghc-options:    -Wall -Wno-name-shadowing
+
+library libriscv-internal
+    import:          opts
+
+    exposed-modules: LibRISCV.Internal.Decoder.Generator
+                   , LibRISCV.Internal.Decoder.Opcodes
+                   , LibRISCV.Internal.Decoder.Instruction
+                   , LibRISCV.Internal.Decoder.YamlParser
+
+    build-depends:
+        base
+        , yaml                  >= 0.11.8.0 && <0.12
+        , containers            >= 0.6.5.1 && <0.7
+        , file-embed            >= 0.0.10 && <0.1
+        , template-haskell
+        , bv
+
+    hs-source-dirs:   internal
+    default-language: Haskell2010
+
+library
+    import:          opts
+
+    exposed-modules: LibRISCV
+                   , LibRISCV.Loader
+                   , LibRISCV.CmdLine
+                   , LibRISCV.Effects.Decoding.Language
+                   , LibRISCV.Effects.Decoding.Default.Interpreter
+                   , LibRISCV.Effects.Operations.Language
+                   , LibRISCV.Effects.Operations.Default.Interpreter
+                   , LibRISCV.Effects.Operations.Default.Machine.Register
+                   , LibRISCV.Effects.Operations.Default.Machine.Memory
+                   , LibRISCV.Effects.Logging.Language
+                   , LibRISCV.Effects.Logging.Default.Interpreter
+                   , LibRISCV.Effects.Expressions.Language
+                   , LibRISCV.Effects.Expressions.Default.Interpreter
+                   , LibRISCV.Effects.Expressions.Expr
+                   , LibRISCV.Semantics
+    other-modules: LibRISCV.Effects.Expressions.Type
+                   , LibRISCV.Effects.Expressions.Generator
+                   , LibRISCV.Semantics.Default
+                   , LibRISCV.Semantics.Utils
+                   , LibRISCV.Semantics.RV_I.Default
+                   , LibRISCV.Semantics.RV32_I.Default
+                   , LibRISCV.Semantics.RV_M.Default
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:
+        libriscv-internal
+        , base                  >= 4.15.0.0 && <4.20.0.0
+        , array                ^>= 0.5.4.0
+        , filepath             ^>= 1.4.2.1
+        , bytestring            >= 0.10.10 && <0.12
+        , exceptions           ^>= 0.10.4
+        , melf                 ^>= 1.3.0
+        , freer-simple         ^>= 1.2.1.2
+        , transformers          >= 0.5.6.0 && <0.7
+        , optparse-applicative  >= 0.16.1 && <0.19
+        , bv                   ^>= 0.5
+        , parameterized-utils  ^>= 2.1.6.0
+        , extra                 >= 1.7.0 && <1.8
+        , template-haskell      >= 2.18.0 && <2.22
+
+    hs-source-dirs:   lib
+    default-language: Haskell2010
+
+executable riscv-tiny
+    import:               opts
+    main-is:              Main.hs
+    hs-source-dirs:       app
+    default-language:     Haskell2010
+    build-depends:
+        base
+        , libriscv
+        , freer-simple
+        , optparse-applicative
+        , bv
+
+test-suite test
+    import: opts
+    default-language:
+      Haskell2010
+    type:
+      exitcode-stdio-1.0
+    hs-source-dirs: test
+    main-is: Main.hs
+
+    other-modules:
+      DecoderTest
+      ArchStateTest
+
+    build-depends:
+      libriscv-internal
+      , base
+      , libriscv
+      , array
+      , bytestring
+      , bv
+      , tasty        >= 1.4.2.3
+      , tasty-hunit  >= 0.10.0.3
