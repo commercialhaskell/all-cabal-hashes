@@ -1,0 +1,202 @@
+Cabal-Version:       3.0
+
+Name:                erebos
+Version:             0.1.5
+Synopsis:            Decentralized messaging and synchronization
+Description:
+    Library and simple CLI interface implementing the Erebos identity
+    management, decentralized messaging and synchronization protocol, along
+    with local storage.
+    .
+    Erebos identity is based on locally stored cryptographic keys, all
+    communication is end-to-end encrypted. Multiple devices can be attached to
+    the same identity, after which they function interchangeably, without any
+    one being in any way "primary"; messages and other state data are then
+    synchronized automatically whenever the devices are able to connect with
+    one another.
+    .
+    See README for usage of the CLI tool.
+License:             BSD-3-Clause
+License-File:        LICENSE
+Homepage:            https://erebosprotocol.net/erebos
+Author:              Roman Smrž <roman.smrz@seznam.cz>
+Maintainer:          roman.smrz@seznam.cz
+Category:            Network
+Stability:           experimental
+Build-type:          Simple
+Extra-Doc-Files:
+    README.md
+    CHANGELOG.md
+Extra-Source-Files:
+    src/Erebos/ICE/pjproject.h
+
+Flag ice
+    Description:    Enable peer discovery with ICE support using pjproject
+
+Flag ci
+    description:    Options for CI testing
+    default: False
+    manual: True
+
+source-repository head
+    type:       git
+    location:   git://erebosprotocol.net/erebos
+
+common common
+    ghc-options:
+        -Wall
+        -fdefer-typed-holes
+
+    if flag(ci)
+        ghc-options:
+            -Werror
+            -- sometimes needed for backward/forward compatibility:
+            -Wno-error=unused-imports
+
+    build-depends:
+        base >=4.13 && <4.20,
+
+    default-extensions:
+        DefaultSignatures
+        ExistentialQuantification
+        FlexibleContexts
+        FlexibleInstances
+        FunctionalDependencies
+        GeneralizedNewtypeDeriving
+        ImportQualifiedPost
+        LambdaCase
+        MultiWayIf
+        RankNTypes
+        RecordWildCards
+        ScopedTypeVariables
+        StandaloneDeriving
+        TypeOperators
+        TupleSections
+        TypeApplications
+        TypeFamilies
+        TypeFamilyDependencies
+
+    other-extensions:
+        CPP
+        ForeignFunctionInterface
+        OverloadedStrings
+        RecursiveDo
+        TemplateHaskell
+        UndecidableInstances
+
+    if flag(ice)
+        cpp-options: -DENABLE_ICE_SUPPORT
+
+library
+    import: common
+    default-language:    Haskell2010
+
+    hs-source-dirs:      src
+    exposed-modules:
+        Erebos.Attach
+        Erebos.Channel
+        Erebos.Chatroom
+        Erebos.Contact
+        Erebos.Conversation
+        Erebos.Identity
+        Erebos.Message
+        Erebos.Network
+        Erebos.Network.Protocol
+        Erebos.Pairing
+        Erebos.PubKey
+        Erebos.Service
+        Erebos.Set
+        Erebos.State
+        Erebos.Storage
+        Erebos.Storage.Key
+        Erebos.Storage.Merge
+        Erebos.Sync
+
+        -- Used by test tool:
+        Erebos.Storage.Internal
+    other-modules:
+        Erebos.Flow
+        Erebos.Storage.List
+        Erebos.Storage.Platform
+        Erebos.Util
+
+    c-sources:
+        src/Erebos/Network/ifaddrs.c
+    include-dirs:
+        src
+
+    if flag(ice)
+        exposed-modules:
+            Erebos.Discovery
+            Erebos.ICE
+        c-sources:
+            src/Erebos/ICE/pjproject.c
+        include-dirs:
+            src/Erebos/ICE
+        includes:
+            src/Erebos/ICE/pjproject.h
+        build-tool-depends:  c2hs:c2hs
+        pkgconfig-depends:   libpjproject >= 2.9
+
+    build-depends:
+        async >=2.2 && <2.3,
+        binary >=0.8 && <0.11,
+        bytestring >=0.10 && <0.13,
+        clock >=0.8 && < 0.9,
+        containers >= 0.6 && <0.8,
+        cryptonite >=0.25 && <0.31,
+        deepseq >= 1.4 && <1.6,
+        directory >= 1.3 && <1.4,
+        filepath >=1.4 && <1.6,
+        fsnotify ^>= { 0.4 },
+        hashable >=1.3 && <1.5,
+        hashtables >=1.2 && <1.4,
+        iproute >=1.7.12 && <1.8,
+        memory >=0.14 && <0.19,
+        mtl >=2.2 && <2.4,
+        network >= 3.1 && <3.2,
+        stm >=2.5 && <2.6,
+        text >= 1.2 && <2.2,
+        time >= 1.8 && <1.14,
+        uuid >=1.3 && <1.4,
+        zlib >=0.6 && <0.8
+
+    if os(windows)
+        hs-source-dirs: src/windows
+        build-depends:
+            Win32 ^>= { 2.14 },
+    else
+        hs-source-dirs: src/unix
+        build-depends:
+            unix ^>= { 2.7, 2.8 },
+
+executable erebos
+    import: common
+    default-language:    Haskell2010
+    hs-source-dirs:      main
+    ghc-options:         -threaded
+
+    main-is:             Main.hs
+    other-modules:
+        Paths_erebos
+        Test
+        Test.Service
+        Version
+        Version.Git
+    autogen-modules:
+        Paths_erebos
+
+    build-depends:
+        bytestring,
+        cryptonite,
+        directory,
+        erebos,
+        haskeline >=0.7 && <0.9,
+        mtl,
+        network,
+        process >=1.6 && <1.7,
+        template-haskell >=2.17 && <2.22,
+        text,
+        time,
+        transformers >= 0.5 && <0.7,
+        uuid,
