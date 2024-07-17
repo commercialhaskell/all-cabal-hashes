@@ -1,0 +1,99 @@
+name: text-rope
+version: 0.3
+cabal-version: >=1.10
+build-type: Simple
+license: BSD3
+license-file: LICENSE
+copyright: 2021-2022 Andrew Lelechenko, 2024 Olle Fredriksson
+maintainer: Andrew Lelechenko <andrew.lelechenko@gmail.com>
+homepage: https://github.com/Bodigrim/text-rope
+category: Text
+synopsis: Text lines and ropes
+description:
+  A wrapper around `Text` for fast line/column navigation and logarithmic concatenation.
+author: Andrew Lelechenko <andrew.lelechenko@gmail.com>, Olle Fredriksson <fredriksson.olle@gmail.com>
+extra-source-files:
+  changelog.md
+  README.md
+data-files:
+  bench/bench.txt
+  bench/bench-utf8.txt
+
+tested-with: GHC == 9.10.1, GHC == 9.8.2, GHC == 9.6.5, GHC == 9.4.8, GHC == 9.2.8, GHC==9.0.2, GHC==8.10.7, GHC==8.8.4, GHC==8.6.5, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2
+
+source-repository head
+  type: git
+  location: git://github.com/Bodigrim/text-rope.git
+
+flag debug
+  default: False
+  manual: True
+  description: Build library with sanity checks enabled.
+
+library
+  exposed-modules:
+    Data.Text.Lines
+    Data.Text.Rope
+    Data.Text.Utf8.Lines
+    Data.Text.Utf16.Lines
+    Data.Text.Utf8.Rope
+    Data.Text.Utf16.Rope
+    Data.Text.Utf16.Rope.Mixed
+    Data.Text.Mixed.Rope
+  other-modules:
+    Data.Text.Lines.Internal
+  build-depends:
+    base >=4.9 && <5,
+    deepseq < 1.6,
+    text >= 1.2.3 && < 2.2,
+    vector >=0.11 && < 0.14
+  default-language: Haskell2010
+  hs-source-dirs: src
+  ghc-options: -O2 -Wall -Wcompat -fexpose-all-unfoldings
+  if flag(debug)
+    cpp-options: -DDEBUG
+    if impl(ghc >= 9.2.2)
+      ghc-options: -fcheck-prim-bounds
+  c-sources:
+    cbits/utils.c
+
+test-suite text-rope-tests
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+    CharLines
+    CharRope
+    MixedRope
+    Utf8Lines
+    Utf8Rope
+    Utf16Lines
+    Utf16Rope
+    Utils
+  build-depends:
+    base,
+    text-rope,
+    tasty,
+    tasty-quickcheck >= 0.8.1,
+    text
+  default-language: Haskell2010
+  hs-source-dirs: test
+  ghc-options: -Wall -threaded -rtsopts -Wcompat "-with-rtsopts -N"
+
+benchmark text-rope-bench
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+    Paths_text_rope
+  hs-source-dirs: bench
+  ghc-options: -O2 -rtsopts
+  build-depends:
+    base,
+    -- core-text,
+    text-rope,
+    random,
+    -- yi-rope,
+    -- rope-utf16-splay,
+    tasty >= 1.2,
+    tasty-bench >= 0.3,
+    text
+  default-language: Haskell2010
