@@ -1,0 +1,227 @@
+cabal-version:       2.2
+name:                hnix-store-remote
+version:             0.7.0.0
+synopsis:            Remote hnix store
+description:         Implementation of the nix store using the daemon protocol.
+homepage:            https://github.com/haskell-nix/hnix-store
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Sorki
+maintainer:          srk@48.io
+copyright:           2018 Sorki
+category:            Nix
+build-type:          Simple
+extra-doc-files:
+    CHANGELOG.md
+extra-source-files:
+    README.md
+  , README.lhs
+
+common commons
+  ghc-options:  -Wall
+  default-extensions:
+      DataKinds
+    , DefaultSignatures
+    , DeriveGeneric
+    , DeriveDataTypeable
+    , DeriveFunctor
+    , DeriveFoldable
+    , DeriveTraversable
+    , DeriveLift
+    , DerivingVia
+    , FlexibleContexts
+    , FlexibleInstances
+    , GADTs
+    , RecordWildCards
+    , ScopedTypeVariables
+    , StandaloneDeriving
+    , TypeApplications
+    , TypeOperators
+    , TypeSynonymInstances
+    , InstanceSigs
+    , KindSignatures
+    , MultiParamTypeClasses
+    , TupleSections
+    , LambdaCase
+    , BangPatterns
+    , ViewPatterns
+  default-language: Haskell2010
+
+flag io-testsuite
+  default:
+    False
+  description:
+    Enable testsuite, which requires external
+    binaries and Linux namespace support.
+
+flag build-derivation
+  default:
+    False
+  description:
+    Build build-derivation executable
+
+flag build-readme
+  default:
+    False
+  description:
+    Build README.lhs example
+
+library
+  import: commons
+  exposed-modules:
+      Data.Serializer
+    , Data.Serializer.Example
+    , System.Nix.Store.Remote
+    , System.Nix.Store.Remote.Arbitrary
+    , System.Nix.Store.Remote.Client
+    , System.Nix.Store.Remote.Client.Core
+    , System.Nix.Store.Remote.Logger
+    , System.Nix.Store.Remote.MonadStore
+    , System.Nix.Store.Remote.Serializer
+    , System.Nix.Store.Remote.Server
+    , System.Nix.Store.Remote.Socket
+    , System.Nix.Store.Remote.Types
+    , System.Nix.Store.Remote.Types.Activity
+    , System.Nix.Store.Remote.Types.CheckMode
+    , System.Nix.Store.Remote.Types.GC
+    , System.Nix.Store.Remote.Types.Handshake
+    , System.Nix.Store.Remote.Types.Logger
+    , System.Nix.Store.Remote.Types.NoReply
+    , System.Nix.Store.Remote.Types.ProtoVersion
+    , System.Nix.Store.Remote.Types.Query
+    , System.Nix.Store.Remote.Types.Query.Missing
+    , System.Nix.Store.Remote.Types.StoreConfig
+    , System.Nix.Store.Remote.Types.StoreRequest
+    , System.Nix.Store.Remote.Types.StoreReply
+    , System.Nix.Store.Remote.Types.StoreText
+    , System.Nix.Store.Remote.Types.SubstituteMode
+    , System.Nix.Store.Remote.Types.SuccessCodeReply
+    , System.Nix.Store.Remote.Types.TrustedFlag
+    , System.Nix.Store.Remote.Types.Verbosity
+    , System.Nix.Store.Remote.Types.WorkerMagic
+    , System.Nix.Store.Remote.Types.WorkerOp
+
+  build-depends:
+      base >=4.12 && <5
+    , hnix-store-core >= 0.8 && <0.9
+    , hnix-store-json >= 0.1
+    , hnix-store-nar >= 0.1
+    , hnix-store-tests >= 0.1
+    , aeson
+    , attoparsec
+    , bytestring
+    , cereal
+    , containers
+    , concurrency
+    , crypton
+    , data-default-class
+    , dependent-sum > 0.7
+    , dependent-sum-template >= 0.2.0.1 && < 0.3
+--    , directory
+    , dlist >= 1.0
+    , exceptions
+    , generic-arbitrary < 1.1
+    , hashable
+    , text
+    , time
+    , transformers
+    , network
+    , mtl
+    , QuickCheck
+    , unordered-containers
+    , unix >= 2.7
+    , vector
+  hs-source-dirs:      src
+  ghc-options:         -Wall
+
+executable build-derivation
+  if !flag(build-derivation)
+    buildable: False
+  build-depends:
+      base >=4.12 && <5
+    , hnix-store-core
+    , hnix-store-remote
+    , data-default-class
+    , text
+  default-language: Haskell2010
+  main-is: BuildDerivation.hs
+  hs-source-dirs:      app
+  ghc-options: -Wall -threaded -rtsopts "-with-rtsopts -N"
+
+executable remote-readme
+  if !flag(build-readme)
+    buildable: False
+  build-depends:
+      base >=4.12 && <5
+    , hnix-store-core
+    , hnix-store-remote
+  build-tool-depends:
+      markdown-unlit:markdown-unlit
+  default-language: Haskell2010
+  main-is: README.lhs
+  ghc-options: -pgmL markdown-unlit -Wall
+
+test-suite remote
+  import: commons
+  type:              exitcode-stdio-1.0
+  main-is:           Driver.hs
+  hs-source-dirs:    tests
+  ghc-options:       -Wall -threaded -rtsopts "-with-rtsopts -N"
+  other-modules:
+      Data.SerializerSpec
+      EnumSpec
+      NixSerializerSpec
+  build-tool-depends:
+    hspec-discover:hspec-discover
+  build-depends:
+      base >=4.12 && <5
+    , hnix-store-core
+    , hnix-store-remote
+    , hnix-store-tests
+    , bytestring
+    , crypton
+    , some > 1.0.5 && < 2
+    , time
+    , hspec
+    , QuickCheck
+
+test-suite remote-io
+  import: commons
+
+  if !flag(io-testsuite) || os(darwin)
+    buildable: False
+
+  type:              exitcode-stdio-1.0
+  main-is:           Main.hs
+  hs-source-dirs:    tests-io
+  -- See https://github.com/redneb/hs-linux-namespaces/issues/3
+  ghc-options:       -rtsopts -fprof-auto "-with-rtsopts -V0"
+  other-modules:
+      DataSink
+    , NixDaemonSpec
+    , SampleNar
+  build-depends:
+      base >=4.12 && <5
+    , hnix-store-core
+    , hnix-store-nar
+    , hnix-store-remote
+    , hnix-store-tests
+    , bytestring
+    , concurrency
+    , containers
+    , crypton
+    , data-default-class
+    , dependent-sum
+    , directory
+    , exceptions
+    , filepath
+    , hspec
+    , hspec-expectations-lifted
+    , linux-namespaces
+    , process
+    , some
+    , temporary
+    , text
+    , time
+    , unix
+    , unordered-containers
