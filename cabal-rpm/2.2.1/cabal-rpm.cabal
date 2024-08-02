@@ -1,0 +1,103 @@
+Cabal-version:       1.18
+Name:                cabal-rpm
+Version:             2.2.1
+Synopsis:            RPM packaging tool for Haskell Cabal-based packages
+Description:
+    This package provides a RPM packaging tool for Haskell Cabal-based
+    packages.
+    .
+    cabal-rpm has commands to generate a RPM spec file and srpm for a package.
+    It can rpmbuild packages, dnf/yum install their dependencies,
+    prep packages, and install them.
+    There are commands to list package dependencies and missing dependencies.
+    The diff command compares the current spec file with a freshly generated
+    one,
+    the update command updates the spec file to latest version from Stackage
+    or Hackage, and the refresh command updates the spec file to the current
+    cabal-rpm packaging. It also handles Hackage revisions of packages.
+    Standalone packages can also be made, built with cabal-install.
+Homepage:            https://github.com/juhp/cabal-rpm
+Bug-reports:         https://github.com/juhp/cabal-rpm/issues
+License:             GPL-3
+License-file:        COPYING
+Author:              Jens Petersen <juhpetersen@gmail.com>,
+                     Bryan O'Sullivan <bos@serpentine.com>
+Maintainer:          Jens Petersen <petersen@fedoraproject.org>
+Copyright:           2007-2008 Bryan O'Sullivan <bos@serpentine.com>,
+                     2012-2024 Jens Petersen <juhpetersen@gmail.com>
+Category:            Distribution
+Build-type:          Simple
+Extra-doc-files:     ChangeLog.md README.md TODO
+Tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4,
+                     GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7,
+                     GHC == 9.0.2, GHC == 9.2.8, GHC == 9.4.8,
+                     GHC == 9.6.4, GHC == 9.8.2
+
+source-repository head
+  type:     git
+  location: https://github.com/juhp/cabal-rpm
+
+Flag curl
+  Description:   Use curl library to query Stackage instead of http-client
+  Default:       False
+
+Executable cabal-rpm
+    Main-is:            Main.hs
+    Build-depends: base < 5,
+                   aeson,
+                   Cabal > 1.10 && < 3.11,
+                   cached-json-file,
+                   directory,
+                   extra,
+                   filepath >= 1.4,
+                   http-query,
+                   simple-cabal >= 0.1.3,
+                   simple-cmd >= 0.2.3,
+                   simple-cmd-args >= 0.1.7,
+                   time >= 1.5,
+                   text,
+                   unix
+    if impl(ghc<8.0)
+       Build-Depends: semigroups
+    if impl(ghc >= 8.0) && !flag(curl)
+       Build-Depends: bytestring,
+                      http-client >= 0.4.30,
+                      http-client-tls
+    else
+       Build-Depends: curl
+       Cpp-options: -DCURL
+    Default-Language:    Haskell2010
+    Other-modules:
+                  Commands.BuildDep,
+                  Commands.Depends,
+                  Commands.Diff,
+                  Commands.Install,
+                  Commands.RpmBuild,
+                  Commands.Refresh,
+                  Commands.Spec,
+                  Commands.Update,
+                  Dependencies,
+                  FileUtils,
+                  Header,
+                  PackageUtils,
+                  Stackage,
+                  Stackage.MajorVer,
+                  Stackage.Snapshots,
+                  SysCmd,
+                  Types,
+                  Paths_cabal_rpm
+    Hs-Source-Dirs:     src
+    ghc-options:        -fwarn-missing-signatures -Wall
+  if impl(ghc >= 8.0)
+    ghc-options:       -Wcompat
+                       -Widentities
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wredundant-constraints
+  if impl(ghc >= 8.2)
+    ghc-options:       -fhide-source-paths
+  if impl(ghc >= 8.4)
+    ghc-options:       -Wmissing-export-lists
+                       -Wpartial-fields
+  if impl(ghc >= 8.10)
+    ghc-options:       -Wunused-packages
