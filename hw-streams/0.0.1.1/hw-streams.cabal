@@ -1,0 +1,137 @@
+cabal-version:  2.2
+
+name:                   hw-streams
+version:                0.0.1.1
+synopsis:               Primitive functions and data types
+description:            Primitive functions and data types.
+category:               Data
+stability:              Experimental
+homepage:               http://github.com/haskell-works/hw-streams#readme
+bug-reports:            https://github.com/haskell-works/hw-streams/issues
+author:                 John Ky
+maintainer:             newhoggy@gmail.com
+copyright:              2016-2021 John Ky
+license:                BSD-3-Clause
+license-file:           LICENSE
+tested-with:            GHC == 9.2.2, GHC == 9.0.2, GHC == 8.10.7, GHC == 8.8.4, GHC == 8.6.5
+build-type:             Simple
+extra-source-files:     README.md
+
+source-repository head
+  type: git
+  location: https://github.com/haskell-works/hw-streams
+
+flag bounds-checking-enabled
+  description: Enable bmi2 instruction set
+  manual: False
+  default: False
+
+common base                       { build-depends: base                       >= 4.11       && < 5      }
+
+common bytestring                 { build-depends: bytestring                 >= 0.9        && < 0.13   }
+common criterion                  { build-depends: criterion                  >= 1.2        && < 1.7    }
+common directory                  { build-depends: directory                  >= 1.2        && < 1.4    }
+common doctest                    { build-depends: doctest                    >= 0.16.2     && < 1.0    }
+common doctest-discover           { build-depends: doctest-discover           >= 0.2        && < 0.3    }
+common exceptions                 { build-depends: exceptions                 >= 0.8        && < 0.11   }
+common ghc-prim                   { build-depends: ghc-prim                   >= 0.4        && < 0.12   }
+common hedgehog                   { build-depends: hedgehog                   >= 0.5        && < 2      }
+common hspec                      { build-depends: hspec                      >= 2.4        && < 3      }
+common hw-bits                    { build-depends: hw-bits                    >= 0.7.0.3    && < 0.8    }
+common hw-hspec-hedgehog          { build-depends: hw-hspec-hedgehog          >= 0.1        && < 0.2    }
+common hw-prim                    { build-depends: hw-prim                    >= 0.6.2.17   && < 0.7    }
+common mmap                       { build-depends: mmap                       >= 0.5        && < 0.6    }
+common primitive                  { build-depends: primitive                  >= 0.6.3.0    && < 0.10   }
+common QuickCheck                 { build-depends: QuickCheck                 >= 2.10       && < 2.15   }
+common transformers               { build-depends: transformers               >= 0.4        && < 0.7    }
+common vector                     { build-depends: vector                     >= 0.12       && < 0.14   }
+
+common config
+  if flag(bounds-checking-enabled)
+    cpp-options:        -DBOUNDS_CHECKING_ENABLED
+  default-language:     Haskell2010
+  other-extensions:     AllowAmbiguousTypes
+
+common hw-streams
+  build-depends:        hw-streams
+
+library
+  import:               base, config
+                      , bytestring
+                      , ghc-prim
+                      , hw-bits
+                      , hw-prim
+                      , mmap
+                      , primitive
+                      , transformers
+                      , vector
+  exposed-modules:      HaskellWorks.Data.Streams.ByteString
+                        HaskellWorks.Data.Streams.ByteString.Lazy
+                        HaskellWorks.Data.Streams.Internal
+                        HaskellWorks.Data.Streams.Internal.Bundle
+                        HaskellWorks.Data.Streams.Internal.Chunk
+                        HaskellWorks.Data.Streams.Size
+                        HaskellWorks.Data.Streams.Stream
+                        HaskellWorks.Data.Streams.Stream.Ops
+                        HaskellWorks.Data.Streams.Vector
+                        HaskellWorks.Data.Streams.Vector.Storable
+  other-modules:        Paths_hw_streams
+  autogen-modules:      Paths_hw_streams
+  hs-source-dirs:       src
+  ghc-options:          -Wall -O2 -msse4.2
+
+test-suite hw-streams-test
+  import:               base, config
+                      , QuickCheck
+                      , bytestring
+                      , directory
+                      , exceptions
+                      , ghc-prim
+                      , hedgehog
+                      , hspec
+                      , hw-bits
+                      , hw-hspec-hedgehog
+                      , hw-prim
+                      , mmap
+                      , primitive
+                      , transformers
+                      , vector
+  type:                 exitcode-stdio-1.0
+  main-is:              Spec.hs
+  hs-source-dirs:       test
+  other-modules:        HaskellWorks.Data.Streams.Stream.OpsSpec
+                        HaskellWorks.Data.Streams.Vector.StorableSpec
+                        Test.Gen
+  ghc-options:          -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:        hw-streams
+  build-tool-depends:   hspec-discover:hspec-discover
+
+benchmark bench
+  import:               base, config
+                      , bytestring
+                      , criterion
+                      , ghc-prim
+                      , hw-bits
+                      , hw-prim
+                      , mmap
+                      , primitive
+                      , transformers
+                      , vector
+  type:                 exitcode-stdio-1.0
+  main-is:              Main.hs
+  hs-source-dirs:       bench
+  build-depends:        hw-streams
+  ghc-options:          -Wall -O2 -msse4.2
+  other-modules:        Baseline.Data.Streams.Vector.Storable
+                        Reference.Data.Streams.Vector.Storable
+
+test-suite doctest
+  import:               base, config
+                      , doctest
+                      , doctest-discover
+                      , hw-streams
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -threaded -rtsopts -with-rtsopts=-N
+  main-is:              DoctestDriver.hs
+  HS-Source-Dirs:       doctest
+  build-tool-depends:   doctest-discover:doctest-discover
