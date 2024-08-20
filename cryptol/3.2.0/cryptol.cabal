@@ -1,0 +1,336 @@
+Cabal-version:       2.4
+Name:                cryptol
+Version:             3.2.0
+Synopsis:            Cryptol: The Language of Cryptography
+Description: Cryptol is a domain-specific language for specifying cryptographic algorithms. A Cryptol implementation of an algorithm resembles its mathematical specification more closely than an implementation in a general purpose language. For more, see <http://www.cryptol.net/>.
+License:             BSD-3-Clause
+License-file:        LICENSE
+Author:              Galois, Inc.
+Maintainer:          cryptol@galois.com
+Homepage:            http://www.cryptol.net/
+Bug-reports:         https://github.com/GaloisInc/cryptol/issues
+Copyright:           2013-2022 Galois Inc.
+Category:            Language
+Build-type:          Simple
+extra-source-files:  bench/data/*.cry
+                     CHANGES.md
+                     lib/*.cry lib/*.z3
+
+data-files:          **/*.cry **/*.z3
+data-dir:            lib
+
+source-repository head
+  type:     git
+  location: https://github.com/GaloisInc/cryptol.git
+
+source-repository this
+  type:     git
+  location: https://github.com/GaloisInc/cryptol.git
+  -- add a tag on release branches
+  tag: 3.2.0
+
+
+flag static
+  default: False
+  description: Create a statically-linked binary
+
+flag relocatable
+  default: True
+  description: Don't use the Cabal-provided data directory for looking up Cryptol libraries. This is useful when the data directory can't be known ahead of time, like for a relocatable distribution.
+
+flag ffi
+  default: True
+  description: Enable the foreign function interface
+
+library
+  Default-language:
+    Haskell2010
+  Build-depends:       base              >= 4.9 && < 5,
+                       arithmoi          >= 0.12,
+                       async             >= 2.2 && < 2.3,
+                       base-compat       >= 0.6 && < 0.13,
+                       bv-sized          >= 1.0 && < 1.1,
+                       bytestring        >= 0.10,
+                       array             >= 0.4,
+                       containers        >= 0.5,
+                       criterion-measurement,
+                       cryptohash-sha1   >= 0.11 && < 0.12,
+                       deepseq           >= 1.3,
+                       directory         >= 1.2.2.0,
+                       exceptions,
+                       file-embed        >= 0.0.16,
+                       filepath          >= 1.3,
+                       gitrev            >= 1.0,
+                       ghc-prim,
+                       GraphSCC          >= 1.0.4,
+                       language-c99,
+                       language-c99-simple,
+                       libBF             >= 0.6 && < 0.7,
+                       MemoTrie          >= 0.6 && < 0.7,
+                       monad-control     >= 1.0,
+                       monadLib          >= 3.7.2,
+                       parameterized-utils >= 2.0.2,
+                       pretty,
+                       prettyprinter     >= 1.7.0,
+                       pretty-show,
+                       process           >= 1.2,
+                       sbv               >= 9.1 && < 10.11,
+                       simple-smt        >= 0.9.7,
+                       stm               >= 2.4,
+                       strict,
+                       text              >= 1.1,
+                       tf-random         >= 0.5,
+                       transformers-base >= 0.4,
+                       vector,
+                       mtl               >= 2.2.1,
+                       time              >= 1.6.0.1,
+                       panic             >= 0.3,
+                       what4             >= 1.4 && < 1.7
+
+  if impl(ghc >= 9.0)
+    build-depends:     ghc-bignum        >= 1.0 && < 1.4
+  else
+    build-depends:     integer-gmp       >= 1.0 && < 1.1
+
+  if flag(ffi)
+    build-depends:     hgmp,
+                       libffi            >= 0.2
+    if os(windows)
+      build-depends:   Win32
+    else
+      build-depends:   unix
+    cpp-options:       -DFFI_ENABLED
+
+  Build-tool-depends:  alex:alex, happy:happy
+  hs-source-dirs:      src
+
+  Exposed-modules:     Cryptol.Parser,
+                       Cryptol.Parser.Lexer,
+                       Cryptol.Parser.Token,
+                       Cryptol.Parser.Layout,
+                       Cryptol.Parser.AST,
+                       Cryptol.Parser.Position,
+                       Cryptol.Parser.Names,
+                       Cryptol.Parser.Name,
+                       Cryptol.Parser.NoPat,
+                       Cryptol.Parser.ExpandPropGuards,
+                       Cryptol.Parser.NoInclude,
+                       Cryptol.Parser.Selector,
+                       Cryptol.Parser.Utils,
+                       Cryptol.Parser.Unlit,
+
+                       Cryptol.Utils.Fixity,
+                       Cryptol.Utils.Ident,
+                       Cryptol.Utils.RecordMap,
+                       Cryptol.Utils.PP,
+                       Cryptol.Utils.Panic,
+                       Cryptol.Utils.Debug,
+                       Cryptol.Utils.Misc,
+                       Cryptol.Utils.Patterns,
+                       Cryptol.Utils.Logger,
+                       Cryptol.Utils.Benchmark,
+                       Cryptol.Utils.Types,
+                       Cryptol.Version,
+
+                       Cryptol.ModuleSystem,
+                       Cryptol.ModuleSystem.Base,
+                       Cryptol.ModuleSystem.Env,
+                       Cryptol.ModuleSystem.Fingerprint,
+                       Cryptol.ModuleSystem.Interface,
+                       Cryptol.ModuleSystem.Monad,
+                       Cryptol.ModuleSystem.Name,
+                       Cryptol.ModuleSystem.Names,
+                       Cryptol.ModuleSystem.NamingEnv,
+                       Cryptol.ModuleSystem.NamingEnv.Types,
+                       Cryptol.ModuleSystem.Binds
+                       Cryptol.ModuleSystem.Exports,
+                       Cryptol.ModuleSystem.Renamer,
+                       Cryptol.ModuleSystem.Renamer.Imports,
+                       Cryptol.ModuleSystem.Renamer.ImplicitImports,
+                       Cryptol.ModuleSystem.Renamer.Monad,
+                       Cryptol.ModuleSystem.Renamer.Error,
+
+                       Cryptol.TypeCheck,
+                       Cryptol.TypeCheck.Type,
+                       Cryptol.TypeCheck.TCon,
+                       Cryptol.TypeCheck.TypePat,
+                       Cryptol.TypeCheck.SimpType,
+                       Cryptol.TypeCheck.AST,
+                       Cryptol.TypeCheck.Parseable,
+                       Cryptol.TypeCheck.Monad,
+                       Cryptol.TypeCheck.Infer,
+                       Cryptol.TypeCheck.InferTypes,
+                       Cryptol.TypeCheck.Interface,
+                       Cryptol.TypeCheck.Error,
+                       Cryptol.TypeCheck.Kind,
+                       Cryptol.TypeCheck.Subst,
+                       Cryptol.TypeCheck.Instantiate,
+                       Cryptol.TypeCheck.Unify,
+                       Cryptol.TypeCheck.PP,
+                       Cryptol.TypeCheck.Solve,
+                       Cryptol.TypeCheck.Default,
+                       Cryptol.TypeCheck.SimpleSolver,
+                       Cryptol.TypeCheck.TypeMap,
+                       Cryptol.TypeCheck.TypeOf,
+                       Cryptol.TypeCheck.Sanity,
+                       Cryptol.TypeCheck.FFI,
+                       Cryptol.TypeCheck.FFI.Error,
+                       Cryptol.TypeCheck.FFI.FFIType,
+                       Cryptol.TypeCheck.Module,
+                       Cryptol.TypeCheck.ModuleInstance,
+                       Cryptol.TypeCheck.ModuleBacktickInstance,
+
+                       Cryptol.TypeCheck.Solver.Types,
+                       Cryptol.TypeCheck.Solver.SMT,
+                       Cryptol.TypeCheck.Solver.InfNat,
+                       Cryptol.TypeCheck.Solver.Class,
+                       Cryptol.TypeCheck.Solver.Selector,
+                       Cryptol.TypeCheck.Solver.Utils,
+
+                       Cryptol.TypeCheck.Solver.Numeric,
+                       Cryptol.TypeCheck.Solver.Improve,
+                       Cryptol.TypeCheck.Solver.Numeric.Fin,
+                       Cryptol.TypeCheck.Solver.Numeric.Interval,
+
+                       Cryptol.Transform.MonoValues,
+                       Cryptol.Transform.Specialize,
+
+                       Cryptol.IR.FreeVars,
+                       Cryptol.IR.TraverseNames,
+
+                       Cryptol.Backend,
+                       Cryptol.Backend.Arch,
+                       Cryptol.Backend.Concrete,
+                       Cryptol.Backend.FFI,
+                       Cryptol.Backend.FFI.Error,
+                       Cryptol.Backend.FloatHelpers,
+                       Cryptol.Backend.Monad,
+                       Cryptol.Backend.SeqMap,
+                       Cryptol.Backend.SBV,
+                       Cryptol.Backend.What4,
+                       Cryptol.Backend.WordValue,
+
+                       Cryptol.Eval,
+                       Cryptol.Eval.Concrete,
+                       Cryptol.Eval.Env,
+                       Cryptol.Eval.FFI,
+                       Cryptol.Eval.FFI.GenHeader,
+                       Cryptol.Eval.Generic,
+                       Cryptol.Eval.Prims,
+                       Cryptol.Eval.Reference,
+                       Cryptol.Eval.SBV,
+                       Cryptol.Eval.Type,
+                       Cryptol.Eval.Value,
+                       Cryptol.Eval.What4,
+
+                       Cryptol.AES,
+                       Cryptol.F2,
+                       Cryptol.SHA,
+                       Cryptol.PrimeEC,
+
+                       Cryptol.Testing.Random,
+
+                       Cryptol.Symbolic,
+                       Cryptol.Symbolic.SBV,
+                       Cryptol.Symbolic.What4,
+
+                       Cryptol.REPL.Command,
+                       Cryptol.REPL.Help,
+                       Cryptol.REPL.Browse,
+                       Cryptol.REPL.Monad,
+                       Cryptol.REPL.Trie
+
+  Other-modules:       Cryptol.Parser.LexerUtils,
+                       Cryptol.Parser.ParserUtils,
+                       Cryptol.Prelude,
+                       GHC.Num.Compat,
+                       Paths_cryptol,
+                       GitRev
+
+  GHC-options:         -Wall -fsimpl-tick-factor=140 -O2
+  if impl(ghc >= 8.0.1)
+     ghc-options: -Wno-redundant-constraints
+
+  if flag(relocatable)
+      cpp-options: -DRELOCATABLE
+
+executable cryptol
+  Default-language:
+    Haskell2010
+  Main-is:             Main.hs
+  hs-source-dirs:      cryptol
+  Autogen-modules:     Paths_cryptol
+
+  Other-modules:       OptParser,
+                       REPL.Haskeline,
+                       REPL.Logo,
+                       Paths_cryptol
+
+  build-depends:       ansi-terminal
+                     , base
+                     , base-compat
+                     , containers
+                     , cryptol
+                     , directory
+                     , filepath
+                     , haskeline >= 0.7 && < 0.9
+                     , exceptions
+                     , monad-control
+                     , text
+                     , transformers
+  GHC-options:         -Wall -threaded -rtsopts "-with-rtsopts=-N1 -A64m" -O2
+  if impl(ghc >= 8.0.1)
+     ghc-options: -Wno-redundant-constraints
+
+  if os(linux) && flag(static)
+      ld-options: -static -pthread
+      ghc-options: -optl-fuse-ld=bfd
+
+executable cryptol-html
+  Default-language:
+    Haskell2010
+  main-is: CryHtml.hs
+  hs-source-dirs: utils
+  build-depends: base, text, cryptol, blaze-html
+  GHC-options: -Wall
+
+  if os(linux) && flag(static)
+      ld-options: -static -pthread
+      ghc-options: -optl-fuse-ld=bfd
+
+executable check-exercises
+  Default-language:
+    Haskell2010
+  Main-is:             CheckExercises.hs
+  hs-source-dirs:      cryptol
+  build-depends:       ansi-terminal
+                     , base
+                     , containers
+                     , directory
+                     , extra
+                     , filepath
+                     , mtl
+                     , optparse-applicative
+                     , process
+                     , temporary
+                     , text
+  GHC-options: -Wall
+benchmark cryptol-bench
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  hs-source-dirs:      bench
+  default-language:    Haskell2010
+  GHC-options:         -Wall -threaded -rtsopts "-with-rtsopts=-N1 -A64m" -O2
+  if impl(ghc >= 8.0.1)
+     ghc-options: -Wno-redundant-constraints
+  if os(linux) && flag(static)
+      ld-options: -static -pthread
+      ghc-options: -optl-fuse-ld=bfd
+  build-depends:       base
+                     , criterion
+                     , cryptol
+                     , deepseq
+                     , directory
+                     , filepath
+                     , sbv
+                     , text
