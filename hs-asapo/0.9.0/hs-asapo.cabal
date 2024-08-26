@@ -1,0 +1,108 @@
+cabal-version:  3.4
+name:           hs-asapo
+version:        0.9.0
+synopsis:       Haskell bindings for ASAP:O
+category:       System, FFI, Distributed Computing
+homepage:       https://github.com/pmiddend/hs-asapo
+bug-reports:    https://github.com/pmiddend/hs-asapo/issues
+author:         Philipp Middendorf
+maintainer:     philipp.middendorf@desy.de
+copyright:      2024 Philipp Middendorf
+license:        MIT
+license-file:   LICENSE
+build-type:     Custom
+extra-source-files: ChangeLog
+description:
+  Haskell bindings for ASAP:O, a middleware platform for high-performance data analysis. Some general notes about this project:
+  
+  * @newtype@ and enumerations are used liberally, to make function calls more readable and requiring less documentation (cf. <https://yveskalume.dev/boolean-blindness-dont-represent-state-with-boolean boolean blindness>)
+  * For text, such as URLs, identifiers, we assume UTF-8 and use strict [Text]("Data.Text")
+  * For data, we copy the data into a strict [ByteString]("Data.ByteString")
+
+  There are two interfaces available: one which does not throw exceptions, but returns a @Either Error a@, and one which throws exceptions. Both expose the same functions. It's yours to decide which one to use.
+
+source-repository head
+  type: git
+  location: https://github.com/pmiddend/hs-asapo
+
+common warnings
+    ghc-options: -Weverything -Wno-missing-safe-haskell-mode -Wno-unsafe -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-monomorphism-restriction -Wno-safe -Wno-missing-local-signatures -Wno-prepositive-qualified-module -Wno-missing-kind-signatures -Wno-missed-specializations
+
+custom-setup
+  setup-depends:
+      base < 5
+    , cabal-doctest >= 1.0.9 && <1.1
+
+library
+  import: warnings
+  exposed-modules: Asapo.Raw.Common
+                 , Asapo.Raw.Consumer
+                 , Asapo.Raw.Producer
+                 , Asapo.Raw.FreeHandleHack
+                 , Asapo.Either.Producer
+                 , Asapo.Either.Consumer
+                 , Asapo.Either.Common
+                 , Asapo.Producer
+                 , Asapo.Consumer
+  build-depends:
+      base >=4.7 && <5
+    , text >= 2.0.2 && < 2.1
+    -- for timespec data type (is Storable)
+    , clock >= 0.8.4 && < 0.9
+    -- for higher-level UTCTime/LocalTime
+    , time >= 1.12.2 && < 1.13
+    -- for RFC3339
+    , timerep >= 2.1.0 && < 2.2
+    -- for the HL interface to send
+    , bytestring  >= 0.11.5 && < 0.12
+
+  pkgconfig-depends: libasapo-consumer
+                   , libasapo-producer
+  hs-source-dirs:    lib
+
+-- Marked as "benchmark" so the dependencies on hackage are accurate
+benchmark simple-producer
+  type: exitcode-stdio-1.0
+  main-is: SimpleProducer.hs
+  
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:
+      app
+  build-depends:
+      base >=4.7 && <5
+    , hs-asapo
+    , text >= 2.0.2 && < 2.1
+    , time >= 1.12.2 && < 1.13
+    , optparse-applicative >= 0.18.1 && < 0.19
+    
+-- Marked as "benchmark" so the dependencies on hackage are accurate
+benchmark simple-consumer
+  type: exitcode-stdio-1.0
+  main-is: SimpleConsumer.hs
+  
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:
+      app
+  build-depends:
+      base >=4.7 && <5
+    , hs-asapo
+    , text >= 2.0.2 && < 2.1
+    , time >= 1.12.2 && < 1.13
+    , optparse-applicative
+    
+-- copied from https://github.com/ulidtko/cabal-doctest
+test-suite doctests
+  type:             exitcode-stdio-1.0
+  main-is:          doctests.hs
+  build-depends:
+      base >=4.7 && <5
+    , doctest >=0.15   && <1
+    , clock >= 0.8.4 && < 0.9
+    , timerep >= 2.1.0 && < 2.2
+    , time >= 1.12.2 && < 1.13
+    , bytestring  >= 0.11.5 && < 0.12
+    , text >= 2.0.2 && < 2.1
+    , hs-asapo
+
+  ghc-options:      -Wall -threaded
+  hs-source-dirs:   tests
