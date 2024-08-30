@@ -1,0 +1,172 @@
+Cabal-version: 2.2
+Name:          crucible
+Version:       0.7.1
+Author:        Galois Inc.
+Maintainer:    rscott@galois.com, kquick@galois.com, langston@galois.com
+Copyright:     (c) Galois, Inc 2014-2022
+License:       BSD-3-Clause
+License-file:  LICENSE
+Build-type:    Simple
+Category:      Language
+Synopsis:      Crucible is a library for language-agnostic symbolic simulation
+Description:
+  Crucible provides a program representation format based on single-static assignment
+  (SSA) form control flow graphs, and a symbolic simulation engine for executing
+  programs expressed in this format.  It also provides support for communicating with
+  a variety of SAT and SMT solvers, including Z3, CVC4, Yices, STP, and dReal.
+extra-source-files: CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/GaloisInc/crucible
+  subdir:   crucible
+
+-- Many (but not all, sadly) uses of unsafe operations are
+-- controlled by this compile flag.  When this flag is set
+-- to False, alternate implementations are used to avoid
+-- Unsafe.Coerce and Data.Coerce.  These alternate implementations
+-- impose a significant performance hit.
+flag unsafe-operations
+  Description: Use unsafe operations to improve performance
+  Default: True
+
+common bldflags
+  ghc-options: -Wall
+               -Werror=incomplete-patterns
+               -Werror=missing-methods
+               -Werror=overlapping-patterns
+               -Wpartial-fields
+               -Wincomplete-uni-patterns
+  ghc-prof-options: -O2 -fprof-auto-exported
+  default-language: Haskell2010
+
+
+library
+  import: bldflags
+  build-depends:
+    async,
+    base >= 4.13 && < 4.20,
+    bimap,
+    bv-sized >= 1.0.0 && < 1.1,
+    containers >= 0.5.9.0,
+    exceptions,
+    fgl,
+    hashable,
+    json >= 0.9 && < 1.0,
+    lens,
+    mtl,
+    panic >= 0.3,
+    parameterized-utils >= 1.0.8 && < 2.2,
+    prettyprinter >= 1.7.0,
+    template-haskell,
+    text,
+    time >= 1.8 && < 2.0,
+    th-abstraction >=0.1 && <0.7,
+    transformers,
+    unordered-containers,
+    vector,
+    what4 >= 0.4
+
+  default-extensions:
+     NondecreasingIndentation
+     NoStarIsType
+
+  hs-source-dirs: src
+
+  other-modules:
+    Lang.Crucible.Backend.Assumptions
+
+  exposed-modules:
+    Lang.Crucible.Analysis.DFS
+    Lang.Crucible.Analysis.ForwardDataflow
+    Lang.Crucible.Analysis.Fixpoint
+    Lang.Crucible.Analysis.Fixpoint.Components
+    Lang.Crucible.Analysis.Postdom
+    Lang.Crucible.Analysis.Reachable
+    Lang.Crucible.Backend
+    Lang.Crucible.Backend.AssumptionStack
+    Lang.Crucible.Backend.ProofGoals
+    Lang.Crucible.Backend.Online
+    Lang.Crucible.Backend.Prove
+    Lang.Crucible.Backend.Simple
+    Lang.Crucible.Concretize
+    Lang.Crucible.CFG.Common
+    Lang.Crucible.CFG.Core
+    Lang.Crucible.CFG.Expr
+    Lang.Crucible.CFG.Extension
+    Lang.Crucible.CFG.ExtractSubgraph
+    Lang.Crucible.CFG.Generator
+    Lang.Crucible.CFG.Reg
+    Lang.Crucible.CFG.SSAConversion
+    Lang.Crucible.CFG.EarlyMergeLoops
+    Lang.Crucible.FunctionHandle
+    Lang.Crucible.Simulator
+    Lang.Crucible.Simulator.Breakpoint
+    Lang.Crucible.Simulator.BoundedExec
+    Lang.Crucible.Simulator.BoundedRecursion
+    Lang.Crucible.Simulator.CallFrame
+    Lang.Crucible.Simulator.Evaluation
+    Lang.Crucible.Simulator.EvalStmt
+    Lang.Crucible.Simulator.ExecutionTree
+    Lang.Crucible.Simulator.Intrinsics
+    Lang.Crucible.Simulator.GlobalState
+    Lang.Crucible.Simulator.Operations
+    Lang.Crucible.Simulator.OverrideSim
+    Lang.Crucible.Simulator.PathSatisfiability
+    Lang.Crucible.Simulator.PathSplitting
+    Lang.Crucible.Simulator.PositionTracking
+    Lang.Crucible.Simulator.Profiling
+    Lang.Crucible.Simulator.RegMap
+    Lang.Crucible.Simulator.RegValue
+    Lang.Crucible.Simulator.SimError
+    Lang.Crucible.Simulator.SymSequence
+    Lang.Crucible.Syntax
+    Lang.Crucible.Types
+    Lang.Crucible.Vector
+    Lang.Crucible.Panic
+    Lang.Crucible.Utils.BitSet
+    Lang.Crucible.Utils.CoreRewrite
+    Lang.Crucible.Utils.MonadVerbosity
+    Lang.Crucible.Utils.MuxTree
+    Lang.Crucible.Utils.PrettyPrint
+    Lang.Crucible.Utils.RegRewrite
+    Lang.Crucible.Utils.Seconds
+    Lang.Crucible.Utils.Timeout
+    Lang.Crucible.Utils.StateContT
+    Lang.Crucible.Utils.Structural
+
+  if flag(unsafe-operations)
+    cpp-options: -DUNSAFE_OPS
+
+test-suite absint-tests
+  import: bldflags
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/absint
+  other-modules: AI,
+                 EvenOdd,
+                 Max,
+                 WTO
+  main-is: Main.hs
+  build-depends: base,
+                 containers,
+                 mtl,
+                 crucible,
+                 what4,
+                 parameterized-utils,
+                 tasty >= 0.10,
+                 tasty-hunit >= 0.9,
+                 tasty-quickcheck >= 0.8,
+                 QuickCheck
+
+test-suite helper-tests
+  import: bldflags
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/helpers
+--  other-modules:
+  main-is: Main.hs
+  build-depends: base,
+                 hspec >= 2.5,
+                 crucible,
+                 panic >= 0.3,
+                 tasty >= 0.10,
+                 tasty-hspec >= 1.1
