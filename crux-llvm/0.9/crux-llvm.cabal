@@ -1,0 +1,184 @@
+Cabal-version: 2.2
+Name:          crux-llvm
+Version:       0.9
+Author:        Galois Inc.
+Maintainer:    rscott@galois.com, kquick@galois.com, langston@galois.com
+Copyright:     (c) Galois, Inc 2014-2022
+License:       BSD-3-Clause
+License-file:  LICENSE
+Build-type:    Simple
+Category:      Language
+Synopsis:      A verification tool for C programs.
+Description:
+  .
+  This tool (and corresponding C library) are intended for verifying C
+  programs using verification specifications embedded in the input
+  source files (i.e. it allows for writing Crucible specifications
+  by using C as the specification language).
+  .
+  This tool provides:
+  .
+  * a Haskell library with the core functionality,
+  .
+  * a @crux-llvm@ executable used to run the verification when given one
+    or more C or C++ source files
+  .
+  * a set of supplemental C source files, include files, and LLVM
+    runtime library bitcode files to use for building the input C
+    files into verifiable LLVM BC files.
+  .
+  * a @crux-llvm-svcomp@ executable that is designed to run verification
+    of challenge inputs for the SV-COMP competition, generating
+    results tailored to the format that SV-COMP expects.
+
+
+data-files:
+   c-src/includes/crucible.h
+   c-src/includes/crucible-model.h
+   c-src/concrete-backend.c
+   c-src/print-model.c
+   c-src/libcxx-3.6.2.bc
+   c-src/libcxx-7.1.0.bc
+extra-source-files: CHANGELOG.md, README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/GaloisInc/crucible
+  subdir:   crux-llvm
+
+common bldflags
+  ghc-options: -Wall
+               -Werror=incomplete-patterns
+               -Werror=missing-methods
+               -Werror=overlapping-patterns
+               -Wpartial-fields
+               -Wincomplete-uni-patterns
+  ghc-prof-options: -O2
+  default-language: Haskell2010
+  build-depends:    base >= 4.8 && < 4.20
+                  , bytestring
+                  , containers
+                  , crucible
+                  , crucible-symio
+                  , crucible-llvm
+                  , crux
+                  , directory
+                  , filepath
+                  , lens
+                  , process
+                  , text
+                  , what4
+
+common testdefs
+  build-depends: tasty            >= 0.10
+               , tasty-hunit      >= 0.10
+               , tasty-sugar      >= 2.2 && < 2.3
+
+
+library
+  import: bldflags
+  hs-source-dirs: src
+
+  exposed-modules:
+    CruxLLVMMain
+    Crux.LLVM.Compile
+    Crux.LLVM.Config
+    Crux.LLVM.Log
+    Crux.LLVM.Overrides
+    Crux.LLVM.Simulate
+    Paths_crux_llvm
+
+  autogen-modules:
+    Paths_crux_llvm
+
+  build-depends:
+    aeson,
+    bv-sized,
+    config-schema >= 1.2.2.0,
+    logict,
+    llvm-pretty,
+    llvm-pretty-bc-parser,
+    mtl,
+    parameterized-utils,
+    prettyprinter >= 1.7.0
+
+
+executable crux-llvm
+  import: bldflags
+
+  hs-source-dirs: exe
+
+  build-depends:
+    crux-llvm
+
+  main-is: Main.hs
+
+  if os(windows)
+    hs-source-dirs: exe/windows
+  else
+    hs-source-dirs: exe/unix
+    build-depends: unix
+
+  other-modules: RealMain
+
+
+executable crux-llvm-for-ide
+  import: bldflags
+
+  hs-source-dirs: for-ide
+
+  build-depends:
+    aeson,
+    crux-llvm,
+    lumberjack,
+    websockets >= 0.12
+
+  main-is: Main.hs
+
+  if os(windows)
+    hs-source-dirs: for-ide/windows
+  else
+    hs-source-dirs: for-ide/unix
+    build-depends: unix
+
+  other-modules:
+    Paths_crux_llvm
+    RealMain
+
+
+executable crux-llvm-svcomp
+  import: bldflags
+  hs-source-dirs: svcomp
+  main-is: Main.hs
+
+  build-depends:
+    aeson,
+    attoparsec,
+    base16-bytestring,
+    crux-llvm,
+    cryptohash-sha256,
+    extra,
+    indexed-traversable,
+    time
+
+  other-modules:
+    SVComp.Log
+    Paths_crux_llvm
+
+  autogen-modules:
+    Paths_crux_llvm
+
+
+test-suite crux-llvm-test
+  import: bldflags, testdefs
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+
+  main-is: Test.hs
+
+  build-depends:
+                crux-llvm,
+                extra,
+                regex-base,
+                regex-posix,
+                versions
