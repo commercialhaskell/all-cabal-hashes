@@ -1,0 +1,202 @@
+cabal-version:       2.4
+Name:                llvm-pretty-bc-parser
+Version:             0.4.2.0
+License:             BSD-3-Clause
+License-file:        LICENSE
+Author:              Trevor Elliott <trevor@galois.com>
+Maintainer:          Ryan Scott <rscott@galois.com>
+                   , Kevin Quick <kquick@galois.com>
+                   , Langston Barrett <langston@galois.com>
+Category:            Text
+Build-type:          Simple
+Synopsis:            LLVM bitcode parsing library
+Tested-with:         GHC==9.4, GHC==9.6, GHC==9.8
+
+Description:
+  A parser for the LLVM bitcode file format, yielding a Module from the
+  llvm-pretty package.
+
+Extra-source-files:  disasm-test/tests/*.ll
+
+extra-doc-files: CHANGELOG.md, README.md
+
+Flag fuzz
+  Description:         Enable fuzzing harness
+  Default:             False
+
+Flag regressions
+  Description:         Enable regression testing build
+  Default:             False
+
+Source-repository head
+  type:                git
+  location:            https://github.com/galoisinc/llvm-pretty-bc-parser
+
+Library
+  Hs-source-dirs:      src
+  Exposed-modules:     Data.LLVM.CFG,
+                       Data.LLVM.BitCode,
+                       -- for testing:
+                       Data.LLVM.Internal
+
+  Default-language:    Haskell2010
+
+  Other-modules:       Data.LLVM.BitCode.Assert,
+                       Data.LLVM.BitCode.BitString,
+                       Data.LLVM.BitCode.Bitstream,
+                       Data.LLVM.BitCode.GetBits,
+                       Data.LLVM.BitCode.IR,
+                       Data.LLVM.BitCode.IR.Attrs
+                       Data.LLVM.BitCode.IR.Blocks,
+                       Data.LLVM.BitCode.IR.Constants,
+                       Data.LLVM.BitCode.IR.Function,
+                       Data.LLVM.BitCode.IR.Globals,
+                       Data.LLVM.BitCode.IR.Metadata,
+                       Data.LLVM.BitCode.IR.Module,
+                       Data.LLVM.BitCode.IR.Types,
+                       Data.LLVM.BitCode.IR.Values,
+                       Data.LLVM.BitCode.Match,
+                       Data.LLVM.BitCode.Parse,
+                       Data.LLVM.BitCode.Record
+
+  Ghc-options:         -Wall
+                       -Wunbanged-strict-patterns
+                       -Wcompat
+                       -Wincomplete-uni-patterns
+                       -Wsimplifiable-class-constraints
+                       -Wpartial-fields
+                       -O2
+                       -funbox-strict-fields
+                       -fhide-source-paths
+
+  Build-depends:       array       >= 0.3,
+                       base        >= 4.8 && < 5,
+                       binary      >= 0.8,
+                       bytestring  >= 0.10,
+                       containers  >= 0.4,
+                       fgl         >= 5.5,
+                       llvm-pretty >= 0.12.1.0 && < 0.13,
+                       mtl         >= 2.2.2,
+                       pretty      >= 1.0.1,
+                       uniplate    >= 1.6,
+                       utf8-string >= 1.0
+
+Executable llvm-disasm
+  Main-is:             LLVMDis.hs
+  Default-language:    Haskell2010
+  Ghc-options:         -Wall
+                       -Wunbanged-strict-patterns
+                       -O2
+                       -funbox-strict-fields
+  Hs-source-dirs:      llvm-disasm
+  Build-depends:       array                 >= 0.3,
+                       base,
+                       binary                >= 0.8,
+                       bytestring,
+                       containers            >= 0.4,
+                       fgl                   >= 5.5,
+                       fgl-visualize         >= 0.1,
+                       llvm-pretty-bc-parser,
+                       llvm-pretty,
+                       monadLib              >= 3.7.2,
+                       pretty                >= 1.0.1,
+                       pretty-show           >= 1.6
+
+test-suite unit-test
+    type:                exitcode-stdio-1.0
+    main-is:             Main.hs
+    other-modules:       Tests.Instances,
+                         Tests.ExpressionInstances,
+                         Tests.FuncDataInstances,
+                         Tests.PrimInstances,
+                         Tests.StmtInstances,
+                         Tests.TripleInstances,
+                         Tests.Metadata
+    hs-source-dirs:      unit-test
+    default-language:    Haskell2010
+    ghc-options:         -W -Wcompat
+                         -Wunrecognised-warning-flags
+                         -threaded
+    -- other-extensions:    OverloadedStrings, ...
+    build-depends: base -any,
+                   containers >= 0.4,
+                   HUnit -any,
+                   QuickCheck -any,
+                   generic-random -any,
+                   tasty -any,
+                   tasty-hunit -any,
+                   tasty-quickcheck -any,
+                   llvm-pretty -any,
+                   llvm-pretty-bc-parser
+
+Test-suite disasm-test
+  type:                exitcode-stdio-1.0
+  Main-is:             Main.hs
+  Default-language:    Haskell2010
+  hs-source-dirs:      disasm-test
+  Ghc-options:         -Wall
+  build-depends:       base,
+                       containers,
+                       process,
+                       directory,
+                       bytestring,
+                       exceptions >= 0.10 && < 0.11,
+                       filepath,
+                       lens,
+                       optparse-applicative >= 0.18.1.0,
+                       pretty-show>= 1.6,
+                       prettyprinter >= 1.7 && < 1.8,
+                       string-interpolate >= 0.3 && < 0.4,
+                       syb >= 0.7,
+                       tasty >= 1.3,
+                       tasty-expected-failure >= 0.12 && < 0.13,
+                       tasty-hunit,
+                       tasty-sugar >= 2.2 && < 2.3,
+                       transformers >= 0.5 && < 0.7,
+                       terminal-size >= 0.3 && < 0.4,
+                       text,
+                       versions < 7,
+                       llvm-pretty,
+                       llvm-pretty-bc-parser
+
+Executable regression-test
+  Main-is:             Main.hs
+  Default-language:    Haskell2010
+  hs-source-dirs:      regression-test
+  Ghc-options:         -Wall
+  build-depends:       base,
+                       directory,
+                       filepath,
+                       foldl,
+                       text,
+                       turtle >= 1.6,
+                       llvm-pretty,
+                       llvm-pretty-bc-parser
+  if flag(regressions)
+      Buildable:       True
+  else
+      Buildable:       False
+
+Executable fuzz-llvm-disasm
+  Main-is:             Main.hs
+  Default-language:    Haskell2010
+  hs-source-dirs:      fuzzing
+  Ghc-options:         -Wall -threaded -O2
+  build-depends:       base,
+                       process,
+                       directory,
+                       bytestring,
+                       filepath,
+                       temporary,
+                       random,
+                       containers,
+                       xml,
+                       time,
+                       deepseq,
+                       transformers,
+                       llvm-pretty,
+                       llvm-pretty-bc-parser
+  if flag(fuzz)
+      Buildable:       True
+  else
+      Buildable:       False
