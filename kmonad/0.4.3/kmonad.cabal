@@ -1,0 +1,208 @@
+cabal-version: 2.2
+
+name:           kmonad
+category:       Application
+version:        0.4.3
+synopsis:       Advanced keyboard remapping utility
+author:         David Janssen
+maintainer:     janssen.dhj@gmail.com
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+description:
+  KMonad is a cross-platform command-line utility that runs as a daemon. It
+  captures keyboard input (exactly how depends on the OS) and remaps it. The
+  mapping is highly configurable, and provides options like (transparent) layer
+  overlays, tap-mod buttons, multi-tap buttons, leader-key style buttons, and
+  keyboard macros. Functionality heavily inspired by the QMK-firmware.
+
+extra-source-files:
+    changelog.md
+    doc/quick-reference.md
+    keymap/tutorial.kbd
+
+flag kext
+    description: build against the kext [macOS only]
+    default: False
+
+flag dext
+    description: build against the dext [macOS only]
+    default: False
+
+library
+  default-language:
+      Haskell2010
+  hs-source-dirs:
+      src
+  ghc-options:
+    -Wall
+    -Wno-name-shadowing
+    -Wno-unused-imports
+  build-depends:
+      base >= 4.12 && < 5
+    , cereal
+    -- , hspec
+    , lens
+    , megaparsec
+    , mtl
+    , optparse-applicative
+    , resourcet
+    , rio
+    , time
+    , unliftio
+    , template-haskell
+  default-extensions:
+      ConstraintKinds
+      DeriveFunctor
+      DeriveGeneric
+      DeriveDataTypeable
+      DeriveTraversable
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GeneralizedNewtypeDeriving
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      TemplateHaskell
+      TupleSections
+      TypeFamilies
+
+  autogen-modules:
+      Paths_kmonad
+
+  exposed-modules:
+      KMonad.App
+      KMonad.App.Main
+      KMonad.App.Types
+      KMonad.Args
+      KMonad.Args.Cmd
+      KMonad.Args.Parser
+      KMonad.Args.Joiner
+      KMonad.Args.TH
+      KMonad.Args.Types
+      KMonad.Model
+      KMonad.Model.Action
+      KMonad.Model.BEnv
+      KMonad.Model.Button
+      KMonad.Model.Dispatch
+      KMonad.Model.Hooks
+      KMonad.Model.Keymap
+      KMonad.Model.Sluice
+      KMonad.Gesture
+      KMonad.Keyboard
+      KMonad.Keyboard.ComposeSeq
+      KMonad.Keyboard.IO
+      KMonad.Keyboard.Keycode
+      KMonad.Keyboard.Ops
+      KMonad.Keyboard.Types
+      KMonad.Parsing
+      KMonad.Prelude
+      KMonad.Prelude.Imports
+      KMonad.Prelude.Definitions
+      KMonad.Util
+      KMonad.Util.LayerStack
+      KMonad.Util.MultiMap
+      Paths_kmonad
+
+  if os(linux)
+    exposed-modules:
+      KMonad.Keyboard.IO.Linux.DeviceSource
+      KMonad.Keyboard.IO.Linux.Types
+      KMonad.Keyboard.IO.Linux.UinputSink
+    c-sources:
+      c_src/keyio.c
+    build-depends:
+      unix
+
+  if os(windows)
+    exposed-modules:
+      KMonad.Keyboard.IO.Windows.LowLevelHookSource
+      KMonad.Keyboard.IO.Windows.SendEventSink
+      KMonad.Keyboard.IO.Windows.Types
+    c-sources:
+      c_src/keyio_win.c
+    build-depends:
+      Win32
+
+  if os(darwin)
+    exposed-modules:
+      KMonad.Keyboard.IO.Mac.IOKitSource
+      KMonad.Keyboard.IO.Mac.KextSink
+      KMonad.Keyboard.IO.Mac.Types
+    if flag(kext)
+      cxx-sources:
+        c_src/mac/kext.cpp
+      cxx-options:
+        -std=c++14
+    if flag(dext)
+      cxx-sources:
+        c_src/mac/dext.cpp
+      cxx-options:
+        -std=c++2a
+    extra-libraries:
+      c++
+    build-depends:
+      unix
+    frameworks:
+      CoreFoundation
+      IOKit
+
+executable kmonad
+  ghc-options:
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
+  main-is:
+      Main.hs
+  default-language:
+      Haskell2010
+  hs-source-dirs:
+      app
+  build-depends:
+      base >= 4.12 && < 5
+    , kmonad
+
+test-suite spec
+  main-is: Spec.hs
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+      test
+  ghc-options:
+      -Wall
+  build-depends:
+      base >= 4.12 && < 5
+    , kmonad
+    , hspec
+    , rio
+  other-modules:
+      KMonad.ButtonDocSpec
+      KMonad.GestureSpec
+      KMonad.ComposeSeqSpec
+  default-language:
+      Haskell2010
+  build-tool-depends: hspec-discover:hspec-discover == 2.*
+  default-extensions:
+      ConstraintKinds
+      DeriveFunctor
+      DeriveGeneric
+      DeriveDataTypeable
+      DeriveTraversable
+      FlexibleContexts
+      FlexibleInstances
+      FunctionalDependencies
+      GeneralizedNewtypeDeriving
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      RankNTypes
+      TemplateHaskell
+      TupleSections
+      TypeFamilies
