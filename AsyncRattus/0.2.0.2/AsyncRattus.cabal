@@ -1,0 +1,170 @@
+cabal-version:       1.18
+name:                AsyncRattus
+version:             0.2.0.2
+category:            FRP
+synopsis:            An asynchronous modal FRP language
+description:
+
+            This library implements the Async Rattus programming
+            language as an embedded DSL. To this end the library
+            provides a GHC plugin that checks the stricter typing
+            rules of Async Rattus.
+            
+            
+            What follows is a brief introduction to the language and
+            its usage. A more detailed introduction can be found in
+            this <src/docs/paper.pdf paper>.
+            
+            .
+            
+            Async Rattus is a functional reactive programming (FRP)
+            language that uses modal types to express temporal
+            dependencies. In return the language will guarantee that
+            programs are productive (in each computation step, the
+            program makes progress), causal (output depends only on
+            current and earlier input), and have no space leaks
+            (programs do not implicitly retain memory over time).
+            
+            .
+            
+            The modal type constructor @O@ (pronounced "later") is
+            used to express the passage of time at the type
+            level. Intuitively speaking, a value of type @O a@
+            represents a computation that will produce a value of type
+            @a@ in the next time step. Additionally, the language also
+            features the @Box@ modal type constructor. A value of type
+            @Box a@ is a time-independent computation that can be
+            executed at any time to produce a value of type @a@.
+
+            .
+
+            For example, the type of signals is defined as
+
+            .
+
+            > data Sig a = a ::: (O (Sig a))
+
+            .
+
+            So the current value of the signal is available now, but
+            its future state is only available in the next time
+            step. Writing a @map@ function for this type of streams,
+            requires us to use the @Box@ modality:
+
+            .
+
+            > map :: Box (a -> b) -> Sig a -> Sig b
+            > map f (x ::: xs) = unbox f x ::: delay (map f (adv xs))
+
+            .
+
+            This makes sure that the function @f@ that we give to
+            @map@ is available at any time in the future.
+
+            .
+
+            The core of the language is defined in the module
+            "AsyncRattus.Primitives". Note that the operations on @O@
+            and @Box@ have non-standard typing rules. Therefore, this
+            library provides a compiler plugin that checks these
+            non-standard typing rules. To write Async Rattus programs,
+            you must enable this plugin via the GHC option
+            @-fplugin=AsyncRattus.Plugin@, e.g. by including the following
+            line in the source file:
+            
+            .
+            
+            > {-# OPTIONS -fplugin=AsyncRattus.Plugin #-}
+            
+            .
+
+            Below is a minimal Async Rattus program using the
+            "AsyncRattus.Signal" module for programming with signals:
+
+            .
+
+            > {-# OPTIONS -fplugin=AsyncRattus.Plugin #-}
+            >     
+            > import AsyncRattus
+            > import AsyncRattus.Signal
+            > 
+            > sums :: Sig Int -> Sig Int
+            > sums = scan (box (+)) 0
+
+            .
+
+            The <docs/src/AsyncRattus.Signal.html source code of the AsyncRattus.Signal module>
+            provides more examples on how to program in Async Rattus.
+            An example project using Async Rattus can be found
+            <https://github.com/pa-ba/AsyncRattus/tree/master/examples/console here>.
+
+homepage:            https://github.com/pa-ba/AsyncRattus/
+bug-reports:         https://github.com/pa-ba/AsyncRattus/issues
+License:             BSD3
+License-file:        LICENSE
+copyright:           Copyright (C) 2023 Emil Houlborg, Gregers Rørdam, Patrick Bahr
+Author:              Emil Houlborg, Gregers Rørdam, Patrick Bahr
+maintainer:          Patrick Bahr <paba@itu.dk>
+stability:           experimental
+
+build-type:          Custom
+
+extra-source-files:  CHANGELOG.md
+
+extra-doc-files:     docs/paper.pdf
+                     
+custom-setup
+  setup-depends:
+    base  >= 4.5 && < 5,
+    Cabal >= 1.18  && < 4
+
+
+library
+  exposed-modules:     AsyncRattus
+                       AsyncRattus.Signal
+                       AsyncRattus.Future
+                       AsyncRattus.Strict
+                       AsyncRattus.Plugin
+                       AsyncRattus.Primitives
+                       AsyncRattus.InternalPrimitives
+                       AsyncRattus.Channels
+                       AsyncRattus.Plugin.Annotation
+                                              
+  other-modules:       AsyncRattus.Plugin.ScopeCheck
+                       AsyncRattus.Plugin.SingleTick
+                       AsyncRattus.Plugin.CheckClockCompatibility
+                       AsyncRattus.Plugin.Strictify
+                       AsyncRattus.Plugin.Utils
+                       AsyncRattus.Plugin.Dependency
+                       AsyncRattus.Plugin.StableSolver
+                       AsyncRattus.Plugin.Transform
+                       AsyncRattus.Plugin.PrimExpr
+  build-depends:       base >=4.16 && <5,
+                       containers >= 0.6.5 && < 0.8,
+                       ghc >= 9.2 && < 9.9,
+                       ghc-boot >= 9.2 && < 9.9,
+                       hashtables >= 1.3.1 && < 1.4,
+                       simple-affine-space >= 0.2.1 && < 0.3,
+                       transformers >= 0.5.6 && < 0.7
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -W
+
+
+
+Test-Suite ill-typed
+  type:                exitcode-stdio-1.0
+  main-is:             test/IllTyped.hs
+  default-language:    Haskell2010
+  build-depends:       AsyncRattus, base
+  ghc-options:         -fplugin=AsyncRattus.Plugin
+
+
+Test-Suite well-typed
+  type:                exitcode-stdio-1.0
+  main-is:             WellTyped.hs
+  hs-source-dirs:      test
+  default-language:    Haskell2010
+  build-depends:       AsyncRattus, base, containers, text
+  ghc-options:         -fplugin=AsyncRattus.Plugin
+
