@@ -1,0 +1,362 @@
+-- Copyright (c) 2003, Henrik Nilsson, Antony Courtney and Yale University.
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions are met:
+--
+-- - Redistributions of source code must retain the above copyright notice,
+-- this list of conditions and the following disclaimer.
+--
+-- - Redistributions in binary form must reproduce the above copyright notice,
+-- this list of conditions and the following disclaimer in the documentation
+-- and/or other materials provided with the distribution.
+--
+-- - Neither name of the copyright holders nor the names of its contributors
+-- may be used to endorse or promote products derived from this software
+-- without specific prior written permission.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND THE CONTRIBUTORS "AS
+-- IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+-- THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+-- PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR THE
+-- CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+-- EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+-- PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+-- OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+-- WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+-- OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+-- ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+cabal-version: >= 1.10
+build-type:    Simple
+
+name:          Yampa
+version:       0.14.11
+author:        Henrik Nilsson, Antony Courtney
+maintainer:    Ivan Perez (ivan.perez@keera.co.uk)
+homepage:      https://github.com/ivanperez-keera/Yampa/
+license:       BSD3
+license-file:  LICENSE
+category:      Reactivity, FRP
+synopsis:
+  Elegant Functional Reactive Programming Language for Hybrid Systems
+description:
+  Domain-specific language embedded in Haskell for programming hybrid (mixed
+  discrete-time and continuous-time) systems. Yampa is based on the concepts of
+  Functional Reactive Programming (FRP).
+
+extra-source-files:
+  CHANGELOG,
+
+  examples/Diagrams.hs
+
+source-repository head
+  type:     git
+  location: git://github.com/ivanperez-keera/Yampa.git
+  subdir:   yampa
+
+
+-- You can disable the hlint test suite with -f-test-hlint
+flag test-hlint
+  description: Enable hlint test suite
+  default:     False
+  manual:      True
+
+-- You can disable the haddock coverage test suite with -f-test-doc-coverage
+flag test-doc-coverage
+  description: Enable haddock coverage test suite
+  default:     False
+  manual:      True
+
+flag examples
+  description: Enable examples
+  default:     False
+  manual:      True
+
+-- WARNING: The following flag exposes Yampa's core. You should avoid using
+-- this at all. The only reason to expose it is that we are using Yampa for
+-- research, and many extensions require that we expose the constructors. No
+-- released project should depend on this. In general, you should always
+-- install Yampa with this flag disabled.
+flag expose-core
+  description:
+    You can enable exposing some of Yampa's core constructs using
+    -fexpose-core.
+    .
+    Enabling this is an unsupported configuration, but it may be useful if you
+    are building an extension of Yampa for research and do not wish to fork
+    Yampa completely.
+    .
+    No released project should ever depend on this.
+  default: False
+  manual:  True
+
+
+library
+  exposed-modules:
+    FRP.Yampa
+    FRP.Yampa.Arrow
+    FRP.Yampa.Basic
+    FRP.Yampa.Conditional
+    FRP.Yampa.Delays
+    FRP.Yampa.Event
+    FRP.Yampa.EventS
+    FRP.Yampa.Hybrid
+    FRP.Yampa.Integration
+    FRP.Yampa.Loop
+    FRP.Yampa.Random
+    FRP.Yampa.Scan
+    FRP.Yampa.Simulation
+    FRP.Yampa.Switches
+    FRP.Yampa.Task
+    FRP.Yampa.Time
+
+  other-modules:
+    -- Auxiliary (commonly used) types
+    FRP.Yampa.Diagnostics
+
+  build-depends:
+      base < 6
+
+    , deepseq             >= 1.3.0.1 && < 1.6
+    , random              >= 1.1     && < 1.3
+    , simple-affine-space >= 0.1     && < 0.3
+
+  default-language:
+    Haskell2010
+
+  hs-source-dirs:
+    src
+
+  ghc-options:
+    -O3 -Wall -fno-warn-name-shadowing
+
+  if !impl(ghc >= 8.0)
+    build-depends:
+      fail == 4.9.*
+
+  if flag(expose-core)
+    exposed-modules:
+      FRP.Yampa.InternalCore
+  else
+    other-modules:
+      FRP.Yampa.InternalCore
+
+
+test-suite hlint
+  type:
+    exitcode-stdio-1.0
+
+  main-is:
+    hlint.hs
+
+  default-language:
+    Haskell2010
+
+  hs-source-dirs:
+    tests
+
+  if !flag(test-hlint)
+    buildable:
+      False
+  else
+    build-depends:
+        base >= 4 && < 5
+
+      , hlint >= 1.7
+
+-- Verify that the code is thoroughly documented
+test-suite haddock-coverage
+  type:
+    exitcode-stdio-1.0
+
+  main-is:
+    HaddockCoverage.hs
+
+  default-language:
+    Haskell2010
+
+  hs-source-dirs:
+    tests
+
+  ghc-options:
+    -Wall
+
+  if !flag(test-doc-coverage)
+    buildable:
+      False
+  else
+    build-depends:
+        base >= 4 && < 5
+
+      , directory    >= 1.2     && < 1.4
+      , filepath     >= 1.3.0.1 && < 1.6
+      , process      >= 1.1.0.2 && < 1.7
+      , regex-posix  >= 0.95    && < 0.97
+
+
+executable yampa-examples-sdl-bouncingbox
+  main-is:
+    MainBouncingBox.hs
+
+  other-modules:
+    YampaSDL
+
+  default-language:
+    Haskell2010
+
+  hs-source-dirs:
+    examples/yampa-game/
+
+  ghc-options:
+    -O3 -Wall -fno-warn-name-shadowing
+
+  if flag(examples)
+    buildable:
+      True
+    build-depends:
+        base < 5
+
+      , deepseq >= 1.3.0.1 && < 1.6
+      , random  >= 1.1     && < 1.3
+      , SDL     >= 0.6     && < 0.7
+      , Yampa
+  else
+    buildable:
+      False
+
+
+executable yampa-examples-sdl-circlingmouse
+  main-is:
+    MainCircleMouse.hs
+
+  other-modules:
+    YampaSDL
+
+  default-language:
+    Haskell2010
+
+  hs-source-dirs:
+    examples/yampa-game/
+
+  ghc-options:
+    -O3 -Wall -fno-warn-name-shadowing
+
+  if flag(examples)
+    buildable:
+      True
+    build-depends:
+        base < 5
+
+      , deepseq >= 1.3.0.1 && < 1.6
+      , random  >= 1.1     && < 1.3
+      , SDL     >= 0.6     && < 0.7
+      , Yampa
+  else
+    buildable:
+      False
+
+
+executable yampa-examples-sdl-wiimote
+  main-is:
+    MainWiimote.hs
+
+  other-modules:
+    YampaSDL
+
+  default-language:
+    Haskell2010
+
+  hs-source-dirs:
+    examples/yampa-game/
+
+  ghc-options:
+    -O3 -Wall -fno-warn-name-shadowing -rtsopts
+
+  if flag(examples)
+    buildable:
+      True
+    build-depends:
+        base < 5
+
+      , deepseq >= 1.3.0.1 && < 1.6
+      , hcwiid  >= 0.0.5   && < 0.1
+      , random  >= 1.1     && < 1.3
+      , SDL     >= 0.6     && < 0.7
+      , Yampa
+  else
+    buildable:
+      False
+
+
+executable yampa-examples-elevator
+  main-is:
+    TestElevatorMain.hs
+
+  other-modules:
+    Elevator
+
+  default-language:
+    Haskell2010
+
+  hs-source-dirs:
+    examples/Elevator
+
+  ghc-options:
+    -O3 -Wall -fno-warn-name-shadowing
+
+  if flag(examples)
+    buildable:
+      True
+    build-depends:
+        base < 5
+      , Yampa
+  else
+    buildable:
+      False
+
+
+executable yampa-examples-tailgatingdetector
+  main-is:
+    TestTGMain.hs
+
+  other-modules:
+    TailgatingDetector
+
+  default-language:
+    Haskell2010
+
+  hs-source-dirs:
+    examples/TailgatingDetector
+
+  ghc-options:
+    -O3 -Wall -fno-warn-name-shadowing
+
+  if flag(examples)
+    buildable:
+      True
+    build-depends:
+        base < 5
+      , Yampa
+  else
+    buildable:
+      False
+
+benchmark yampa-bench
+  type:
+    exitcode-stdio-1.0
+
+  main-is:
+    Bench.hs
+
+  build-depends:
+       base      < 5
+     , criterion >= 0.5.0.0 && < 1.7
+     , filepath  >= 1.3.0.1 && < 1.6
+     , time      >= 1.4     && < 1.15
+     , Yampa
+
+  default-language:
+    Haskell2010
+
+  hs-source-dirs:
+    benchmarks
