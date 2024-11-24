@@ -1,0 +1,105 @@
+cabal-version:       2.2
+name:                provide
+version:             0.1.0.0
+synopsis:            Lightweight dependency injection / namespaced+typed implicit-ish arguments
+description:
+  In many applications, there are arguments that need to be passed deeply into call hierarchies, which can be annoying.  Implicit arguments are one potential solution to this, but they have a few issues.  Firstly, their names are based on strings, which can be noncomposable e.g. in the case that multiple libraries choose the same name.  Secondly, the type of an implicit argument can be freely chosen wherever it is used, which is more flexibility than most libraries want.  Thirdly, the semantics of implicit variables is somewhat strange with respect to let bindings, etc.
+  This library instead supports associating an unlimited number of values with a context type.  Although this context type does need to be passed down somehow into the child functions, it's only one argument, not many, and it can be passed as a type or as a Proxy value.  The keys of the context are types, which libraries can provide to designate the context arguments they want.
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Obsidian Systems LLC
+maintainer:          maintainer@obsidian.systems
+category:            Data Structures
+build-type:          Simple
+
+flag strict
+  description: Build with options, such as -Werror, which are inconvenient for development but good for CI
+  default: False
+  manual: True
+
+common common
+  default-extensions:
+    AllowAmbiguousTypes
+    BangPatterns
+    ConstraintKinds
+    DataKinds
+    DefaultSignatures
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveTraversable
+    DerivingStrategies
+    EmptyCase
+    EmptyDataDecls
+    FlexibleContexts
+    FlexibleInstances
+    FunctionalDependencies
+    GADTs
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    InstanceSigs
+    KindSignatures
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    NumericUnderscores
+    OverloadedStrings
+    PartialTypeSignatures
+    PatternSynonyms
+    PolyKinds
+    QuantifiedConstraints
+    QuasiQuotes
+    RankNTypes
+    RecursiveDo
+    ScopedTypeVariables
+    StandaloneDeriving
+    TemplateHaskell
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    UndecidableInstances
+    ViewPatterns
+  if flag(strict)
+    ghc-options:
+      -Werror
+      -Wunused-packages
+  ghc-options: -Wall -fno-show-valid-hole-fits
+               -- unnecessary checks
+               -Wno-partial-type-signatures
+               -- unsafe code
+               -Wincomplete-record-updates -Werror=incomplete-record-updates
+               -Wincomplete-patterns -Werror=incomplete-patterns
+               -Wincomplete-uni-patterns -Werror=incomplete-uni-patterns
+               -Wpartial-fields -Werror=partial-fields
+               -Wmissing-fields -Werror=missing-fields
+               -- unneeded code
+               -Widentities
+               -Wredundant-constraints
+  if impl(ghc >= 8.8)
+    ghc-options:
+               -Wmissing-deriving-strategies
+               -Werror=missing-deriving-strategies
+
+library
+  import: common
+  hs-source-dirs: src
+  exposed-modules:
+    Control.Provide
+    Control.Provide.ARec
+  build-depends:
+    base >= 4.9 && < 5,
+    lens >= 5.3 && < 5.4,
+    reflection >= 2.1 && < 2.2,
+    vinyl >= 0.14 && <0.15
+  default-language: Haskell2010
+
+test-suite example
+  import: common
+  main-is: example.hs
+  type: exitcode-stdio-1.0
+  build-depends:
+    base,
+    provide,
+    vinyl
+  default-language: Haskell2010
