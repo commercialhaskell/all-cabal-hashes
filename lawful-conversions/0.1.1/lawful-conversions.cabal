@@ -1,10 +1,12 @@
 cabal-version: 3.0
 name: lawful-conversions
 version: 0.1.1
-x-revision: 3
+x-revision: 5
 synopsis: Lawful typeclasses for bidirectional conversion between types
 description:
-  Lawful typeclasses capturing three main patterns of bidirectional mapping. The typeclasses form a layered hierarchy with ascending strictness of laws.
+  = Summary
+  
+  Lawful typeclasses capturing three patterns of bidirectional mapping and forming a layered hierarchy with an ascending strictness of laws.
 
   1. `IsSome`: Smart constructor
 
@@ -20,7 +22,7 @@ description:
   'Data.ByteString.Builder.toLazyByteString' and then importing
   @Data.ByteString.Lazy@ only to call its 'Data.ByteString.Lazy.toStrict'?
 
-  Those all are instances of one pattern. They are conversions between
+  Those all are instances of one pattern. They are conversions between different
   representations of the same information. Codebases that don't attempt to
   abstract over this pattern tend to be sprawling with this type of
   boilerplate. It's noise to the codereader, it's a burden to the
@@ -37,57 +39,6 @@ description:
   This library tackles this problem with a lawful typeclass hierarchy, making it
   evident what any of its instances do and it provides property-tests for you
   to validate your instances.
-
-  = Conversions
-
-  The main part of the API is two functions: 'to' and 'from'. Both
-  perform a conversion between two types. The main difference between them
-  is in what the first type application parameter specifies. E.g.:
-
-  > toString = to @String
-
-  > fromText = from @Text
-
-  The types should be self-evident:
-
-  > > :t to @String
-  > to @String :: IsSome String b => b -> String
-
-  > > :t from @Text
-  > from @Text :: IsMany Text b => Text -> b
-
-  In other words 'to' and 'from' let you explicitly specify either the source
-  or the target type of a conversion when you need to help the type
-  inferencer or the reader.
-
-  == Examples
-
-  @
-  renderNameAndHeight :: 'Text' -> 'Int' -> 'Text'
-  renderNameAndHeight name height =
-    'from' @'Data.Text.Encoding.StrictTextBuilder' $
-      "Height of " <> 'to' name <> " is " <> 'to' (show height)
-  @
-
-  @
-  combineEncodings :: 'Data.ByteString.Short.ShortByteString' -> 'Data.Primitive.ByteArray' -> ['Word8'] -> 'Data.ByteString.Lazy.ByteString'
-  combineEncodings a b c =
-    'from' @'Data.ByteString.Builder.Builder' $
-      'to' a <> 'to' b <> 'to' c
-  @
-
-  = Partial conversions
-
-  This library also captures the pattern of smart constructors via the 'IsSome' class, which associates a total 'to' conversion with its partial inverse 'maybeFrom'.
-
-  This captures the codec relationship between types.
-  E.g.,
-
-  - Every 'Int16' can be losslessly converted into 'Int32', but not every 'Int32' can be losslessly converted into 'Int16'.
-
-  - Every 'Text' can be converted into 'ByteString' via UTF-8 encoding, but not every 'ByteString' forms a valid UTF-8 sequence.
-
-  - Every URL can be uniquely represented as 'Text', but most 'Text's are not URLs unfortunately.
 category: Conversion
 homepage: https://github.com/nikita-volkov/lawful-conversions
 bug-reports: https://github.com/nikita-volkov/lawful-conversions/issues
