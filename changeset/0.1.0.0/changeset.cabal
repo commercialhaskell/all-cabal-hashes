@@ -1,0 +1,143 @@
+cabal-version: 3.0
+name: changeset
+-- PVP summary:     +-+------- breaking API changes
+--                  | | +----- non-breaking API additions
+--                  | | | +--- code changes with no API change
+version: 0.1.0.0
+synopsis: Stateful monad transformer based on monoidal actions
+description:
+  A general state monad transformer with separate types for the state and the possible changes.
+  It can be defined for any monoid action.
+  The monoid represents "changes", "updates", "edits" or "diffs" on the state.
+  The @changeset@ ecosystem has support for standard @containers@ and optics from @lens@
+  by providing the packages @changeset-containers@ and @changeset-lens@.
+
+license: MIT
+license-file: LICENSE
+author: Manuel Bärenz
+maintainer: programming@manuelbaerenz.de
+copyright: MIT
+category: Control
+build-type: Simple
+extra-doc-files: CHANGELOG.md
+tested-with:
+  ghc ==8.6
+  ghc ==8.8
+  ghc ==8.10
+  ghc ==9.0
+  ghc ==9.2
+  ghc ==9.4
+  ghc ==9.6
+  ghc ==9.8
+  ghc ==9.10
+
+source-repository head
+  type: git
+  location: https://github.com/turion/changeset
+
+flag dev
+  description: Enable warnings as errors. Active on ci.
+  default: False
+  manual: True
+
+common opts
+  ghc-options:
+    -Wall
+
+  if flag(dev)
+    ghc-options:
+      -Werror
+  default-extensions:
+    BangPatterns
+    DeriveFunctor
+    DeriveTraversable
+    DerivingStrategies
+    FlexibleContexts
+    FlexibleInstances
+    FunctionalDependencies
+    GADTs
+    GeneralizedNewtypeDeriving
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    NamedFieldPuns
+    RankNTypes
+    ScopedTypeVariables
+    StandaloneDeriving
+    TupleSections
+    TypeOperators
+
+library
+  import: opts
+  exposed-modules:
+    Control.Monad.Changeset.Class
+    Control.Monad.Trans.Changeset
+    Data.Monoid.RightAction
+    Data.Monoid.RightAction.Coproduct
+
+  build-depends:
+    base >=4.12 && <4.22,
+    containers >=0.6 && <0.8,
+    mmorph >=1.1 && <1.3,
+    monoid-extras ^>=0.6,
+    transformers >=0.5.6.2 && <0.7,
+    witherable >=0.4 && <0.6,
+
+  hs-source-dirs: src
+
+  if impl(ghc >= 9.6)
+    build-depends:
+      mtl ^>=2.3.1
+
+    hs-source-dirs: src-mtl23
+  else
+    build-depends:
+      mtl ^>=2.2.2
+
+    hs-source-dirs: src-mtl22
+
+  default-language: Haskell2010
+  other-modules:
+    Control.Monad.Trans.Changeset.Orphan
+
+test-suite changeset-test
+  import: opts
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends:
+    base,
+    changeset,
+    falsify ^>=0.2,
+    monoid-extras,
+    tasty ^>=1.4.2,
+    tasty-hunit ^>=0.10.2,
+    transformers,
+
+test-suite changeset-examples
+  import: opts
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  hs-source-dirs: examples
+
+  if impl(ghc >= 9.6)
+    hs-source-dirs: examples-mtl23
+  else
+    hs-source-dirs: examples-mtl22
+
+  main-is: Main.hs
+  build-depends:
+    base,
+    changeset,
+    falsify ^>=0.2,
+    monoid-extras,
+    mtl,
+    tasty ^>=1.4.2,
+    tasty-hunit ^>=0.10.2,
+    transformers,
+    witherable,
+
+  other-modules:
+    Control.Monad.Trans.Changeset.AccumExample
+    Control.Monad.Trans.Changeset.Examples
