@@ -1,0 +1,164 @@
+cabal-version:      3.0
+name:               portage-hs
+version:            0.1.0.0
+synopsis:           Data structures and functions for interacting with the Portage package manager
+
+tested-with:        GHC == { 9.0.2, 9.2.8, 9.4.8, 9.6.6, 9.8.4, 9.10.1, 9.12.1 }
+
+description:
+    Currently, this includes:
+
+    * data structures for package atoms
+    * parsers for atoms, emerge output, and CONTENTS files
+    * functions for running emerge
+    * lots of tests
+
+homepage:           https://github.com/gentoo-haskell/cabal-portage/tree/main/portage-hs
+bug-reports:        https://github.com/gentoo-haskell/cabal-portage/issues
+
+license:            AGPL-3.0-only
+license-file:       LICENSE
+author:             Gentoo Authors
+maintainer:         hololeap@protonmail.com
+
+copyright:          Copyright (C) 2022-2025 Gentoo Authors
+category:           System
+extra-doc-files: CHANGELOG.md
+
+extra-source-files:
+    test/data/**/*.stdout
+
+source-repository head
+    type:           git
+    location:       https://github.com/hololeap/cabal-portage.git
+    branch:         main
+    subdir:         portage-hs
+
+flag gentoo-tests
+    description: Enable tests that depend on a working Gentoo environment
+    default:     False
+    manual:      True
+
+flag pedantic
+    description: Enable -Werror
+    default:     False
+    manual:      True
+
+common all
+    ghc-options:        -Wall
+                        -foptimal-applicative-do
+    if flag(pedantic)
+        ghc-options:    -Werror
+
+    default-extensions:
+        , StrictData
+
+common fast
+    ghc-options:        -threaded
+                        -with-rtsopts=-N
+
+library
+    import: all
+    exposed-modules:
+        , Distribution.Portage.Types
+        , Distribution.Portage.PkgDb
+        , Distribution.Portage.PkgDb.Contents
+        , Distribution.Portage.Emerge
+        , Distribution.Portage.Emerge.Parser
+
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+    build-depends:
+        , base >=4.13 && <4.22
+        , containers <0.8
+        , directory <1.4
+        , filepath <1.6
+        , mtl <2.4
+        , process <1.7
+        , text <2.2
+        , transformers <0.7
+        , parsable <0.2
+        , portage-hs-internal <0.2
+
+    other-extensions:
+        , ApplicativeDo
+        , FlexibleContexts
+        , LambdaCase
+        , NoImplicitPrelude
+        , OverloadedStrings
+        , ScopedTypeVariables
+        , TypeFamilies
+
+library portage-hs-internal
+    import: all
+    exposed-modules:
+        , Internal.Distribution.Portage.Types
+
+    build-depends:
+        , base >=4.13 && <4.22
+        , hashable <1.6
+        , parsable <0.2
+    hs-source-dirs:   src-internal
+    default-language: Haskell2010
+    other-extensions:
+        , DeriveDataTypeable
+        , DeriveGeneric
+        , DerivingVia
+        , FlexibleContexts
+        , FlexibleInstances
+        , GeneralizedNewtypeDeriving
+        , LambdaCase
+        , MultiParamTypeClasses
+        , OverloadedStrings
+        , ScopedTypeVariables
+        , TypeApplications
+        , TypeFamilies
+        , UndecidableInstances
+
+test-suite portage-hs-test
+    import: all, fast
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    other-modules:
+        , Emerge.ParserTests
+        , Types.ValidityTests
+        , Types.UnitTests
+        , Paths_portage_hs
+    autogen-modules:
+        , Paths_portage_hs
+    build-depends:
+        , parsable <0.2
+        , parsable-test <0.2
+        , portage-hs <0.2
+        , portage-hs-internal <0.2
+        , base >=4.13 && <4.22
+        , conduit <1.4
+        , containers <0.8
+        , directory <1.4
+        , filepath <1.6
+        , QuickCheck <2.16
+        , tasty <1.6
+        , tasty-hunit <0.11
+        , text <2.2
+        , transformers <0.7
+
+    other-extensions:
+        , CPP
+        , FlexibleContexts
+        , LambdaCase
+        , ScopedTypeVariables
+        , TypeApplications
+        , ViewPatterns
+
+    if flag(gentoo-tests)
+        build-depends:
+            , pretty-simple
+        CPP-Options:
+            -DGENTOO_TESTS
+        other-modules:
+            , Emerge.GentooTests
+            , PkgDb.GentooTests
+            , Types.GentooTests
