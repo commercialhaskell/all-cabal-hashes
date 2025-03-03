@@ -1,0 +1,116 @@
+cabal-version: 1.12
+
+name:           discord-haskell-voice
+version:        3.0.0
+synopsis:       Voice support for discord-haskell.
+description:    Supplementary library to discord-haskell. See the project README on GitHub for more information. <https://github.com/yutotakano/discord-haskell-voice>
+category:       Network
+homepage:       https://github.com/yutotakano/discord-haskell-voice
+bug-reports:    https://github.com/yutotakano/discord-haskell-voice/issues
+author:         Yuto Takano <moa17stock@gmail.com>
+maintainer:     Yuto Takano <moa17stock@gmail.com>
+copyright:      Yuto Takano <moa17stock@gmail.com>, discord-haskell-voice Contributors
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/yutotakano/discord-haskell-voice
+
+flag use-crypton
+  description: Use crypton and crypton-box libraries for encryption instead of saltine, which has a dependency on libsodium. While it may be tempting to use a "pure-Haskell" solution (crypton does have a lot of C though), crypton and crypton-box's security have not been vetted for attacks. Further, Discord themselves use libsodium in their infrastructure, so it's recommended to keep this flag off and use saltine.
+  manual: True
+  default: False
+
+library
+  exposed-modules:
+      Discord.Voice
+      Discord.Voice.Conduit
+      Discord.Internal.Types.VoiceCommon
+      Discord.Internal.Types.VoiceUDP
+      Discord.Internal.Types.VoiceWebsocket
+      Discord.Internal.Voice
+      Discord.Internal.Voice.CommonUtils
+      Discord.Internal.Voice.UDPLoop
+      Discord.Internal.Voice.WebsocketLoop
+  other-modules:
+      Discord.Internal.Voice.Encryption
+      Discord.Internal.Voice.OggParser
+  hs-source-dirs:
+      src
+  default-extensions:
+      OverloadedStrings
+    , Strict
+  build-depends:
+      BoundedChan ==1.0.3.0
+    , aeson >=1.5 && <1.6 || >=2.0 && <2.3
+    , async >=2.2.3 && <2.4
+    , base >=4.7 && <5
+    , binary ==0.8.*
+    , bytestring >=0.10.12.0 && <0.13
+    , conduit >=1.3.4.2 && <1.4.0.0
+    , conduit-extra ==1.3.6
+    , discord-haskell >=1.12.0 && <=1.17.1
+    , microlens >=0.4.11.2 && <0.5
+    , microlens-th >=0.4.3.10 && <0.5
+    , mtl <2.4
+    , network >=3.1.1.1 && <3.2
+    , opus ==0.3.0.0
+    , safe-exceptions >=0.1.7.1 && <0.1.8
+    , stm >=2.5.0.0 && <=2.6.0.0
+    , text >=1.2.4.1 && <3
+    , time >=1.9.3 && <1.15
+    , unliftio >=0.2.18 && <0.3
+    , websockets >=0.12.7.2 && <0.14
+    , wuss >=1.1.18 && <2.1.0.0
+  default-language: Haskell2010
+
+  if flag(use-crypton)
+    cpp-options: -DUSE_CRYPTON
+    build-depends:
+        crypton >=0.32 && <1.1
+      , crypton-box >=1.1.0 && <1.2
+  else
+    build-depends:
+        saltine >=0.1.1.1 && <0.3
+
+  if impl(ghc >= 9.6)
+    -- 1.15.5 and earlier cannot build on GHC >= 9.6 since it tries to import
+    -- Control.Monad functions from Control.Monad.Reader
+    build-depends:
+        discord-haskell  >= 1.15.6
+
+executable basic-music-bot
+  main-is: examples/BasicMusicBot.hs
+  default-extensions:
+      OverloadedStrings
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , conduit >=1.3.4.2 && <=1.4.0.0
+    , discord-haskell >=1.12.0 && <=1.17.1
+    , discord-haskell-voice
+    , optparse-applicative >=0.15.1.0 && <0.19
+    , stm >=2.5.0.0 && <2.6
+    , stm-containers < 1.4
+    , text >=1.2.4.1 && <3
+    , unliftio >=0.2.18 && <0.3
+  default-language: Haskell2010
+
+executable join-all-on-start
+  main-is: examples/JoinAllVC.hs
+  default-extensions:
+      OverloadedStrings
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , conduit >=1.3.4.2 && <=1.4.0.0
+    , discord-haskell >=1.12.0 && <=1.17.1
+    , discord-haskell-voice
+    , safe-exceptions >=0.1.7.1 && <0.1.8
+    , text >=1.2.4.1 && <3
+  default-language: Haskell2010
