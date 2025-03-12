@@ -1,0 +1,117 @@
+cabal-version:   3.0
+name:            haddock-use-refs
+version:         1.0.1
+license:         BSD-3-Clause
+license-file:    LICENSE
+category:        Development
+author:          Daniil Iaitskov <dyaitskov@gmail.com>
+maintainer:      Daniil Iaitskov <dyaitskov@gmail.com>
+stability:       experimental
+synopsis:        Eliminate warnings for names referred in Haddock only
+homepage:        https://github.com/yaitskov/haddock-use-refs
+bug-reports:     https://github.com/yaitskov/haddock-use-refs/issues
+build-type:      Simple
+description:
+    
+    Haddock syntax supports
+    <https://haskell-haddock.readthedocs.io/latest/markup.html#hyperlinked-identifiers hyper links>
+    to functions and types mentioned in comments (an identifier enclosed in
+    single quotes). The link is inserted only if the name is fully qualified
+    or imported in the module. Names referred only in module documentation
+    pose a problem in form of compiler warning about unused imports.
+    
+    This library helps with resolving these warnings authomatically without
+    disabling all warnings of such type via a TH macro
+    <https://hackage.haskell.org/package/haddock-use-refs/docs/Haddock-UseRefs.html#v:countDocRefs countDockRefs>,
+    which discovers all names in module documentation and generates a dummy
+    type with an instance
+    <https://hackage.haskell.org/package/haddock-use-refs/docs/Haddock-UseRefs.html#t:CountHaddockRefs CountHaddockRefs>
+    using all names in the method.
+    
+    > {-# OPTIONS_GHC -Wall -Werror #-}
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module Module where
+    >
+    > import Haddock.UseRefs
+    > import System.IO.Unsafe (unsafePerformIO)
+    >
+    > countDocRefs
+    >
+    > -- | 'unsafePerformIO' is not used by 'foo'.
+    > foo :: Bool
+    > foo = True
+    
+    The library does not require any configuration.
+
+tested-with:
+  GHC == 9.10.1
+extra-doc-files:
+  changelog.md
+library
+  build-depends:
+    base < 5,
+    cpphs < 2.0,
+    haddock-library < 1.13,
+    template-haskell < 2.24.0.0,
+
+  exposed-modules:
+    Haddock.UseRefs
+    Haddock.UseRefs.Type
+    Haddock.UseRefs.Internal
+
+  ghc-options: -Wall
+  hs-source-dirs: src
+  default-language: Haskell2010
+  default-extensions:
+    BangPatterns
+    DataKinds
+    DeriveGeneric
+    DeriveLift
+    DisambiguateRecordFields
+    DuplicateRecordFields
+    FlexibleContexts
+    FlexibleInstances
+    ImportQualifiedPost
+    LambdaCase
+    MultiParamTypeClasses
+    OverloadedLabels
+    ScopedTypeVariables
+    StandaloneDeriving
+    TemplateHaskell
+    TypeApplications
+    TypeFamilies
+
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  other-modules:
+    Haddock.UseRefs.Test
+    Discovery
+    Paths_haddock_use_refs
+  autogen-modules:
+    Paths_haddock_use_refs
+  hs-source-dirs:
+    test
+  default-extensions:
+    DuplicateRecordFields
+    FlexibleContexts
+    ImportQualifiedPost
+    LambdaCase
+    OverloadedLabels
+    RecordWildCards
+    ScopedTypeVariables
+    TemplateHaskell
+  ghc-options: -Wall -rtsopts -threaded -main-is Driver
+  build-depends:
+      base
+    , tasty
+    , tasty-discover
+    , tasty-hunit
+    , tasty-quickcheck
+    , template-haskell
+    , haddock-use-refs
+  default-language: Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/yaitskov/haddock-use-refs.git
