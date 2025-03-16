@@ -1,0 +1,301 @@
+Cabal-Version:      3.4
+Name:               broadcast-chan
+Version:            0.3.0
+
+Homepage:           https://github.com/merijn/broadcast-chan
+Bug-Reports:        https://github.com/merijn/broadcast-chan/issues
+
+Author:             Merijn Verstraaten
+Maintainer:         Merijn Verstraaten <merijn@inconsistent.nl>
+Copyright:          Copyright © 2014-2025 Merijn Verstraaten
+
+License:            BSD-3-Clause
+License-File:       LICENSE
+
+Category:           System
+Build-Type:         Simple
+Tested-With:        GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5,
+                    GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.7,
+                    GHC == 9.4.8, GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.1,
+                    GHC == 9.12.1
+
+Extra-Doc-Files:    README.md, CHANGELOG.md
+
+Synopsis:           Closable, fair, single-wakeup channel type that avoids 0
+                    reader space leaks.
+
+Description:
+    __WARNING:__ While the code in this library should be fairly stable and
+    production, the API is something I'm still working on. API changes will
+    follow the PVP, but __expect__ breaking API changes in future versions!
+
+    A closable, fair, single-wakeup channel that avoids the 0 reader space leak
+    that @"Control.Concurrent.Chan"@ from base suffers from.
+
+    The @Chan@ type from @"Control.Concurrent.Chan"@ consists of both a read
+    and write end combined into a single value. This means there is always at
+    least 1 read end for a @Chan@, which keeps any values written to it alive.
+    This is a problem for applications/libraries that want to have a channel
+    that can have zero listeners.
+
+    Suppose we have an library that produces events and we want to let users
+    register to receive events. If we use a channel and write all events to it,
+    we would like to drop and garbage collect any events that take place when
+    there are 0 listeners. The always present read end of @Chan@ from base
+    makes this impossible. We end up with a @Chan@ that forever accumulates
+    more and more events that will never get removed, resulting in a memory
+    leak.
+
+    @"BroadcastChan"@ splits channels into separate read and write ends. Any
+    message written to a a channel with no existing read end is immediately
+    dropped so it can be garbage collected. Once a read end is created, all
+    messages written to the channel will be accessible to that read end.
+
+    Once all read ends for a channel have disappeared and been garbage
+    collected, the channel will return to dropping messages as soon as they are
+    written.
+
+    __Why should I use "BroadcastChan" over "Control.Concurrent.Chan"?__
+
+    * @"BroadcastChan"@ is closable,
+
+    * @"BroadcastChan"@ has no 0 reader space leak,
+
+    * @"BroadcastChan"@ has comparable or better performance.
+
+    __Why should I use "BroadcastChan" over various (closable) STM channels?__
+
+    * @"BroadcastChan"@ is single-wakeup,
+
+    * @"BroadcastChan"@ is fair,
+
+    * @"BroadcastChan"@ performs better under contention.
+
+Flag sync
+  Description:        Benchmarks synchronisation primitives used in main
+                      benchmark.
+  Default:            False
+  Manual:             True
+
+Flag threaded
+  Description:        Run benchmarks with threaded backend.
+  Default:            True
+  Manual:             True
+
+Library
+  Default-Language:     Haskell2010
+  GHC-Options:          -Wall -O2 -Wno-unused-do-bind
+
+  Exposed-Modules:      BroadcastChan
+                        BroadcastChan.Extra
+                        BroadcastChan.Prelude
+                        BroadcastChan.Throw
+  Other-Modules:        BroadcastChan.Internal
+
+  Other-Extensions:     DataKinds
+                        DeriveDataTypeable
+                        KindSignatures
+                        NamedFieldPuns
+                        Safe
+                        ScopedTypeVariables
+                        Trustworthy
+                        TupleSections
+
+  Build-Depends:        base >= 4.8 && < 4.22
+               ,        transformers >= 0.2 && < 0.7
+               ,        unliftio-core >= 0.1.1 && < 0.3
+
+Library conduit
+  Visibility:           public
+  Default-Language:     Haskell2010
+  GHC-Options:          -Wall -O2 -Wno-unused-do-bind
+  Exposed-Modules:      BroadcastChan.Conduit
+                        BroadcastChan.Conduit.Throw
+  Other-Modules:        BroadcastChan.Conduit.Internal
+
+  Hs-Source-Dirs:       conduit
+
+  Other-Extensions:     CPP
+                        NamedFieldPuns
+                        Safe
+                        ScopedTypeVariables
+                        Trustworthy
+
+  Build-Depends:        base >= 4.8 && < 4.22
+               ,        broadcast-chan
+               ,        conduit >= 1.2 && < 1.4
+               ,        resourcet >= 1.1 && < 1.4
+               ,        transformers >= 0.2 && < 0.7
+               ,        unliftio-core >= 0.1 && < 0.3
+
+Library pipes
+  Visibility:           public
+  Default-Language:     Haskell2010
+  GHC-Options:          -Wall -O2 -Wno-unused-do-bind
+  Exposed-Modules:      BroadcastChan.Pipes
+                        BroadcastChan.Pipes.Throw
+  Other-Modules:        BroadcastChan.Pipes.Internal
+
+  Hs-Source-Dirs:       pipes
+
+  Other-Extensions:     NamedFieldPuns
+                        Safe
+                        ScopedTypeVariables
+
+  Build-Depends:        base >= 4.8 && < 4.22
+               ,        broadcast-chan
+               ,        pipes >= 4.1.6 && < 4.4
+               ,        pipes-safe >= 2.3.1 && < 2.4
+
+Library test
+  Default-Language:     Haskell2010
+  GHC-Options:          -Wall -O2 -Wno-unused-do-bind
+  Exposed-Modules:      BroadcastChan.Test
+  Hs-Source-Dirs:       broadcast-chan-test
+
+  Other-Extensions:     DeriveDataTypeable
+                        ScopedTypeVariables
+                        Trustworthy
+
+  Build-Depends:        base >= 4.8 && < 4.22
+               ,        async >= 2.1 && < 2.3
+               ,        broadcast-chan
+               ,        clock >= 0.7 && < 0.9
+               ,        containers >= 0.4 && < 0.9
+               ,        optparse-applicative >= 0.12 && < 0.19
+               ,        paramtree >= 0.1.1 && < 0.2
+               ,        stm >= 2.4 && < 2.6
+               ,        tagged == 0.8.*
+               ,        tasty >= 0.11 && < 1.6
+               ,        tasty-golden >= 2.0 && < 2.4
+               ,        tasty-hunit >= 0.9 && < 0.11
+               ,        temporary >= 1.2 && < 1.4
+               ,        text >= 1.0 && < 1.3 || ^>= 2.0 || ^>= 2.1
+
+  if impl(ghc <= 7.10)
+    Build-Depends:      transformers >= 0.2 && < 0.7
+
+Common basic
+  Default-Language:     Haskell2010
+  GHC-Options:          -Wall -Wno-unused-do-bind
+  Hs-Source-Dirs:       tests
+  Build-Depends:        base >= 4.8 && < 4.22
+               ,        broadcast-chan
+               ,        broadcast-chan:test
+               ,        foldl >= 1.4 && < 1.5
+               ,        monad-loops >= 0.4.3 && < 0.5
+               ,        random >= 1.1 && < 1.4
+
+Test-Suite basic
+  Import:               basic
+  Type:                 exitcode-stdio-1.0
+  Main-Is:              Basic.hs
+  GHC-Options:          -threaded -with-rtsopts=-qg
+
+Test-Suite basic-unthreaded
+  Import:               basic
+  Type:                 exitcode-stdio-1.0
+  Main-Is:              Basic.hs
+
+Common parallel-io
+  Default-Language:     Haskell2010
+  GHC-Options:          -Wall -O2 -Wno-unused-do-bind
+  Hs-Source-Dirs:       tests
+  Build-Depends:        base >= 4.8 && < 4.22
+               ,        broadcast-chan
+               ,        broadcast-chan:test
+               ,        containers >= 0.4 && < 0.9
+
+Test-Suite parallel-io
+  Import:               parallel-io
+  Type:                 exitcode-stdio-1.0
+  Main-Is:              IOTest.hs
+  GHC-Options:          -threaded -with-rtsopts=-qg
+
+Test-Suite parallel-io-unthreaded
+  Import:               parallel-io
+  Type:                 exitcode-stdio-1.0
+  Main-Is:              IOTest.hs
+
+Test-Suite conduit-test
+  Default-Language:     Haskell2010
+  Type:                 exitcode-stdio-1.0
+  Main-Is:              ConduitTest.hs
+  GHC-Options:          -Wall -Wno-unused-do-bind -threaded -with-rtsopts=-qg
+  Hs-Source-Dirs:       tests
+
+  Build-Depends:        base >= 4.8 && < 4.22
+               ,        broadcast-chan:conduit
+               ,        broadcast-chan:test
+               ,        containers >= 0.4 && < 0.9
+               ,        conduit >= 1.2 && < 1.4
+
+Test-Suite pipes-test
+  Default-Language:     Haskell2010
+  Type:                 exitcode-stdio-1.0
+  Main-Is:              PipeTest.hs
+  GHC-Options:          -Wall -Wno-unused-do-bind -threaded -with-rtsopts=-qg
+  Hs-Source-Dirs:       tests
+  Build-Depends:        base >= 4.8 && < 4.22
+               ,        broadcast-chan:pipes
+               ,        broadcast-chan:test
+               ,        containers >= 0.4 && < 0.9
+               ,        foldl >= 1.0.4 && < 1.5
+               ,        pipes >= 4.1.6 && < 4.4
+               ,        pipes-safe >= 2.3.1 && < 2.4
+
+Common concurrent-benchmarks
+  Default-Language:     Haskell2010
+
+  GHC-Options:          -Wall -O2 -Wno-orphans -rtsopts
+  if flag(threaded)
+    GHC-Options:        -threaded -with-rtsopts=-qg
+
+  Hs-Source-Dirs:       benchmarks
+
+  Other-Extensions:     BangPatterns
+
+  Build-Depends:        base >= 4.8 && < 4.22
+               ,        async >= 2.0 && < 2.3
+               ,        criterion >= 1.2 && < 1.7
+               ,        deepseq >= 1.1 && < 1.6
+               ,        stm >= 2.4 && < 2.6
+
+Benchmark sync
+  Import:               concurrent-benchmarks
+  Type:                 exitcode-stdio-1.0
+  Main-Is:              Sync.hs
+  if flag(sync)
+    Buildable:          True
+  else
+    Buildable:          False
+
+  Build-Depends:        atomic-primops == 0.8.*
+
+Benchmark channels
+  Import:               concurrent-benchmarks
+  Type:                 exitcode-stdio-1.0
+  Main-Is:              Channels.hs
+  GHC-Options:          -Wno-unused-do-bind -Wno-type-defaults
+
+  Other-Extensions:     DeriveGeneric
+                        RecordWildCards
+
+  Build-Depends:        broadcast-chan
+
+Benchmark utilities
+  Default-Language:     Haskell2010
+  Type:                 exitcode-stdio-1.0
+  Main-Is:              Utils.hs
+  GHC-Options:          -Wall -O2 -Wno-orphans -Wno-unused-do-bind
+                        -rtsopts
+  if flag(threaded)
+    GHC-Options:        -threaded -with-rtsopts=-qg
+  Hs-Source-Dirs:       benchmarks
+
+  Build-Depends:        base >= 4.8 && < 4.22
+               ,        broadcast-chan
+
+Source-Repository head
+  Type:     git
+  Location: ssh://github.com:merijn/broadcast-chan.git
