@@ -1,0 +1,131 @@
+cabal-version:      3.4
+name:               sqlc-hs
+version:            0.1.0.1
+
+-- synopsis:
+-- description:
+license:            Apache-2.0
+license-file:       LICENSE
+author:             Alex Hansen
+maintainer:         alex.biehl@gmail.com
+homepage:           https://github.com/alexbiehl/sqlc-hs
+bug-reports:        https://github.com/alexbiehl/sqlc-hs/issues
+category:           Development
+synopsis:
+  Generate type-safe Haskell code from SQL via https://github.com/sqlc-dev/sqlc.
+
+-- copyright:
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+extra-source-files:
+  README.md
+  templates/internal.mysql.hs.jinja
+  templates/internal.postgresql.hs.jinja
+  templates/internal.sqlite.hs.jinja
+  templates/package.cabal.jinja
+  templates/query.hs.jinja
+  templates/toplevel.hs.jinja
+  test/golden/**/*.cabal
+  test/golden/**/*.hs
+  test/golden/**/*.input
+
+source-repository head
+  type:     git
+  location: git@github.com:alexbiehl/sqlc-hs.git
+
+common stuff
+  ghc-options:        -Wall -Wno-name-shadowing
+  build-depends:
+    , base                     <5.0
+    , sqlc-hs:sqlc-hs-prelude
+
+  mixins:
+    base hiding (Prelude),
+    sqlc-hs:sqlc-hs-prelude (Sqlc.Hs.Prelude as Prelude)
+
+  default-extensions:
+    DerivingStrategies
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+
+library sqlc-hs-prelude
+  visibility:       private
+  exposed-modules:  Sqlc.Hs.Prelude
+  build-depends:
+    , base    <5.0
+    , relude
+
+  hs-source-dirs:   sqlc-hs-prelude
+  default-language: GHC2021
+
+library sqlc-hs-protos
+  visibility:       private
+  exposed-modules:
+    Proto.Protos.Codegen
+    Proto.Protos.Codegen_Fields
+
+  build-depends:    proto-lens-runtime
+  hs-source-dirs:   sqlc-hs-protos
+  default-language: GHC2021
+
+library
+  import:           stuff
+  exposed-modules:
+    Sqlc.Hs.Codegen
+    Sqlc.Hs.Config
+    Sqlc.Hs.Main
+    Sqlc.Hs.Resolve
+
+  build-depends:
+    , aeson
+    , bytestring
+    , directory
+    , ede
+    , file-embed
+    , filepath
+    , mtl
+    , proto-lens
+    , proto-lens-runtime
+    , sqlc-hs:sqlc-hs-protos
+    , text
+    , vector
+
+  hs-source-dirs:   src
+  default-language: GHC2021
+
+executable sqlc-hs
+  import:           stuff
+  main-is:          Main.hs
+
+  -- other-modules:
+  -- other-extensions:
+  build-depends:    sqlc-hs
+  hs-source-dirs:   app
+  default-language: GHC2021
+
+test-suite sqlc-hs-test
+  import:             stuff
+  default-language:   GHC2021
+  build-depends:
+    , bytestring
+    , directory
+    , filepath
+    , process
+    , process-extras
+    , proto-lens
+    , sqlc-hs:{sqlc-hs, sqlc-hs-protos}
+    , tasty
+    , tasty-golden
+    , temporary
+
+  build-tool-depends: tasty-discover:tasty-discover
+  build-tool-depends: sqlc-hs:sqlc-hs
+  other-modules:      Test.Sqlc.Hs.Golden
+
+  -- other-extensions:
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Driver.hs
+  build-depends:      sqlc-hs
