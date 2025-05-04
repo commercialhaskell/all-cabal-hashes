@@ -1,0 +1,152 @@
+Cabal-Version:  3.0
+Build-Type:     Simple
+
+Name:           inline-python
+Version:        0.2
+Synopsis:       Python interpreter embedded into haskell.
+Description:
+  This package embeds python interpreter into haskell program and
+  allows to write python snippets as quasiquotes. Values could be
+  easily transferred between python and haskell. It's possible to
+  call haskell from python as well.
+
+License:        BSD-3-Clause
+License-File:   LICENSE
+Author:         Aleksey Khudyakov <alexey.skladnoy@gmail.com>
+Maintainer:     Aleksey Khudyakov <alexey.skladnoy@gmail.com>
+Homepage:       https://github.com/Shimuuar/inline-python
+Bug-reports:    https://github.com/Shimuuar/inline-python/issues
+Category:       FFI
+extra-doc-files:
+  ChangeLog.md
+extra-source-files:
+  include/inline-python.h
+  py/bound-vars.py
+
+source-repository head
+  type:     git
+  location: http://github.com/Shimuuar/inline-python
+
+common language
+  Ghc-options:          -Wall
+  Default-Language:     GHC2021
+  Default-Extensions:
+    NoPolyKinds
+    --
+    DeriveAnyClass
+    DerivingVia
+    PatternSynonyms
+    ViewPatterns
+    LambdaCase
+    MultiWayIf
+    --
+    NoFieldSelectors
+    DuplicateRecordFields
+    OverloadedRecordDot
+
+----------------------------------------------------------------
+Library
+  import:            language
+  Build-Depends:     base             >=4.14 && <5
+                   , primitive        >=0.6.2
+                   , vector           >=0.13.2
+                   , containers       >=0.5
+                   , process
+                   , transformers     >=0.4
+                   , inline-c         >=0.9.1
+                   , stm              >=2.4
+                   , template-haskell -any
+                   , text             >=2
+                   , bytestring       >=0.11.2
+                   , exceptions       >=0.10
+                   , vector           >=0.13
+  hs-source-dirs:    src
+  include-dirs:      include
+  c-sources:         cbits/python.c
+  cc-options:        -g -Wall
+  pkgconfig-depends: python3-embed
+  --
+  Exposed-modules:
+    Python.Inline
+    Python.Inline.Literal
+    Python.Inline.QQ
+    Python.Inline.Eval
+    Python.Inline.Types
+  Other-modules:
+    Python.Internal.CAPI
+    Python.Internal.Eval
+    Python.Internal.EvalQQ
+    Python.Internal.Program
+    Python.Internal.Types
+    Python.Internal.Util
+
+----------------------------------------------------------------
+library test
+  import:           language
+  Default-Extensions:
+    QuasiQuotes
+  build-depends:    base
+                  , inline-python
+                  , tasty                >=1.2
+                  , tasty-hunit          >=0.10
+                  , tasty-quickcheck     >=0.10
+                  , quickcheck-instances >=0.3.32
+                  , exceptions
+                  , containers
+                  , vector
+                  , bytestring
+                  , text
+  hs-source-dirs:   test
+  Exposed-modules:
+    TST.Run
+    TST.ToPy
+    TST.FromPy
+    TST.Callbacks
+    TST.Roundtrip
+    TST.Util
+
+-- Running tests using several threads does very good job at finding threading
+-- bugs. Especially deadlocks
+test-suite inline-python-tests
+  import:           language
+  type:             exitcode-stdio-1.0
+  Ghc-options:      -threaded -with-rtsopts=-N2
+  hs-source-dirs:   test/exe
+  main-is:          main.hs
+  build-depends:    base
+                  , inline-python
+                  , inline-python:test
+                  , tasty
+
+test-suite inline-python-tests1
+  import:           language
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test/exe
+  main-is:          main.hs
+  build-depends:    base
+                  , inline-python
+                  , inline-python:test
+                  , tasty
+
+benchmark pysmall
+  import:           language
+  type:             exitcode-stdio-1.0
+  Ghc-options:      -threaded
+  main-is:          Main.hs
+  hs-source-dirs:   bench
+  build-depends:
+        base >= 2 && < 5
+      , inline-python
+      , tasty
+      , tasty-bench >= 0.2.1
+
+benchmark pysmall1
+  import:           language
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  hs-source-dirs:   bench
+  build-depends:
+        base >= 2 && < 5
+      , inline-python
+      , tasty
+      , tasty-bench >= 0.2.1
