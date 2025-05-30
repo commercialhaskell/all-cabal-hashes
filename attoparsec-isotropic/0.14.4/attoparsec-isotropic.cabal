@@ -1,0 +1,277 @@
+cabal-version:   3.0
+name:            attoparsec-isotropic
+version:         0.14.4
+license:         BSD-3-Clause
+license-file:    LICENSE
+category:        Text, Parsing
+author:          Daniil Iaitskov <dyaitskov@gmail.com>
+maintainer:      Daniil Iaitskov <dyaitskov@gmail.com>
+stability:       experimental
+synopsis:        right-to-left parser backward compatible with attoparsec
+homepage:        https://github.com/yaitskov/attoparsec-isotropic
+bug-reports:     https://github.com/yaitskov/attoparsec-isotropic/issues
+build-type:      Simple
+description:
+    A fork of <https://github.com/haskell/attoparsec attoparsec> library
+    allows to define omnidirected parsers or parsers consuming input from
+    right-to-left. The library is highly backward compabitle with original
+    interface. Idea to do the fork is inspired by the need to parse a CSV
+    file in <https://github.com/yaitskov/RobinHood-pr0fit robin-hood-profit>
+    in one go with “constant” memory footprint and rows in reverse
+    chronological order.
+    
+    == Example
+    #example#
+    
+    > {-# LANGUAGE OverloadedStrings #-}
+    > {-# LANGUAGE TupleSections #-}
+    > import Data.Attoparsec.ByteString
+    >
+    > test = parseOnly ab "ab" == parseBackOnly ba "ab"
+    >   where
+    >     ab = (,) <$> string "a" <*> string "b"
+    >     ba = (,) <$> string "b" <*> string "a"
+    >
+    > test2 = parseOnly ab "ab" == parseBackOnly ab "ba"
+    >   where
+    >     ab = string "a" >*< string "b"
+    
+    == Running parser in reverse incrementally
+    #running-parser-in-reverse-incrementally#
+    
+    Snippet from the CSV parser app:
+    
+    > consumeFile :: Handle -> (RobinRow -> ProfitM ()) -> ProfitM ()
+    > consumeFile h handleRow = do
+    >   input <- readBlock h
+    >   go Nothing input
+    >   where
+    >     go !loopDetector input = do
+    >       iBlock <- gets (^. #currentBlock)
+    >       if iBlock < 0 && input == mempty
+    >         then pure ()
+    >         else do
+    >           parseBackWith (readBlock h) parseRow input >>= \case
+    >             Fail _unconsumed ctx er -> do
+    >               erpos <- liftIO $ hTell h
+    >               fail $ "Failed to parse CSV file around " <> show erpos <> " byte; due: "
+    >                 <> show er <> "; context: " <> show ctx
+    >             Partial _ -> fail "CSV file is partial"
+    >             Done (unconsumed :: ByteString) (rawRow :: [ByteString]) -> do
+    >               iBlock' <- gets (^. #currentBlock)
+    >               if loopDetector == Just (unconsumed, iBlock')
+    >                 then
+    >                   fail $ "Loop detected. Unconsumed input: " <> show unconsumed
+    >                 else do
+    >                   trashCodes <- asks (^. #codesToSkip)
+    >                   case parseRobinRow trashCodes rawRow of
+    >                     Left e -> fail e
+    >                     Right row -> do
+    >                       forM_ row handleRow
+    >                       go (Just (unconsumed, iBlock')) unconsumed
+
+tested-with:
+  GHC == 9.10.1
+
+extra-source-files:
+    benchmarks/*.txt
+    benchmarks/json-data/*.json
+    benchmarks/Makefile
+    benchmarks/med.txt.bz2
+    examples/*.c
+    examples/*.hs
+    examples/Makefile
+
+extra-doc-files:
+    README.md
+    changelog.md
+
+Flag developer
+  Description: Whether to build the library in development mode
+  Default: False
+  Manual: True
+
+-- We need to test and benchmark these modules,
+-- but do not want to expose them to end users
+library attoparsec-isotropic-internal
+  hs-source-dirs: internal
+  build-depends: array < 0.6,
+                 base >= 4.3 && < 5,
+                 bytestring <0.13,
+                 tagged < 0.9,
+                 trace-embrace < 2.0.2,
+                 text < 3.0
+  if !impl(ghc >= 8.0)
+    build-depends: semigroups >=0.16.1 && <0.21
+
+  exposed-modules: Data.Attoparsec.ByteString.Buffer
+                   Data.Attoparsec.ByteString.FastSet
+                   Data.Attoparsec.Internal.Compat
+                   Data.Attoparsec.Internal.Fhthagn
+                   Data.Attoparsec.Text.Buffer
+                   Data.Attoparsec.Text.FastSet
+  ghc-options: -O2 -Wall
+  default-language: Haskell2010
+  default-extensions:
+    TemplateHaskell
+
+library
+  build-depends: array < 0.6,
+                 base >= 4.5 && < 5,
+                 bytestring <0.13,
+                 containers < 0.9,
+                 deepseq < 1.8,
+                 haddock-use-refs < 2.0,
+                 scientific >= 0.3.1 && < 0.4,
+                 tagged < 1.0,
+                 transformers >= 0.2 && (< 0.4 || >= 0.4.1.0) && < 0.7,
+                 text < 3.0,
+                 trace-embrace < 2.0.2,
+                 ghc-prim < 0.14,
+                 attoparsec-isotropic-internal
+  if impl(ghc < 7.4)
+    build-depends:
+      bytestring < 0.10.4.0
+
+  if !impl(ghc >= 8.0)
+    -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
+    build-depends: fail == 4.9.*,
+                   semigroups >=0.16.1 && <0.21
+
+  exposed-modules: Data.Attoparsec
+                   Data.Attoparsec.ByteString
+                   Data.Attoparsec.ByteString.Char8
+                   Data.Attoparsec.ByteString.Lazy
+                   Data.Attoparsec.Char8
+                   Data.Attoparsec.Combinator
+                   Data.Attoparsec.Internal
+                   Data.Attoparsec.Internal.Types
+                   Data.Attoparsec.Lazy
+                   Data.Attoparsec.Number
+                   Data.Attoparsec.Text
+                   Data.Attoparsec.Text.Lazy
+                   Data.Attoparsec.Types
+                   Data.Attoparsec.Zepto
+  other-modules:   Data.Attoparsec.ByteString.Internal
+                   Data.Attoparsec.Text.Internal
+  ghc-options: -O2 -Wall
+
+  default-language: Haskell2010
+  default-extensions:
+    ImportQualifiedPost
+    TypeOperators
+    TemplateHaskell
+
+  if flag(developer)
+    ghc-prof-options: -auto-all
+    ghc-options: -Werror
+
+test-suite attoparsec-isotropic-tests
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is:        QC.hs
+  other-modules:  QC.Buffer
+                  QC.ByteString
+                  QC.ByteStringRightToLeft
+                  QC.Combinator
+                  QC.CombinatorRight
+                  QC.Common
+                  QC.IPv6.Internal
+                  QC.IPv6.Types
+                  QC.MonoidalScientific
+                  QC.Rechunked
+                  QC.Simple
+                  QC.Text
+                  QC.Text.FastSet
+                  QC.Text.Regressions
+
+  ghc-options:
+    -Wall -threaded -rtsopts
+
+  if flag(developer)
+    ghc-options: -Werror
+
+  build-depends:
+    array < 0.6,
+    attoparsec-isotropic,
+    attoparsec-isotropic-internal,
+    base,
+    bytestring,
+    deepseq >= 1.1,
+    QuickCheck >= 2.13.2 && < 2.16,
+    quickcheck-unicode,
+    scientific,
+    tasty >= 0.11,
+    tasty-bench >= 0.3,
+    tasty-quickcheck >= 0.8,
+    text >= 2.1.1,
+    transformers,
+    trace-embrace,
+    vector,
+    -- benchmark dependencies
+    -- cabal2nix skips dependencies from benchmark
+    tasty-bench >= 0.3,
+    http-types
+
+  default-language: Haskell2010
+
+  if !impl(ghc >= 8.0)
+    -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
+    build-depends: fail == 4.9.*,
+                   semigroups >=0.16.1 && <0.19
+
+benchmark attoparsec-isotropic-benchmarks
+  type: exitcode-stdio-1.0
+  hs-source-dirs: benchmarks benchmarks/warp-3.0.1.1
+  ghc-options: -O2 -Wall -rtsopts
+  main-is: Benchmarks.hs
+  other-modules:
+    Aeson
+    Common
+    Genome
+    HeadersByteString
+    HeadersByteString.Atto
+    HeadersText
+    Links
+    Network.Wai.Handler.Warp.ReadInt
+    Network.Wai.Handler.Warp.RequestHeader
+    Numbers
+    Sets
+    TextFastSet
+    Warp
+  ghc-options: -O2 -Wall
+
+  if flag(developer)
+    ghc-options: -Werror
+
+  build-depends:
+    array,
+    attoparsec-isotropic,
+    attoparsec-isotropic-internal,
+    base == 4.*,
+    bytestring >= 0.10.4.0,
+    case-insensitive,
+    containers >= 0.7,
+    deepseq >= 1.1,
+    directory,
+    filepath,
+    ghc-prim,
+    http-types,
+    parsec >= 3.1.2,
+    scientific,
+    tasty-bench >= 0.3,
+    text >= 1.1.1.0,
+    transformers,
+    unordered-containers,
+    vector
+
+  default-language: Haskell2010
+
+  if !impl(ghc >= 8.0)
+    -- Data.Semigroup && Control.Monad.Fail are available in base-4.9+
+    build-depends: fail == 4.9.*,
+                   semigroups >=0.16.1 && <0.19
+
+source-repository head
+  type:     git
+  location: https://github.com/yaitskov/attoparsec-isotropic.git
