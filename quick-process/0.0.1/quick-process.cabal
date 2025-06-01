@@ -1,0 +1,417 @@
+cabal-version: 3.0
+name:          quick-process
+version:       0.0.1
+synopsis:      Run external processes verified at compilation/installation
+description:
+    The library checks program name during compilation, generates exec spec
+    to be verified in tests, before installation or before launch.
+    
+    == Motivation
+    #motivation#
+    
+    The strongest trait of Haskell language is its type system. This
+    powerful type system gives infinite opportunities for experimenting with
+    mapping relational entities onto application values in safer, more
+    comprehensible and maintainable ways.
+    
+    Compare popularity of Java and Haskell languagues and number of SOL
+    libraries in them:
+    
+    > > length $ words "Hasql Beam Reigh8 postgresql-typed persistent esqueleto Opaleye Rel8 Squeal Selda Groundhog"
+    > 11
+    > > length $ words "JPA Hibernate JOOQ EJB"
+    > 4
+    
+    Haskell ecosystem counts 2.75 times more SQL libraries nonetheless
+    according to <https://www.tiobe.com/tiobe-index/ TIOBE index> in 2025
+    Java is 20 times more popular than Haskell and by
+    <https://pypl.github.io/PYPL.html PYPL> 126 times!
+    
+    As far as I remember only <https://www.jooq.org/ JOOQ> resembles a type
+    safe library. Other libraries require runtime environment to check
+    compatibility of codebase with SQL queries.
+    
+    RDBMSs talk SQL and it are inherently text oriented for extenal clients.
+    All these Haskell libraries first of all are trying to hide plain string
+    manipulation behind type fence as deep as possible.
+    
+    Once I tried had to launch an external process in a Haskell program.
+    Keeping in mind the 50-200x slope on SQL arena in Haskell, I expected to
+    find at least a few libraries on <https://hackage.haskell.org/ hackage>
+    providing some type safety layer between my application and execv
+    syscall interface accepting a bare strings.
+    
+    The observation above motivated me experimenting with a type safe
+    wrapper for <https://hackage.haskell.org/package/process process>
+    library.
+    
+    Structure of command line arguments is way simpler than SQL. An external
+    program can be modelled as a function with a side effect. Haskell has an
+    amazing library for testing functions -
+    <hackage.haskell.org/package/QuickCheck QuickCheck> including impure
+    ones.
+    
+    Main concern of external programs - they are not shipped with the
+    application. Recall
+    <https://en.wikipedia.org/wiki/Dependency_hell PRM hell> phrase. These
+    days situation with external explicit dependency resolution during
+    software installation and upgrade improved by nix and bazel. Nix and
+    bazel are powerful, because they can pack\/isolate\/unpack the whole
+    dependency universe of a single app, but they are complicated systems
+    with a steep learning curve. Plus nix is not supported on Windows.
+    That’s why they’ve got limited popularity and lot of software is still
+    distributed as a self-extracting archive assuming some dependencies are
+    compatible and preinstalled manually.
+    
+    Explicit list of dependencies is manually currated.
+    
+    Language does not provide out of the box solution to build such list.
+    Taking into account human factor explicit list of dependencies always
+    has a chance to diverge from the full (effective) one. E.g. host system
+    got newer version of dependency which behaves differently.
+    
+    Software installation out of prebuilt executables usually don’t run
+    tests.
+    
+    == Goals
+    #goals#
+    
+    quick-process defines following goals:
+    
+    -   provide DSL for describing a call spec of an external program
+    -   generate types, from the call spec, compatible with application
+        domain and arguments of an external program
+    -   automatic discovery of call specs in code base
+    -   check call spec compatibility during app development, testing and
+        installation
+    -   process launch and mapping call spec to CreadeProcess
+    
+    == Call spec verification
+    #call-spec-verification#
+    
+    Often call spec can be verified with @--help@ key terminating command
+    line arguments. It’s way easier than running the program in sandbox,
+    because no files gerenration is required and validating after effects
+    either. Help key validation support can be checked.
+    
+    == Examples
+    #examples#
+    
+    === Constant argument
+    #constant-argument#
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module CallSpecs where
+    > import System.Process.Quick
+    >
+    > $(genCallSpec [TrailingHelpValidate, SandboxValidate] "date" (ConstArg "+%Y" .*. HNil))
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module CallSpecTest where
+    >
+    > import CallSpecs
+    > import System.Process.Quick
+    >
+    > main :: IO ()
+    > main = $(discoverAndVerifyCallSpecs
+    >           (fromList [ TrailingHelpValidate
+    >                     , SandboxValidate
+    >                     ])
+    >           3)
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module Main where
+    >
+    > import CallSpecs
+    > import System.Process.Quick
+    >
+    > main :: IO ()
+    > main = callProcess Date
+    
+    @genCallSpec@ defines type @Date@ with nullary constructor and
+    @CallSpec@ instance for it.
+    
+    @discoverAndVerifyCallSpecs@ discovers all types with @CallSpec@
+    instances, generates 3 values per type ande executes help key check.
+    There is not much to check besides exit code in Date spec.
+    
+    @callProcess@ is similar to
+    <https://hackage.haskell.org/package/process/docs/System-Process.html#v:callProcess callProcess>
+    from process library, but accepts typed input instead of strings.
+    
+    === Variable argument
+    #variable-argument#
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module CallSpecs where
+    > import System.Process.Quick
+    >
+    > $(genCallSpec
+    >   [TrailingHelpValidate, SandboxValidate]
+    >   "/bin/cp"
+    >   (   VarArg @(Refined (InFile "hs") FilePath) "source"
+    >   .*. VarArg @(Refined (OutFile "*") FilePath) "destination"
+    >   .*. HNil
+    >   )
+    >  )
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module CallSpecTest where
+    >
+    > import CallSpecs
+    > import System.Process.Quick
+    >
+    > main :: IO ()
+    > main = $(discoverAndVerifyCallSpecs
+    >           (fromList [ TrailingHelpValidate
+    >                     , SandboxValidate
+    >                     ])
+    >           100)
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module Main where
+    >
+    > import CallSpecs
+    > import System.Process.Quick
+    >
+    > main :: IO ()
+    > main =
+    >   callProcess $ BinCp $(refinedTH "app.hs") $(refinedTH "app.bak")
+    
+    @CallSpec@ of cp command requires 2 parameters and here quick-process
+    power start to show up. Refined constraint InFile ensures that first
+    string is a valid file path to a Haskell source file. This part is
+    delegated to <https://hackage.haskell.org/package/refined refined>
+    library. HelpKey mode generates appropriate values, but they don’t point
+    to real files on disk. Use Sandbox mode to actually launch process in a
+    temporary dir with real files. In Sandbox @OutFile@ cause to check that
+    the file appears on the path once process terminates.
+    
+    === Subcases
+    #subcases#
+    
+    Call spec can be composed of sum types.
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module CallSpecs where
+    > import System.Process.Quick
+    >
+    > $(genCallSpec
+    >   [TrailingHelpValidate, SandboxValidate]
+    >   "find"
+    >   (   ConstArg "."
+    >   .*. Subcases
+    >         "FindCases"
+    >         [ Subcase "FindPrintf"
+    >           (KeyArg @(Refined (Regex "^[%][fpactbnM%]$") String) "-printf" .*. HNil)
+    >         , Subcase "FindExec"
+    >           (KeyArg @(Refined (Regex "^(ls|file|du)$") String) "-exec" .*. ConstArg "{}" .*. ConstArg ";" .*. HNil)
+    >         ]
+    >   .*. HNil
+    >   )
+    >  )
+    
+    Note usage of @Regex@ predicate - thanks to
+    <https://hackage.haskell.org/package/refined sbv> and z3 SMT solver
+    values satisfing arbitrary TDFA regex can be generated.
+
+homepage:      http://github.com/yaitskov/quick-process
+license:       BSD-3-Clause
+author:        Daniil Iaitskov
+maintainer:    dyaitskov@gmail.com
+copyright:     Daniil Iaitkov 2025
+category:      System
+build-type:    Simple
+bug-reports:   https://github.com/yaitskov/quick-process/issues
+extra-doc-files:
+  changelog.md
+tested-with:
+  GHC == 9.10.1
+
+source-repository head
+  type:
+    git
+  location:
+    https://github.com/yaitskov/quick-process.git
+
+Flag leafopt
+  Description: Enable leaf optimization
+  Default: False
+
+common base
+  default-language: GHC2024
+  ghc-options: -Wall
+  default-extensions:
+    DefaultSignatures
+    NoImplicitPrelude
+    OverloadedStrings
+    TemplateHaskell
+  build-depends:
+      HList >= 0.5.4.0 && < 1
+    , QuickCheck >= 2.14.3 && < 3
+    , base >=4 && < 5
+    , bytestring >= 0.12.1 && < 1
+    , generic-lens >= 2.2.2 && < 3
+    , lens >= 5.3.2 && < 6
+    , relude >= 1.2.2 && < 2
+
+-- https://github.com/erikd/conduit-find/pull/17
+library conduit-find-internal
+  import: base
+  hs-source-dirs: conduit-find
+  ghc-options: -Wall -funbox-strict-fields
+  if os(linux) && flag(leafopt)
+     cpp-options: -DLEAFOPT=1
+  default-extensions:
+    ImplicitPrelude
+  exposed-modules:
+      Data.Cond, Data.Conduit.Find
+  build-depends:
+      attoparsec           >= 0.14.4 && < 1
+    , conduit              >= 1.2 && < 2
+    , conduit-combinators  >= 1.3.0 && < 2
+    , conduit-extra        >= 1.3.6 && < 2
+    , either               >= 5.0.2 && < 6
+    , exceptions           >= 0.6 && < 1
+    , filepath             >= 1.5.2 && < 2
+    , mmorph               >= 1.2.0 && < 2
+    , monad-control        >= 1.0 && < 2
+    , mtl                  >= 2.3.1 && < 3
+    , regex-posix          >= 0.96.0 && < 1
+    , resourcet            >= 1.1 && < 2
+    , semigroups           >= 0.20 && < 1
+    , streaming-commons    >= 0.2.2 && < 1
+    , text                 >= 2.0 && < 3
+    , time                 >= 1.12.2 && < 2
+    , transformers         >= 0.6.1 && < 1
+    , transformers-base    >= 0.4.6 && < 1
+    , transformers-either  >= 0.1.4 && < 1
+    , unix-compat          >= 0.4.1.1 && < 1
+    , unliftio-core        >= 0.2.1 && < 1
+
+-- https://github.com/nikita-volkov/refined/pull/112
+library refined-internal
+  import: base
+  hs-source-dirs: refined
+  default-extensions:
+    ImplicitPrelude
+  cpp-options: -DHAVE_QUICKCHECK
+  exposed-modules:
+    Refined
+  other-modules:
+    Refined.Unsafe
+    Refined.Unsafe.Type
+  build-depends:
+      deepseq          >= 1.4 && < 2
+    , exceptions       < 1
+    , hashable         >= 1.0 && < 2
+    , mtl              < 3
+    , template-haskell < 3
+    , text             < 3
+    , these-skinny     < 1
+
+library
+  import: base
+  hs-source-dirs: src
+  exposed-modules:
+    System.Process.Quick
+    System.Process.Quick.CallEffect
+    System.Process.Quick.CallArgument
+    System.Process.Quick.CallSpec
+    System.Process.Quick.CallSpec.Run
+    System.Process.Quick.CallSpec.Subcases
+    System.Process.Quick.CallSpec.Type
+    System.Process.Quick.CallSpec.Verify
+    System.Process.Quick.OrphanArbitrary
+    System.Process.Quick.Predicate
+    System.Process.Quick.Predicate.ImplDir
+    System.Process.Quick.Predicate.InDir
+    System.Process.Quick.Predicate.InFile
+    System.Process.Quick.Predicate.LowerCase
+    System.Process.Quick.Predicate.Regex
+    System.Process.Quick.Prelude
+    System.Process.Quick.Pretty
+    System.Process.Quick.Sbv.Arbitrary
+    System.Process.Quick.TdfaToSbvRegex
+  build-depends:
+      casing                  < 1
+    , conduit                 < 2
+    , conduit-find-internal
+    , containers              < 1
+    , directory               < 2
+    , filepath                < 2
+    , generic-random          < 2
+    , mtl                     < 3
+    , pretty                  < 2
+    , process                 < 2
+    , refined-internal
+    , regex-compat            < 1
+    , regex-tdfa              < 2
+    , safe-exceptions         < 1
+    , sbv                     < 12
+    , template-haskell        < 3
+    , temporary               < 2
+    , th-utilities            < 1
+    , trace-embrace           < 2
+    , unix                    < 3
+
+test-suite verify-call-specs
+  import: base
+  type: exitcode-stdio-1.0
+  main-is: VerifyCallSpecs.hs
+  other-modules:
+    CallSpecs.Find
+    CallSpecs.Find.Type
+  hs-source-dirs:
+    verify-call-specs
+  ghc-options: -Wall -rtsopts -threaded -main-is VerifyCallSpecs
+  build-depends: quick-process
+
+test-suite sandbox-effect
+  import: base
+  type: exitcode-stdio-1.0
+  main-is: SandBoxEffect.hs
+  other-modules:
+    CallSpecs.CpOne
+    CallSpecs.CpManyToDir
+    CallSpecs.Date
+    CallSpecs.FindCases
+  hs-source-dirs:
+    sandbox-effect
+  ghc-options: -Wall -rtsopts -threaded -main-is SandBoxEffect
+  build-depends:
+      quick-process
+    , refined-internal
+
+test-suite test
+  import: base
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  other-modules:
+    Discovery
+    System.Process.Quick.Test.CallSpec
+    System.Process.Quick.Test.CallSpec.Const
+    System.Process.Quick.Test.CallSpec.VarArg
+    System.Process.Quick.Test.CallSpec.VarArg.Refined
+    System.Process.Quick.Test.Prelude
+    System.Process.Quick.Test.Th
+    Paths_quick_process
+  autogen-modules:
+    Paths_quick_process
+  hs-source-dirs:
+    test
+  ghc-options: -Wall -rtsopts -threaded -main-is Driver
+  build-depends:
+      directory
+    , quickcheck-instances
+    , refined-internal
+    , th-utilities
+    , tasty
+    , tasty-discover
+    , tasty-hunit
+    , tasty-quickcheck
+    , template-haskell
+    , temporary
+    , th-lift-instances
+    , quick-process
+    , unliftio
