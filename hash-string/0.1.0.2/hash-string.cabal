@@ -1,0 +1,65 @@
+cabal-version:      1.24
+name:               hash-string
+version:            0.1.0.2
+synopsis:
+  binary strings supporting constant-time base16 and comparisons
+description:
+  binary string types supporting constant-time base16 encoding and decoding, as
+  well as constant time lexicographic comparisons. Note that the time required
+  does depend linearly on length, but is otherwise data-independent.
+license:            Apache-2.0
+license-file:       LICENSE
+author:             Steve "Sc00bz" Thomas, Leon P Smith
+maintainer:         Auth Global
+copyright:          2024 Auth Global
+category:           Cryptography
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+
+library
+    exposed-modules:  Crypto.HashString
+                      Crypto.HashString.FFI
+
+    other-modules:    Crypto.HashString.Implementation
+
+    build-depends:    base < 5,
+                      bytestring >= 0.11.3,
+                      ghc-prim
+
+    if impl(ghc < 9.4)
+        build-depends: data-array-byte
+
+    hs-source-dirs:   lib
+    include-dirs:     csrc
+
+    install-includes:  csrc/hs_hashstring_memcmp.h
+                       csrc/hs_hashstring_base16.h
+                       -- csrc/hs_hashstring_base64.h
+                       csrc/hs_hashstring_xor.h
+    c-sources:         csrc/hs_hashstring_memcmp.c
+                       csrc/hs_hashstring_base16.c
+                       -- csrc/hs_hashstring_base64.c
+                       csrc/hs_hashstring_xor.c
+
+    cc-options: -ftree-vectorize
+    default-language: Haskell2010
+
+source-repository head
+  type:     git
+  location: http://github.com/auth-global/self-documenting-cryptography
+  subdir:   hash-string
+
+test-suite test
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:    base
+                    , base16 >= 1
+    --                , base64 >= 1
+                    , bytestring
+                    , hash-string
+                    , quickcheck-instances
+                    , tasty
+                    , tasty-quickcheck
+                    , text

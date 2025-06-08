@@ -1,0 +1,191 @@
+cabal-version:   3.4
+name:            data-debruijn
+version:         0.1.0.0
+synopsis:        Fast and safe implementation of common compiler machinery.
+description:
+  This package provides a safe interface to optimised implementations of common
+  machinery used in compilers and type checkers.
+
+  [Type-Level Naturals]:
+      "Data.Type.Nat"
+
+      "Data.Type.Nat.Singleton"
+
+  [DeBruijn Indexes]
+      "Data.DeBruijn.Index"
+
+  [Thinnings]
+      "Data.DeBruijn.Thinning"
+
+  [Environments]
+      "Data.DeBruijn.Environment"
+
+license:         AGPL-3.0-only
+author:          Wen Kokke
+maintainer:      wenkokke@users.noreply.github.com
+copyright:
+  2023-2025 (c) Wen Kokke
+  2025 (c) April Gonçalves
+  2025 (c) Well-Typed LLC
+
+category:        Development
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+tested-with:     GHC ==9.6.7 || ==9.8.4 || ==9.10.2 || ==9.12.2
+
+source-repository head
+  type:     git
+  location: https://github.com/wenkokke/data-debruijn
+
+source-repository this
+  type:     git
+  location: https://github.com/wenkokke/data-debruijn
+  tag:      v0.1.0.0
+
+--------------------------------------------------------------------------------
+-- Feature Flags for Underlying Representation
+--------------------------------------------------------------------------------
+
+-- Representation: Use safe inductive definitions for all types.
+flag safe
+  description: Export the safe API.
+  manual:      True
+  default:     False
+
+flag th-as-word64
+  description:
+    Use a Word to represent thinnings.
+    The default is Natural.
+
+  manual:      True
+  default:     False
+
+-- Representation: Environments
+flag env-as-skew-list
+  description:
+    Use SkewList from the skew-list package to represent environments.
+    The default is Seq from the containers package.
+
+  manual:      True
+  default:     False
+
+common language
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wprepositive-qualified-module
+    -Wredundant-constraints -Wunticked-promoted-constructors
+    -Wunused-packages
+
+  default-language:   GHC2021
+  default-extensions:
+    ImportQualifiedPost
+    NoFieldSelectors
+
+library
+  import:             language
+  hs-source-dirs:     src
+  default-extensions: NoImplicitPrelude
+  build-depends:      data-debruijn:typenats
+  reexported-modules: Data.Type.Nat
+  exposed-modules:
+    Data.DeBruijn.Environment
+    Data.DeBruijn.Index
+    Data.DeBruijn.Thinning
+    Data.Type.Nat.Singleton
+
+  if flag(safe)
+    build-depends: data-debruijn:safe
+    cpp-options:   -DEXPORT_SAFE_API
+
+  else
+    build-depends: data-debruijn:fast
+
+  -- NOTE: GHC does not detect that the package "data-debruijn:typenats"
+  --       is used by the "reexported-modules" declaration.
+  ghc-options:        -Wno-unused-packages
+
+library typenats
+  import:          language
+  visibility:      public
+  hs-source-dirs:  src-typenats
+  exposed-modules: Data.Type.Nat
+  build-depends:   base >=4.17 && <5
+
+library fast
+  import:          language
+  visibility:      public
+  hs-source-dirs:  src-fast
+  exposed-modules:
+    Data.DeBruijn.Environment.Fast
+    Data.DeBruijn.Index.Fast
+    Data.DeBruijn.Thinning.Fast
+    Data.Type.Nat.Singleton.Fast
+
+  build-depends:
+    , base                    >=4.17 && <5
+    , data-debruijn:typenats
+    , deepseq                 ^>=1.4 || ^>=1.5
+
+  -- Representation: Natural Number Singletons
+  cpp-options:     -DSNAT_AS_INT
+
+  -- Representation: Indexes
+  cpp-options:     -DIX_AS_INT
+
+  -- Representation: Thinnings
+  if flag(th-as-word64)
+    cpp-options:   -DTH_AS_WORD64
+    build-depends: ghc-prim ^>=0.9 || ^>=0.10 || ^>=0.11 || ^>=0.12 || ^>=0.13
+
+  else
+    cpp-options:   -DTH_AS_NATURAL
+    build-depends:
+      , ghc-bignum  ^>=1.3
+      , ghc-prim    ^>=0.9 || ^>=0.10 || ^>=0.11 || ^>=0.12 || ^>=0.13
+
+  -- Representation: Environments
+  if flag(env-as-skew-list)
+    cpp-options:   -DENV_AS_SKEW_LIST
+    build-depends: skew-list ^>=0.1
+
+  else
+    cpp-options:   -DENV_AS_SEQ
+    build-depends: containers >=0.6.7 && <0.9
+
+library safe
+  import:          language
+  visibility:      public
+  hs-source-dirs:  src-safe
+  exposed-modules:
+    Data.DeBruijn.Environment.Safe
+    Data.DeBruijn.Index.Safe
+    Data.DeBruijn.Thinning.Safe
+    Data.Type.Nat.Singleton.Safe
+
+  build-depends:
+    , base                    >=4.17 && <5
+    , data-debruijn:fast
+    , data-debruijn:typenats
+    , deepseq                 ^>=1.4 || ^>=1.5
+
+library arbitrary
+  import:          language
+  visibility:      public
+  hs-source-dirs:  src-arbitrary
+  other-modules:   Test.QuickCheck.Extra
+  exposed-modules:
+    Data.DeBruijn.Index.Arbitrary
+    Data.DeBruijn.Index.Fast.Arbitrary
+    Data.DeBruijn.Index.Safe.Arbitrary
+    Data.DeBruijn.Thinning.Arbitrary
+    Data.DeBruijn.Thinning.Fast.Arbitrary
+    Data.DeBruijn.Thinning.Safe.Arbitrary
+    Data.Type.Nat.Singleton.Arbitrary
+    Data.Type.Nat.Singleton.Fast.Arbitrary
+    Data.Type.Nat.Singleton.Safe.Arbitrary
+
+  build-depends:
+    , base
+    , data-debruijn:fast
+    , data-debruijn:safe
+    , data-debruijn:typenats
+    , QuickCheck              >=2.9 && <3.0
