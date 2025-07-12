@@ -1,0 +1,51 @@
+cabal-version:   2.2
+name:            minisat
+version:         0.1.4
+build-type:      Simple
+Synopsis:        A Haskell bundle of the Minisat SAT solver
+Category:        Logic
+License:         BSD-3-Clause
+License-File:    LICENSE
+extra-source-files: minisat-c-bindings/minisat.h
+                    minisat-haskell-bindings/hsc-magic.h
+                    minisat/minisat/simp/*.h
+                    minisat/minisat/mtl/*.h
+                    minisat/minisat/core/*.h
+                    minisat/minisat/utils/*.h
+
+source-repository head
+  type:     git
+  location: https://github.com/jbransen/minisat-bundle.git
+
+library
+  default-extensions: ForeignFunctionInterface
+  build-depends:   base >= 3 && < 5, async >= 2.0.0.0
+  cxx-sources:     minisat-c-bindings/minisat.cc
+                   minisat/minisat/core/Solver.cc
+                   minisat/minisat/simp/SimpSolver.cc
+                   minisat/minisat/utils/System.cc
+  cc-options:      -D__STDC_LIMIT_MACROS -D__STDC_FORMAT_MACROS
+  hs-source-dirs:  minisat-haskell-bindings
+  include-dirs:    minisat-haskell-bindings, minisat-c-bindings, minisat
+  exposed-modules: MiniSat
+  default-language: Haskell2010
+
+  -- stdc++ setup copied from text
+  -- https://hackage.haskell.org/package/text-2.1.2/text.cabal
+  if impl(ghc >= 9.4)
+    build-depends: system-cxx-std-lib == 1.0
+  elif os(darwin) || os(freebsd)
+    extra-libraries: c++
+  elif os(openbsd)
+    extra-libraries: c++ c++abi pthread
+  elif os(windows)
+    -- GHC's Windows toolchain is based on clang/libc++ in GHC 9.4 and later
+    if impl(ghc < 9.3)
+      extra-libraries: stdc++
+    else
+      extra-libraries: c++ c++abi
+  elif arch(wasm32)
+    cxx-options: -fno-exceptions
+    extra-libraries: c++ c++abi
+  else
+    extra-libraries: stdc++
