@@ -1,0 +1,243 @@
+cabal-version: 3.0
+name:          git-phoenix
+version:       0.0.1
+
+synopsis:      Recover Git repositories from disk recovery tool output (photorec)
+description:
+    This is a command line tool for recovery Git repositories after
+    accidental removal or file system failure.
+    
+    == Motivation
+    #motivation#
+    
+    The tool is started as a practical attempt to retrieve a few unpublished
+    repositories from an EXT4 disk, with hundreds of other repos including
+    very big ones (nixpkgs, Linux kernel, GHC), played a role of haystack
+    here.
+    
+    EXT4 has tools, such as extundelete and ext4magic, but they didn’t
+    succeed in that case. So I switched to more primitive tool (photorec),
+    producing independent files with arbitrary names, based on magic headers
+    and other content heuristics, specific to particular format, and luck
+    that files take sequencial disk blocks. The tool did the job, but
+    requried magic tuning, because by default GIT object files are skipped.
+    Rescued git files usually were bigger than compressed content and had
+    trailing trash bytes.
+    
+    == Getting input with photorec
+    #getting-input-with-photorec#
+    
+    git-phoenix need input produced by photorec or similar tool. To make
+    photorec recognize the zlib file format put following config into
+    @~\/.photorec.sig@ on livecd. I used system-rescue distributive.
+    
+    > go1 0 0x7801
+    > go2 0 0x78DA
+    > go3 0 0x789C
+    
+    Launch photorec without arguments - it has ncurses terminal UI.
+    
+    photorec output looks like:
+    
+    > $ tree /paranoid-no-brutforce-nonexpert-nocorrupted-zlib/
+    > |-- recup_dir.1
+    > |   |-- f0305926.go1
+    > |   |-- f0378540.go1
+    > |   |-- f0421825.go1
+    > ...
+    > |-- recup_dir.1055
+    >     ...
+    >     |-- f167043017.go1
+    >     `-- f167043025.go1
+    > $
+    
+    == Building
+    #building#
+    
+    The easiest way to build the project is to use nix.
+    
+    > $ nix-build
+    > $ ./result/bin/git-phoenix --help
+    
+    == git-phoenix recovery steps
+    #git-phoenix-recovery-steps#
+    
+    git-phoenix sunny day scenario assumes execution of several commands to
+    get GIT repo from photorec output.
+    
+    === Step 1. Building uber repo
+    #step-1.-building-uber-repo#
+    
+    Uber repo is a folder with structure equal to @.git\/objects@ but
+    instead of regular files symlinks point to files in photorec structure.
+    
+    > $ git-phoenix uber -o uber -i /paranoid-no-brutforce-nonexpert-nocorrupted-zlib/
+    > Duration: 45.71s
+    > Found:    423254
+    > Speed:    9260.03 files per second
+    > Maximum number of SHA collisions: 17
+    > $
+    
+    Uber command picks valid GIT objects and mitigates SHA collisions, which
+    is pretty common in this situation.
+    
+    === Step 2. Discovery HEAD commit
+    #step-2.-discovery-head-commit#
+    
+    This step is optional if you managed to recover reflog by simply
+    grepping commit comment just pick the latest hash from there.
+    
+    Command prints SHAs of consistent commit chains i.e. ending with a
+    commit without parent.
+    
+    > $ git-phoenix heads -a '^John' -u uber
+    > 7768eed9387ff 1970-01-01 00:00 John Doe  Big Bang
+    
+    Arbitrary commit can be filter in uber repo too:
+    
+    > $ git-phoenix search --days-before 0 --days-after 9 -a '^John' -u uber
+    > 7768eed9387ff 1970-01-01 00:00 John Doe  Big Bang
+    
+    === Step 3. Real GIT repo extraction
+    #step-3.-real-git-repo-extraction#
+    
+    Uber repo should contain all required files, but it is not a valid GIT
+    repo. GIT thoroughly checks object files and complains about any
+    trailing trash. Extraction creates GIT repo with master branch referring
+    specified commit, chopping off trailing trash and disambiguating SHAs.
+    
+    > $ git-phoenix extract -g my-foo -u uber -s 7768eed9387ff
+    > $ git -C my-foo reset
+    > $ git -C my-foo checkout .
+    > $ echo Woo-Hah
+    
+    == Development environment
+    #development-environment#
+    
+    == Building
+    #building-1#
+    
+    HLS should be available inside dev env.
+    
+    > $ nix-shell
+    > $ emacs src/Data/Git/Phoenix.hs &
+    > $ cabal build
+    > $ cabal test
+    
+    == Static linking
+    #static-linking#
+    
+    Static is not enabled by default, because GitHub CI job times out.
+    
+    > nix-build --arg staticBuild true
+
+homepage:      http://github.com/yaitskov/git-phoenix
+license:       BSD-3-Clause
+author:        Daniil Iaitskov
+maintainer:    dyaitskov@gmail.com
+copyright:     Daniil Iaitkov 2025
+category:      System
+build-type:    Simple
+bug-reports:   https://github.com/yaitskov/git-phoenix/issues
+extra-doc-files:
+  changelog.md
+tested-with:
+  GHC == 9.12.2
+
+source-repository head
+  type:
+    git
+  location:
+    https://github.com/yaitskov/git-phoenix.git
+
+common base
+  default-language: GHC2024
+  ghc-options: -Wall
+  default-extensions:
+    DefaultSignatures
+    NoImplicitPrelude
+    OverloadedStrings
+    TemplateHaskell
+  build-depends:
+      base >=4.7 && < 5
+    , bytestring >= 0.12.1 && < 1
+    , directory < 2
+    , optparse-applicative < 1
+    , relude >= 1.2.2 && < 2
+    , tagged < 1
+    , unliftio < 1
+
+library
+  import: base
+  hs-source-dirs: src
+  exposed-modules:
+    Data.Git.Phoenix
+    Data.Git.Phoenix.App
+    Data.Git.Phoenix.CmdArgs
+    Data.Git.Phoenix.CmdRun
+    Data.Git.Phoenix.Commit
+    Data.Git.Phoenix.CommitSearch
+    Data.Git.Phoenix.Extraction
+    Data.Git.Phoenix.HeadsDiscovery
+    Data.Git.Phoenix.Io
+    Data.Git.Phoenix.Object
+    Data.Git.Phoenix.Prelude
+    Data.Git.Phoenix.Pretty
+    Data.Git.Phoenix.Repo
+    Data.Git.Phoenix.Sha
+    Data.Git.Phoenix.ShaCollision
+    Data.Git.Phoenix.Tree
+    Data.Git.Phoenix.Uber
+  other-modules:
+    Paths_git_phoenix
+  autogen-modules:
+    Paths_git_phoenix
+  build-depends:
+    , base                    < 5
+    , binary                  < 1
+    , conduit                 < 2
+    , containers              < 1
+    , cryptohash-sha1         < 1
+    , deepseq                 < 2
+    , extra                   < 2
+    , filepath                < 2
+    , lens                    < 6
+    , memory                  < 1
+    , pretty-hex              < 2
+    , regex-tdfa              < 2
+    , template-haskell        < 3
+    , time                    < 2
+    , trace-embrace           >= 1.2.0 && < 2
+    , wl-pprint-text          < 2
+    , word8                   < 1
+    , zlib                    < 1
+
+test-suite test
+  import: base
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  other-modules:
+    Data.Git.Phoenix.Test
+    Data.Git.Phoenix.Test.UberCommitSearch
+    Data.Git.Phoenix.Test.UberExtract
+    Data.Git.Phoenix.Test.UberHeadsDiscovery
+    Discovery
+  hs-source-dirs:
+    test
+  ghc-options: -Wall -rtsopts -threaded -main-is Driver
+  build-depends:
+    , git-phoenix
+    , QuickCheck
+    , tasty
+    , tasty-discover
+    , tasty-hunit
+    , tasty-quickcheck
+    , time
+
+executable git-phoenix
+  import: base
+  ghc-options: -Wall -threaded -with-rtsopts=-N
+  main-is: GitPhoenix.hs
+  hs-source-dirs: app
+  build-depends:
+    , git-phoenix
