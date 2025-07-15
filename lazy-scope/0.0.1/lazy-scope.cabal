@@ -1,0 +1,133 @@
+cabal-version: 3.0
+name:          lazy-scope
+version:       0.0.1
+synopsis:      Alternative lazy ByteString and ST-like IO Handle
+description:
+    lazy-scope library appeared as an attempt to improve lazy IO API from
+    <https://hackage.haskell.org/package/bytestring bytestring> package:
+    
+    -   @hGetContents@ closes handle which was open by somebody else.
+    -   @hGetContents@ closes handle only on EOF
+    
+    E.g. <https://hackage.haskell.org/package/git-phoenix git-phoenix> does
+    GIT objects recovery. Recovered compressed file usually has trailing
+    trash bytes after archive ends. In such circumstance bracket finalizer
+    should check every handle before closing.
+    
+    lazy-scope library provides @hGetContents@ with alternative semantic -
+    it never close the handle! Handle and values, derived from it, have a
+    type parameter which prevents accidental thunk escape beyond open handle
+    scope. Solution is based on
+    <https://hackage.haskell.org/package/base/docs/Control-Monad-ST.html ST>
+    monad.
+    
+    > import Lazy.Scope qualified as S
+    > import Relude
+    >
+    > main = do
+    >   r <- S.withBinaryFile "/etc/hosts" ReadMode S.hGetContents
+    >   S.unsnoc r `seq` return ()
+    
+    Error:
+    
+    >   • Couldn't match type ‘s0’ with ‘s’
+    >     Expected: S.Handle s -> S.LazyT s IO (S.Bs s0)
+    >       Actual: S.Handle s -> S.LazyT s IO (S.Bs s)
+    >       because type variable ‘s’ would escape its scope
+    
+    Correct version:
+    
+    > import Data.ByteString.Lazy qualified as LBS
+    > import Lazy.Scope qualified as S
+    > import Relude
+    >
+    > main = do
+    >   r <- S.withBinaryFile "/etc/hosts" ReadMode (S.hGetContents >=> S.toLbs)
+    >   LBS.unsnoc r `seq` return ()
+    
+    The package has scoped alternatives for majority of @Handle@ and
+    @ByteString@ functions from @System.IO@ and @Data.ByteString.Lazy@
+    modules correspondingly.
+    
+    == Development
+    #development#
+    
+    Dev environment is provided by
+    <https://nixos.org/guides/nix-pills/10-developing-with-nix-shell.html nix-shell>
+    
+    > $ nix-shell
+    > $ cabal test
+
+homepage:      http://github.com/yaitskov/scoped-handle
+license:       BSD-3-Clause
+author:        Daniil Iaitskov
+maintainer:    dyaitskov@gmail.com
+copyright:     Daniil Iaitkov 2025
+category:      System
+build-type:    Simple
+bug-reports:   https://github.com/yaitskov/lazy-scope/issues
+extra-doc-files:
+  changelog.md
+tested-with:
+  GHC == { 9.10.1, 9.12.2 }
+
+source-repository head
+  type:
+    git
+  location:
+    https://github.com/yaitskov/lazy-scope.git
+
+common base
+  default-language: GHC2024
+  ghc-options: -Wall
+  default-extensions:
+    DefaultSignatures
+    NoImplicitPrelude
+    OverloadedLabels
+    OverloadedStrings
+    TemplateHaskell
+  build-depends:
+    , base >=4.7 && < 5
+    , bytestring >= 0.12.1 && < 1
+    , relude >= 1.2.2 && < 2
+    , unliftio < 1
+
+library
+  import: base
+  hs-source-dirs: src
+  exposed-modules:
+    Lazy.Scope
+  other-modules:
+    Lazy.Scope.GetContents
+    Lazy.Scope.Io
+    Lazy.Scope.Scoped
+    Lazy.Scope.Type
+    Paths_lazy_scope
+  autogen-modules:
+    Paths_lazy_scope
+  build-depends:
+    , deepseq                 < 2
+    , directory               < 2
+    , filepath                < 2
+    , mtl                     < 3
+    , trace-embrace           >= 1.2.0 && < 2
+    , transformers            < 1
+
+test-suite test
+  import: base
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  other-modules:
+    Discovery
+    Lazy.Scope.Test.HandleCloses
+  hs-source-dirs:
+    test
+  ghc-options: -Wall -rtsopts -threaded -main-is Driver
+  build-depends:
+      directory
+    , tasty
+    , tasty-discover
+    , tasty-hunit
+    , tasty-quickcheck
+    , lazy-scope
+    , unliftio
