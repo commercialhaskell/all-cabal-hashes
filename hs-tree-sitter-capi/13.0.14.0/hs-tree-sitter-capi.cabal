@@ -1,0 +1,113 @@
+cabal-version:      3.4
+name:               hs-tree-sitter-capi
+version:            13.0.14.0
+license:            AGPL-3.0-only
+synopsis:           Low-level bindings for tree-sitter
+description:        Low-level bindings for tree-sitter.
+author:             Wen Kokke
+maintainer:         wenkokke@users.noreply.github.com
+category:           Language
+build-type:         Simple
+extra-doc-files:    README.md
+extra-source-files:
+  vendor/tree-sitter/lib/include/tree_sitter/api.h
+  vendor/tree-sitter/lib/src/alloc.c
+  vendor/tree-sitter/lib/src/alloc.h
+  vendor/tree-sitter/lib/src/array.h
+  vendor/tree-sitter/lib/src/atomic.h
+  vendor/tree-sitter/lib/src/clock.h
+  vendor/tree-sitter/lib/src/error_costs.h
+  vendor/tree-sitter/lib/src/get_changed_ranges.c
+  vendor/tree-sitter/lib/src/get_changed_ranges.h
+  vendor/tree-sitter/lib/src/host.h
+  vendor/tree-sitter/lib/src/language.c
+  vendor/tree-sitter/lib/src/language.h
+  vendor/tree-sitter/lib/src/length.h
+  vendor/tree-sitter/lib/src/lexer.c
+  vendor/tree-sitter/lib/src/lexer.h
+  vendor/tree-sitter/lib/src/lib.c
+  vendor/tree-sitter/lib/src/node.c
+  vendor/tree-sitter/lib/src/parser.c
+  vendor/tree-sitter/lib/src/parser.h
+  vendor/tree-sitter/lib/src/point.h
+  vendor/tree-sitter/lib/src/query.c
+  vendor/tree-sitter/lib/src/reduce_action.h
+  vendor/tree-sitter/lib/src/reusable_node.h
+  vendor/tree-sitter/lib/src/stack.c
+  vendor/tree-sitter/lib/src/stack.h
+  vendor/tree-sitter/lib/src/subtree.c
+  vendor/tree-sitter/lib/src/subtree.h
+  vendor/tree-sitter/lib/src/tree.c
+  vendor/tree-sitter/lib/src/tree.h
+  vendor/tree-sitter/lib/src/tree_cursor.c
+  vendor/tree-sitter/lib/src/tree_cursor.h
+  vendor/tree-sitter/lib/src/ts_assert.h
+  vendor/tree-sitter/lib/src/unicode/ptypes.h
+  vendor/tree-sitter/lib/src/unicode/umachine.h
+  vendor/tree-sitter/lib/src/unicode/urename.h
+  vendor/tree-sitter/lib/src/unicode/utf.h
+  vendor/tree-sitter/lib/src/unicode/utf16.h
+  vendor/tree-sitter/lib/src/unicode/utf8.h
+  vendor/tree-sitter/lib/src/unicode.h
+  vendor/tree-sitter/lib/src/wasm/stdlib.c
+  vendor/tree-sitter/lib/src/wasm/wasm-stdlib.h
+  vendor/tree-sitter/lib/src/wasm_store.c
+  vendor/tree-sitter/lib/src/wasm_store.h
+  vendor/tree-sitter/lib/tree-sitter.pc.in
+
+tested-with:
+  GHC ==8.10.7
+   || ==9.0.2
+   || ==9.2.8
+   || ==9.4.8
+   || ==9.6.7
+   || ==9.8.4
+   || ==9.10.2
+   || ==9.12.2
+
+common language
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wprepositive-qualified-module
+    -Wredundant-constraints -Wunticked-promoted-constructors
+    -Wunused-packages
+
+  default-language:   Haskell2010
+  default-extensions: ImportQualifiedPost
+
+  if impl(ghc <9.6.1)
+    ghc-options:
+      -optc=-Wno-discarded-qualifiers
+      -optc=-Wno-incompatible-pointer-types-discards-qualifiers
+
+library
+  import:             language
+  exposed-modules:    TreeSitter.CApi
+  build-tool-depends: hsc2hs:hsc2hs
+  hs-source-dirs:     src
+  include-dirs:
+    vendor/tree-sitter/lib/include vendor/tree-sitter/lib/src
+
+  includes:           tree_sitter/api.h
+  c-sources:          vendor/tree-sitter/lib/src/lib.c
+  build-depends:
+    , base                  >=4.13 && <5
+    , base-compat-constptr  >=0.1  && <0.2
+
+  -- Does not compile on macOS/arm64 with GHC <9.6.5
+  -- See: https://gitlab.haskell.org/ghc/ghc/-/issues/23456
+  if (impl(ghc <9.6.5) && arch(aarch64))
+    build-depends: base >=4.18.2.1
+
+test-suite hs-tree-sitter-capi-test
+  import:         language
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  other-modules:  Test.TreeSitter.CApi
+  build-depends:
+    , base
+    , base-compat-constptr
+    , hs-tree-sitter-capi
+    , tasty                 >=1.5  && <1.6
+    , tasty-hunit           >=0.10 && <0.11
+    , tree-sitter-while
