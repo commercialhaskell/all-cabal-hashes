@@ -1,0 +1,73 @@
+cabal-version:      3.4
+build-type:         Simple
+name:               hs-onnxruntime-capi
+synopsis:           Low-level bindings for ONNX Runtime
+description:        Low-level bindings for ONNX Runtime.
+version:            0.1.0.0
+license:            AGPL-3.0-only
+author:             Wen Kokke
+maintainer:         wenkokke@users.noreply.github.com
+category:           AI, Machine Learning
+copyright:          Copyright (c) 2025 Wen Kokke and Well-Typed LLP
+license-files:
+  LICENSE
+  NOTICE
+
+extra-source-files: include/onnxruntime_c_api.h
+tested-with:        GHC ==9.6.7 || ==9.8.4 || ==9.10.2 || ==9.12.2
+
+source-repository head
+  type:     git
+  location: https://github.com/vehicle-lang/hs-onnxruntime
+  subdir:   hs-onnxruntime-capi
+
+flag pkg-config
+  default:     True
+  manual:      False
+  description:
+    Use @pkg-config@ executable to locate foreign @onnxruntime@ library.
+
+flag use-bundled-header
+  default:     True
+  manual:      True
+  description: Use bundled copy of @onnxruntime_c_api.h@ header file
+
+common language
+  ghc-options:
+    -Wall -Wcompat -Wredundant-constraints
+    -Wunticked-promoted-constructors -Wunused-packages
+
+  default-language:   Haskell2010
+  default-extensions:
+    ImportQualifiedPost
+    RankNTypes
+    ScopedTypeVariables
+    StandaloneKindSignatures
+    TypeApplications
+
+  if impl(ghc <9.6.1)
+    ghc-options: -optc=-Wno-discarded-qualifiers
+
+    if os(osx)
+      ghc-options: -optc=-Wno-incompatible-pointer-types-discards-qualifiers
+
+library
+  import:             language
+  exposed-modules:    Onnxruntime.CApi
+  build-tool-depends: hsc2hs:hsc2hs
+  hs-source-dirs:     src
+  build-depends:
+    , base                  >=4.13  && <5
+    , base-compat-constptr  >=0.1   && <0.2
+    , bytestring            ^>=0.11 || ^>=0.12
+    , vector                ^>=0.12 || ^>=0.13
+
+  if flag(use-bundled-header)
+    includes:     onnxruntime_c_api.h
+    include-dirs: include
+
+  if flag(pkg-config)
+    pkgconfig-depends: libonnxruntime >=1.21
+
+  else
+    extra-libraries: onnxruntime
