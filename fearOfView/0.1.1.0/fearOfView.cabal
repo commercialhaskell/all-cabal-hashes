@@ -1,0 +1,115 @@
+cabal-version:      2.2
+name:               fearOfView
+version:            0.1.1.0
+license:            AGPL-3.0-or-later
+license-file:       COPYING
+maintainer:         mbays@sdf.org
+author:             mbays
+homepage:           https://mbays.sdf.org/fov/
+synopsis:           A terminal broughlike game about manipulating vision
+description:
+    A constrained roguelike ("broughlike") game played on a 5x5 grid of cells
+    which are regenerated when out of view. Can be compiled for play on a 
+    genuine colour terminal using ncurses, or in a pseudo-terminal using 
+    bearlibterminal.
+category:           Game
+extra-doc-files: CHANGELOG.md README.md fov-shot.png
+data-files: VeraMoBd.ttf
+
+source-repository head
+    type: git
+    location: https://thegonz.net/~fov/fearOfView.git
+
+flag bear
+    description: Build bearlibterminal UI
+    -- This library doesn't use pkgconfig, so if the flag defaulted to True,
+    -- cabal would try but fail to link on systems without the library.
+    default: False
+
+flag curses
+    description: Build curses UI
+
+flag debug
+    description: Enable debug keys
+    default:     False
+    manual:      True
+
+executable fearOfView
+    main-is:           Main.hs
+    other-modules:
+        AStar
+        Board
+        BoardConf
+        Command
+        Creature
+        CPos
+        CStyle
+        Equipment
+        Exit
+        Inventory
+        Game
+        GameName
+        Geometry
+        Group
+        Highscore
+        HighscoreFile
+        Item
+        KeyBindings
+        Pos
+        Power
+        Rand
+        RollFrom
+        UIMonad
+        Serialise
+        TermDraw
+        TermM
+        Tutorial
+        Wall
+        Window
+
+    default-language:  Haskell2010
+    ghc-options:       -Wall
+    build-depends:
+        base >=4.3 && <5,
+        mtl >=2.2 && <2.4,
+        safe >=0.3.18 && <0.4,
+        containers >=0.4 && <0.9,
+        directory >=1.2.3.0 && <1.4,
+        filepath >=1.0 && <2.1,
+        safe-exceptions >=0.1 && <0.2,
+        MonadRandom >=0.6 && <0.7,
+        splitmix >=0.1 && <0.2,
+        random >=1.3 && <1.4,
+        serialise >=0.2 && <0.3,
+        bytestring >=0.10 && <0.13,
+        hashable >=1.4 && <1.6,
+        unordered-containers >=0.2 && <0.3,
+        astar >=0.3 && <0.4,
+        filelock >=0.1 && <0.2
+
+    if flag(debug)
+        cpp-options: -DDEBUG
+
+    if flag(curses)
+        cpp-options: -DCURSES
+        pkgconfig-depends: ncursesw
+        other-modules:
+            CursesUI
+            CursesUIMInstance
+        build-depends:
+            hscurses >=1.4 && <1.6,
+
+    if flag(bear)
+        cpp-options: -DBEAR
+        other-modules:
+            BearUI
+            BearUIMInstance
+        build-depends:
+            bearlibterminal >=0.1 && <0.2
+        extra-libraries:
+            BearLibTerminal
+
+    if (!flag(curses) && !flag(bear))
+        -- Require at least one of curses or bear
+        buildable:     False
+        build-depends: base <0
