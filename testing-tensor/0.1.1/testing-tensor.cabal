@@ -1,0 +1,114 @@
+cabal-version:   3.0
+name:            testing-tensor
+version:         0.1.1
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Edsko de Vries
+maintainer:      edsko@well-typed.com
+category:        Testing
+build-type:      Simple
+synopsis:        Pure implementation of tensors, for use in tests.
+description:     This is a pure Haskell implementation of tensors, emphasizing
+                 simplicity over all else. It is intended to be used as a model
+                 in tests.
+extra-doc-files: CHANGELOG.md
+tested-with:     GHC ==9.2.8
+                 GHC ==9.4.8
+                 GHC ==9.6.7
+                 GHC ==9.8.4
+                 GHC ==9.10.2
+                 GHC ==9.12.2
+
+source-repository head
+  type:     git
+  location: https://github.com/well-typed/testing-tensor
+
+common lang
+  build-depends:    base >= 4.16 && < 5
+  default-language: GHC2021
+
+  ghc-options:
+      -Wall
+      -Widentities
+      -Wprepositive-qualified-module
+      -Wredundant-constraints
+      -Wunused-packages
+      -Wno-unticked-promoted-constructors
+
+  default-extensions:
+      CApiFFI
+      DataKinds
+      DerivingStrategies
+      LambdaCase
+      TypeFamilies
+      ViewPatterns
+
+  if impl(ghc >= 9.8)
+    ghc-options:
+      -Wno-x-partial
+
+library
+  import:          lang
+  hs-source-dirs:  src
+
+  exposed-modules:
+      Test.Tensor
+      Test.Tensor.TestValue
+
+  build-depends:
+    , fin          >= 0.3  && < 0.4
+    , QuickCheck   >= 2.15 && < 2.17
+    , random       >= 1.2  && < 1.4
+    , transformers >= 0.5  && < 0.7
+    , vec          >= 0.5  && < 0.6
+    , vector       >= 0.13 && < 0.14
+
+test-suite testing-tensor-test
+  import:         lang
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  build-depends:  testing-tensor
+
+  build-depends:
+    , tasty            >= 1.5  && < 1.6
+    , tasty-hunit      >= 0.10 && < 0.11
+    , tasty-quickcheck >= 0.11 && < 0.12
+
+  -- inherited dependencies
+  build-depends:
+    , fin
+    , QuickCheck
+    , vec
+
+  other-modules:
+      TestSuite.Test.Convolution
+      TestSuite.Test.Convolution.Examples3B1B
+      TestSuite.Test.QuickCheck
+      TestSuite.Test.StdOps
+      TestSuite.Util.TestKernel
+
+  if flag(test-fft)
+    cpp-options:   -DTEST_FFT
+    other-modules: TestSuite.Test.Convolution.FFT
+    build-depends:
+      , array  >= 0.5 && < 0.6
+      , carray >= 0.1 && < 0.2
+      , fft    >= 0.1 && < 0.2
+
+  if flag(test-cudnn)
+    cpp-options:     -DTEST_CUDNN
+    other-modules:   TestSuite.Test.Convolution.CUDNN
+    include-dirs:    test-cbits
+    c-sources:       test-cbits/test-cudnn.c
+    extra-libraries: cudart cudnn
+
+Flag test-fft
+  description: Test against an FFT implementation
+  default: False
+  manual: True
+
+Flag test-cudnn
+  description: Test against cuDNN
+  default: False
+  manual: True
