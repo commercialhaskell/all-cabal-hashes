@@ -1,0 +1,104 @@
+cabal-version:      3.0
+build-type:         Simple
+name:               effectful-plugin
+version:            2.0.0.1
+license:            BSD-3-Clause
+license-file:       LICENSE
+category:           Control
+maintainer:         andrzej@rybczak.net
+author:             Andrzej Rybczak
+synopsis:           A GHC plugin for improving disambiguation of effects.
+
+description:
+  Instruct GHC to do a better job with disambiguation of effects.
+  .
+  See the README for more information.
+
+extra-source-files: CHANGELOG.md
+                    README.md
+
+tested-with: GHC == { 9.4.8, 9.6.7, 9.8.4, 9.10.2, 9.12.2, 9.14.1 }
+
+bug-reports:   https://github.com/haskell-effectful/effectful/issues
+source-repository head
+  type:     git
+  location: https://github.com/haskell-effectful/effectful.git
+
+flag timing
+    description: Show timing information
+    default: False
+
+flag verbose
+    description: Trace plugin execution
+    default: False
+
+common language
+    ghc-options:        -Wall
+                        -Wcompat
+                        -Wno-unticked-promoted-constructors
+                        -Wmissing-deriving-strategies
+                        -Werror=prepositive-qualified-module
+
+    default-language:   Haskell2010
+
+    default-extensions: BangPatterns
+                        ConstraintKinds
+                        DataKinds
+                        DeriveFunctor
+                        DeriveGeneric
+                        DerivingStrategies
+                        DuplicateRecordFields
+                        FlexibleContexts
+                        FlexibleInstances
+                        GADTs
+                        GeneralizedNewtypeDeriving
+                        ImportQualifiedPost
+                        LambdaCase
+                        MultiParamTypeClasses
+                        NoStarIsType
+                        PolyKinds
+                        RankNTypes
+                        RecordWildCards
+                        RoleAnnotations
+                        ScopedTypeVariables
+                        StandaloneDeriving
+                        TupleSections
+                        TypeApplications
+                        TypeFamilies
+                        TypeOperators
+                        UndecidableInstances
+
+    if impl(ghc >= 9.4)
+      default-extensions: NoFieldSelectors
+                        , OverloadedRecordDot
+
+library
+    import:         language
+
+    if flag(timing)
+      cpp-options: -DTIMING
+
+    if flag(verbose)
+      cpp-options: -DVERBOSE
+
+    build-depends:    base                >= 4.16      && < 5
+                    , containers          >= 0.5
+                    , ghc                 >= 9.4       && < 9.15
+
+    hs-source-dirs: src
+
+    exposed-modules: Effectful.Plugin
+
+test-suite plugin-tests
+    import:         language
+
+    ghc-options:    -fplugin=Effectful.Plugin
+
+    build-depends:    base
+                    , effectful-core
+                    , effectful-plugin
+
+    hs-source-dirs: tests
+
+    type:           exitcode-stdio-1.0
+    main-is:        PluginTests.hs
