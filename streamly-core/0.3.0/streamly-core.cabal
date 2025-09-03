@@ -1,0 +1,594 @@
+cabal-version:      2.4
+name:               streamly-core
+version:            0.3.0
+synopsis:           Streaming, parsers, arrays, serialization and more
+description:
+  For upgrading to streamly-0.9.0+ please read the
+  <https://github.com/composewell/streamly/blob/streamly-0.10.0/docs/User/Project/Upgrading-0.8-to-0.9.md Streamly-0.9.0 upgrade guide>.
+  .
+  Streamly is a high-performance, beginner-friendly standard library
+  for Haskell. It unifies streaming with list transformers and logic
+  programming; unifies streaming with concurrency and reactive
+  programming; unifies arrays with ring arrays, text, bytestring
+  and vector use cases; unifies arrays with builders and binary
+  serialization; generalizes parsers to any input type and unifies
+  attoparsec, parsec use cases with better performance; provides
+  streaming fileIO — all with a clean, consistent, well-integrated and
+  streaming enabled API.
+  .
+  Streams are designed to have a list like interface — no steep
+  learning curve, no complex types. Streamly is designed to build
+  general purpose applications in a truly functional manner, from
+  simple hello-world to advanced high-performance systems. The design
+  emphasizes simplicity, modularity, and code reuse with minimal
+  building blocks. Performance is on par with C, tuning is easy, and
+  it’s hard to get it wrong.
+  .
+  Streamly is serial by default, with seamless declarative concurrency
+  that scales automatically when needed. It provides prompt and safe
+  resource management, works well with other streaming libraries as well
+  as core libraries like bytestring and text, and is backed by solid
+  documentation.
+  .
+  @streamly-core@ is a Haskell standard library built on top of @base@
+  and GHC boot libraries only. Stream processing abstractions include
+  streams, scans, folds, parsers; and console I/O, file I/O; text
+  processing.  Array abstractions include pinned, unpinned, mutable,
+  immutable, boxed and unboxed arrays, and ring arrays.  Builders,
+  binary serialization, and deserialization are built-in features of
+  arrays.
+  .
+  This package provides a high-performance, unified and ergonomic
+  alternative to many disparate packages, such as @streaming, pipes,
+  conduit, list-t, logict, foldl, attoparsec, array, primitive,
+  vector, vector-algorithms, binary, cereal, store, bytestring, text,
+  stringsearch, interpolate, filepath, and path@.
+  .
+  Performant. Unified. Modular. Powerful. Simple.
+  .
+  Learn more at <https://streamly.composewell.com the streamly website>.
+
+homepage:            https://streamly.composewell.com
+bug-reports:         https://github.com/composewell/streamly/issues
+license:             BSD-3-Clause
+license-file:        LICENSE
+tested-with:         GHC==8.6.5
+                   , GHC==8.8.4
+                   , GHC==8.10.7
+                   , GHC==9.0.2
+                   , GHC==9.2.8
+                   , GHC==9.4.7
+                   , GHC==9.6.3
+                   , GHC==9.8.1
+                   , GHC==9.10.1
+                   , GHC==9.12.1
+author:              Composewell Technologies
+maintainer:          streamly@composewell.com
+copyright:           2017 Composewell Technologies
+category:
+    Streamly, Streaming, Dataflow, Pipes, List,
+    Logic, Non-determinism, Parsing, Array, Time
+stability:           Stable
+build-type:          Configure
+
+extra-source-files:
+    configure
+    configure.ac
+
+   -- doctest include files
+    src/doctest/*.hs
+
+    -- This is duplicated
+    src/Streamly/Internal/Data/Array/ArrayMacros.h
+    src/Streamly/Internal/Data/ParserDrivers.h
+    src/assert.hs
+    src/inline.hs
+    src/deprecation.h
+
+    src/Streamly/Internal/Data/Time/Clock/config-clock.h
+    src/config.h.in
+
+extra-tmp-files:
+    config.log
+    config.status
+    autom4te.cache
+    src/config.h
+
+extra-doc-files:
+    Changelog.md
+    docs/*.md
+    docs/ApiChangelogs/*.txt
+
+source-repository head
+    type: git
+    location: https://github.com/composewell/streamly
+
+flag debug
+  description: Debug build with asserts enabled
+  manual: True
+  default: False
+
+flag internal-dev
+  description: DO NOT USE, ONLY FOR INTERNAL USE.
+  manual: True
+  default: False
+
+flag has-llvm
+  description: Use llvm backend for code generation
+  manual: True
+  default: False
+
+flag opt
+  description: off=GHC default, on=-O2
+  manual: True
+  default: True
+
+flag limit-build-mem
+  description: Limits memory when building
+  manual: True
+  default: False
+
+flag internal-use-unliftio
+  description: DO NOT USE, ONLY FOR INTERNAL USE.
+  manual: True
+  default: False
+
+flag use-unfolds
+  description: Use unfolds for generation everywhere
+  manual: True
+  default: False
+
+flag use-folds
+  description: Use folds for elimination everywhere
+  manual: True
+  default: False
+
+flag force-lstat-readdir
+  description: Use lstat instead of checking for dtype in ReadDir
+  manual: True
+  default: False
+
+-------------------------------------------------------------------------------
+-- Common stanzas
+-------------------------------------------------------------------------------
+
+common compile-options
+    if flag(force-lstat-readdir)
+      cpp-options:    -DFORCE_LSTAT_READDIR
+
+    if flag(internal-dev)
+      cpp-options:    -DDEVBUILD
+
+    if flag(use-unfolds)
+      cpp-options:    -DUSE_UNFOLDS_EVERYWHERE
+
+    if flag(use-folds)
+      cpp-options:    -DUSE_FOLDS_EVERYWHERE
+
+    ghc-options:    -Weverything
+                    -Wno-implicit-prelude
+                    -Wno-missing-deriving-strategies
+                    -Wno-missing-exported-signatures
+                    -Wno-missing-import-lists
+                    -Wno-missing-local-signatures
+                    -Wno-missing-safe-haskell-mode
+                    -Wno-missed-specialisations
+                    -Wno-all-missed-specialisations
+                    -Wno-monomorphism-restriction
+                    -Wno-prepositive-qualified-module
+                    -Wno-unsafe
+                    -Rghc-timing
+
+    if impl(ghc >= 9.2)
+      ghc-options:
+        -Wno-missing-kind-signatures
+        -Wno-redundant-bang-patterns
+        -Wno-operator-whitespace
+
+    if impl(ghc >= 9.8)
+      ghc-options:
+        -Wno-missing-role-annotations
+
+    if impl(ghc >= 9.10)
+      ghc-options:
+        -Wno-missing-poly-kind-signatures
+
+    if flag(has-llvm)
+      ghc-options: -fllvm
+
+    if flag(internal-dev)
+      ghc-options:    -Wmissed-specialisations
+                      -Wall-missed-specialisations
+
+    if flag(limit-build-mem)
+        ghc-options: +RTS -M1000M -RTS
+
+    if flag(internal-use-unliftio)
+      cpp-options: -DUSE_UNLIFTIO
+
+common default-extensions
+    default-language: Haskell2010
+
+    -- GHC2024 may include more extensions than we are actually using, see the
+    -- full list below. We enable this to ensure that we are able to compile
+    -- with this i.e. there is no interference by other extensions.
+
+    -- Don't enforce GHC2024 and GHC2021 but We can support the build with them.
+
+    -- if impl(ghc >= 9.10)
+    --   default-language: GHC2024
+
+    -- if impl(ghc >= 9.2) && impl(ghc < 9.10)
+    --   default-language: GHC2021
+
+    if impl(ghc >= 8.10)
+      default-extensions: StandaloneKindSignatures
+
+    -- In GHC 2024
+    default-extensions:
+        BangPatterns
+        ConstraintKinds
+        DeriveDataTypeable
+        DeriveGeneric
+        DeriveTraversable
+        ExistentialQuantification
+        FlexibleContexts
+        FlexibleInstances
+        GeneralizedNewtypeDeriving
+        InstanceSigs
+        KindSignatures
+        LambdaCase
+        MultiParamTypeClasses
+        RankNTypes
+        ScopedTypeVariables
+        StandaloneDeriving
+        TupleSections
+        TypeApplications
+        TypeOperators
+
+        -- Not in GHC2024
+        CApiFFI
+        CPP
+        DefaultSignatures
+        MagicHash
+        RecordWildCards
+
+        -- TypeFamilies is required by IsList, IsMap type classes and
+        -- Unbox generic deriving code.
+        -- TypeFamilies
+
+        -- MonoLocalBinds, enabled by TypeFamilies and GHC2024, was
+        -- once found to cause runtime performance regressions which
+        -- does not seem to be the case anymore, but need more testing
+        -- to confirm.  It is confirmed that it requires more memory
+        -- for compilation at least in some cases (Data.Fold.Window
+        -- benchmark on GHC-9.10.1 macOS).  It also causes some
+        -- code to not compile, so has been disabled in specific
+        -- modules. Disabling this must come after TypeFamilies,
+        -- otherwise TypeFamilies will enable it again.
+        -- NoMonoLocalBinds
+
+        -- UndecidableInstances -- Does not show any perf impact
+        -- UnboxedTuples        -- interferes with (#.)
+
+    if impl(ghc >= 8.6)
+      default-extensions: QuantifiedConstraints
+
+common optimization-options
+  if flag(opt)
+    ghc-options: -O2
+                 -fdicts-strict
+                 -fspec-constr-recursive=16
+                 -fmax-worker-args=16
+
+  -- For this to be effective it must come after the -O2 option
+  if flag(internal-dev) || flag(debug) || !flag(opt)
+    cpp-options: -DDEBUG
+    ghc-options: -fno-ignore-asserts
+
+common threading-options
+  ghc-options:  -threaded
+                -with-rtsopts=-N
+
+-- We need optimization options here to optimize internal (non-inlined)
+-- versions of functions. Also, we have some benchmarking inspection tests
+-- part of the library when built with --benchmarks flag. Thos tests fail
+-- if we do not use optimization options here. It was observed that due to
+-- -O2 here some concurrent/nested benchmarks improved and others regressed.
+-- We can investigate a bit more here why the regression occurred.
+common lib-options
+  import: compile-options, optimization-options, default-extensions
+
+-------------------------------------------------------------------------------
+-- Library
+-------------------------------------------------------------------------------
+
+library
+    import: lib-options
+
+    js-sources: jsbits/clock.js
+
+    include-dirs:
+          src
+        , src/doctest
+        , src/Streamly/Internal/Data
+        , src/Streamly/Internal/Data/Array
+        , src/Streamly/Internal/Data/Stream
+
+    c-sources: src/Streamly/Internal/Data/MutArray/Lib.c
+
+    -- Prefer OS conditionals inside the source files rather than here,
+    -- conditionals here do not work well with cabal2nix.
+    if os(windows)
+      c-sources:     src/Streamly/Internal/Data/Time/Clock/Windows.c
+
+    if os(darwin)
+      include-dirs:  src/Streamly/Internal
+      c-sources:     src/Streamly/Internal/Data/Time/Clock/Darwin.c
+
+    hs-source-dirs:    src
+    exposed-modules:
+                     -- Internal modules, listed roughly in bottom up
+                     -- dependency order To view dependency graph:
+                     -- graphmod | dot -Tps > deps.ps
+
+                     -- streamly-base
+                       Streamly.Internal.BaseCompat
+                     , Streamly.Internal.Control.Exception
+                     , Streamly.Internal.Control.Monad
+                     , Streamly.Internal.Control.ForkIO
+                       Streamly.Internal.Data.IsMap
+                     , Streamly.Internal.System.IO
+
+                     -- streamly-strict-data
+                     , Streamly.Internal.Data.Tuple.Strict
+                     , Streamly.Internal.Data.Maybe.Strict
+                     , Streamly.Internal.Data.Either.Strict
+
+                     , Streamly.Internal.Data.IOFinalizer
+
+                     -- streamly-time
+                     , Streamly.Internal.Data.Time.TimeSpec
+                     , Streamly.Internal.Data.Time.Units
+                     , Streamly.Internal.Data.Time.Clock
+                     , Streamly.Internal.Data.Path
+
+                     -- streamly-core-stream-types
+                     , Streamly.Internal.Data.SVar.Type
+                     , Streamly.Internal.Data.Refold.Type
+                     , Streamly.Internal.Data.Producer
+
+                     -- streamly-core-array-types
+                     , Streamly.Internal.Data.MutByteArray
+                     , Streamly.Internal.Data.CString
+
+                     -- streaming and parsing Haskell types to/from bytes
+                     , Streamly.Internal.Data.Binary.Parser
+                     , Streamly.Internal.Data.Binary.Stream
+
+                     -- May depend on streamly-core-stream
+                     , Streamly.Internal.Data.MutArray
+                     , Streamly.Internal.Data.MutArray.Generic
+
+                     -- streamly-core-streams
+                     , Streamly.Internal.Data.StreamK
+                     -- StreamD depends on streamly-array-types
+                     , Streamly.Internal.Data.Stream
+
+                     -- streamly-core-data
+                     , Streamly.Internal.Data.Builder
+                     , Streamly.Internal.Data.Unfold
+                     , Streamly.Internal.Data.Parser
+                     , Streamly.Internal.Data.ParserK
+                     , Streamly.Internal.Data.Pipe
+                     , Streamly.Internal.Data.Scanr
+
+                     -- streamly-containers (non-base)
+                     , Streamly.Internal.Data.Fold
+                     , Streamly.Internal.Data.Scanl
+
+                     -- streamly-core-data-arrays
+                     , Streamly.Internal.Data.Array.Generic
+                     , Streamly.Internal.Data.Array
+
+                     -- Unboxed IORef
+                     , Streamly.Internal.Data.IORef
+
+                    -- streamly-unicode-core
+                     , Streamly.Internal.Unicode.Stream
+                     , Streamly.Internal.Unicode.String
+                     , Streamly.Internal.Unicode.Parser
+                     , Streamly.Internal.Unicode.Array
+
+                     -- Filesystem/IO
+
+                     , Streamly.Internal.FileSystem.Path
+                     , Streamly.Internal.FileSystem.Path.Seg
+                     , Streamly.Internal.FileSystem.Path.Node
+                     , Streamly.Internal.FileSystem.Path.SegNode
+
+                     , Streamly.Internal.FileSystem.PosixPath
+                     , Streamly.Internal.FileSystem.PosixPath.Seg
+                     , Streamly.Internal.FileSystem.PosixPath.Node
+                     , Streamly.Internal.FileSystem.PosixPath.SegNode
+
+                     , Streamly.Internal.FileSystem.WindowsPath
+                     , Streamly.Internal.FileSystem.WindowsPath.Seg
+                     , Streamly.Internal.FileSystem.WindowsPath.Node
+                     , Streamly.Internal.FileSystem.WindowsPath.SegNode
+
+                     , Streamly.Internal.FileSystem.Handle
+                     , Streamly.Internal.FileSystem.File.Common
+                     , Streamly.Internal.FileSystem.Posix.Errno
+                     , Streamly.Internal.FileSystem.Posix.File
+                     , Streamly.Internal.FileSystem.Posix.ReadDir
+                     , Streamly.Internal.FileSystem.Windows.ReadDir
+                     , Streamly.Internal.FileSystem.Windows.File
+                     , Streamly.Internal.FileSystem.FileIO
+                     , Streamly.Internal.FileSystem.DirIO
+
+                    -- RingArray Arrays
+                     , Streamly.Internal.Data.RingArray
+                     , Streamly.Internal.Data.RingArray.Generic
+
+                     -- streamly-console
+                     , Streamly.Internal.Console.Stdio
+
+                     -- To be implemented
+                     -- , Streamly.Data.Refold
+
+                     -- Pre-release modules
+                     -- , Streamly.Data.Pipe
+                     -- , Streamly.Data.RingArray.Generic
+                     -- , Streamly.Data.IORef
+                     -- , Streamly.Data.List
+                     -- , Streamly.Data.Time.Units
+                     -- , Streamly.Data.Time.Clock
+                     -- , Streamly.Data.Tuple.Strict
+                     -- , Streamly.Data.Maybe.Strict
+                     -- , Streamly.Data.Either.Strict
+
+                     -- streamly-core released modules in alphabetic order
+                     , Streamly.Console.Stdio
+                     , Streamly.Control.Exception
+                     , Streamly.Data.Array
+                     , Streamly.Data.Array.Generic
+                     , Streamly.Data.Fold
+                     , Streamly.Data.MutArray
+                     , Streamly.Data.MutArray.Generic
+                     , Streamly.Data.MutByteArray
+                     , Streamly.Data.Parser
+                     , Streamly.Data.ParserK
+                     , Streamly.Data.RingArray
+                     , Streamly.Data.Scanl
+                     , Streamly.Data.Stream
+                     , Streamly.Data.StreamK
+                     , Streamly.Data.Unfold
+                     , Streamly.FileSystem.DirIO
+                     , Streamly.FileSystem.FileIO
+                     , Streamly.FileSystem.Handle
+                     , Streamly.FileSystem.Path
+                     , Streamly.Unicode.Parser
+                     , Streamly.Unicode.Stream
+                     , Streamly.Unicode.String
+
+                    -- Deprecated in 0.3.0
+                     , Streamly.Internal.FileSystem.File
+                     , Streamly.Internal.FileSystem.Dir
+                     , Streamly.FileSystem.Dir
+                     , Streamly.FileSystem.File
+
+                    -- Deprecated in 0.2.0
+                     , Streamly.Internal.Data.MutArray.Stream
+                     , Streamly.Internal.Data.Array.Stream
+                     , Streamly.Internal.Data.Stream.StreamD
+                     , Streamly.Internal.Data.Fold.Chunked
+
+    -- Only those modules should be here which are fully re-exported via some
+    -- other module.
+    other-modules:
+                      Streamly.FileSystem.Path.Seg
+                    , Streamly.FileSystem.Path.Node
+                    , Streamly.FileSystem.Path.SegNode
+
+                    , Streamly.Internal.Data.Fold.Step
+                    , Streamly.Internal.Data.Fold.Type
+                    , Streamly.Internal.Data.Fold.Combinators
+                    , Streamly.Internal.Data.Fold.Container
+                    , Streamly.Internal.Data.Fold.Exception
+                    , Streamly.Internal.Data.Fold.Tee
+                    , Streamly.Internal.Data.Fold.Window
+
+                    , Streamly.Internal.Data.Scanl.Type
+                    , Streamly.Internal.Data.Scanl.Window
+                    , Streamly.Internal.Data.Scanl.Combinators
+                    , Streamly.Internal.Data.Scanl.Container
+
+                    , Streamly.Internal.Data.Parser.Type
+                    , Streamly.Internal.Data.Parser.Tee
+                    , Streamly.Internal.Data.ParserK.Type
+                    , Streamly.Internal.Data.ParserDrivers
+
+                    , Streamly.Internal.Data.Stream.Container
+                    , Streamly.Internal.Data.Stream.Eliminate
+                    , Streamly.Internal.Data.Stream.Exception
+                    , Streamly.Internal.Data.Stream.Generate
+                    , Streamly.Internal.Data.Stream.Lift
+                    , Streamly.Internal.Data.Stream.Nesting
+                    , Streamly.Internal.Data.Stream.Step
+                    , Streamly.Internal.Data.Stream.Top
+                    , Streamly.Internal.Data.Stream.Transform
+                    , Streamly.Internal.Data.Stream.Transformer
+                    , Streamly.Internal.Data.Stream.Type
+
+                    , Streamly.Internal.Data.StreamK.Type
+                    , Streamly.Internal.Data.StreamK.Transformer
+
+                    , Streamly.Internal.Data.Pipe.Type
+
+                    , Streamly.Internal.Data.Unfold.Type
+                    , Streamly.Internal.Data.Unfold.Enumeration
+
+                    , Streamly.Internal.Data.MutArray.Type
+
+                    , Streamly.Internal.Data.Array.Type
+                    , Streamly.Internal.Data.Array.Generic.Type
+
+                    , Streamly.Internal.Data.MutByteArray.Type
+                    , Streamly.Internal.Data.Unbox
+                    , Streamly.Internal.Data.Unbox.TH
+                    , Streamly.Internal.Data.Serialize.Type
+                    , Streamly.Internal.Data.Serialize.TH
+                    , Streamly.Internal.Data.Serialize.TH.RecHeader
+                    , Streamly.Internal.Data.Serialize.TH.Common
+                    , Streamly.Internal.Data.Serialize.TH.Bottom
+
+                    , Streamly.Internal.Data.Producer.Type
+                    , Streamly.Internal.Data.Producer.Source
+
+                    , Streamly.Internal.Data.Time.Clock.Type
+                    , Streamly.Internal.FileSystem.Path.Common
+                    , Streamly.Internal.FileSystem.DirOptions
+
+    if flag(internal-dev)
+      exposed-modules:
+                        Streamly.Internal.Data.StreamK.Alt
+                        -- XXX Compilation needs to be fixed
+                      -- , Streamly.Internal.Data.List
+
+    build-depends:
+                    -- streamly-base
+                    --
+                    -- These dependencies can be reversed if we want
+                    -- streamly-base to depend only on base.
+                    --
+                    -- Core libraries shipped with ghc, the min and max
+                    -- constraints of these libraries should match with
+                    -- the GHC versions we support. This is to make sure that
+                    -- packages depending on the "ghc" package (packages
+                    -- depending on doctest is a common example) can
+                    -- depend on streamly.
+                       ghc-prim          >= 0.5.3 && < 0.14
+                     , fusion-plugin-types >= 0.1 && < 0.2
+                     , base              >= 4.12  && < 4.22
+                     , exceptions        >= 0.8.0 && < 0.11
+                     , transformers      >= 0.5.5 && < 0.7
+
+                    -- streamly-unicode-core
+                     , template-haskell  >= 2.14  && < 2.24
+
+                     -- XXX to be removed
+                     , filepath          >= 1.4.2 && < 1.6
+                     , containers        >= 0.6.0 && < 0.8
+                     , heaps             >= 0.3   && < 0.5
+
+    if impl(ghc >= 9.0)
+      build-depends:  ghc-bignum >= 1.0  && < 2
+    else
+      build-depends:  integer-gmp >= 1.0 && < 1.2
+
+    if !flag(internal-use-unliftio)
+      build-depends:   monad-control     >= 1.0 && < 1.1
+
+    if os(windows)
+      build-depends: Win32            >= 2.6 && < 2.14
