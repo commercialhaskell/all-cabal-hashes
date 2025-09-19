@@ -1,0 +1,146 @@
+cabal-version:      3.12
+name:               haskell-debugger
+version:            0.8.0.0
+synopsis:
+    A step-through machine-interface debugger for GHC Haskell
+
+description:        This package provides a standalone executable
+                    called @hdb@ which can be used to step-through Haskell
+                    programs and can act as a Debug Adapter Protocol (DAP)
+                    server in the @server@ mode for debugging Haskell
+                    programs.
+                    .
+                    The Debug Adapter is implemented on top of the
+                    @haskell-debugger@ library which defines the primitive
+                    debugging capabilities. These debugger features are
+                    implemented by managing a GHC session and debugging it
+                    through the GHC API.
+                    .
+                    The @hdb@ is transparently compatible with most projects
+                    because it uses @hie-bios@ to figure out the right flags to
+                    invoke GHC with.
+                    .
+                    Additional information can be found [in the README](https://github.com/well-typed/haskell-debugger).
+
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Rodrigo Mesquita
+maintainer:         rodrigo@well-typed.com
+-- copyright:
+category:           Development
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+                    README.md
+homepage:           https://github.com/well-typed/haskell-debugger
+bug-reports:        https://github.com/well-typed/haskell-debugger/issues
+
+source-repository head
+    type: git
+    location: https://github.com/well-typed/haskell-debugger
+
+common warnings
+    ghc-options: -Wall
+
+-- custom-setup
+--   setup-depends:
+--     base        >= 4.21 && < 5,
+--     Cabal-hooks >= 3.14 && < 3.18,
+
+library
+    import:           warnings
+    exposed-modules:  GHC.Debugger,
+                      GHC.Debugger.Breakpoint,
+                      GHC.Debugger.Evaluation,
+                      GHC.Debugger.Logger,
+                      GHC.Debugger.Stopped,
+                      GHC.Debugger.Stopped.Variables,
+                      GHC.Debugger.Utils,
+                      GHC.Debugger.Runtime,
+
+                      GHC.Debugger.Runtime.Term.Key,
+                      GHC.Debugger.Runtime.Term.Cache,
+
+                      GHC.Debugger.Monad,
+                      GHC.Debugger.Session,
+                      GHC.Debugger.Interface.Messages
+    -- other-modules:
+    default-extensions: CPP
+    build-depends:    base > 4.21 && < 5,
+                      ghc >= 9.14 && < 9.16, ghci >= 9.14 && < 9.16,
+                      array >= 0.5.8 && < 0.6,
+                      containers >= 0.7 && < 0.9,
+                      mtl >= 2.3 && < 3,
+                      binary >= 0.8.9 && < 0.11,
+                      process >= 1.6.25 && < 1.7,
+                      unix >= 2.8.6 && < 2.9,
+                      filepath >= 1.5.4 && < 1.6,
+                      directory >= 1.3.9.0 && < 1.4,
+                      exceptions >= 0.10.9 && < 0.11,
+                      bytestring >= 0.12.1 && < 0.13,
+                      cryptohash-sha1 >= 0.11.101.0 && < 0.12,
+                      base16-bytestring >= 1.0.2.0 && < 1.1,
+                      aeson >= 2.2.3 && < 2.3,
+                      hie-bios >= 0.15 && < 0.18,
+                      -- Logger dependencies
+                      time >= 1.14 && < 2,
+                      prettyprinter >= 1.7.1 && < 2,
+                      text >= 2.1 && < 2.3,
+                      co-log-core >= 0.3.2.5 && < 0.4,
+
+    hs-source-dirs:   haskell-debugger
+    default-language: Haskell2010
+
+executable hdb
+    import:           warnings
+    main-is:          Main.hs
+    other-modules:    Development.Debug.Adapter.Flags,
+                      Development.Debug.Adapter.Breakpoints,
+                      Development.Debug.Adapter.Stepping,
+                      Development.Debug.Adapter.Stopped,
+                      Development.Debug.Adapter.Evaluation,
+                      Development.Debug.Adapter.Init,
+                      Development.Debug.Adapter.Interface,
+                      Development.Debug.Adapter.Output,
+                      Development.Debug.Adapter.Exit,
+                      Development.Debug.Adapter.Handles,
+                      Development.Debug.Adapter,
+                      Development.Debug.Interactive,
+                      Paths_haskell_debugger
+    autogen-modules:  Paths_haskell_debugger
+    build-depends:
+        base, ghc,
+        exceptions, aeson, bytestring,
+        containers, filepath,
+        process, mtl, unix,
+
+        haskell-debugger,
+        hie-bios,
+        co-log-core >= 0.3.2.5 && < 0.4,
+        implicit-hie ^>=0.1.4.0,
+        transformers >= 0.6 && < 0.7,
+        -- Logger dependencies
+        prettyprinter,
+
+        directory >= 1.3.9 && < 1.4,
+        async >= 2.2.5 && < 2.3,
+        text >= 2.1 && < 2.3,
+        dap >= 0.2 && < 1,
+
+        haskeline >= 0.8 && < 1,
+        optparse-applicative >= 0.18 && < 0.20
+    hs-source-dirs:   hdb
+    default-language: GHC2021
+    default-extensions: CPP
+    ghc-options: -threaded
+
+test-suite haskell-debugger-test
+    import:           warnings
+    default-language: Haskell2010
+    -- other-modules:
+    -- other-extensions:
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test/haskell/
+    main-is:          Main.hs
+    build-depends:
+        base >=4.14,
+        haskell-debugger
