@@ -1,0 +1,140 @@
+cabal-version:   3.4
+name:            blockio-uring
+version:         0.1.0.2
+synopsis:        Perform batches of asynchronous disk IO operations.
+description:
+  This library supports disk I/O operations using the Linux io_uring API. The
+  library supports submitting large batches of I/O operations in one go. It also
+  supports submitting batches from multiple Haskell threads concurrently. The
+  I/O only blocks the calling thread, not all other Haskell threads. In this
+  style, using a combination of batching and concurrency, it is possible to
+  saturate modern SSDs, thus achieving maximum I/O throughput. This is
+  particularly helpful for performing lots of random reads.
+
+  The library only supports recent versions of Linux, because it uses the
+  io_uring kernel API. It only supports disk operations, not socket operations.
+  The library is tested only with Ubuntu (versions 22.04 and 24.04), but
+  other Linux distributions should probably also work out of the box. Let us
+  know if you run into any problems!
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Duncan Coutts
+maintainer:      duncan@well-typed.com, joris@well-typed.com
+copyright:       (c) Well-Typed LLP 2022 - 2025
+category:        System
+build-type:      Simple
+tested-with:     GHC ==9.2 || ==9.4 || ==9.6 || ==9.8 || ==9.10 || ==9.12
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/well-typed/blockio-uring
+
+source-repository this
+  type:     git
+  location: https://github.com/well-typed/blockio-uring
+  tag:      blockio-uring-0.1.0.2
+
+common warnings
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wpartial-fields -Widentities
+    -Wredundant-constraints -Wmissing-export-lists
+    -Wno-unticked-promoted-constructors -Wunused-packages
+
+  ghc-options: -Werror=missing-deriving-strategies
+
+common language
+  default-language:   GHC2021
+  default-extensions:
+    DeriveAnyClass
+    DerivingStrategies
+    DerivingVia
+    ExplicitNamespaces
+    GADTs
+    LambdaCase
+    RecordWildCards
+    RoleAnnotations
+    ViewPatterns
+
+library
+  import:            language, warnings
+  exposed-modules:   System.IO.BlockIO
+  hs-source-dirs:    src
+  other-modules:
+    System.IO.BlockIO.URing
+    System.IO.BlockIO.URingFFI
+
+  build-depends:
+    , base       >=4.16  && <4.22
+    , primitive  ^>=0.8  || ^>=0.9
+    , vector     ^>=0.13
+
+  -- Annoyingly, liburing-2.1 has the wrong version in its liburing.pc file,
+  -- namely version 2.0. So, even though we are actually only supporting >=2.1,
+  -- we have to use >=2.0 here.
+  pkgconfig-depends: liburing >=2.0 && <3
+
+benchmark bench
+  import:            language, warnings
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    benchmark src
+  main-is:           Bench.hs
+  build-depends:
+    , async
+    , base        <5
+    , containers
+    , primitive
+    , random
+    , time
+    , unix        ^>=2.8.7.0
+    , vector
+
+  pkgconfig-depends: liburing
+  other-modules:
+    System.IO.BlockIO
+    System.IO.BlockIO.URing
+    System.IO.BlockIO.URingFFI
+
+  ghc-options:       -threaded -with-rtsopts=-T
+
+test-suite test
+  import:         language, warnings
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        test.hs
+  build-depends:
+    , base              <5
+    , blockio-uring
+    , primitive
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , vector
+
+  ghc-options:    -threaded
+
+test-suite test-internals
+  import:            language, warnings
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    test src
+  main-is:           test-internals.hs
+  build-depends:
+    , base                <5
+    , primitive
+    , quickcheck-classes
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , vector
+
+  pkgconfig-depends: liburing
+  other-modules:
+    System.IO.BlockIO
+    System.IO.BlockIO.URing
+    System.IO.BlockIO.URingFFI
+
+  ghc-options:       -threaded -fno-ignore-asserts
