@@ -1,0 +1,197 @@
+cabal-version: 3.0
+name: covenant
+version: 1.2.0
+synopsis: Standalone IR for Cardano scripts.
+description:
+  A library describing a call-by-push-value, Turner-total IR. Includes the ability to build up the IR programmatically.
+
+homepage: https://github.com/mlabs-haskell/covenant
+license: Apache-2.0
+license-file: LICENSE
+author: Koz Ross, Sean Hunter
+maintainer: koz@mlabs.city, sean@mlabs.city
+bug-reports: https://github.com/mlabs-haskell/covenant/issues
+copyright: (C) MLabs 2024-2025
+category: Covenant
+tested-with: ghc ==9.8.4 || ==9.10.2 || ==9.12.2
+build-type: Simple
+extra-source-files:
+  CHANGELOG.md
+  README.md
+
+-- Common sections
+common lang
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wredundant-bang-patterns
+    -Wredundant-strictness-flags
+    -Wmissing-deriving-strategies
+    -Woperator-whitespace
+    -Wambiguous-fields
+    -Wmisplaced-pragmas
+    -Wmissing-export-lists
+    -Wmissing-import-lists
+
+  default-extensions:
+    BangPatterns
+    BinaryLiterals
+    DataKinds
+    DeriveTraversable
+    DerivingVia
+    DuplicateRecordFields
+    EmptyCase
+    FlexibleContexts
+    FlexibleInstances
+    GeneralizedNewtypeDeriving
+    HexFloatLiterals
+    ImportQualifiedPost
+    InstanceSigs
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    NoFieldSelectors
+    NoStarIsType
+    NumericUnderscores
+    OverloadedLabels
+    OverloadedStrings
+    PackageImports
+    ScopedTypeVariables
+    StandaloneDeriving
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    UndecidableInstances
+
+  build-depends: base >=4.19.0.0 && <5
+  default-language: Haskell2010
+
+common test-lang
+  import: lang
+  ghc-options:
+    -O2
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  build-depends:
+    -- temporary, maybe, for debugging tests
+    QuickCheck ==2.15.0.1,
+    containers >=0.6.8 && <0.8,
+    covenant,
+    mtl >=2.3.1 && <3,
+    nonempty-vector ==0.2.4,
+    optics-core ==0.4.1.1,
+    prettyprinter ==1.7.1,
+    smash ==0.1.0.0,
+    tasty ==1.5.3,
+    tasty-expected-failure ==0.12.3,
+    tasty-hunit ==0.10.2,
+    tasty-quickcheck ==0.11.1,
+    vector ==0.13.2.0,
+
+common bench-lang
+  import: lang
+  ghc-options:
+    -O2
+
+-- Primary library
+library
+  import: lang
+  exposed-modules:
+    Control.Monad.Action
+    Control.Monad.HashCons
+    Covenant.ASG
+    Covenant.Constant
+    Covenant.Data
+    Covenant.DeBruijn
+    Covenant.Index
+    Covenant.Prim
+    Covenant.Test
+    Covenant.Type
+    Covenant.Util
+
+  other-modules:
+    Covenant.Internal.KindCheck
+    Covenant.Internal.Ledger
+    Covenant.Internal.PrettyPrint
+    Covenant.Internal.Rename
+    Covenant.Internal.Strategy
+    Covenant.Internal.Term
+    Covenant.Internal.Type
+    Covenant.Internal.Unification
+
+  build-depends:
+    QuickCheck ==2.15.0.1,
+    acc ==0.2.0.3,
+    bimap ==0.5.0,
+    bytestring >=0.12.1.0 && <0.13,
+    containers >=0.6.8 && <0.8,
+    enummapset ==0.7.3.0,
+    mtl >=2.3.1 && <3,
+    nonempty-vector ==0.2.4,
+    optics-core ==0.4.1.1,
+    optics-extra ==0.4.2.1,
+    optics-th ==0.4.1,
+    prettyprinter ==1.7.1,
+    quickcheck-instances ==0.3.32,
+    quickcheck-transformer ==0.3.1.2,
+    smash ==0.1.0.0,
+    tasty-hunit ==0.10.2,
+    text >=2.1.1 && <2.2,
+    transformers >=0.6.1.0 && <0.7.0.0,
+    vector ==0.13.2.0,
+
+  hs-source-dirs: src
+
+-- Tests
+test-suite renaming
+  import: test-lang
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test/renaming
+
+test-suite base-functor
+  import: test-lang
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test/base-functor
+
+test-suite type-applications
+  import: test-lang
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  build-depends: vector
+  hs-source-dirs: test/type-applications
+
+test-suite primops
+  import: test-lang
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  build-depends: nonempty-vector
+  hs-source-dirs: test/primops
+
+test-suite asg
+  import: test-lang
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  build-depends:
+    optics-core,
+    vector,
+
+  hs-source-dirs: test/asg
+
+test-suite bb
+  import: test-lang
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test/bb
+
+test-suite kindcheck
+  import: test-lang
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test/kindcheck
+
+-- Benchmarks
