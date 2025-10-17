@@ -1,0 +1,246 @@
+cabal-version:      2.4
+-- The name of the package.
+name:               monad-effect
+
+-- The package version.
+-- https://pvp.haskell.org
+-- PVP summary:     +-+------- breaking API changes
+--                  | | +----- non-breaking API additions
+--                  | | | +--- code changes with no API change
+version:            0.2.0.0
+
+-- A short (one-line) description of the package.
+synopsis:  A fast and lightweight effect system.
+
+-- A longer description of the package.
+description:
+        A fast and lightweight effect system.
+        It provides a way to define and handle effects and exceptions in a modular and composable way.
+        Main features: moduled effects, algebraic exceptions, pure states, and good performance.
+
+-- The license under which the package is released.
+license:            BSD-3-Clause
+
+-- The file containing the license text.
+license-file:       LICENSE
+
+-- The package author(s).
+author:             Eiko
+
+-- An email address to which users can send suggestions, bug reports, and patches.
+maintainer:         eikochanowo@outlook.com
+
+-- A copyright notice.
+-- copyright:
+category:           Control, Monads, Effect
+build-type:         Simple
+
+-- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
+extra-doc-files: CHANGELOG.md
+               , README.md
+
+-- Extra source files to be distributed with the package, such as examples, or a tutorial module.
+-- extra-source-files:
+
+source-repository head
+  type: git
+  location: https://github.com/Eiko-Tokura/monad-effect.git
+
+flag benchO0
+  description: Compile benchmarks with -O0
+  default: False
+  manual: True
+flag benchO1
+  description: Compile benchmarks with -O1
+  default: False
+  manual: True
+flag benchO2
+  description: Compile benchmarks with -O2
+  default: False
+  manual: True
+flag noinline
+  description: Disable inlining for Countdown benchmark
+  default: False
+  manual: True
+
+common warnings
+    ghc-options: -Wall
+
+library
+    -- Import common warning flags.
+    import:           warnings
+
+    -- | This is a small library that gets benefit from inlining and specialisation.
+    -- therefore we turn on these optimisations
+    ghc-options: -O2 -fexpose-all-unfoldings -fspecialise-aggressively -flate-dmd-anal
+    -- -finfo-table-map -fdistinct-constructor-tables -ddump-to-file -ddump-splices
+
+    -- Modules exported by the library.
+    exposed-modules:  Control.Monad.Effect
+                    , Control.System
+                    , Control.System.EventLoop
+                    , Data.Result
+                    , Data.TypeList
+                    , Data.TypeList.FData
+                    , Data.TypeList.FData.TH
+                    , Data.TypeList.Families
+                    , Module.RS
+                    , Module.RS.QQ
+                    , Module.Resource
+                    , Control.Monad.RS.Class
+
+                    -- , Control.Monad.Effect.Concurrent
+    -- Modules included in this library but not exported.
+    other-modules: Data.TypeList.ConsFData
+                 , Data.TypeList.ConsFData.Pattern
+                 , Data.TypeList.FList
+                 , Data.TypeList.UList
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+
+    -- Other library packages from which modules are imported.
+    build-depends:    base >= 4 && < 5
+                    , async < 2.4
+                    , data-default >= 0.8.0 && < 0.9
+                    , mtl < 2.4
+                    , stm < 2.6
+                    , text < 2.2
+                    , exceptions < 0.11
+                    , monad-control >= 1.0.3 && < 1.1
+                    , resourcet >= 1.3.0 && < 1.4
+                    , transformers-base >= 0.4.6 && < 0.5
+                    , template-haskell < 2.24
+                    , deepseq < 1.6
+                    , parsec >=3 && < 4
+                    , haskell-src-meta >= 0.8 && < 0.9
+
+    -- Directories containing source files.
+    hs-source-dirs:   src
+
+    -- Base language which the package is written in.
+    default-language: GHC2021
+
+    default-extensions: OverloadedStrings
+                      , DerivingStrategies
+                      , DeriveAnyClass
+                      , DerivingVia
+                      , DataKinds
+                      , GADTs
+                      , LambdaCase
+                      , LinearTypes
+                      , TypeFamilies
+                      , TypeApplications
+                      , TemplateHaskell
+test-suite monad-effect-test
+    -- Import common warning flags.
+    import:           warnings
+
+    ghc-options: -flate-dmd-anal
+    -- -ddump-simpl -ddump-to-file -dsuppress-all -ddump-splices
+
+    -- Base language which the package is written in.
+    default-language: GHC2021
+
+    -- Modules included in this executable, other than Main.
+    other-modules:    Examples
+                      TH
+
+    -- LANGUAGE extensions used by modules in this package.
+    default-extensions: OverloadedStrings
+                      , DerivingStrategies
+                      , DerivingVia
+                      , DataKinds
+                      , GADTs
+                      , LambdaCase
+                      , TypeFamilies
+                      , TypeApplications
+                      , TemplateHaskell
+                      , QuasiQuotes
+
+    -- The interface type and version of the test suite.
+    type:             exitcode-stdio-1.0
+
+    -- Directories containing source files.
+    hs-source-dirs:   test
+
+    -- The entrypoint to the test suite.
+    main-is:          Main.hs
+
+    -- Test dependencies.
+    build-depends:
+        base >= 4 && < 5
+      , monad-effect
+      , criterion
+      , containers
+      , text
+      , mtl
+      , parsec
+
+benchmark monad-effect-bench
+    -- Import common warning flags.
+    import:           warnings
+
+    ghc-options: -fconstraint-solver-iterations=16
+    -- -ddump-simpl -ddump-to-file -dsuppress-all 
+
+    if flag(benchO2)
+      ghc-options: -O2 -flate-dmd-anal -fmax-worker-args=16
+    if flag(benchO1)
+      ghc-options: -fmax-worker-args=16
+    if flag(benchO0)
+      ghc-options: -O0 -fmax-worker-args=16
+    if flag(noinline)
+      cpp-options: -DNOINLINE
+
+    -- Base language which the package is written in.
+    default-language: GHC2021
+
+    -- LANGUAGE extensions used by modules in this package.
+    default-extensions: OverloadedStrings
+                      , DerivingStrategies
+                      , DerivingVia
+                      , DataKinds
+                      , GADTs
+                      , LambdaCase
+                      , TypeFamilies
+                      , TypeApplications
+                      , TemplateHaskell
+                      , PackageImports
+                      , BlockArguments
+
+    -- The interface type and version of the benchmark suite.
+    type:             exitcode-stdio-1.0
+
+    -- Directories containing source files.
+    hs-source-dirs:   bench
+
+    -- The entrypoint to the benchmark suite.
+    main-is:          Main.hs
+
+
+    build-depends: heftia-effects
+                 , polysemy ^>= 1.9
+                 , fused-effects ^>= 1.1
+                 , effectful >= 2.3 && < 2.6
+                 , mtl >= 2.2 && < 2.4
+                 , logict >= 0.7.0.3 && < 0.9
+                 , tasty-bench >= 0.3 && < 0.5
+                 , unix
+                 , monad-effect
+                 , base
+                 , text
+                 , data-effects
+
+    if impl(ghc >= 9.6) && impl(ghc < 9.10)
+       build-depends: eff
+
+    if impl(ghc < 9.10)
+       build-depends: freer-simple ^>= 1.2
+
+    other-modules:
+         BenchCountdown
+         BenchCatch
+         BenchLocal
+         BenchCoroutine
+         BenchPyth
+         BenchFileSizes
