@@ -1,0 +1,209 @@
+cabal-version:      3.0
+name:               eventlog-live-otelcol
+version:            0.5.0.0
+synopsis:           Stream eventlog data to the OpenTelemetry Collector.
+description:
+  This executable supports live streaming of eventlog data into
+  the OpenTelemetry Collector.
+
+  > Usage: eventlog-live-otelcol (--eventlog-stdin | --eventlog-file FILE |
+  >                                --eventlog-socket SOCKET)
+  >                              [--eventlog-socket-timeout NUM]
+  >                              [--eventlog-socket-exponent NUM]
+  >                              [--batch-interval NUM] [--eventlog-log-file FILE]
+  >                              [-h Tcmdyrbi] [--service-name STRING]
+  >                              [-v|--verbosity quiet|error|warning|info|debug|0-4]
+  >                              [-s|--stats] [--config FILE] --otelcol-host HOST
+  >                              [--otelcol-port PORT] [--otelcol-authority HOST]
+  >                              [--otelcol-ssl] [--otelcol-certificate-store FILE]
+  >                              [--otelcol-ssl-key-log FILE |
+  >                                --otelcol-ssl-key-log-from-env]
+  >                              [--enable-my-eventlog-socket-unix SOCKET]
+  >                              [--enable-my-ghc-debug-socket |
+  >                                --enable-my-ghc-debug-socket-unix SOCKET |
+  >                                --enable-my-ghc-debug-socket-tcp ADDRESS]
+  >                              [--print-defaults]
+  >
+  > Available options:
+  >   --eventlog-stdin         Read the eventlog from stdin.
+  >   --eventlog-file FILE     Read the eventlog from a file.
+  >   --eventlog-socket SOCKET Read the eventlog from a Unix socket.
+  >   --eventlog-socket-timeout NUM
+  >                            Eventlog socket connection retry timeout in
+  >                            microseconds.
+  >   --eventlog-socket-exponent NUM
+  >                            Eventlog socket connection retry timeout exponent.
+  >   --batch-interval NUM     Batch interval in milliseconds.
+  >   --eventlog-log-file FILE Use file to log binary eventlog data.
+  >   -h Tcmdyrbi              Heap profile breakdown.
+  >   --service-name STRING    The name of the profiled service.
+  >   -v,--verbosity quiet|error|warning|info|debug|0-4
+  >                            The verbosity threshold for logging.
+  >   -s,--stats               Display runtime statistics.
+  >   --config FILE            The path to a detailed configuration file.
+  >   --print-defaults         Print default configuration options that can be used
+  >                            in config.yaml
+  >   --help                   Show this help text.
+  >   --version                Show version information
+  >
+  > OpenTelemetry Collector Server Options
+  >   --otelcol-host HOST      Server hostname.
+  >   --otelcol-port PORT      Server TCP port.
+  >   --otelcol-authority HOST Server authority.
+  >   --otelcol-ssl            Use SSL.
+  >   --otelcol-certificate-store FILE
+  >                            Store for certificate validation.
+  >   --otelcol-ssl-key-log FILE
+  >                            Use file to log SSL keys.
+  >   --otelcol-ssl-key-log-from-env
+  >                            Use SSLKEYLOGFILE to log SSL keys.
+  >
+  > Debug Options
+  >   --enable-my-eventlog-socket-unix SOCKET
+  >                            Enable the eventlog socket for this program on the
+  >                            given Unix socket.
+  >   --enable-my-ghc-debug-socket
+  >                            Enable ghc-debug for this program.
+  >   --enable-my-ghc-debug-socket-unix SOCKET
+  >                            Enable ghc-debug for this program on the given Unix
+  >                            socket.
+  >   --enable-my-ghc-debug-socket-tcp ADDRESS
+  >                            Enable ghc-debug for this program on the given TCP
+  >                            socket specified as 'host:port'.
+
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Wen Kokke
+maintainer:         wen@well-typed.com
+copyright:          (c) 2025 Well-Typed
+build-type:         Simple
+category:           Debug, Monitoring, System
+extra-doc-files:    CHANGELOG.md
+extra-source-files: data/default.yaml
+tested-with:
+  GHC ==9.2.8 || ==9.4.8 || ==9.6.7 || ==9.8.4 || ==9.10.2
+
+source-repository head
+  type:     git
+  location: https://github.com/well-typed/eventlog-live.git
+  subdir:   eventlog-live-otelcol
+
+-- 2025-11-10:
+-- This flag should enable switching the use of ghc-debug-stub on
+-- and off, since it may cause issues with certain versions of GHC.
+-- See https://github.com/well-typed/eventlog-live/issues/88
+flag use-ghc-debug-stub
+  description: Use ghc-debug-stub
+  default:     False
+  manual:      True
+
+-- 2025-11-06:
+-- This flag should enable switching between template-haskell and
+-- template-haskell-lift, because the latter is not on nixpkgs.
+flag use-template-haskell-lift
+  description: Use template-haskell-lift in place of template-haskell
+  default:     False
+  manual:      False
+
+common language
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wprepositive-qualified-module
+    -Wredundant-constraints -Wunticked-promoted-constructors
+    -Wunused-packages
+
+  default-language:   Haskell2010
+  default-extensions:
+    BangPatterns
+    DataKinds
+    DefaultSignatures
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveLift
+    DeriveTraversable
+    DerivingStrategies
+    DuplicateRecordFields
+    FlexibleContexts
+    FlexibleInstances
+    GADTs
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    InstanceSigs
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    NoFieldSelectors
+    NumericUnderscores
+    OverloadedRecordDot
+    PatternSynonyms
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+
+library
+  import:          language
+  hs-source-dirs:  src
+  exposed-modules:
+    GHC.Eventlog.Live.Otelcol
+    GHC.Eventlog.Live.Otelcol.Config
+    GHC.Eventlog.Live.Otelcol.Exporter
+    GHC.Eventlog.Live.Otelcol.Stats
+
+  other-modules:
+    GHC.Debug.Stub.Compat
+    GHC.Eventlog.Live.Otelcol.Config.Default
+    GHC.Eventlog.Live.Otelcol.Config.Default.Raw
+    GHC.Eventlog.Live.Otelcol.Config.Types
+    Language.Haskell.TH.Lift.Compat
+    Options.Applicative.Compat
+    Paths_eventlog_live_otelcol
+    System.Random.Compat
+
+  autogen-modules: Paths_eventlog_live_otelcol
+  build-depends:
+    , aeson                  >=2.2    && <2.3
+    , ansi-terminal          >=1.1    && <1.2
+    , base                   >=4.16   && <4.22
+    , bytestring             >=0.11   && <0.13
+    , data-default           >=0.2    && <0.9
+    , dlist                  >=1.0    && <1.1
+    , eventlog-live          >=0.4    && <0.5
+    , eventlog-socket        >=0.1.0  && <0.2
+    , file-embed             >=0.0.16 && <0.1
+    , ghc-events             >=0.20   && <0.21
+    , grapesy                >=1.0.0  && <1.2
+    , hashable               >=1.4    && <1.6
+    , hs-opentelemetry-otlp  >=0.1.0  && <0.2
+    , lens-family            >=2.1.3  && <2.2
+    , machines               >=0.7.4  && <0.8
+    , optparse-applicative   >=0.17   && <0.20
+    , proto-lens             >=0.7.1  && <0.8
+    , random                 >=1.2    && <1.4
+    , strict-list            >=0.1    && <0.2
+    , table-layout           >=1.0    && <1.1
+    , text                   >=1.2    && <2.2
+    , unordered-containers   >=0.2.20 && <0.3
+    , vector                 >=0.11   && <0.14
+    , yaml                   >=0.11   && <0.12
+
+  if flag(use-ghc-debug-stub)
+    build-depends: ghc-debug-stub >=0.1 && <1.0
+    cpp-options:   -DEVENTLOG_LIVE_OTELCOL_USE_GHC_DEBUG_STUB
+
+  if flag(use-template-haskell-lift)
+    build-depends: template-haskell-lift >=0.1 && <0.2
+    cpp-options:   -DEVENTLOG_LIVE_OTELCOL_USE_TEMPLATE_HASKELL_LIFT
+
+  else
+    build-depends: template-haskell >=2.2 && <3.0
+
+executable eventlog-live-otelcol
+  import:         language
+  main-is:        Main.hs
+  hs-source-dirs: app
+  build-depends:  eventlog-live-otelcol
+  ghc-options:    -threaded -rtsopts -finfo-table-map
