@@ -1,0 +1,163 @@
+cabal-version: 3.0
+
+name: duoids
+version: 0.0.1.0
+synopsis: Unifying parallel and sequential operations
+description: Duoids relate a pair of monoids, where one can be seen as
+            “parallel” and the other “sequential”.
+maintainer: Greg Pfeil <greg@technomadic.org>
+author: Greg Pfeil <greg@technomadic.org>
+copyright: 2024 Greg Pfeil
+-- TODO: Remove the redundant `OR AGPL-3.0-only` once
+--       haskell/hackage-server#1440 is fixed.
+license: (AGPL-3.0-only WITH Universal-FOSS-exception-1.0 OR AGPL-3.0-only OR LicenseRef-commercial) AND BSD-3-Clause
+license-files:
+  LICENSE
+  LICENSE.AGPL-3.0-only
+  LICENSE.BSD-3-Clause
+  LICENSE.Universal-FOSS-exception-1.0
+  LICENSE.commercial
+category: Algebra, Error Handling
+build-type: Custom
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+  docs/*.md
+tested-with:
+  GHC == {
+    9.6.1, 9.6.3,
+    9.8.1, 9.8.4,
+    9.10.1,
+    9.12.1
+  }
+
+homepage: https://github.com/sellout/duoids#readme
+bug-reports: https://github.com/sellout/duoids/issues
+source-repository head
+  type: git
+  location: https://github.com/sellout/duoids.git
+  subdir: core
+
+flag noisy-deprecations
+  description:
+    Prior to GHC 9.10, the @DEPRECATED@ pragma can’t distinguish between terms
+    and types. Consenquently, you can get spurious warnings when there’s a name
+    collision and the name in the other namespace is deprecated. Or you can
+    choose to not get those warnings, at the risk of not being warned when
+    there’s a name collision and the namespace you’re referencing is the one
+    that’s deprecated.
+  default: True
+  manual: False
+
+custom-setup
+  setup-depends:
+    -- TODO: Due to haskell/cabal#3751, `Cabal` has to be specified even though
+    --       there’s no direct dependency. Its lower bound needs to match
+    --      `cabal-version` at the top of this file, and Hackage requires it to
+    --       have _some_ upper bound. (Since there’s no direct dependency, it
+    --       doesn’t use PVP bounds.)
+    Cabal >= 3.0 && < 99,
+    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0},
+    cabal-doctest ^>= {1.0.0},
+    no-recursion ^>= {0.2.0, 0.3.0},
+
+-- This mimics the GHC2024 extension
+-- (https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/control.html?highlight=doandifthenelse#extension-GHC2024),
+-- but supporting compilers back to GHC 8.0. If the oldest supported compiler
+-- is GHC 9.10, then this stanza can be removed and `import: GHC2024` can be
+-- replaced by `default-language: GHC2024`. If the oldest supported compiler is
+-- GHC 9.2, then this can be simplified by setting `default-language: GHC2021`
+-- and only including the extensions added by GHC2024.
+common GHC2024
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+    DerivingStrategies
+    DisambiguateRecordFields
+    GADTs
+    LambdaCase
+    MagicHash
+    MonadComprehensions
+    RoleAnnotations
+
+common defaults
+  import: GHC2024
+  build-depends:
+    base ^>= {4.18.0, 4.19.0, 4.20.0, 4.21.0},
+    no-recursion ^>= {0.2.0, 0.3.0},
+  ghc-options:
+    -Weverything
+    -- This one just reports unfixable things, AFAICT.
+    -Wno-all-missed-specialisations
+    -- Type inference good.
+    -Wno-missing-local-signatures
+    -- Warns even when `Unsafe` is explicit, not inferred. See
+    -- https://gitlab.haskell.org/ghc/ghc/-/issues/16689
+    -Wno-unsafe
+    -fplugin=NoRecursion
+  if impl(ghc >= 9.8.1)
+    ghc-options:
+      -- Inference good.
+      -Wno-missing-role-annotations
+  default-extensions:
+    BlockArguments
+    DefaultSignatures
+    ExplicitNamespaces
+    FunctionalDependencies
+    LexicalNegation
+    LiberalTypeSynonyms
+    PackageImports
+    ParallelListComp
+    QualifiedDo
+    RecursiveDo
+    -- RequiredTypeArguments - uncomment if the oldest supported version is GHC 9.10.1+
+    StrictData
+    TemplateHaskellQuotes
+    TransformListComp
+    NoGeneralizedNewtypeDeriving
+    NoImplicitPrelude
+    NoMonomorphismRestriction
+    NoPatternGuards
+    NoStarIsType
+    NoTypeApplications
+  if flag(noisy-deprecations)
+    cpp-options: -DSELLOUT_NOISY_DEPRECATIONS
+
+library
+  import: defaults
+  hs-source-dirs: src
+  exposed-modules:
+    Control.Duoidal
+    Control.Duoidal.Either
+    Control.Duoidal.Laws
+    Data.Duoid
+    Data.Duoid.Laws
+  other-modules:
+    Control.Duoidal.Async
+
+test-suite doctests
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is: doctests.hs
+  build-depends:
+    doctest ^>= {0.21.1, 0.22.6, 0.24.0},
+    duoids,
+  -- TODO: The sections below here are necessary because we don’t have control
+  --       over the generated `Build_doctests.hs` file. So we have to silence
+  --       all of its warnings one way or another.
+  ghc-options:
+    -- `doctest` requires the package containing the doctests as a dependency
+    -- to ensure it gets built before this test-suite, even though the package
+    -- appears to be unused.
+    -Wno-unused-packages
+    -Wno-missing-deriving-strategies
+    -Wno-missing-export-lists
+    -Wno-missing-import-lists
+    -Wno-missing-kind-signatures
+    -Wno-safe
+  default-extensions:
+    -- Since we can’t add `{-# LANGUAGE Safe -#}` to the generated
+    -- “Build_doctests.hs”, we set it here, and that means it has to match
+    -- doctests.hs, which is `Unsafe`.
+    Unsafe
