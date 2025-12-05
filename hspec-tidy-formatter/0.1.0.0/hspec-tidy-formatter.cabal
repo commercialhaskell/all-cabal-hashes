@@ -1,0 +1,172 @@
+cabal-version: 3.0
+
+name:           hspec-tidy-formatter
+version:        0.1.0.0
+stability:      experimental
+category:       Testing
+synopsis:       A custom hspec formatter for easy-to-read terminal output.
+homepage:       https://github.com/carlwr/hspec-tidy-formatter#readme
+bug-reports:    https://github.com/carlwr/hspec-tidy-formatter/issues
+author:         Carl
+maintainer:     Carl
+copyright:      none
+license:        MIT
+build-type:     Simple
+tested-with:
+    GHC == 9.12.2
+    GHC == 9.10.2
+    GHC == 9.4.8
+extra-doc-files:
+    README.md
+    README.lhs
+    assets/montage.png
+description:
+    A custom hspec formatter for easy-to-read terminal output. For details, refer to the README.md file.
+
+source-repository head
+  type: git
+  location: https://github.com/carlwr/hspec-tidy-formatter
+
+flag doctest
+  description: enable doctests
+  default: False
+  manual: True
+
+flag suppress-module-prefixes
+  default: False
+  manual: True
+
+common dep_base       { build-depends: base             >= 4.17.2.1 && < 5 }
+common dep_hspec-api  { build-depends: hspec-api        >= 2.11.8   && < 3 }
+common dep_hspec      { build-depends: hspec            >= 2.11.8   && < 3 }
+common dep_hspec-core { build-depends: hspec-core       >= 2.11.8   && < 3 }
+common dep_hspec-hh   { build-depends: hspec-hedgehog   >= 0.3.0.0  && < 1 }
+common dep_hh         { build-depends: hedgehog         >= 1.5      && < 2 }
+
+common tooldep_hspec-discover
+  build-tool-depends:
+      hspec-discover:hspec-discover >= 2.11.8 && < 3
+
+common defaults
+  autogen-modules: Paths_hspec_tidy_formatter
+  other-modules:   Paths_hspec_tidy_formatter
+  ghc-options:
+      -Wall
+      -Wcompat
+      -Widentities
+      -Wincomplete-record-updates
+      -Wincomplete-uni-patterns
+      -Wredundant-constraints
+      -Wno-type-defaults
+      -Wno-partial-type-signatures
+      -Wnoncanonical-monad-instances
+      -Wpartial-fields
+      -Winvalid-haddock
+      -Wredundant-bang-patterns
+      -Wredundant-strictness-flags
+      -freverse-errors
+      -fshow-hole-matches-of-hole-fits
+      -fhide-source-paths
+      -fwrite-ide-info
+  if impl(ghc >= 9.8) { ghc-options:
+      -Winconsistent-flags
+      }
+  if flag(suppress-module-prefixes) { ghc-options:
+      -dsuppress-module-prefixes
+      }
+  default-language: GHC2021
+  default-extensions:
+      PartialTypeSignatures
+      UnicodeSyntax
+      ExtendedDefaultRules
+      LambdaCase
+      RecordWildCards
+
+library
+  import:
+    , defaults
+    , dep_base
+    , dep_hspec-api
+  hs-source-dirs: src
+  exposed-modules:
+      Test.Hspec.TidyFormatter
+      Test.Hspec.TidyFormatter.Internal
+      Test.Hspec.TidyFormatter.Internal.Parts
+
+test-suite readme
+  import:
+    , defaults
+    , dep_base
+    , dep_hspec
+  type:            exitcode-stdio-1.0
+  main-is:         README.lhs
+  ghc-options:     -pgmL markdown-unlit
+  build-tool-depends:
+    , markdown-unlit:markdown-unlit == 0.6.0
+  build-depends:
+    , hspec-tidy-formatter
+
+test-suite doctest
+  import:
+    , defaults
+    , dep_base
+  if !flag(doctest)
+      buildable: False
+  hs-source-dirs:  test/doctests
+  type:            exitcode-stdio-1.0
+  main-is:         doctests.hs
+  ghc-options:
+      -threaded
+  build-depends:
+    , hspec-tidy-formatter
+    , doctest-parallel >= 0.3 && < 1.0
+
+test-suite readme-example
+  import:
+    , defaults
+    , dep_base
+    , dep_hspec
+    , dep_hspec-core
+    , dep_hspec-hh
+    , dep_hh
+    , tooldep_hspec-discover
+  hs-source-dirs:  readme-example
+  type:            exitcode-stdio-1.0
+  main-is:         Spec.hs
+  ghc-options:
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
+      -main-is Spec
+  other-modules:
+      Data.MyLogic.Core.InstancesSpec
+      Data.MyLogic.EvaluatorSpec
+      Data.MyLogic.TestUtils.GeneratorSpec
+      Helpers
+      SpecHook
+  build-depends:
+    , hspec-tidy-formatter
+
+test-suite dev-example
+  import:
+    , defaults
+    , dep_base
+    , dep_hspec
+    , dep_hspec-core
+    , dep_hspec-hh
+    , dep_hh
+    , tooldep_hspec-discover
+  hs-source-dirs:  test/dev-example
+  type:            exitcode-stdio-1.0
+  main-is:         Spec.hs
+  ghc-options:
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
+      -main-is Spec
+  other-modules:
+      ExampleSpec
+      Example.SubSpec
+      SpecHook
+  build-depends:
+    , hspec-tidy-formatter
