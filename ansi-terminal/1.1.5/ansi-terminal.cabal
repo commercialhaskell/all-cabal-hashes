@@ -1,0 +1,79 @@
+Cabal-Version:       1.22
+Name:                ansi-terminal
+Version:             1.1.5
+Category:            User Interfaces
+Synopsis:            Simple ANSI terminal support
+Description:         ANSI terminal support for Haskell: allows cursor movement,
+                     screen clearing, color output, showing or hiding the
+                     cursor, and changing the title. Works on UNIX and Windows.
+License:             BSD3
+License-File:        LICENSE
+Author:              Max Bolingbroke
+Maintainer:          Mike Pilgrem <public@pilgrem.com>, Roman Cheplyaka <roma@ro-che.info>
+Homepage:            https://github.com/UnkindPartition/ansi-terminal
+Build-Type:          Simple
+
+Extra-Source-Files:     CHANGELOG.md
+                        README.md
+                        win/include/errors.h
+                        win/include/HsWin32.h
+                        win/include/winternl_compat.h
+
+Source-repository head
+  type:     git
+  location: git://github.com/UnkindPartition/ansi-terminal.git
+
+Flag example
+        Description:    Build the example application
+        Default:        False
+
+Library
+        Hs-Source-Dirs:         src
+        Exposed-Modules:        System.Console.ANSI
+
+        -- We re-export all of ansi-terminal-types to aid compatibility for
+        -- downstream users.
+        Reexported-Modules:     System.Console.ANSI.Codes
+                              , System.Console.ANSI.Types
+
+        Other-Modules:          System.Console.ANSI.Internal
+
+        Build-Depends:          base >= 4.8.0.0 && < 5
+                              , ansi-terminal-types == 1.1.3
+                              , colour >= 2.1.0
+        if os(windows)
+            Hs-Source-Dirs:     win
+            Other-Modules:      System.Console.ANSI.Windows.Foreign
+                                System.Console.ANSI.Windows.Win32.Types
+                                System.Console.ANSI.Windows.Win32.MinTTY
+            Include-Dirs:       win/include
+            Install-Includes:   HsWin32.h
+            C-Sources:          win/c-source/errors.c
+                                win/c-source/HsWin32.c
+            -- The MSYS2 UCRT64 environment is stricter than the MINGW64
+            -- environment about these C compiler diagnostics:
+            -- (1) macro-redefined, (2) missing-declarations, and
+            -- (3) pragma-pack. Windows C headers are not warning-clean under
+            -- -Wmacro-redefined, -Wmissing-declarations and -Wpragma-pack. We
+            -- smother those warnings:
+            Cc-Options:         -Wno-macro-redefined
+                                -Wno-missing-declarations
+                                -Wno-pragma-pack
+        else
+            Hs-Source-Dirs:     unix
+
+        Default-Extensions:     CPP
+
+        Ghc-Options:            -Wall
+        Default-Language:       Haskell2010
+
+Executable ansi-terminal-example
+        Hs-Source-Dirs:         app
+        Main-Is:                Example.hs
+        Build-Depends:          base >= 4.8.0.0 && < 5
+                              , ansi-terminal
+                              , colour
+        Ghc-Options:            -Wall
+        if !flag(example)
+            Buildable:          False
+        Default-Language:       Haskell2010
