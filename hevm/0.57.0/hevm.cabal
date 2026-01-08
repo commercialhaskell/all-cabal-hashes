@@ -1,0 +1,389 @@
+cabal-version: 3.0
+name:
+  hevm
+version:
+  0.57.0
+synopsis:
+  Symbolic EVM Evaluator
+description:
+  Symbolic EVM semantics in Haskell.
+homepage:
+  https://github.com/argotorg/hevm
+license:
+  AGPL-3.0-only
+author:
+  dxo, Martin Lundfall, Mikael Brockman, Martin Blicha, Zoe Paraskevopoulou, Mate Soos
+maintainer:
+  git@d-xo.org
+category:
+  Ethereum
+build-type:
+  Simple
+extra-source-files:
+  bench/contracts/*.sol
+  test/scripts/convert_trace_to_json.sh
+extra-doc-files:
+  CHANGELOG.md
+
+flag static-secp256k1
+  description: Sets flags for compilation with static secp256k1
+  default:     False
+  manual:      True
+
+flag ci
+  description: Sets flags for compilation in CI
+  default:     False
+  manual:      True
+
+flag devel
+  description: Sets flag for compilation during development
+  default:     False
+  manual:      True
+
+flag debug
+  description: Sets flags for compilation with extensive debug symbols and eventlog
+  default:     False
+  manual:      True
+
+source-repository head
+  type:     git
+  location: https://github.com/argotorg/hevm.git
+
+common shared
+  if flag(ci)
+    ghc-options:
+      -Werror
+      -- FIXME: we have to disable this, due to ghc bug: https://gitlab.haskell.org/ghc/ghc/-/issues/24120
+      -Wno-unused-packages
+  if flag(devel)
+    ghc-options:
+      -j
+  if flag(debug)
+    ghc-options:
+      -j
+      -g3
+      -fdistinct-constructor-tables
+      -finfo-table-map
+      -eventlog
+  ghc-options:
+    -Wall
+    -Wno-unticked-promoted-constructors
+    -Wno-orphans
+    -Wno-ambiguous-fields
+    -Wunused-packages
+    -optc-Wno-ignored-attributes
+    -fspecialize-aggressively
+    -fexpose-all-unfoldings
+  default-language: GHC2021
+  default-extensions:
+    DuplicateRecordFields
+    LambdaCase
+    NoFieldSelectors
+    OverloadedRecordDot
+    OverloadedStrings
+    OverloadedLabels
+    RecordWildCards
+    TypeFamilies
+    ViewPatterns
+    DataKinds
+
+library
+  import: shared
+  default-language: GHC2021
+  exposed-modules:
+    EVM,
+    EVM.ABI,
+    EVM.Assembler,
+    EVM.Concrete,
+    EVM.Dapp,
+    EVM.Expr,
+    EVM.SMT,
+    EVM.Solvers,
+    EVM.Exec,
+    EVM.Format,
+    EVM.Fetch,
+    EVM.FeeSchedule,
+    EVM.Op,
+    EVM.Precompiled,
+    EVM.RLP,
+    EVM.Solidity,
+    EVM.Stepper,
+    EVM.Tracing,
+    EVM.SymExec,
+    EVM.Traversals,
+    EVM.CSE,
+    EVM.Keccak,
+    EVM.Transaction,
+    EVM.Types,
+    EVM.UnitTest,
+    EVM.Sign,
+    EVM.Effects,
+  other-modules:
+    EVM.CheatsTH,
+    EVM.SMT.Types,
+    EVM.SMT.SMTLIB,
+    Paths_hevm
+  autogen-modules:
+    Paths_hevm
+  if os(windows) && flag(static-secp256k1)
+    cc-options: -DSECP256K1_STATIC
+    cxx-options: -DSECP256K1_STATIC
+  if os(darwin)
+    -- https://gitlab.haskell.org/ghc/ghc/-/issues/11829
+    ld-options: -Wl,-keep_dwarf_unwind
+    ghc-options: -fcompact-unwind
+  extra-libraries:
+    secp256k1, ff, gmp
+  c-sources:
+    ethjet/tinykeccak.c, ethjet/blake2.c, ethjet/ethjet.c
+  cxx-sources:
+    ethjet/ethjet-ff.cc
+  cxx-options:
+    -std=c++0x
+  install-includes:
+    ethjet/tinykeccak.h, ethjet/ethjet.h, ethjet/ethjet-ff.h, ethjet/blake2.h
+  build-depends:
+    directory                         >= 1.3.6 && < 1.4,
+    system-cxx-std-lib                >= 1.0 && < 2.0,
+    QuickCheck                        >= 2.13.2 && < 2.16,
+    Decimal                           >= 0.5.1 && < 0.6,
+    containers                        >= 0.6.0 && < 0.8,
+    transformers                      >= 0.5 && < 0.7,
+    tree-view                         >= 0.5 && < 0.6,
+    aeson                             >= 2.0.0 && < 2.3,
+    bytestring                        >= 0.11.3.1 && < 0.13,
+    scientific                        >= 0.3.6 && < 0.4,
+    binary                            >= 0.8.6 && < 0.9,
+    text                              >= 1.2.3 && < 2.2,
+    vector                            >= 0.12.1 && < 0.14,
+    base16                            >= 1.0 && < 1.1,
+    megaparsec                        >= 9.0.0 && < 10.0,
+    mtl                               >= 2.2 && < 2.4,
+    filepath                          >= 1.4.2 && < 1.6,
+    cereal                            >= 0.5.8 && < 0.6,
+    cryptonite                        >= 0.30 && < 0.31,
+    memory                            >= 0.16.0 && < 0.20,
+    data-dword                        >= 0.3.1 && < 0.4,
+    process                           >= 1.6.5 && < 1.7,
+    optics-core                       >= 0.4.1 && < 0.5,
+    optics-extra                      >= 0.4.2.1 && < 0.5,
+    optics-th                         >= 0.4.1 && < 0.5,
+    aeson-optics                      >= 1.2.0.1 && < 1.3,
+    async                             >= 2.2.4 && < 2.3,
+    operational                       >= 0.2.3 && < 0.3,
+    optparse-generic                  >= 1.3.1 && < 1.6,
+    pretty-hex                        >= 1.1 && < 1.2,
+    rosezipper                        >= 0.2 && < 0.3,
+    wreq                              >= 0.5.3 && < 0.6,
+    regex-tdfa                        >= 1.2.3 && < 1.4,
+    base                              >= 4.9 && < 5,
+    smt2-parser                       >= 0.1.0 && < 0.2,
+    spool                             >= 0.1 && < 0.2,
+    stm                               >= 2.5.0 && < 2.6.0,
+    spawn                             >= 0.3 && < 0.4,
+    filepattern                       >= 0.1.2 && < 0.2,
+    witch                             >= 1.1 && < 1.4,
+    unliftio-core                     >= 0.2.1 && < 0.3,
+    split                             >= 0.2.3 && < 0.3,
+    template-haskell                  >= 2.19.0 && < 3,
+    extra                             >= 1.7.14 && < 2,
+    aeson-pretty                      >= 0.8.8 && < 0.9.0,
+    monad-loops                       >= 0.4.1 && < 0.5,
+  hs-source-dirs:
+    src
+
+executable hevm
+  import: shared
+  default-language: GHC2021
+  hs-source-dirs:
+    cli
+  main-is:
+    cli.hs
+  ghc-options: -threaded -with-rtsopts=-N
+  other-modules:
+    Paths_hevm
+  autogen-modules:
+    Paths_hevm
+  build-depends:
+    base,
+    bytestring,
+    data-dword,
+    directory                         >= 1.3.6 && < 1.4,
+    filepath,
+    hevm,
+    jsonl                             >= 0.2.0.0 && < 0.3.0.0,
+    optparse-generic,
+    optparse-applicative              >= 0.18.0.0 && < 0.20.0.0,
+    text,
+    mtl,
+    optics-core,
+    githash                           >= 0.1.5 && < 0.2,
+    witch,
+    unliftio-core,
+    split,
+
+--- Test Helpers ---
+
+common test-base
+  import: shared
+  default-language: GHC2021
+  hs-source-dirs:
+    test
+  other-modules:
+    Paths_hevm
+  autogen-modules:
+    Paths_hevm
+  build-depends:
+    QuickCheck,
+    quickcheck-instances,
+    aeson,
+    base,
+    containers,
+    directory,
+    bytestring,
+    filemanip,
+    filepath,
+    hevm,
+    mtl,
+    process,
+    tasty,
+    tasty-hunit,
+    tasty-quickcheck,
+    tasty-expected-failure,
+    temporary,
+    text,
+    vector,
+    witherable,
+    optics-core,
+    witch,
+    unliftio-core,
+    exceptions
+
+library test-utils
+  import: test-base
+  default-language: GHC2021
+  exposed-modules:
+    EVM.Test.Utils
+    EVM.Test.FuzzSymExec
+    EVM.Test.BlockchainTests
+
+common test-common
+  import: test-base
+  default-language: GHC2021
+  if flag(devel)
+    ghc-options: -threaded -with-rtsopts=-N
+  build-depends:
+    test-utils
+  other-modules:
+    EVM.Test.Utils
+    EVM.Test.FuzzSymExec
+    EVM.Test.BlockchainTests
+
+--- Test Suites ---
+
+test-suite test
+  import: test-common
+  default-language: GHC2021
+  type:
+    exitcode-stdio-1.0
+  main-is:
+    test.hs
+  build-depends:
+    base16,
+    binary,
+    data-dword,
+    extra,
+    here,
+    time,
+    optics-extra,
+    regex
+
+-- these tests require network access so we split them into a separate test
+-- suite to make it easy to skip them when running nix-build
+test-suite rpc-tests
+  import: test-common
+  default-language: GHC2021
+  type:
+    exitcode-stdio-1.0
+  main-is:
+    rpc.hs
+
+test-suite ethereum-tests
+  import: test-common
+  default-language: GHC2021
+  type:
+    exitcode-stdio-1.0
+  main-is:
+    BlockchainTests.hs
+
+test-suite cli-test
+  import: test-common
+  type:
+    exitcode-stdio-1.0
+  default-language: GHC2021
+  hs-source-dirs:
+    test
+  main-is:
+    clitest.hs
+  build-depends:
+    base,
+    here,
+    hevm,
+    hspec,
+    process,
+    text,
+    bytestring,
+    filepath,
+    split,
+
+--- Benchmarks ---
+
+benchmark bench
+  import: shared
+  default-language: GHC2021
+  type:
+    exitcode-stdio-1.0
+  main-is:
+    bench.hs
+  hs-source-dirs:
+    bench
+  ghc-options:
+    -O2
+  other-modules:
+    Paths_hevm
+  autogen-modules:
+    Paths_hevm
+  build-depends:
+    base,
+    tasty-bench,
+    tasty,
+    bytestring,
+    text,
+    hevm,
+    test-utils,
+    containers,
+    unliftio-core
+
+benchmark bench-perf
+  import: shared
+  default-language: GHC2021
+  type:
+    exitcode-stdio-1.0
+  main-is:
+    bench-perf.hs
+  hs-source-dirs:
+    bench
+  ghc-options:
+    -O2 -threaded -with-rtsopts=-N -fproc-alignment=64
+  other-modules:
+    Paths_hevm
+  autogen-modules:
+    Paths_hevm
+  build-depends:
+    base,
+    here,
+    hevm,
+    mtl,
+    tasty-bench,
+    test-utils,
+    utf8-string
