@@ -1,0 +1,103 @@
+cabal-version: 2.2
+Name:		CPL
+Version:	0.2.0
+License:	BSD-3-Clause
+License-File:	COPYING
+Author:		Masahiro Sakai (masahiro.sakai@gmail.com)
+Maintainer:	masahiro.sakai@gmail.com
+Category:	Compilers/Interpreters
+Homepage:       https://github.com/msakai/cpl
+Synopsis:	An interpreter of Hagino's Categorical Programming Language (CPL).
+Description:
+   CPL is a functional programming language based on category
+   theory. Data types are declared in a categorical manner by
+   adjunctions. Data types that can be handled include the terminal
+   object, the initial object, the binary product functor, the binary
+   coproduct functor, the exponential functor, the natural number object,
+   the functor for finite lists, and the functor for infinite lists.
+   Each data type is declared with its basic operations or
+   morphisms. Programs consist of these morphisms, and execution of
+   programs is the reduction of elements (i.e. special morphisms) to
+   their canonical form.
+Extra-Doc-Files:
+   README.md,
+   CHANGELOG.md,
+   TUTORIAL.md,
+   TUTORIAL_ja.md,
+   doc-images/*.png,
+   images/*.png,
+   web/README.md
+Extra-Source-Files:
+   doc-images/*.tex,
+   doc-images/Makefile,
+   samples/ack.cpl,
+   samples/automata.cdt,
+   samples/ccc.cdt,
+   samples/examples.cpl,
+   samples/examples.txt,
+   samples/misc.cdt,
+   samples/obscure.cdt,
+   samples/rec.cdt,
+   samples/benchmark.cpl,
+   samples/ack_3_4.cpl,
+   samples/function.cpl,
+   scripts/build-wasm.sh,
+   scripts/generate-favicons.sh,
+   scripts/generate-samples-js.sh,
+   web/cpl-terminal.js,
+   web/index.html,
+   web/tutorial_header.txt,
+   web/tutorial_ja_header.txt,
+   web/tutorial.css,
+   web/favicon_header.html,
+   web/favicon.ico,
+   web/favicon-16x16.png,
+   web/favicon-32x32.png,
+   web/apple-touch-icon.png,
+   web/icon-192x192.png,
+   web/icon-512x512.png,
+   web/manifest.json
+Build-Type: Simple
+
+source-repository head
+  type:     git
+  location: https://github.com/msakai/cpl.git
+
+Flag Haskeline
+  Description: Use Haskeline
+  Default: True
+
+Flag LinuxStatic
+  Description: build statically linked binaries
+  Default: False
+  Manual: True
+
+Flag Web
+  Description: Build for browser environment with WebAssembly + JavaScript FFI
+  Default: False
+  Manual: True
+
+Executable cpl
+  Main-is: Main.hs
+  HS-Source-Dirs: src
+  Other-Modules: AExp CDT CDTParser CPLSystem Exp ExpParser FE Funct ParserUtils Simp Statement Subst Type Typing Variance Paths_CPL
+  Autogen-Modules: Paths_CPL
+  Build-Depends: base >=4.16 && <5, mtl >=2.2.1, containers, array, parsec
+  Default-Language: Haskell2010
+  Other-Extensions: TypeSynonymInstances, FlexibleInstances, CPP, GeneralizedNewtypeDeriving
+  if flag(Web)
+    CPP-Options: "-DUSE_WEB_BACKEND"
+    GHC-Options:
+      -no-hs-main
+      -optl-mexec-model=reactor
+      -optl-Wl,--export=hs_init
+      -optl-Wl,--export=hs_start
+    Build-Depends: ghc-experimental
+    if impl(ghc >= 9.10)
+      Other-Extensions: JavaScriptFFI
+  else
+    if flag(Haskeline)
+      CPP-Options: "-DUSE_HASKELINE_PACKAGE"
+      Build-Depends: haskeline
+  if flag(LinuxStatic)
+    GHC-Options: -static -optl-static -optl-pthread
