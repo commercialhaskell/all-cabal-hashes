@@ -1,0 +1,178 @@
+cabal-version: 3.4
+
+name:           henforcer
+version:        1.0.0.1
+synopsis:       GHC plugin to enforce user specified rules on code.
+description:    Please see the README on GitHub at <https://github.com/flipstone/henforcer#readme>
+category:       Development, Compiler Plugin, static-analysis
+homepage:       https://github.com/flipstone/henforcer#readme
+bug-reports:    https://github.com/flipstone/henforcer/issues
+author:         Flipstone Technology Partners
+maintainer:     maintainers@flipstone.com
+copyright:      2020-2026 Flipstone Technology Partners
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    test/test-config.toml
+extra-doc-files:
+    ChangeLog.md
+
+tested-with: GHC == 9.4.8, GHC == 9.6.7, GHC == 9.8.4, GHC == 9.10.3, GHC == 9.12.2, GHC == 9.14.1
+
+source-repository head
+  type: git
+  location: https://github.com/flipstone/henforcer
+
+flag ci
+  description: More strict ghc options used for development and ci, not intended for end-use.
+  manual: True
+  default: False
+
+common ci-warnings
+    ghc-options:
+      -Wall
+      -Wcompat
+      -Werror
+      -Wmissing-import-lists
+      -Wmissing-export-lists
+      -Wmissing-home-modules
+      -Wmissed-specialisations
+      -Wmonomorphism-restriction
+      -Wpartial-fields
+      -Wcpp-undef
+      -Wredundant-constraints
+      -Wredundant-strictness-flags
+      -Wmissing-local-signatures
+      -Wunused-packages
+      -Wunused-matches
+      -Wunused-type-patterns
+      -Winvalid-haddock
+      -Wredundant-bang-patterns
+      -Wimplicit-lift
+      -Woperator-whitespace
+      -Wredundant-strictness-flags
+      -fwrite-ide-info
+    if impl (ghc >= 9.8)
+      ghc-options:
+        -Wincomplete-export-warnings
+        -Wimplicit-rhs-quantification
+        -Wterm-variable-capture
+    if impl (ghc >= 9.10) && impl (ghc < 9.14)
+      ghc-options:
+        -Wdeprecated-type-abstractions
+    if impl (ghc >= 9.10)
+      ghc-options:
+        -Wdefaulted-exception-context
+    if impl (ghc >= 9.12)
+      ghc-options:
+        -Wview-pattern-signatures
+
+library henforcer-internal
+  exposed-modules:
+      CompatGHC
+      Henforcer.Checks
+      Henforcer.CodeStructure
+      Henforcer.Config
+      Henforcer.Options
+      Henforcer.Rules
+  other-modules:
+      Paths_henforcer
+      Henforcer.Checks.DocumentationCheck
+      Henforcer.Checks.ImportCheck
+      Henforcer.Checks.ImportCheck.Check
+      Henforcer.Checks.ImportCheck.CheckFailure
+      Henforcer.CodeStructure.Import
+      Henforcer.CodeStructure.Import.AllowedAliasUniqueness
+      Henforcer.CodeStructure.Import.Import
+      Henforcer.CodeStructure.Import.Scheme
+      Henforcer.CodeStructure.Import.Scheme.Alias
+      Henforcer.CodeStructure.Import.Scheme.PackageQualifier
+      Henforcer.CodeStructure.Import.Scheme.Safe
+      Henforcer.CodeStructure.Import.Scheme.Scheme
+      Henforcer.CodeStructure.ModuleTree
+      Henforcer.Config.Config
+      Henforcer.Config.ForAnyModule
+      Henforcer.Config.ForPatternModule
+      Henforcer.Config.ForSpecifiedModule
+      Henforcer.Config.IgnoreRules
+      Henforcer.Config.TreeDependencies
+      Henforcer.Rules.ConditionallyEnforced
+      Henforcer.Rules.Maximum
+      Henforcer.Rules.Minimum
+      Henforcer.Rules.MustExistNonEmpty
+      Henforcer.Rules.UserNote
+      TomlHelper
+
+  autogen-modules:
+      Paths_henforcer
+  hs-source-dirs:
+      src
+
+  if flag(ci)
+    import: ci-warnings
+
+  ghc-options:
+    -funbox-strict-fields
+    -O2
+
+  build-depends:
+      base >=4.17 && <5
+    , containers >=0.6 && < 0.9
+    , dlist >=1.0 && <1.1
+    , filepattern >=0.1 && <0.2
+    , ghc >= 9.4.1 && <9.15
+    , optparse-applicative >=0.14 && <0.20
+    , pollock >= 0.1.0.1 && <0.2
+    , text >=1.2 && <2.2
+    , tomland >= 1.3.3.2 && < 1.4
+  default-language: Haskell2010
+
+library
+  exposed-modules:
+      Henforcer
+  hs-source-dirs:
+      plugin
+
+  if flag(ci)
+    import: ci-warnings
+
+  ghc-options:
+    -funbox-strict-fields
+    -O2
+
+  build-depends:
+      henforcer:henforcer-internal
+    , base >=4.7 && <5
+    , pollock >= 0.1.0.1 && <0.2
+
+  default-language: Haskell2010
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    test
+
+  other-modules:
+    Test.Config
+    Test.Config.Documentation
+    Test.Config.Import
+
+  ghc-options:
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
+  if flag(ci)
+    import: ci-warnings
+
+  build-depends:
+      base >=4.7 && <5
+    , containers >=0.6 && < 0.9
+    , henforcer:henforcer-internal
+    , hedgehog >= 1.2 && < 1.8
+    , tasty >= 1.4 && < 1.6
+    , tasty-hedgehog >= 1.4 && < 1.5
+
+  default-language: Haskell2010
