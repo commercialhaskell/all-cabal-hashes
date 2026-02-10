@@ -1,0 +1,417 @@
+cabal-version: 1.12
+-- ^ 1.12 is the version included with GHC 7.2.1, the oldest version that
+--   supports plugins.
+--
+-- https://cabal.readthedocs.io/en/stable/file-format-changelog.html
+
+name: ghc-compat-plugin
+version: 0.1.0.0
+synopsis: Eases support for multiple GHC versions
+description: Controls various GHC options and extensions to make compilation
+             across multiple versions easier, and to alert you to
+             incompatibilities.
+maintainer: Greg Pfeil <greg@technomadic.org>
+author: Greg Pfeil <greg@technomadic.org>
+copyright: 2026 Greg Pfeil
+-- GHC before 8.8.1 (and Cabal before 3.0) can’t deal with the
+-- `Universal-FOSS-exception-1.0` SPDX license exception. Since it only makes
+-- the license more lax, we just omit it from this field.
+license: AGPL-3
+license-file: LICENSE.AGPL-3.0-only
+category: Compatibility, Compiler Plugins
+build-type: Simple
+extra-source-files:
+  CHANGELOG.md
+  README.md
+  docs/*.md
+  tests/README.md
+tested-with:
+  GHC ==7.10.3
+  || ==8.0.2
+  || ==8.2.2
+  || ==8.4.1
+  || ==8.6.1
+  || ==8.8.1
+  || ==8.10.1
+  || ==9.0.1
+  || ==9.2.1
+  || ==9.4.1 || ==9.4.8
+  || ==9.6.1 || ==9.6.7
+  || ==9.8.1 || ==9.8.4
+  || ==9.10.1 || ==9.10.2 || ==9.10.3
+  || ==9.12.1 || ==9.12.2
+  || ==9.14.1
+
+homepage: https://github.com/sellout/ghc-compat-plugin#readme
+bug-reports: https://github.com/sellout/ghc-compat-plugin/issues
+
+source-repository head
+  type: git
+  location: https://github.com/sellout/ghc-compat-plugin.git
+  subdir: core
+
+source-repository this
+  type: git
+  location: https://github.com/sellout/ghc-compat-plugin.git
+  subdir: core
+  -- NB: This is the repo version, which is distinct from the package version.
+  tag: v1.0.0
+
+flag noisy-deprecations
+  description:
+    Prior to GHC 9.10, the @DEPRECATED@ pragma can’t distinguish between terms
+    and types. Consenquently, you can get spurious warnings when there’s a name
+    collision and the name in the other namespace is deprecated. Or you can
+    choose to not get those warnings, at the risk of not being warned when
+    there’s a name collision and the namespace you’re referencing is the one
+    that’s deprecated.
+  default: True
+  -- Because disabling this flag won’t help the solver.
+  manual: True
+
+library
+  default-language: Haskell98
+  build-depends:
+    ghc >=7.2.1 && <9.16
+  default-extensions:
+    -- 6.8.1
+    NoImplicitPrelude
+    NoMonomorphismRestriction
+    -- 6.10.1
+    NamedFieldPuns
+    PackageImports
+  exposed-modules:
+    GhcCompat
+  -- blockers for supporting GHC <7.10:
+  -- - use of `MIN_VERSION_GLASGOW_HASKELL`
+  if impl(ghc >= 7.10.1)
+    build-depends:
+      base >=4.8.0 && <4.23
+    if impl(ghc >= 8.0.1)
+      build-depends:
+        ghc-boot-th >=8.0.1 && <9.16
+    hs-source-dirs:
+      supported
+    other-modules:
+      GhcCompat.GhcRelease
+      GhcCompat.Opts
+  else
+    hs-source-dirs:
+      unsupported
+  if impl(ghc >= 8.0.1)
+    ghc-options:
+      -Weverything
+      -- This one just reports unfixable things, AFAICT.
+      -Wno-all-missed-specialisations
+      -- Type inference good.
+      -Wno-missing-local-signatures
+      -- Warns even when `Unsafe` is explicit, not inferred. See
+      -- https://gitlab.haskell.org/ghc/ghc/-/issues/16689
+      -Wno-unsafe
+    if impl(ghc < 8.8.1)
+      ghc-options:
+        -- This used to warn even when `Safe` was explicit.
+        -Wno-safe
+  else
+    ghc-options:
+      -Wall
+  if impl(ghc >= 8.4.1) && impl(ghc < 9.4.1)
+    ghc-options:
+      -- This breaks `MIN_VERSION_GLASGOW_HASKELL` on some GHCs.`
+      -Wno-cpp-undef
+  if flag(noisy-deprecations)
+    cpp-options:
+      -DSELLOUT_NOISY_DEPRECATIONS
+  -- THIS PLUGIN WILL INFORM YOU AS TO WHETHER YOU NEED THE FOLLOWING
+  -- CONDITIONALS IN YOUR OWN CABAL FILES.
+  if impl(ghc >= 7.10.1)
+    ghc-options:
+      -- remove if the oldest supported version is GHC 7.8.1+
+      -fno-warn-deriving-typeable
+  if impl(ghc >= 8.6.1)
+    ghc-options:
+      -- remove if the oldest supported version is GHC 8.6.1+
+      -Wno-star-is-type
+  if impl(ghc >= 8.8.1)
+    ghc-options:
+      -- remove if the oldest supported version is GHC 8.2.1+
+      -Wno-missing-deriving-strategies
+  -- THIS PLUGIN ELIMINATES THE NEED FOR THE FOLLOWING CONDITIONALS IN YOUR OWN
+  -- CABAL FILES.
+  if impl(ghc >= 8.10.1)
+    ghc-options:
+      -- remove if the oldest supported version is GHC 8.10.1+
+      -Wno-prepositive-qualified-module
+  if impl(ghc >= 9.2.1)
+    ghc-options:
+      -- remove if the oldest supported version is GHC 6.8.1+
+      -Wno-missing-kind-signatures
+  if impl(ghc >= 9.8.1)
+    ghc-options:
+      -- remove if the oldest supported version is GHC 7.4.1+
+      -Wno-missing-poly-kind-signatures
+      -- remove if the oldest supported version is GHC 7.8.1+
+      -Wno-missing-role-annotations
+  if impl(ghc >= 9.14.1)
+    ghc-options:
+      -- remove if the oldest supported version is GHC 9.14.1+
+      -Wno-pattern-namespace-specifier
+
+-- NB: Currently these compilation tests can only verify that we don’t error
+--     when we shouldn’t, not that we do error when we should. So,
+--  1. we should make better tests that check error messages, but
+--  2. we’re catching the more important case (where someone has to stop using
+--     the plugin because it’s complaining about non-issues).
+
+test-suite compilation-haskell98
+  hs-source-dirs:
+    tests
+  type: exitcode-stdio-1.0
+  default-language: Haskell98
+  main-is: compilation-haskell.hs
+  other-modules:
+    Test.Min_6_0_1
+    Test.Min_6_8_1
+    Test.Min_6_10_1
+    Test.Min_6_12_1
+    Test.Min_7_0_1
+  if impl(ghc >= 7.2.1)
+    other-modules:
+      Test.Min_7_2_1
+  if impl(ghc >= 7.4.1)
+    other-modules:
+      Test.Min_7_4_1
+  if impl(ghc >= 7.4.1)
+    other-modules:
+      Test.Min_7_4_1
+  if impl(ghc >= 7.6.1)
+    other-modules:
+      Test.Min_7_6_1
+  if impl(ghc >= 7.8.1)
+    other-modules:
+      Test.Min_7_8_1
+  if impl(ghc >= 7.10.1)
+    other-modules:
+      Test.Min_7_10_1
+  if impl(ghc >= 8.0.1)
+    other-modules:
+      Test.Min_8_0_1
+  if impl(ghc >= 8.2.1)
+    other-modules:
+      Test.Min_8_2_1
+  if impl(ghc >= 8.4.1)
+    other-modules:
+      Test.Min_8_4_1
+  if impl(ghc >= 8.6.1)
+    other-modules:
+      Test.Min_8_6_1
+  if impl(ghc >= 8.8.1)
+    other-modules:
+      Test.Min_8_8_1
+  if impl(ghc >= 8.10.1)
+    other-modules:
+      Test.Min_8_10_1
+  if impl(ghc >= 9.0.1)
+    other-modules:
+      Test.Min_9_0_1
+  if impl(ghc >= 9.2.1)
+    other-modules:
+      Test.Min_9_2_1
+      Test.SupportGHC2021
+  if impl(ghc >= 9.2.4)
+    other-modules:
+      Test.Min_9_2_4
+  if impl(ghc >= 9.6.1)
+    other-modules:
+      Test.Min_9_6_1
+  if impl(ghc >= 9.8.1)
+    other-modules:
+      Test.Min_9_8_1
+  if impl(ghc >= 9.10.1)
+    other-modules:
+      Test.Min_9_10_1
+      Test.SupportGHC2024
+  if impl(ghc >= 9.12.1)
+    other-modules:
+      Test.Min_9_12_1
+  if impl(ghc >= 9.14.1)
+    other-modules:
+      Test.Min_9_14_1
+  build-depends:
+    base >=4.8.0 && <4.23,
+    ghc-compat-plugin
+  ghc-options:
+    -fno-warn-deprecated-flags
+    -fplugin GhcCompat
+    -- NB: Each test module sets `GhcCompat:minVersion` internally.
+    -fplugin-opt GhcCompat:minVersion=6.8.1
+    -fplugin-opt GhcCompat:reportIncompatibleExtensions=error
+  if impl(ghc >= 8.6.1)
+    ghc-options:
+      -Wno-star-is-type
+
+test-suite compilation-haskell2010
+  hs-source-dirs:
+    tests
+  type: exitcode-stdio-1.0
+  default-language: Haskell2010
+  main-is: compilation-haskell.hs
+  other-modules:
+    Test.Min_6_0_1
+    Test.Min_6_8_1
+    Test.Min_6_10_1
+    Test.Min_6_12_1
+    Test.Min_7_0_1
+  if impl(ghc >= 7.2.1)
+    other-modules:
+      Test.Min_7_2_1
+  if impl(ghc >= 7.4.1)
+    other-modules:
+      Test.Min_7_4_1
+  if impl(ghc >= 7.4.1)
+    other-modules:
+      Test.Min_7_4_1
+  if impl(ghc >= 7.6.1)
+    other-modules:
+      Test.Min_7_6_1
+  if impl(ghc >= 7.8.1)
+    other-modules:
+      Test.Min_7_8_1
+  if impl(ghc >= 7.10.1)
+    other-modules:
+      Test.Min_7_10_1
+  if impl(ghc >= 8.0.1)
+    other-modules:
+      Test.Min_8_0_1
+  if impl(ghc >= 8.2.1)
+    other-modules:
+      Test.Min_8_2_1
+  if impl(ghc >= 8.4.1)
+    other-modules:
+      Test.Min_8_4_1
+  if impl(ghc >= 8.6.1)
+    other-modules:
+      Test.Min_8_6_1
+  if impl(ghc >= 8.8.1)
+    other-modules:
+      Test.Min_8_8_1
+  if impl(ghc >= 8.10.1)
+    other-modules:
+      Test.Min_8_10_1
+  if impl(ghc >= 9.0.1)
+    other-modules:
+      Test.Min_9_0_1
+  if impl(ghc >= 9.2.1)
+    other-modules:
+      Test.Min_9_2_1
+      Test.SupportGHC2021
+  if impl(ghc >= 9.2.4)
+    other-modules:
+      Test.Min_9_2_4
+  if impl(ghc >= 9.6.1)
+    other-modules:
+      Test.Min_9_6_1
+  if impl(ghc >= 9.8.1)
+    other-modules:
+      Test.Min_9_8_1
+  if impl(ghc >= 9.10.1)
+    other-modules:
+      Test.Min_9_10_1
+      Test.SupportGHC2024
+  if impl(ghc >= 9.12.1)
+    other-modules:
+      Test.Min_9_12_1
+  if impl(ghc >= 9.14.1)
+    other-modules:
+      Test.Min_9_14_1
+  build-depends:
+    base >=4.8.0 && <4.23,
+    ghc-compat-plugin
+  ghc-options:
+    -fno-warn-deprecated-flags
+    -fplugin GhcCompat
+    -- NB: Each test module sets `GhcCompat:minVersion` internally.
+    -fplugin-opt GhcCompat:minVersion=6.8.1
+    -fplugin-opt GhcCompat:reportIncompatibleExtensions=error
+  if impl(ghc >= 8.6.1)
+    ghc-options:
+      -Wno-star-is-type
+
+test-suite compilation-ghc2021
+  hs-source-dirs:
+    tests
+  if impl(ghc >= 9.2.1)
+    type: exitcode-stdio-1.0
+    default-language: GHC2021
+    main-is: compilation-ghc2021.hs
+    other-modules:
+      Test.Min_9_2_1
+      Test.SupportGHC2021
+    if impl(ghc >= 9.2.4)
+      other-modules:
+        Test.Min_9_2_4
+    if impl(ghc >= 9.6.1)
+      other-modules:
+        Test.Min_9_6_1
+    if impl(ghc >= 9.8.1)
+      other-modules:
+        Test.Min_9_8_1
+    if impl(ghc >= 9.10.1)
+      other-modules:
+        Test.Min_9_10_1
+        Test.SupportGHC2024
+    if impl(ghc >= 9.12.1)
+      other-modules:
+        Test.Min_9_12_1
+    if impl(ghc >= 9.14.1)
+      other-modules:
+        Test.Min_9_14_1
+  else
+    type: exitcode-stdio-1.0
+    default-language: Haskell98
+    main-is: skip.hs
+  build-depends:
+    base >=4.8.0 && <4.23,
+    ghc-compat-plugin
+  ghc-options:
+    -fno-warn-deprecated-flags
+    -fplugin GhcCompat
+    -- NB: Each test module sets `GhcCompat:minVersion` internally.
+    -fplugin-opt GhcCompat:minVersion=9.2.1
+    -fplugin-opt GhcCompat:reportIncompatibleExtensions=error
+  if impl(ghc >= 8.6.1)
+    ghc-options:
+      -Wno-star-is-type
+
+test-suite compilation-ghc2024
+  hs-source-dirs:
+    tests
+  if impl(ghc >= 9.10.1)
+    type: exitcode-stdio-1.0
+    default-language: GHC2024
+    main-is: compilation-ghc2024.hs
+    other-modules:
+      Test.Min_9_10_1
+      Test.SupportGHC2024
+    if impl(ghc >= 9.12.1)
+      other-modules:
+        Test.Min_9_12_1
+    if impl(ghc >= 9.14.1)
+      other-modules:
+        Test.Min_9_14_1
+  else
+    type: exitcode-stdio-1.0
+    default-language: Haskell98
+    main-is: skip.hs
+  build-depends:
+    base >=4.8.0 && <4.23,
+    ghc-compat-plugin
+  ghc-options:
+    -fno-warn-deprecated-flags
+    -fplugin GhcCompat
+    -- NB: Each test module sets `GhcCompat:minVersion` internally.
+    -fplugin-opt GhcCompat:minVersion=9.10.1
+    -fplugin-opt GhcCompat:reportIncompatibleExtensions=error
+  if impl(ghc >= 8.6.1)
+    ghc-options:
+      -Wno-star-is-type
