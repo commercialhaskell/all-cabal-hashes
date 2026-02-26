@@ -1,0 +1,208 @@
+cabal-version:      3.0
+name:               hask-redis-mux
+version:            0.1.0.0
+synopsis:           A RESP protocol implementation and multiplexed Redis client library
+description:
+    hask-redis-mux provides a full RESP protocol parser, Redis client with TLS support,
+    CRC16 hash slot computation, and a multiplexed Redis Cluster client with connection
+    pooling and automatic topology discovery.
+license:            MIT
+license-file:       LICENSE
+author:             Seth Speaks
+maintainer:         sspeaks610@gmail.com
+category:           Network
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+                  , README.md
+extra-source-files: lib/crc16/crc16.c
+homepage:           https://github.com/sspeaks/redis-client
+bug-reports:        https://github.com/sspeaks/redis-client/issues
+tested-with:        GHC == 9.10.3
+
+source-repository head
+    type:     git
+    location: https://github.com/sspeaks/redis-client.git
+
+-- ---------------------------------------------------------------------------
+-- Common stanzas
+-- ---------------------------------------------------------------------------
+
+common defaults
+    default-language: GHC2021
+    ghc-options:      -Wall -O2
+    build-depends:    base >=4.19 && <4.22
+
+common test-defaults
+    import:           defaults
+    ghc-options:      -threaded -rtsopts "-with-rtsopts=-N -H1024M -A128m -n8m -qb"
+    build-depends:    hspec >=2.11 && <2.12
+    hs-source-dirs:   test
+
+-- ---------------------------------------------------------------------------
+-- Libraries
+-- ---------------------------------------------------------------------------
+
+library
+    import:           defaults
+    reexported-modules:
+        Database.Redis.Resp
+      , Database.Redis.FromResp
+      , Database.Redis.RedisError
+      , Database.Redis.Client
+      , Database.Redis.Crc16
+      , Database.Redis.Command
+      , Database.Redis.Cluster
+      , Database.Redis.Cluster.Client
+      , Database.Redis.Cluster.Commands
+      , Database.Redis.Cluster.SlotMapping
+      , Database.Redis.Cluster.ConnectionPool
+      , Database.Redis.Connector
+      , Database.Redis.Internal.MultiplexPool
+      , Database.Redis.Internal.Multiplexer
+      , Database.Redis.Standalone
+      , Database.Redis
+    build-depends:    resp
+                    , client
+                    , crc16
+                    , redis-command-client
+                    , cluster
+                    , redis
+
+library resp
+    import:           defaults
+    hs-source-dirs:   lib/resp
+    exposed-modules:  Database.Redis.Resp
+    build-depends:    attoparsec >=0.14 && <0.15
+                    , bytestring >=0.12 && <0.13
+                    , containers >=0.6 && <0.8
+
+library client
+    import:           defaults
+    hs-source-dirs:   lib/client
+    exposed-modules:  Database.Redis.Client
+    build-depends:    bytestring >=0.12 && <0.13
+                    , crypton-x509-system >=1.6 && <1.7
+                    , data-default-class >=0.1 && <0.3
+                    , dns >=4.2 && <4.3
+                    , iproute >=1.7 && <1.8
+                    , network >=3.2 && <3.3
+                    , tls >=2.1 && <2.2
+
+library crc16
+    import:           defaults
+    hs-source-dirs:   lib/crc16
+    exposed-modules:  Database.Redis.Crc16
+    c-sources:        lib/crc16/crc16.c
+    build-depends:    bytestring >=0.12 && <0.13
+
+library redis-command-client
+    import:           defaults
+    hs-source-dirs:   lib/redis-command-client
+    exposed-modules:  Database.Redis.Command
+                    , Database.Redis.FromResp
+                    , Database.Redis.RedisError
+    build-depends:    attoparsec >=0.14 && <0.15
+                    , bytestring >=0.12 && <0.13
+                    , client
+                    , mtl >=2.3 && <2.4
+                    , resp
+                    , text >=2.1 && <2.2
+
+library cluster
+    import:           defaults
+    hs-source-dirs:   lib/cluster
+    exposed-modules:  Database.Redis.Cluster
+                    , Database.Redis.Cluster.Client
+                    , Database.Redis.Cluster.Commands
+                    , Database.Redis.Cluster.SlotMapping
+                    , Database.Redis.Cluster.ConnectionPool
+                    , Database.Redis.Connector
+                    , Database.Redis.Internal.MultiplexPool
+                    , Database.Redis.Internal.Multiplexer
+                    , Database.Redis.Standalone
+    build-depends:    attoparsec >=0.14 && <0.15
+                    , bytestring >=0.12 && <0.13
+                    , client
+                    , containers >=0.6 && <0.8
+                    , crc16
+                    , file-embed >=0.0.16 && <0.1
+                    , mtl >=2.3 && <2.4
+                    , redis-command-client
+                    , resp
+                    , stm >=2.5 && <2.6
+                    , time >=1.12 && <1.13
+                    , vector >=0.13 && <0.14
+
+library redis
+    import:           defaults
+    visibility:       public
+    hs-source-dirs:   lib/redis
+    exposed-modules:  Database.Redis
+    build-depends:    bytestring >=0.12 && <0.13
+                    , client
+                    , cluster
+                    , redis-command-client
+                    , resp
+
+-- ---------------------------------------------------------------------------
+-- Test suites
+-- ---------------------------------------------------------------------------
+
+test-suite RespSpec
+    import:           test-defaults
+    type:             exitcode-stdio-1.0
+    main-is:          Spec.hs
+    build-depends:    attoparsec >=0.14 && <0.15
+                    , bytestring >=0.12 && <0.13
+                    , containers >=0.6 && <0.8
+                    , redis-command-client
+                    , resp
+
+test-suite ClusterSpec
+    import:           test-defaults
+    type:             exitcode-stdio-1.0
+    main-is:          ClusterSpec.hs
+    build-depends:    bytestring >=0.12 && <0.13
+                    , cluster
+                    , resp
+                    , time >=1.12 && <1.13
+
+test-suite ClusterCommandSpec
+    import:           test-defaults
+    type:             exitcode-stdio-1.0
+    main-is:          ClusterCommandSpec.hs
+    build-depends:    bytestring >=0.12 && <0.13
+                    , client
+                    , cluster
+                    , containers >=0.6 && <0.8
+                    , resp
+                    , stm >=2.5 && <2.6
+                    , time >=1.12 && <1.13
+                    , vector >=0.13 && <0.14
+
+test-suite MultiplexerSpec
+    import:           test-defaults
+    type:             exitcode-stdio-1.0
+    main-is:          MultiplexerSpec.hs
+    build-depends:    bytestring >=0.12 && <0.13
+                    , client
+                    , cluster
+                    , resp
+
+test-suite FromRespSpec
+    import:           test-defaults
+    type:             exitcode-stdio-1.0
+    main-is:          FromRespSpec.hs
+    build-depends:    bytestring >=0.12 && <0.13
+                    , redis-command-client
+                    , resp
+                    , text >=2.1 && <2.2
+
+test-suite MultiplexPoolSpec
+    import:           test-defaults
+    type:             exitcode-stdio-1.0
+    main-is:          MultiplexPoolSpec.hs
+    build-depends:    bytestring >=0.12 && <0.13
+                    , client
+                    , cluster
+                    , resp

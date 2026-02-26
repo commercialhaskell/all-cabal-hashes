@@ -1,0 +1,153 @@
+cabal-version:       3.6
+
+-- Copyright (c) Facebook, Inc. and its affiliates.
+
+name:                thrift-http
+version:             0.3.0.0
+synopsis:            Support for Thrift-over-HTTP server and client
+homepage:            https://github.com/facebookincubator/hsthrift
+bug-reports:         https://github.com/facebookincubator/hsthrift/issues
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Facebook, Inc.
+maintainer:          hsthrift-team@fb.com
+copyright:           (c) Facebook, All Rights Reserved
+category:            Thrift
+extra-doc-files:     CHANGELOG.md
+
+description:
+    Support for building servers and clients that communicate
+    using Thrift over an HTTP transport. Uses WAI and Warp as
+    the server-side HTTP implementation, and http-client for
+    the client-side implementation.
+
+    This transport is only compatible with itself. In particular, it
+    is *not* compatible with fbthrift or apache-thrift clients and
+    servers.
+
+    NOTE: for build instructions and documentation, see
+    <https://github.com/facebookincubator/hsthrift>
+
+source-repository head
+    type: git
+    location: https://github.com/facebookincubator/hsthrift.git
+
+common fb-haskell
+    default-language: Haskell2010
+    default-extensions:
+        BangPatterns
+        BinaryLiterals
+        DataKinds
+        DeriveDataTypeable
+        DeriveGeneric
+        EmptyCase
+        ExistentialQuantification
+        FlexibleContexts
+        FlexibleInstances
+        GADTs
+        GeneralizedNewtypeDeriving
+        LambdaCase
+        MultiParamTypeClasses
+        MultiWayIf
+        NoMonomorphismRestriction
+        OverloadedStrings
+        PatternSynonyms
+        RankNTypes
+        RecordWildCards
+        ScopedTypeVariables
+        StandaloneDeriving
+        TupleSections
+        TypeFamilies
+        TypeSynonymInstances
+        NondecreasingIndentation
+    if flag(opt)
+       ghc-options: -O2
+
+flag opt
+     default: False
+
+library
+  import: fb-haskell
+  exposed-modules:
+      Thrift.Server.HTTP
+      Thrift.Channel.HTTP
+
+  build-depends:
+      fb-util >= 0.1.0 && < 0.3,
+      thrift-lib >= 0.1.0 && < 0.3,
+      base >=4.11.1 && <4.20,
+      text >= 1.2.3.0 && < 2.2,
+      bytestring >=0.10.8.2 && <0.13,
+      async ^>=2.2.1,
+      utf8-string >= 1.0.2 && < 1.1,
+      containers >= 0.6 && < 0.7,
+      wai >= 3.2.3 && < 3.3,
+      warp >= 3.3.25 && < 3.5,
+      streaming-commons >= 0.2.2 && < 0.3,
+      network >= 3.1.4 && < 3.3,
+      http-client >= 0.7.15 && < 0.8,
+      http-client-tls > 0.3 && < 0.4,
+      http-types >= 0.12.3 && < 0.13
+
+  default-language:    Haskell2010
+
+-- Workaround for IPv6 loopback bug on Docker/Ubuntu:
+--   https://github.com/docker/for-linux/issues/1374
+flag tests_use_ipv4
+     description: Force tests to use IPV4 whenever bringing thrift clients/servers up
+     default: False
+     manual: True
+
+common test-deps
+  build-depends:
+      base >=4.11.1 && <4.20,
+      aeson >= 2.0.3 && < 2.3,
+      bytestring,
+      data-default >= 0.7.1 && < 0.9,
+      deepseq >= 1.4.4 && < 1.6,
+      fb-stubs >= 0.1.0 && < 0.2,
+      fb-util,
+      hashable >= 1.4.3 && < 1.5,
+      hspec >= 2.10.10 && < 2.12,
+      hspec-contrib >= 0.5.2 && < 0.6,
+      ghc-prim >= 0.5.3 && < 0.12,
+      HUnit ^>= 1.6.1,
+      STMonadTrans >= 0.4.7 && < 0.5,
+      text,
+      thrift-lib,
+      thrift-lib:test-helpers,
+      transformers >= 0.5.6 && < 0.7,
+      unordered-containers >= 0.2.19 && < 0.3
+
+  if flag(tests_use_ipv4)
+    -- for test/Network.hs
+    cpp-options: -DIPV4
+
+library test-lib
+  import: fb-haskell, test-deps
+  hs-source-dirs: test/common, test/gen-hs2
+  exposed-modules:
+        CalculatorHandler
+        EchoHandler
+        Echoer.Echoer.Client
+        Echoer.Echoer.Service
+        Echoer.Types
+        Math.Adder.Client
+        Math.Adder.Service
+        Math.Calculator.Client
+        Math.Calculator.Service
+        Math.Types
+  build-depends:
+        containers
+
+common test-common
+  import: test-deps
+  hs-source-dirs: test
+  build-depends: thrift-http:test-lib, thrift-http, http-client, wai, http-types
+  ghc-options: -threaded
+
+test-suite server
+  import: fb-haskell, test-common
+  type: exitcode-stdio-1.0
+  main-is: ServerTest.hs
+  ghc-options: -main-is ServerTest

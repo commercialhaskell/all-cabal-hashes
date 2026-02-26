@@ -1,0 +1,493 @@
+cabal-version:       3.6
+
+-- Copyright (c) Facebook, Inc. and its affiliates.
+
+name:                fb-util
+version:             0.2.0.1
+synopsis:            Various utility libraries
+homepage:            https://github.com/facebookincubator/hsthrift
+bug-reports:         https://github.com/facebookincubator/hsthrift/issues
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Facebook, Inc.
+maintainer:          hsthrift-team@fb.com
+copyright:           (c) Facebook, All Rights Reserved
+category:            Utilities
+build-type:          Simple
+extra-source-files:  cpp/*.h,
+                     tests/DynamicHelper.h,
+                     tests/HsStructHelper.h,
+                     hsc.h
+extra-doc-files:     CHANGELOG.md
+
+description:
+    Utility libraries used by Meta projects, notably hsthrift and Glean.
+
+    NOTE: for build instructions, see
+    <https://github.com/facebookincubator/hsthrift>
+
+source-repository head
+    type: git
+    location: https://github.com/facebookincubator/hsthrift.git
+
+common fb-haskell
+    default-language: Haskell2010
+    default-extensions:
+        BangPatterns
+        BinaryLiterals
+        DataKinds
+        DeriveDataTypeable
+        DeriveGeneric
+        EmptyCase
+        ExistentialQuantification
+        FlexibleContexts
+        FlexibleInstances
+        GADTs
+        GeneralizedNewtypeDeriving
+        LambdaCase
+        MultiParamTypeClasses
+        MultiWayIf
+        NoMonomorphismRestriction
+        OverloadedStrings
+        PatternSynonyms
+        RankNTypes
+        RecordWildCards
+        ScopedTypeVariables
+        StandaloneDeriving
+        TupleSections
+        TypeFamilies
+        TypeSynonymInstances
+        NondecreasingIndentation
+    if flag(opt)
+       ghc-options: -O2
+
+common fb-cpp
+  cxx-options: -std=c++20
+  -- We use hsc2hs with C++ headers, so we need to compile the
+  -- generated code with g++. The hsc2hs-generated binary is linked
+  -- by ghc, because we depend on a Haskell package (mangle).
+  hsc2hs-options: --cc=g++ --lflag=-lstdc++ --cflag=-D__HSC2HS__=1 --cflag=-std=c++20
+  if !flag(clang)
+     cxx-options: -fcoroutines
+  if arch(x86_64)
+     cxx-options: -march=haswell
+  if flag(opt)
+     cxx-options: -O3
+
+flag opt
+     default: False
+
+flag clang
+     default: False
+
+-- Enable modules that depend on folly. Since folly normally needs to
+-- be built from source, it is an inconvenient dependency. Without
+-- folly we can still build thrift-compiler and the thrift-http
+-- transport; only thrift-cpp-channel requires folly.
+--
+-- Ideally we'd split fb-util into two (or more) packages, or
+-- sub-libraries. But that requires moving files around because the
+-- Haskell sources would need to be in distinct directories, which needs
+-- to be done in the upstream repository.
+flag folly
+     default: False
+
+library
+    import: fb-haskell, fb-cpp
+
+    exposed-modules:
+        Compat.Prettyprinter
+        Compat.Prettyprinter.Util
+        Compat.Prettyprinter.Render.Text
+        Control.Concurrent.Stream
+        Control.Trace
+        Control.Trace.Core
+        Control.Trace.VLog
+        Data.MovingAverageRateLimiter
+        Data.RateLimiterMap
+        Util.ASan
+        Util.Async
+        Util.Aeson
+        Util.AllocLimit
+        Util.Applicative
+        Util.Bag
+        Util.Binary.Parser
+        Util.Bits
+        Util.Buffer
+        Util.Build
+        Util.ByteString
+        Util.Concurrent
+        Util.Control.Exception
+        Util.Control.Exception.CallStack
+        Util.Control.Monad
+        Util.Defer
+        -- Util.Dll
+        Util.Encoding
+        Util.Err
+        Util.Fd
+        Util.FFI
+        Util.FilePath
+        Util.Function
+        Util.Graph
+        -- Util.GFlags
+        Util.HSE
+        Util.HUnit
+        Util.HashMap.Strict
+        Util.IO
+        Util.JSON.Pretty
+        Util.Lens
+        Util.Linter
+        Util.List
+        Util.List.HigherOrder
+        Util.Log
+        Util.Log.Text
+        Util.Log.Internal
+        Util.Log.String
+        Util.LogIfSlow
+        Util.Logger
+        Util.MD5
+        Util.Memory
+        Util.Monoid
+        Util.Network
+        Util.OptParse
+        Util.Predicate
+        Util.PrettyPrint
+        Util.RWVar
+        Util.Reader
+        Util.STM
+        Util.Show
+        Util.String
+        Util.String.Quasi
+        Util.Testing
+        Util.Text
+        Util.Time
+        Util.TimeSec
+        Util.Timing
+        Util.ToExp
+        Util.Typeable
+        Util.WBVar
+
+    cxx-sources:
+        cpp/ffi.cpp
+        cpp/logging.cpp
+        Util/AsanAlloc.cpp
+        -- Util/GFlags.cpp
+
+    install-includes:
+        cpp/ffi.h
+        cpp/memory.h
+        cpp/wrap.h
+        Util/AsanAlloc.h
+
+    include-dirs: .
+    hs-source-dirs: .
+
+    build-depends:
+        HUnit ^>= 1.6.1,
+        QuickCheck >= 2.14.3 && < 2.15,
+        aeson < 2.3,
+        aeson-pretty >= 0.8.9 && < 0.9,
+        array ^>=0.5.2.0,
+        async >=2.2.1 && < 2.2.6,
+        -- async-2.2.6 has Control.Concurrent.Stream that conflicts with ours
+        atomic-primops >= 0.8.4 && < 0.9,
+        attoparsec >= 0.14.4 && < 0.15,
+        attoparsec-aeson >= 2.1 && < 2.3,
+        base >=4.11.1.0 && <4.20,
+        binary ^>=0.8.5.1,
+        bytestring >=0.10.8.2 && <0.13,
+        bytestring-lexing >= 0.5.0 && < 0.6,
+        clock >= 0.8.4 && < 0.9,
+        concurrent-extra >= 0.7.0 && < 0.8,
+        containers >=0.5.11 && <0.7,
+        data-default >= 0.7.1 && < 0.9,
+        deepseq >= 1.4.4 && < 1.6,
+        directory ^>=1.3.1.5,
+        either >= 5.0.2 && < 5.1,
+        exceptions >= 0.10.4 && < 0.11,
+        extra >= 1.7.14 && < 1.9,
+        filepath ^>=1.4.2,
+        ghc >= 8.6.5 && < 9.9,
+        ghci >=8.6.5 && < 9.9,
+        hashable >=1.2.7.0 && <1.5,
+        haskell-src-exts >= 1.23.1 && < 1.24,
+        integer-gmp >=1.0.2.0 && <1.2,
+        json >= 0.10 && < 0.12,
+        lens >= 5.2.3 && < 5.4,
+        lifted-base >= 0.2.3 && < 0.3,
+        mangle >= 0.1.0 && < 0.2,
+        monad-control >= 1.0.3 && < 1.1,
+        mtl >= 2.2.2 && < 2.4,
+        optparse-applicative >= 0.17 && < 0.19,
+        pretty ^>=1.1.3.6,
+        prettyprinter >=1.2.1 && <1.8,
+        primitive < 0.9,
+        process ^>=1.6.3.0,
+        scientific >= 0.3.7 && < 0.4,
+        some >= 1.0.4 && < 1.1,
+        split ^>=0.2.3.3,
+        stm >= 2.5.0 && < 2.6,
+        template-haskell >=2.13 && <2.22,
+        text >= 1.2.3.0 && < 2.2,
+        text-show >= 3.10.4 && < 3.12,
+        time >=1.8.0.2 && <1.13,
+        transformers >= 0.5.6 && < 0.7,
+        unix >= 2.7.2.2 && < 2.9,
+        unordered-containers ^>=0.2.9.0,
+        vector >=0.12.0.1 && <0.14,
+
+    build-tool-depends: hsc2hs:hsc2hs
+
+    pkgconfig-depends: libglog, libevent, fmt, gflags
+    if flag(folly)
+        extra-libraries: double-conversion
+    else
+        pkgconfig-depends: double-conversion
+
+    -- clients of fb-util can specify
+    --    build-depends: folly-clib > 0.0
+    -- to ensure that fb-util is built with +folly
+    if flag(folly)
+        -- the version here is spliced automatically by
+        -- 'make setup-folly-version':
+        build-depends: folly-clib==20260203.1245
+    else
+        build-depends: folly-clib==0.0
+
+    if flag(folly)
+        exposed-modules:
+            Foreign.CPP.Addressable
+            Foreign.CPP.HsStruct
+            Foreign.CPP.HsStruct.HsArray
+            Foreign.CPP.HsStruct.HsOption
+            Foreign.CPP.HsStruct.HsSet
+            Foreign.CPP.HsStruct.HsStdTuple
+            Foreign.CPP.HsStruct.HsMap
+            Foreign.CPP.HsStruct.HsStdVariant
+            Foreign.CPP.HsStruct.Unsafe
+            Foreign.CPP.HsStruct.Types
+            Foreign.CPP.HsStruct.Utils
+            Foreign.CPP.Marshallable
+            Foreign.CPP.Marshallable.TH
+            Foreign.CPP.Dynamic
+            Util.EventBase
+            Util.Executor
+            Util.IOBuf
+
+        install-includes:
+            cpp/Constructible.h
+            cpp/Destructible.h
+            cpp/HsOption.h
+            cpp/HsStdTuple.h
+            cpp/HsStdVariant.h
+            cpp/HsStruct.h
+            cpp/HsStructDefines.h
+            cpp/Marshallable.h
+
+        cxx-sources:
+            cpp/HsStruct.cpp
+            cpp/cdynamic.cpp
+            cpp/EventBaseDataplane.cpp
+            cpp/Executor.cpp
+            cpp/HsStruct.cpp
+            cpp/IOBuf.cpp
+
+common test-common
+  extra-libraries: stdc++
+  ghc-options: -threaded
+  hs-source-dirs: tests, tests/github
+  other-modules: SpecRunner
+  build-depends: base,
+                 aeson,
+                 async,
+                 binary,
+                 bytestring,
+                 containers,
+                 directory,
+                 fb-util,
+                 fb-stubs,
+                 filepath,
+                 hspec,
+                 hspec-contrib,
+                 HUnit ^>= 1.6.1,
+                 json,
+                 lens,
+                 mtl,
+                 optparse-applicative,
+                 prettyprinter,
+                 QuickCheck,
+                 regex-base,
+                 regex-pcre,
+                 scientific,
+                 template-haskell,
+                 temporary,
+                 text,
+                 text-show,
+                 transformers,
+                 unordered-containers,
+                 vector
+
+  build-tool-depends: hsc2hs:hsc2hs
+
+  -- We use hsc2hs with C++ headers, so we need to compile the
+  -- generated code with g++. The hsc2hs-generated binary is linked
+  -- by ghc.
+  hsc2hs-options: --cc=g++ --lflag=-lstdc++ --cflag=-D__HSC2HS__=1 --cflag=-std=c++20
+
+
+test-suite stream
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: StreamTest.hs
+  ghc-options: -main-is StreamTest
+test-suite movavgrl
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: MovingAverageRateLimiterTest.hs
+  ghc-options: -main-is MovingAverageRateLimiterTest
+test-suite rlmap
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: RateLimiterMapTest.hs
+  ghc-options: -main-is RateLimiterMapTest
+test-suite iobuf
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: IOBufTest.hs
+  ghc-options: -main-is IOBufTest
+  cxx-sources: tests/IOBufTest.cpp
+  if !flag(folly)
+     buildable: False
+test-suite alloc-limit
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: AllocLimitTest.hs
+  ghc-options: -main-is AllocLimitTest
+test-suite unit-tests
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: UnitTests.hs
+  ghc-options: -main-is UnitTests
+test-suite rwvar
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: RWVarTest.hs
+  ghc-options: -main-is RWVarTest
+test-suite th
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: THTest.hs
+  ghc-options: -main-is THTest
+test-suite filepath
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: FilePathTest.hs
+  ghc-options: -main-is FilePathTest
+test-suite optparse
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: OptParseTest.hs
+  ghc-options: -main-is OptParseTest
+test-suite lens
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: LensTest.hs
+  ghc-options: -main-is LensTest
+test-suite toexp
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: ToExpTest.hs
+  ghc-options: -main-is ToExpTest
+test-suite aeson
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: AesonTest.hs
+  ghc-options: -main-is AesonTest
+test-suite buffer
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: BufferTest.hs
+  ghc-options: -main-is BufferTest
+test-suite exception
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: ExceptionTest.hs
+  ghc-options: -main-is ExceptionTest
+  if !flag(folly)
+     buildable: False
+test-suite control-exception
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: ControlExceptionTest.hs
+  ghc-options: -main-is ControlExceptionTest
+test-suite json-pretty
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: JSONPrettyTest.hs
+  ghc-options: -main-is JSONPrettyTest
+test-suite io
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: IOTest.hs
+  ghc-options: -main-is IOTest
+test-suite time-sec
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: TimeSecTest.hs
+  ghc-options: -main-is TimeSecTest
+test-suite list
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: ListTest.hs
+  ghc-options: -main-is ListTest
+test-suite graph
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: GraphTest.hs
+  ghc-options: -main-is GraphTest
+test-suite concurrent
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: ConcurrentTest.hs
+  ghc-options: -main-is ConcurrentTest
+test-suite md5
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: MD5Test.hs
+  ghc-options: -main-is MD5Test
+test-suite control-monad
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: Control/MonadTest.hs
+  ghc-options: -main-is Control.MonadTest
+test-suite string-quasi
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: StringQuasiTest.hs
+  ghc-options: -main-is StringQuasiTest
+test-suite dynamic
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: DynamicTest.hs
+  cxx-sources: tests/DynamicHelper.cpp
+  ghc-options: -main-is DynamicTest
+  if !flag(folly)
+     buildable: False
+test-suite test-hs-struct
+  import: fb-haskell, fb-cpp, test-common
+  type: exitcode-stdio-1.0
+  main-is: HsStructTest.hs
+  other-modules: HsStructTestTypes
+  cxx-sources: tests/HsStructHelper.cpp
+  ghc-options: -main-is HsStructTest
+  build-depends: extra
+  if !flag(folly)
+     buildable: False
+
+-- TODO: commented out because of a linker problem
+-- test-suite gflags
+--   import: fb-haskell, fb-cpp, test-common
+--   type: exitcode-stdio-1.0
+--   main-is: GFlagsTest.hs
+--   ghc-options: -main-is GFlagsTest
+--   cxx-sources: tests/GFlagsTest.cpp

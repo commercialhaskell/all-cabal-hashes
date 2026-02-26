@@ -1,0 +1,133 @@
+cabal-version:      3.0
+name:               nova-cache
+version:            0.2.2.0
+synopsis:           Pure Nix binary cache protocol library
+description:
+  A focused, minimal, pure-first library implementing the full Nix binary
+  cache protocol — nix-base32, NAR serialization, narinfo parsing, Ed25519
+  signing, store path handling, content validation — with an optional WAI
+  server.
+
+license:            MIT
+license-file:       LICENSE
+author:             Devon Tomlin
+maintainer:         devon.tomlin@novavero.ai
+homepage:           https://github.com/Novavero-AI/nova-cache
+bug-reports:        https://github.com/Novavero-AI/nova-cache/issues
+category:           Nix, Distribution
+stability:          experimental
+build-type:         Simple
+tested-with:        GHC == 9.6.7
+extra-doc-files:
+    CHANGELOG.md
+    README.md
+
+flag server
+  description: Build the cache server executable (pulls in warp/wai)
+  default:     False
+  manual:      True
+
+flag compression
+  description: Enable LZMA/XZ compression (requires system liblzma)
+  default:     True
+  manual:      True
+
+library
+  exposed-modules:
+    NovaCache.Base32
+    NovaCache.Hash
+    NovaCache.NAR
+    NovaCache.NarInfo
+    NovaCache.Signing
+    NovaCache.Store
+    NovaCache.StorePath
+    NovaCache.Validate
+
+  if flag(compression)
+    exposed-modules: NovaCache.Compression
+    build-depends:   lzma >= 0.0.1 && < 0.1
+
+  build-depends:
+      base                >= 4.16 && < 5
+    , base64-bytestring   >= 1.2 && < 1.3
+    , bytestring          >= 0.11 && < 0.13
+    , containers          >= 0.6 && < 0.8
+    , crypton             >= 1.0 && < 2
+    , directory           >= 1.3 && < 1.4
+    , filepath            >= 1.4 && < 1.6
+    , memory              >= 0.18 && < 1
+    , text                >= 2.0 && < 2.2
+    , unix                >= 2.7 && < 2.9
+    , vector              >= 0.12 && < 0.14
+
+  hs-source-dirs:   src
+  default-language:  Haskell2010
+  default-extensions:
+    BangPatterns
+    OverloadedStrings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+
+executable nova-cache-server
+  if !flag(server)
+    buildable: False
+
+  main-is:          Main.hs
+  hs-source-dirs:   exe
+  default-language:  Haskell2010
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -Wall -Wcompat -threaded -rtsopts
+
+  build-depends:
+      base                >= 4.16 && < 5
+    , bytestring          >= 0.11 && < 0.13
+    , nova-cache
+    , http-types          >= 0.12 && < 0.13
+    , text                >= 2.0 && < 2.2
+    , wai                 >= 3.2 && < 3.3
+    , warp                >= 3.3 && < 3.5
+
+test-suite nova-cache-test
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  hs-source-dirs:   test
+  default-language: Haskell2010
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -Wall -Wcompat
+
+  build-depends:
+      base                >= 4.16 && < 5
+    , base64-bytestring   >= 1.2 && < 1.3
+    , bytestring          >= 0.11 && < 0.13
+    , crypton             >= 1.0 && < 2
+    , directory           >= 1.3 && < 1.4
+    , nova-cache
+    , memory              >= 0.18 && < 1
+    , text                >= 2.0 && < 2.2
+
+test-suite nova-cache-compression-test
+  if !flag(compression)
+    buildable: False
+
+  type:             exitcode-stdio-1.0
+  main-is:          CompressionTest.hs
+  hs-source-dirs:   test
+  default-language: Haskell2010
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -Wall -Wcompat
+
+  build-depends:
+      base                >= 4.16 && < 5
+    , bytestring          >= 0.11 && < 0.13
+    , nova-cache
+
+source-repository head
+  type:     git
+  location: https://github.com/Novavero-AI/nova-cache
+  branch:   main
