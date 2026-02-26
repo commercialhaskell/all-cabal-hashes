@@ -1,0 +1,445 @@
+cabal-version:   3.0
+name:            trace-embrace
+version:         1.3.0
+license:         BSD-3-Clause
+license-file:    LICENSE
+category:        Development
+author:          Daniil Iaitskov <dyaitskov@gmail.com>
+maintainer:      Daniil Iaitskov <dyaitskov@gmail.com>
+stability:       experimental
+synopsis:        Smart version of Debug.Trace module
+homepage:        https://github.com/yaitskov/trace-embrace
+bug-reports:     https://github.com/yaitskov/trace-embrace/issues
+build-type:      Simple
+description:
+    
+    Writing tracing code is very boring activity, especially in Haskell. The
+    <https://hackage.haskell.org/package/trace-embrace trace-embrace>
+    package minimizes the hassle of writing traces and maintaining them in
+    codebase. Thanks to TH-driven DSL whole chunks of code containing
+    function arguments could be quickly copy-pasted for tracing without
+    massaging in a text editor.
+    
+    There are several issues with functions from standand GHC module
+    <https://hackage.haskell.org/package/base/docs/Debug-Trace.html Debug.Trace>:
+    
+    -   no trace emitting location
+    -   tracing expressions solicit to write lot of boilerplate code
+    -   not possible to disable tracing without recompilation
+    -   tracing is coupled with optimizaiton flag
+    -   no per module granularity - all trace messages are disabled all at
+        once
+    
+    Let’s look how trace-embrace deals with these issues.
+    
+    == Location
+    #location#
+    
+    TH macros with help of GHC lib, besides the module and the line of
+    exrpession emitting a trace message, find function or method name where
+    the expression is.
+    
+    The trace message format is customizable through a config file
+    (@trace-embrace.yaml@) located next to a cabal one, which is
+    automatically generated if it is missing at build time. The trace line
+    pattern can include location related fields such as
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#v:PackageName PackageName>,
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#v:FullyQualifiedModule FullyQualifiedModule>,
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#v:ModuleName ModuleName>,
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#v:FunctionName FunctionName>,
+    and
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#v:LineNumber LineNumber>.
+    
+    > traceMessage:
+    >   traceLinePattern:
+    >   - tag: FullyQualifiedModule
+    >   - contents: ':'
+    >     tag: Delimiter
+    >   - tag: FunctionName
+    >   - contents: ' '
+    >     tag: Delimiter
+    >   - tag: LiteralMessage
+    >   - tag: Variables
+    
+    In a small function, a trace expression, containing only a space
+    separated list of variables, is still very informative, because the rest
+    is done by the library based on the expression context and
+    configuration. The function name gives literal part for tracing. The
+    library understands Haskell syntax very well and variables can be
+    copy\/pasted in bulk “AS-IS” with comments and even pattern matching.
+    
+    > module Module where
+    > fun x (Just y) = $(tr "/x (Just y)") $ x + y
+    
+    The expression and config from above following trace message is
+    produced:
+    
+    > Module:fun ; x: 123; y: 777
+    
+    The argument of @tr@ consists of literal message and list of variables
+    for tracing. These parts are split by right slash.
+    
+    == Trace control
+    #trace-control#
+    
+    Trace control has several dimensions.
+    
+    === Compile\/run time
+    #compilerun-time#
+    
+    Tracing code generation can be disabled at compile time in the
+    <#configuration-file config file> or later at launch runtime via an
+    environment variable. The variable name depends on configuration and by
+    default it is a cabal package name (in upper case) prefixed with
+    @TRACE_EMBRACE_@.
+    
+    > mode:
+    >   # expand all tracing macros to 'id' or 'pure ()' depending on the context
+    >   tag: TraceDisabled
+    
+    ________________________________________________________________________
+    
+    > mode:
+    >   # use Debug.Trace.trace group of functions
+    >   tag: TraceStd
+    > runtimeLevelsOverrideEnvVar:
+    >   # disable runtime configuration
+    >   tag: Ignored
+    
+    ________________________________________________________________________
+    
+    If the environment variable is not defined then tracing is enabled. If
+    the variable expands to a dash (@-@) then tracing is disabled. Otherwise
+    the variable should contain a path to a file with module prefixes
+    specifing trace levels. Structure of runtime config file is equal to the
+    structure of @levels@ section.
+    
+    > levels:
+    > - '!Data.Map.Strict'     # exclamation mark is warning level
+    > - '|Control.Concurrent'  # bar - bottom -> is error level
+    > - 'Foo.Bar'              # default is info level
+    > - '-'                    # dash is trace level
+    > mode:
+    >   tag: TraceStd
+    > runtimeLevelsOverrideEnvVar:
+    >   tag: CapsPackageName   # default
+    
+    ________________________________________________________________________
+    
+    === Tracing levels
+    #tracing-levels#
+    
+    Both Haskell modules and tracing expressions have tracing levels. If
+    expression tracing level is greater or equal to thershold tracing level
+    of containing module then the message is emitted. Modules by default
+    have threshold trace and unprefixed literal message has tracing level
+    info.
+    
+    > module Module where
+    > yes x = $(tr "!I am emitted/") x
+    > yep x $(tr "|I am emitted/") x
+    > no x = $(tr "I am not emitted/") x
+    > nope x = $(tr "-I am not emitted/") x
+    
+    ________________________________________________________________________
+    
+    > levels:
+    > - '!Foo'
+    > - '-Fo'
+    > - '#Foo.Bar'
+    
+    Runtime tracing level for a module cannot relax compile time tracing
+    level.
+    
+    Every cabal package uses a dedicated envirnonment variable so no
+    conflict between dependencies using trace-embarce library is likely
+    possible.
+    
+    === Trace Sink
+    #trace-sink#
+    
+    Besides
+    <https://hackage.haskell.org/package/base/docs/Debug-Trace.html#v:trace Debug.Trace.trace>
+    and @\/dev\/null@,
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#v:trIo trIo>,
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#v:tr tr>
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#v:tw tw>
+    and
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#v:tw-39- tw\'>
+    functions can forward tracing messages to
+    <https://hackage.haskell.org/package/base/docs/System-IO.html#v:hPutStrLn hPutStrLn>
+    or
+    <https://hackage.haskell.org/package/base/docs/Debug-Trace.html#v:traceEvent Debug.Trace.traceEvent>.
+    
+    > mode:
+    >   tag: TraceEvent
+    
+    ________________________________________________________________________
+    
+    > mode:
+    >   sink:
+    >     contents: /tmp/log.log
+    >     tag: FileSink
+    >   tag: TraceUnsafeIo
+    
+    ________________________________________________________________________
+    
+    > mode:
+    >   sink:
+    >     tag: StdErrSink
+    >   tag: TraceUnsafeIo
+    
+    ==  Configuration file
+    #configuration-file#
+    
+    The file is generanted on build if missing.
+    
+    === Default compile time config file (trace-embrace.yaml)
+    #default-compile-time-config-file-trace-embrace.yaml#
+    
+    > levels:
+    > - '-'
+    > mode:
+    >   tag: TraceStd
+    > runtimeLevelsOverrideEnvVar:
+    >   tag: CapsPackageName
+    > traceMessage:
+    >   entrySeparator: '; '
+    >   keyValueSeparator: ': '
+    >   retValPrefix: ' => '
+    >   traceLinePattern:
+    >   - tag: FullyQualifiedModule
+    >   - contents: '::'
+    >     tag: Delimiter
+    >   - tag: FunctionName
+    >   - contents: ': '
+    >     tag: Delimiter
+    >   - tag: LiteralMessage
+    >   - tag: Variables
+    > version: 1
+    
+    === Sample of runtime config file
+    #sample-of-runtime-config-file#
+    
+    Runtime config file is also in YAML format, but its structure is way
+    simpler.
+    
+    > - '-'         # empty prefix set default thershold equal to trace level
+    > - '!Foo'
+    > - 'Fo'
+    > - '#Foo.Bar'  # threshold higher than error - disable tracing expression
+    
+    Passing runtime config to @foo-bar.cabal@:
+    
+    > TRACE_EMBRACE_FOO_BAR=- ./foo        # disable tracing
+    > TRACE_EMBRACE_FOO_BAR=rtc.yaml ./foo # override threshold levels
+    
+    The variable name can be specified explicitly:
+    
+    > runtimeLevelsOverrideEnvVar:
+    >   tag: EnvironmentVariable
+    >   varName: "FOO_BAR"
+    
+    == Examples
+    #examples#
+    
+    === TH version of traceWith
+    #th-version-of-tracewith#
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module Module where
+    >
+    > import Debug.TraceEmbrace
+    >
+    > fun :: Int -> Int -> Int -> Int
+    > fun x y z = $(tw "get/x y z") (x + y + z)
+    
+    A trace line for the snippet above would be:
+    
+    Module:fun: 7 get; x: 1; y: 2; z: 3 => 6
+    
+    === Guarded function
+    #guarded-function#
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module Module where
+    >
+    > import Debug.TraceEmbrace
+    >
+    > fun :: Int -> Int -> Int -> Int
+    > fun $a $a_ $a | $tg = $u
+    > fun a b c = a + b + c
+    
+    A trace line for the snippet above would be:
+    
+    Module:fun: 7; 1 _ 3
+    
+    === Trace lazy ByteString structure
+    #trace-lazy-bytestring-structure#
+    
+    <https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Lazy.html#t:ByteString ByteString>
+    @Show@ instance does not show chunks, but it can be important in parser
+    debugging (attoparsec). Value of a type with not enough informative
+    @Show@ instance could be wrapped into
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#t:ShowTrace ShowTrace>
+    and more detailed @Show@ instance should be provided.
+    
+    > {-# LANGUAGE OverloadedStrings #-}
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module Module where
+    >
+    > import Debug.TraceEmbrace
+    > import Data.ByteString.Lazy
+    >
+    > -- instance Show (ShowTrace ByteString) where
+    > --   show ...
+    >
+    > fun :: ByteString -> ByteString
+    > fun bs = $(tr "get/bs;bs") bs
+    
+    A trace line for the snippet above would be:
+    
+    Module:fun: 11 get; bs: “abc”; bs: [“ab”, “c”]
+    
+    For tracing returning values wrapped into
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#t:ShowTrace ShowTrace>
+    use
+    <https://hackage.haskell.org/package/trace-embrace/docs/Debug-TraceEmbrace.html#v:tw-39- tw\'>.
+    
+    === Pattern matching syntax
+    #pattern-matching-syntax#
+    
+    Template tracing functions support Haskell pattern syntax and comments,
+    so function arguments can be quickly copy-pasted as-is:
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module Module where
+    >
+    > import Debug.TraceEmbrace
+    >
+    > fun :: Maybe ([Int], Int) -> Int
+    > fun v@(Just ([x], {-ignore-} _)) = $(tr "get/v@(Just ([x], {-ignore-} _))") x
+    > fun _ = 0
+    
+    A trace line for the snippet above would be:
+    
+    Module:fun: 7 get; v: 1; x: 1
+    
+    === Unlifted vars
+    #unlifted-vars#
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > {-# LANGUAGE MagicHash #-}
+    > module Module where
+    >
+    > import Debug.TraceEmbrace
+    > import GHC.Exts
+    >
+    > fun :: Int -> Int
+    > fun (I# x#) = (I# ($(tr "get/x#") x#))
+    
+    A trace line for the snippet above would be:
+    
+    Module:fun: 7 get; x#: 1#
+extra-source-files:
+  trace-embrace.yaml
+tested-with:
+  GHC == 9.10.1, GHC == 9.12.2
+extra-doc-files:
+  changelog.md
+
+common base
+  ghc-options: -Wall
+  default-language: GHC2024
+  default-extensions:
+    DefaultSignatures
+    DuplicateRecordFields
+    FunctionalDependencies
+    MagicHash
+    OverloadedLabels
+    TemplateHaskell
+    TypeFamilyDependencies
+  build-depends:
+    aeson < 3,
+    base < 5,
+    bytestring >= 0.11 && < 0.12.3,
+    containers < 0.9,
+    directory < 2,
+    lens < 6,
+    lrucache < 1.3,
+    generic-lens < 3,
+    refined < 1,
+    template-haskell < 2.24,
+    text < 3,
+    yaml < 0.12
+
+library
+  import: base
+  hs-source-dirs: src
+  build-depends:
+    , cpphs < 2
+    , add-dependent-file < 1
+    , deepseq < 1.8
+    , ghc < 9.13
+    , haddock-use-refs < 2
+    , radix-tree < 2
+    , tagged < 1
+    , transformers < 1
+
+  exposed-modules:
+    Debug.TraceEmbrace
+    Debug.TraceEmbrace.ByteString
+    Debug.TraceEmbrace.Config
+    Debug.TraceEmbrace.Config.Type
+    Debug.TraceEmbrace.Config.Type.EnvVar
+    Debug.TraceEmbrace.Config.Type.Level
+    Debug.TraceEmbrace.Config.Type.Mode
+    Debug.TraceEmbrace.Config.Type.TraceMessage
+    Debug.TraceEmbrace.Config.Load
+    Debug.TraceEmbrace.Config.Validation
+    Debug.TraceEmbrace.FileIndex
+    Debug.TraceEmbrace.Internal.Rewrap
+    Debug.TraceEmbrace.Internal.TH
+    Debug.TraceEmbrace.Show
+    Debug.TraceEmbrace.ShowTh
+    Debug.TraceEmbrace.TH
+
+test-suite test
+  import: base
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  default-extensions:
+    RecordWildCards
+  autogen-modules:
+    Paths_trace_embrace
+  hs-source-dirs:
+    test
+  ghc-options: -Wall -rtsopts -threaded -main-is Driver
+  build-depends:
+    , filepath < 1.6
+    , tasty
+    , tasty-discover
+    , tasty-hunit
+    , tasty-quickcheck
+    , temporary < 1.5
+    , th-lock < 1
+    , trace-embrace
+  other-modules:
+    Debug.TraceEmbrace.Test.TraceEmbrace.Config
+    Debug.TraceEmbrace.Test.TraceEmbrace.DemoIndex
+    Debug.TraceEmbrace.Test.TraceEmbrace.FileIndex
+    Debug.TraceEmbrace.Test.TraceEmbrace.GuardedFunction
+    Debug.TraceEmbrace.Test.TraceEmbrace.TH
+    Debug.TraceEmbrace.Test.TraceEmbrace.TH.Event
+    Debug.TraceEmbrace.Test.TraceEmbrace.TH.Format.Lifted
+    Debug.TraceEmbrace.Test.TraceEmbrace.TH.Format.Unboxed
+    Debug.TraceEmbrace.Test.TraceEmbrace.TH.Line
+    Debug.TraceEmbrace.Test.TraceEmbrace.TH.Threshold
+    Debug.TraceEmbrace.Test.TraceEmbrace.Yaml
+    Demo
+    Discovery
+    Paths_trace_embrace
+
+source-repository head
+  type:     git
+  location: https://github.com/yaitskov/trace-embrace.git
