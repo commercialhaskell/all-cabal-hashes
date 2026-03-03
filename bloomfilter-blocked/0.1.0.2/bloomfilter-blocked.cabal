@@ -1,0 +1,210 @@
+cabal-version:      3.4
+name:               bloomfilter-blocked
+version:            0.1.0.2
+synopsis:           Fast, compact Bloom filters
+description:
+  This library provides [Bloom filters](https://en.wikipedia.org/wiki/Bloom_filter).
+  A Bloom filter is a compact but probabilistic set-like data structure,
+  supporting fast insert and membership operations.
+
+  Bloom filters are probabilistic in the sense that when querying for set
+  membership, they can (with some probability) falsely report that an element
+  is present when it is not present. On the other hand it will /never/ falsely
+  report that an element is not present when in fact it is present. That is, it
+  can have false positives but not false negatives. The false positive rate
+  (FPR) can be adjusted.
+
+  Bloom filters are compact, needing only a few /bits/ per element. For example
+  10 bits per element is enough for a false positive rate (FPR) of 1%, and 15
+  bits for 0.1%.
+
+  The library includes two implementations of Bloom filters:
+
+  [classic]: in "Data.BloomFilter.Classic":
+    a default implementation that is faithful to the classical description of a
+    Bloom filter data structure.
+
+  [block-structured]: in "Data.BloomFilter.Blocked":
+    a cache optimised representation that is faster, at the cost of needing a
+    few more bits per element to achieve a target FPR.
+
+  Features of the library:
+
+   * Fast. See the benchmark results.
+   * Compact. It uses optimal sized bit arrays: no bigger than necessary.
+   * Faster still: the block-structured Bloom filters are even faster, at the
+     expense of needing more bits per entry.
+   * Supports very large Bloom filters, bigger than 2^32 bits.
+   * Simple API for specifying the size of Bloom filters.
+   * Support for hash salting, for using Bloom filters with untrusted inputs.
+   * Serialisation support with format version tracking.
+
+license:            Apache-2.0
+license-files:
+  LICENSE
+  NOTICE
+
+author:             Duncan Coutts, Joris Dral, Matthias Heinzel, Wen Kokke
+maintainer:         duncan@well-typed.com, joris@well-typed.com
+copyright:
+  (c) 2023-2025 Cardano Development Foundation
+  (c) 2025 Well-Typed LLP
+
+category:           Data
+build-type:         Simple
+tested-with:
+  GHC ==9.2 || ==9.4 || ==9.6 || ==9.8 || ==9.10 || ==9.12 || ==9.14
+
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+extra-source-files:
+  xxhash/include/HsXXHash.h
+  xxhash/xxHash-0.8.2/xxhash.h
+
+license-files:      xxhash/xxHash-0.8.2/LICENSE-xxHash
+
+source-repository head
+  type:     git
+  location: https://github.com/well-typed/bloomfilter-blocked
+
+source-repository this
+  type:     git
+  location: https://github.com/well-typed/bloomfilter-blocked
+  tag:      bloomfilter-blocked-0.1.0.2
+
+common warnings
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wpartial-fields -Widentities
+    -Wredundant-constraints -Wmissing-export-lists
+    -Wno-unticked-promoted-constructors -Wunused-packages
+
+  ghc-options: -Werror=missing-deriving-strategies
+
+common language
+  default-language:   GHC2021
+  default-extensions:
+    DerivingStrategies
+    RecordWildCards
+    RoleAnnotations
+
+library
+  import:          language, warnings
+  hs-source-dirs:  src
+  build-depends:
+    , base                        >=4.16  && <4.23
+    , bloomfilter-blocked:xxhash
+    , bytestring                  ^>=0.11 || ^>=0.12
+    , deepseq                     ^>=1.4  || ^>=1.5
+    , primitive                   ^>=0.9
+
+  exposed-modules:
+    Data.BloomFilter
+    Data.BloomFilter.Blocked
+    Data.BloomFilter.Classic
+    Data.BloomFilter.Hash
+
+  other-modules:
+    Data.BloomFilter.Blocked.BitArray
+    Data.BloomFilter.Blocked.Calc
+    Data.BloomFilter.Blocked.Internal
+    Data.BloomFilter.Classic.BitArray
+    Data.BloomFilter.Classic.Calc
+    Data.BloomFilter.Classic.Internal
+
+  ghc-options:     -O2
+
+test-suite tests
+  import:         language, warnings
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is:        bloomfilter-tests.hs
+  build-depends:
+    , base                  <5
+    , bloomfilter-blocked
+    , bytestring
+    , quickcheck-instances
+    , tasty
+    , tasty-quickcheck
+
+benchmark bench
+  import:         language, warnings
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is:        bloomfilter-bench.hs
+  build-depends:
+    , base
+    , bloomfilter-blocked
+    , criterion
+    , random
+
+-- It's not really a test suite, but if we make it an executable then its
+-- dependencies will be included for dependency resolution when building the
+-- main library. As a test-suite, it's more accurately represented as an
+-- internal component.
+test-suite fpr-calc
+  import:         language, warnings
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is:        fpr-calc.hs
+  build-depends:
+    , base
+    , bloomfilter-blocked
+    , containers
+    , parallel
+    , random               >=1.3
+    , regression-simple
+
+  ghc-options:    -threaded -rtsopts
+
+-- It's not really a test suite, but if we make it an executable then its
+-- dependencies will be included for dependency resolution when building the
+-- main library. As a test-suite, it's more accurately represented as an
+-- internal component.
+test-suite spell
+  import:         language, warnings
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: examples
+  main-is:        spell.hs
+  build-depends:
+    , base
+    , bloomfilter-blocked
+    , directory
+
+library xxhash
+  import:          language, warnings
+  visibility:      private
+  include-dirs:    xxhash/xxHash-0.8.2/ xxhash/include/
+  includes:
+    HsXXHash.h
+    xxhash.h
+
+  exposed-modules: Data.Digest.XXH3
+
+  if (arch(x86_64) && !os(osx))
+    -- Cabal doesn't pass cc-options to "ordinary" Haskell source compilation
+    -- https://github.com/haskell/cabal/issues/9801
+    ghc-options: -optc=-mavx2 -optc=-O3
+
+  other-modules:   Data.Digest.XXH3.FFI
+  hs-source-dirs:  xxhash/src
+  build-depends:
+    , base        <5
+    , bytestring  ^>=0.11 || ^>=0.12
+    , primitive   ^>=0.9
+
+test-suite xxhash-tests
+  import:         language, warnings
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: xxhash/tests
+  main-is:        xxhash-tests.hs
+  build-depends:
+    , base                        <5
+    , bloomfilter-blocked:xxhash
+    , bytestring
+    , primitive
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
