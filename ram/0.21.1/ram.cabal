@@ -1,0 +1,111 @@
+cabal-version:   3.0
+name:            ram
+version:         0.21.1
+synopsis:        memory and related abstraction stuff
+description:
+  This is a fork of memory. It's open to accept changes from anyone,
+  and aims to use existing well maintained libraries as much as possible.
+
+  Chunk of memory, polymorphic byte array management and manipulation
+
+  * A polymorphic byte array abstraction and function similar to strict ByteString.
+
+  * Different type of byte array abstraction.
+
+  * Raw memory IO operations (memory set, memory copy, ..)
+
+  * Aliasing with endianness support.
+
+  * Encoding : Base16, Base32, Base64.
+
+  * Hashing : FNV, SipHash
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+copyright:       Vincent Hanquez <vincent@snarc.org>
+author:          Vincent Hanquez <vincent@snarc.org>
+maintainer:      hi@jappie.me
+category:        memory
+stability:       experimental
+build-type:      Simple
+homepage:        https://github.com/jappeace/ram
+bug-reports:     https://github.com/jappeace/ram/issues
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/jappeace/ram
+
+library
+  exposed-modules:
+    Data.ByteArray
+    Data.ByteArray.Encoding
+    Data.ByteArray.Hash
+    Data.ByteArray.Mapping
+    Data.ByteArray.Pack
+    Data.ByteArray.Parse
+    Data.Memory.Encoding.Base16
+    Data.Memory.Encoding.Base32
+    Data.Memory.Encoding.Base64
+    Data.Memory.Endian
+    Data.Memory.ExtendedWords
+    Data.Memory.PtrMethods
+
+  other-modules:
+    Data.ByteArray.Bytes
+    Data.ByteArray.MemView
+    Data.ByteArray.Methods
+    Data.ByteArray.Pack.Internal
+    Data.ByteArray.ScrubbedBytes
+    Data.ByteArray.Types
+    Data.ByteArray.View
+    Data.Memory.Hash.FNV
+    Data.Memory.Hash.SipHash
+    Data.Memory.Internal.Compat
+    Data.Memory.Internal.CompatPrim
+    Data.Memory.Internal.Imports
+
+  exposed-modules:  Data.ByteArray.Sized
+  build-depends:
+    , base        <4.23
+    , bytestring  <0.13
+    , deepseq     >=1.1 && <1.17
+    , ghc-prim    <0.14
+
+  -- FIXME armel or mispel is also little endian.
+  -- might be a good idea to also add a runtime autodetect mode.
+  -- ARCH_ENDIAN_UNKNOWN
+  if (arch(i386) || arch(x86_64))
+    cpp-options: -DARCH_IS_LITTLE_ENDIAN
+
+  if os(windows)
+    other-modules: Data.Memory.MemMap.Windows
+
+  else
+    other-modules: Data.Memory.MemMap.Posix
+
+  ghc-options:      -Wall -fwarn-tabs
+  default-language: Haskell2010
+
+test-suite test-memory
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   tests
+  main-is:          Tests.hs
+  other-modules:
+    Imports
+    SipHash
+    Utils
+
+  build-depends:
+    , base        <5
+    , bytestring
+    , ram
+    , QuickCheck
+    , tasty
+
+  ghc-options:
+    -Wall -fno-warn-orphans -fno-warn-missing-signatures -threaded
+
+  default-language: Haskell2010
