@@ -1,0 +1,150 @@
+cabal-version: 3.0
+name:          lfudacaching
+version:       0.1.0.1
+synopsis:      Pure LFUDA, GDSF, and LFU cache implementations
+description:
+  Pure, immutable cache with three eviction policies:
+  .
+  * __LFUDA__ — Least Frequently Used with Dynamic Aging
+  .
+  * __GDSF__ — Greedy Dual-Size Frequency
+  .
+  * __LFU__ — Least Frequently Used
+  .
+  All operations are /O(log n)/ in the number of cached entries, backed by a
+  hash-priority search queue.
+
+category:      Data
+homepage:      https://github.com/philippedev101/lfudacache#readme
+bug-reports:   https://github.com/philippedev101/lfudacache/issues
+author:        philippedev101
+maintainer:    philippedev101@gmail.com
+copyright:     2026
+license:       Apache-2.0
+license-file:  LICENSE
+build-type:    Simple
+
+extra-source-files:
+  README.md
+
+extra-doc-files:
+  CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/philippedev101/lfudacache
+
+-- Shared language, extensions, and base dependency
+common lang
+  default-language: GHC2021
+  default-extensions:
+    BangPatterns
+    DataKinds
+    DefaultSignatures
+    DeriveAnyClass
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveTraversable
+    DerivingVia
+    DisambiguateRecordFields
+    DuplicateRecordFields
+    FunctionalDependencies
+    GADTs
+    KindSignatures
+    LambdaCase
+    MultiWayIf
+    NoImplicitPrelude
+    OverloadedRecordDot
+    OverloadedStrings
+    PartialTypeSignatures
+    PolyKinds
+    RecordWildCards
+    RoleAnnotations
+    UnboxedSums
+    UnboxedTuples
+    UnliftedDatatypes
+    UnliftedNewtypes
+    ViewPatterns
+  build-depends:
+    base >= 4.18 && < 5
+
+-- Strict warnings for development components (not the library)
+common dev-warnings
+  ghc-options:
+    -Weverything
+
+    -- Unavoidable noise
+    -Wno-missing-import-lists
+    -Wno-missing-safe-haskell-mode
+    -Wno-prepositive-qualified-module
+    -Wno-safe
+    -Wno-unsafe
+
+    -- Promoted to errors
+    -Werror=deprecations
+    -Werror=identities
+    -Werror=incomplete-patterns
+    -Werror=incomplete-record-updates
+    -Werror=missing-fields
+    -Werror=missing-methods
+    -Werror=ambiguous-fields
+    -Werror=missing-export-lists
+    -Werror=missing-local-signatures
+    -Werror=monomorphism-restriction
+    -Werror=type-defaults
+    -Werror=orphans
+    -Werror=name-shadowing
+    -Werror=missing-kind-signatures
+    -Werror=missing-deriving-strategies
+    -Werror=unticked-promoted-constructors
+    -Werror=missing-role-annotations
+
+    -- foldl' import is redundant on GHC 9.10+ but required on 9.6/9.8
+    -Wno-unused-imports
+
+    -- Cross-module specialisation: unfixable
+    -Wno-all-missed-specialisations
+    -Wno-missed-specialisations
+
+library
+  import:         lang
+  hs-source-dirs: src
+  ghc-options:    -Wall
+  exposed-modules:
+    Data.LfudaCache
+  build-depends:
+      deepseq   >= 1.4   && < 1.7
+    , hashable  >= 1.4   && < 1.6
+    , psqueues  >= 0.2.8 && < 0.3
+    , ghc-prim  >= 0.10  && < 0.14
+
+executable lfuda-demo
+  import:         lang, dev-warnings
+  hs-source-dirs: app
+  main-is:        Main.hs
+  build-depends:
+    lfudacaching
+
+test-suite lfuda-test
+  import:         lang, dev-warnings
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  other-modules:
+    Test.Data.LfudaCache
+  build-depends:
+      lfudacaching
+    , tasty       >= 1.5 && < 1.6
+    , tasty-hunit >= 0.10 && < 0.11
+
+benchmark lfuda-bench
+  import:         lang
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is:        Main.hs
+  ghc-options:    -O2 -rtsopts
+  build-depends:
+      lfudacaching
+    , tasty-bench >= 0.4 && < 0.5
