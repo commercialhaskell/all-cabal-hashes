@@ -1,0 +1,138 @@
+cabal-version: 3.0
+name: hasql-dynamic-statements
+version: 0.5.1
+synopsis: Hasql extension for dynamic construction of statements
+description:
+  Library extending Hasql with a composable API for building SQL statements dynamically.
+
+  The core abstraction is 'Snippet', which allows you to construct SQL statements with parameters
+  injected in-place, automatically handling placeholders and encoder matching. This is particularly
+  useful when the structure of your SQL depends on runtime parameters.
+
+  Key features:
+
+  * Composable SQL snippets using 'Semigroup' and 'Monoid' instances
+  * Automatic placeholder generation and parameter encoding
+  * Type-safe parameter injection with implicit encoder derivation
+  * Protection against common SQL construction bugs
+  * Support for conditional SQL structure based on parameters
+
+  Example:
+
+  > selectSubstring :: Text -> Maybe Int32 -> Maybe Int32 -> Snippet
+  > selectSubstring string from to =
+  >   "select substring(" <> param string <>
+  >   foldMap (\x -> " from " <> param x) from <>
+  >   foldMap (\x -> " for " <> param x) to <>
+  >   ")"
+
+homepage: https://github.com/nikita-volkov/hasql-dynamic-statements
+bug-reports:
+  https://github.com/nikita-volkov/hasql-dynamic-statements/issues
+
+author: Nikita Volkov <nikita.y.volkov@mail.ru>
+maintainer: Nikita Volkov <nikita.y.volkov@mail.ru>
+copyright: (c) 2019, Nikita Volkov
+license: MIT
+license-file: LICENSE
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type: git
+  location: https://github.com/nikita-volkov/hasql-dynamic-statements
+
+common base
+  default-language: Haskell2010
+  default-extensions:
+    ApplicativeDo
+    BangPatterns
+    BlockArguments
+    DefaultSignatures
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveTraversable
+    DerivingVia
+    EmptyDataDecls
+    FlexibleContexts
+    FlexibleInstances
+    FunctionalDependencies
+    GADTs
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    LambdaCase
+    LiberalTypeSynonyms
+    MultiParamTypeClasses
+    MultiWayIf
+    NamedFieldPuns
+    NoImplicitPrelude
+    NoMonomorphismRestriction
+    OverloadedStrings
+    PatternGuards
+    QuasiQuotes
+    RankNTypes
+    RecordWildCards
+    RoleAnnotations
+    ScopedTypeVariables
+    StandaloneDeriving
+    StrictData
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+
+common executable
+  import: base
+  ghc-options:
+    -O2
+    -threaded
+    -with-rtsopts=-N
+    -rtsopts
+    -funbox-strict-fields
+
+common test
+  import: base
+  ghc-options:
+    -threaded
+    -with-rtsopts=-N
+
+library
+  import: base
+  hs-source-dirs: src/library
+  exposed-modules:
+    Hasql.DynamicStatements.Snippet
+
+  other-modules:
+    Hasql.DynamicStatements.Prelude
+
+  build-depends:
+    base >=4.14 && <5,
+    bytestring >=0.10 && <0.13,
+    containers >=0.6 && <0.8,
+    hasql >=1.10 && <1.11,
+    hasql-implicits >=0.2.0.2 && <0.3,
+    text >=1 && <3,
+    text-builder >=1.0 && <1.1,
+
+test-suite test
+  import: test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src/test
+  main-is: Main.hs
+  other-modules:
+    Regressions.Issue2Spec
+    SpecHook
+    Units.SnippetSpec
+
+  build-tool-depends:
+    hspec-discover:hspec-discover ^>=2.11.12
+
+  build-depends:
+    hasql,
+    hasql-dynamic-statements,
+    hspec ^>=2.11.12,
+    rerebase <2,
+    testcontainers-postgresql >=0.2 && <0.3,
