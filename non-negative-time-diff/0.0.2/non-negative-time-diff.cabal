@@ -1,0 +1,151 @@
+cabal-version: 3.0
+name:          non-negative-time-diff
+version:       0.0.2
+
+synopsis:      type safe diffUTCTime
+description:
+    Both arguments of @diffUTCTime@ function from @time@ package have the
+    same type. It is easy to mix them.
+    
+    > f = do
+    >   started <- getCurrentTime
+    >   threadDelay 10_000_000
+    >   ended <- getCurrentTime
+    >   pure $ started `diffUTCTime` ended
+    
+    This package provides a stricter @diffUTCTime@ that significantly
+    reduces possibility of mixing its arguments by an accident.
+    
+    > import Data.Time.Clock.NonNegativeTimeDiff
+    > f = do
+    >   started <- getCurrentTime
+    >   threadDelay 10_000_000
+    >   ended <- getTimeAfter started
+    >   pure $ ended `diffUTCTime` started
+    
+    == STM use case
+    #stm-use-case#
+    
+    The STM package is shipped without a function to get current time. Let’s
+    consider a situtation like this:
+    
+    > data Ctx
+    >   = Ctx { m :: Map Int UTCTime
+    >         , s :: TVar NominalDiffTime
+    >         , q :: TQueue Int
+    >         }
+    >
+    > f (c :: Ctx) = do
+    >   now <- getCurrentTime
+    >   atomically $ do
+    >     i <- readTQueue q
+    >     lookup i c.m >>= \case
+    >       Nothing -> pure ()
+    >       Just t -> modifyTVar' c.s (+ diffUTCTime now t)
+    
+    @now@ might be less than @t@ because the queue might be empty by the
+    time @f@ is invoked. The package API can correct the above snippet as
+    follows:
+    
+    > data Ctx
+    >   = Ctx { m :: Map Int UtcBox
+    >         , s :: TVar NominalDiffTime
+    >         , q :: TQueue Int
+    >         }
+    >
+    > f (c :: Ctx) = do
+    >   atomically $ do
+    >     i <- readTQueue q
+    >     lookup i c.m >>= \case
+    >       Nothing -> pure ()
+    >       Just t ->
+    >         doAfter tb \t -> do
+    >           now <- getTimeAfter t
+    >           modifyTVar' c.s (+ diffUTCTime now t)
+    
+    == File access time
+    #file-access-time#
+    
+    Another popular usecase where original @diffUTCTime@ might be misused.
+    
+    > isFileOlderThan :: FilePath -> NominalDiffTime -> IO Bool
+    > isFileOlderThan fp maxAge = do
+    >   now <- getCurrentTime
+    >   mt <- getModificationTime fp
+    >   when (mt `diffUTCTime` now > maxAge) $ do
+    >     removeFile fp
+    
+    File age is always negative in the above example - this eventually would
+    cause a space leak on disk.
+    
+    Corrected version:
+    
+    > isFileOlderThan :: FilePath -> NominalDiffTime -> IO Bool
+    > isFileOlderThan fp maxAge =
+    >   getModificationTime fp >>= (`doAfter` \mt -> do
+    >     now <- getTimeAfter mt
+    >     when (now `diffUTCTime` mt > maxAge) $ do
+    >       removeFile fp)
+    
+    == Requirements
+    #requirements#
+    
+    Unboxing @UtcBox@ values requires a GHC
+    <https://hackage.haskell.org/package/ghc-typelits-natnormalise natnormalise plugin>:
+    
+    > {-# GHC_OPTIONS -fplugin GHC.TypeLits.Normalise #-}
+    
+    === Static linking
+    #static-linking#
+    
+    In case of static linking define macro @STATIC@ to disable natnormalise
+    GHC plugin that is not available in such setup. UtcBox version for the
+    static build is less strict, because it does not have existential
+    variable.
+    
+    > cabal build --ghc-option=-optP=-DSTATIC
+homepage:      http://github.com/yaitskov/non-negative-time-diff
+license:       BSD-3-Clause
+license-file:  LICENSE
+author:        Daniil Iaitskov
+maintainer:    dyaitskov@gmail.com
+copyright:     Daniil Iaitkov 2026
+category:      System
+build-type:    Simple
+bug-reports:   https://github.com/yaitskov/non-negative-time-diff/issues
+
+extra-doc-files:
+  changelog.md
+tested-with:
+  GHC == 9.12.2
+
+source-repository head
+  type:
+    git
+  location:
+    https://github.com/yaitskov/non-negative-time-diff.git
+
+common base
+  default-language: GHC2024
+  ghc-options: -Wall
+  default-extensions:
+    DefaultSignatures
+    NoImplicitPrelude
+    TypeFamilies
+    ViewPatterns
+  build-depends:
+    , base >=4.7 && < 5
+
+library
+  import: base
+  hs-source-dirs: src
+  exposed-modules:
+    Data.Time.Clock.NonNegativeTimeDiff
+  build-depends:
+    , aeson                   < 3
+    , deepseq                 < 2
+    , directory               < 2
+    , ghc-typelits-natnormalise < 1
+    , mtl                     < 3
+    , safecopy                < 1
+    , time                    < 2
