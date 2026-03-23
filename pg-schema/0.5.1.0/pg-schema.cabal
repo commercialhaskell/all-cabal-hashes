@@ -1,0 +1,293 @@
+cabal-version:  3.12
+name:           pg-schema
+version:        0.5.1.0
+category:       Database
+author:         Dmitry Olshansky
+maintainer:     olshanskydr@gmail.com
+copyright:      Dmitry Olshansky
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Simple
+synopsis:       Type-level definition of database schema and safe DML for PostgreSQL.
+description:
+    == Schema definition
+
+    Use `updateSchemaFile` function from "PgSchema.Generation" module to generate type-level definition of database schema.
+    You can make several schemas with any parts of your database.
+
+    Usually you make executable which imports this module and run it to generate schema definition.
+    You can run it on CI to check if schema definition is up to date.
+
+    == Safe DML for PostgreSQL
+
+    Use "PgSchema.DML" module to describe and generate (in runtime) safe DML for PostgreSQL.
+    All operations are statically checked and you can't write invalid SQL.
+
+    With @pg-schema@ you can select or insert/upsert data into tree-like ADT in one request.
+
+    === Example
+    Let's say
+
+    - we have a database with tables: "orders", "order_positions", "articles".
+    - There are articles with ids 41 and 42.
+    - We have generated `MySch` schema with `updateSchemaFile` function from "PgSchema.Generation" module.
+
+    Then we can write a function to insert an order with order positions.
+    And select orders with order positions and articles in one request using some conditions for orders and order positions that return in order.
+
+    @
+    data Order = Order { num :: Text, createdAt :: Day, items :: [OrdPos] } deriving Generic
+    data OrdPos = OrdPos { id :: Int32, num :: Int32, article :: Article, price :: Double } deriving Generic
+    data Article = Article { id :: Int32, name :: Text } deriving Generic
+    type MyAnn tabName = 'Ann 5 CamelToSnake MySch ("dbSchema" ->> tabName)
+        ...
+    do
+      -- insert an order with order positions
+      void $ insertJSON_ (MyAnn "orders") conn
+        [ "num" =: "num1" :. "ord__ord_pos" =:
+          [ "num" =: 1 :. "articleId" =: 42 :. "price" =: 10
+          , "num" =: 2 :. "articleId" =: 41 :. "price" =: 15 ] ]
+
+      -- select orders
+      (xs :: [Order]) <- selectSch (MyAnn "orders") conn $ qRoot do
+        qWhere $ "created_at" >? someDay
+          &&& pchild "ord__ord_pos" defTabParam
+            (pparent "ord_pos__article" $ "name" ~~? "%pencil%")
+        qOrderBy [descf "created_at", descf "num"]
+        qPath "ord__ord_pos" do
+          qWhere $ pparent "ord_pos__article" $ "name" ~~? "%pencil%"
+          qOrderBy [ascf "num"]
+        qLimit 20
+    @
+
+    === Module structure
+
+    * "PgSchema.Generation" - module with generation functions.
+      Usually you make executable which generates schema definition using this module.
+    * "PgSchema.DML" - module with DML functions. Import this module into your application and use it to generate safe DML for PostgreSQL.
+    * "PgSchema.Import" - generated schema module imports this module.
+
+homepage:       https://github.com/odr/pg-schema/tree/master/pg-schema#readme
+bug-reports:    https://github.com/odr/pg-schema/issues
+extra-doc-files:
+    ChangeLog.md
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/odr/pg-schema
+
+flag arbitrary
+  description: Make Arbitrary instances for all types (Enums, PgTag, SchList)
+  manual:      True
+  default:     False
+
+flag debug
+  description: Trace queries
+  manual:      True
+  default:     False
+
+flag flat
+  description: Make Flat instances for all types (Enums, PgTag, SchList)
+  manual:      True
+  default:     False
+
+flag hashable
+  description: Make Hashable instances for all types (Enums, PgTag, SchList)
+  manual:      True
+  default:     False
+
+library
+  exposed-modules:
+    -- PgSchema
+    PgSchema.DML
+    PgSchema.Generation
+    PgSchema.Import
+    PgSchema.Schema.Catalog
+    PgSchema.Schema.Info
+    PgSchema.GenDot
+  other-modules:
+    PgSchema.Ann
+    PgSchema.DML.Delete
+    PgSchema.DML.Insert
+    PgSchema.DML.InsertJSON
+    PgSchema.DML.Insert.Types
+    PgSchema.DML.Select
+    PgSchema.DML.Select.Types
+    PgSchema.DML.Update
+    PgSchema.Schema
+    PgSchema.Types
+    PgSchema.Utils.CamelToSnake
+    PgSchema.Utils.Instances
+    PgSchema.Utils.Internal
+    PgSchema.Utils.TF
+    PgSchema.Utils.ShowType
+    --
+    Paths_pg_schema
+    PackageInfo_pg_schema
+  autogen-modules:
+    Paths_pg_schema
+    PackageInfo_pg_schema
+  hs-source-dirs: src
+  build-depends:
+      base >= 4.20 && < 5
+    , aeson >= 2.0 && < 2.3
+    , bytestring >= 0.10 && < 0.13
+    , case-insensitive >= 1.0 && < 1.3
+    , containers >= 0.7 && < 0.9
+    , directory >= 1.3 && < 1.5
+    , exceptions >= 0.9 && < 0.11
+    , mtl >= 2.0 && < 2.4
+    , postgresql-simple >= 0.6 && < 0.8
+    , scientific >= 0.2 && < 0.4
+    , singletons >= 3.0.3 && < 3.1
+    , singletons-th >= 3.4 && < 3.6
+    , text >= 2.0 && < 2.2
+    , time >= 1.12 && < 2
+    , uuid-types >= 1.0 && < 1.1
+  if flag(flat)
+    build-depends: flat >= 0.6 && < 0.7
+    cpp-options: -DMK_FLAT
+  if flag(arbitrary)
+    build-depends:
+      QuickCheck >= 2.14.0 && < 2.18
+    cpp-options: -DMK_ARBITRARY
+  if flag(hashable)
+    build-depends:
+      hashable >= 1.5.1 && < 1.6
+    cpp-options: -DMK_HASHABLE
+  if flag(debug)
+    cpp-options: -DDEBUG
+  ghc-options:
+    -Wall
+    -Wunused-packages
+  default-language: GHC2021
+  default-extensions:
+    AllowAmbiguousTypes
+    BlockArguments
+    ExplicitNamespaces
+    DataKinds
+    -- ^^^ added in GHC2024
+    DerivingStrategies
+    FunctionalDependencies
+    LambdaCase
+    -- ^^^ added in GHC2024
+    MultiWayIf
+    OverloadedRecordDot
+    OverloadedStrings
+    PatternSynonyms
+    RecordWildCards
+    RequiredTypeArguments
+    TemplateHaskell
+    TypeAbstractions
+    TypeFamilies
+    ViewPatterns
+
+test-suite json-spec
+  type: exitcode-stdio-1.0
+  main-is: json-spec.hs
+  other-modules:
+    PgTagJsonSpec
+    -- Paths and PackageInfo
+    Paths_pg_schema
+    PackageInfo_pg_schema
+  autogen-modules:
+    Paths_pg_schema
+    PackageInfo_pg_schema
+  hs-source-dirs: test
+  build-depends:
+      base
+    , aeson
+    , bytestring
+    , pg-schema
+    , postgresql-simple >= 0.6 && < 0.8
+    , text
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+    OverloadedStrings
+    RequiredTypeArguments
+    TypeAbstractions
+    TypeFamilies
+    UndecidableInstances
+  ghc-options: -Wall
+
+executable test-gen
+  main-is:          Main.hs
+  other-modules:
+    -- Paths and PackageInfo
+    Paths_pg_schema
+    PackageInfo_pg_schema
+  autogen-modules:
+    Paths_pg_schema
+    PackageInfo_pg_schema
+  build-depends:
+      base >= 4.21.0 && < 4.22
+    , bytestring >= 0.12.2 && < 0.13
+    , directory >= 1.3.9 && < 1.4
+    , pg-schema
+    , postgresql-simple >= 0.6 && < 0.8
+  hs-source-dirs:   test-gen
+  default-language: GHC2021
+
+test-suite test-pgs
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  other-modules:
+    Sch
+    Tests.Aggregates
+    Tests.BaseConverts
+    Tests.Conditions
+    Tests.Hierarchy
+    Tests.Path
+    Utils
+    -- Paths and PackageInfo
+    Paths_pg_schema
+    PackageInfo_pg_schema
+  autogen-modules:
+    Paths_pg_schema
+    PackageInfo_pg_schema
+  hs-source-dirs:   test-pgs
+  default-extensions:
+    AllowAmbiguousTypes
+    BlockArguments
+    ExplicitNamespaces
+    DataKinds
+    -- ^^^ added in GHC2024
+    DerivingStrategies
+    FunctionalDependencies
+    LambdaCase
+    -- ^^^ added in GHC2024
+    MultiWayIf
+    OverloadedRecordDot
+    OverloadedStrings
+    PatternSynonyms
+    RecordWildCards
+    RequiredTypeArguments
+    TemplateHaskell
+    TypeAbstractions
+    TypeFamilies
+    ViewPatterns
+  build-depends:
+    base,
+    aeson,
+    pg-schema,
+    bytestring,
+    singletons,
+    case-insensitive,
+    hedgehog >= 1.1,
+    postgresql-simple,
+    resource-pool,
+    scientific,
+    tasty >= 1.4,
+    tasty-hedgehog >= 1.2,
+    text,
+    time,
+    unordered-containers,
+    uuid-types,
+    vector,
+    -- they can be excluded by flags
+    hashable,
+    deepseq
+    ---------------
+  default-language: GHC2021
