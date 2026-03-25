@@ -1,0 +1,165 @@
+cabal-version: 3.0
+
+name:           hedgehog-utils
+version:        0.1.0.0
+stability:      experimental
+category:       Testing
+synopsis:       Utilities for Hedgehog
+homepage:       https://github.com/carlwr/hedgehog-utils#readme
+bug-reports:    https://github.com/carlwr/hedgehog-utils/issues
+author:         Carl W
+maintainer:     Carl W
+copyright:      none
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+tested-with:
+    GHC == 9.12.2
+extra-doc-files:
+    README.md
+description:
+    Various extra utilities for Hedgehog, the property-testing framework.
+
+source-repository head
+  type: git
+  location: https://github.com/carlwr/hedgehog-utils
+
+flag doctest
+  description: enable doctests
+  default: False
+  manual: True
+
+flag isDev
+  description: development conveniences
+  default: False
+  manual: True
+
+
+-- dependencies
+-- ------------
+
+-- library:
+
+common dep_base       { build-depends: base             >= 4.19.2   && < 5   }
+common dep_containers { build-depends: containers       >= 0.7      && < 0.8 }
+common dep_hh         { build-depends: hedgehog         >= 1.5      && < 1.8 }
+common dep_deepseq    { build-depends: deepseq          >= 1.5.0  && < 1.6 }
+
+-- test components:
+
+common dep_hspec      { build-depends: hspec            >= 2.11.8   && < 2.12 }
+common dep_hspec-core { build-depends: hspec-core       >= 2.11.8   && < 2.12 }
+common dep_hspec-hh   { build-depends: hspec-hedgehog   >= 0.3.0.0  && < 0.4  }
+
+common tooldep_hspec-discover
+  build-tool-depends:
+      hspec-discover:hspec-discover >= 2.11.8 && < 2.12
+
+
+-- components
+-- ----------
+
+common defaults
+  ghc-options:
+      -Wall
+      -Wcompat
+      -Widentities
+      -Wincomplete-record-updates
+      -Wincomplete-uni-patterns
+      -Wredundant-constraints
+      -Wno-type-defaults
+      -Wno-partial-type-signatures
+      -Wnoncanonical-monad-instances
+      -Wpartial-fields
+      -Winvalid-haddock
+      -Wredundant-bang-patterns
+      -Wredundant-strictness-flags
+  if impl(ghc >= 9.8)
+    ghc-options:
+      -Winconsistent-flags
+  if flag(isDev)
+    ghc-options:
+      -freverse-errors
+      -fshow-hole-matches-of-hole-fits
+      -fmax-valid-hole-fits=30
+      -fhide-source-paths
+      -fwrite-ide-info
+      -dsuppress-module-prefixes
+  default-language: GHC2021
+  default-extensions:
+      UnicodeSyntax
+      LambdaCase
+      MultiWayIf
+      RecordWildCards
+      ViewPatterns
+      PatternSynonyms
+      PartialTypeSignatures
+      ExtendedDefaultRules
+
+library
+  import:
+    , defaults
+    , dep_base
+    , dep_containers
+    , dep_hh
+    , dep_deepseq
+  hs-source-dirs: src
+  autogen-modules: Paths_hedgehog_utils
+  other-modules:   Paths_hedgehog_utils
+  exposed-modules:
+      Hedgehog.Utils
+      Hedgehog.Utils.MetaTesting
+      Hedgehog.Utils.Bottoms
+      Hedgehog.Utils.Gen
+      Hedgehog.Utils.Internal
+
+test-suite hspec
+  import:
+    , defaults
+    , dep_base
+    , dep_containers
+    , dep_hh
+    , dep_hspec
+    , dep_hspec-core
+    , dep_hspec-hh
+    , tooldep_hspec-discover
+  hs-source-dirs:
+    , test/hspec
+  type:
+      exitcode-stdio-1.0
+  main-is:
+      Spec.hs
+  other-modules:
+      SpecHook
+      TestsPrelude
+      Hedgehog.UtilsSpec
+      Hedgehog.Utils.MetaTestingSpec
+      Hedgehog.Utils.BottomsSpec
+      Hedgehog.Utils.GenSpec
+  ghc-options:
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
+      -main-is Spec
+  default-extensions:
+    , OverloadedStrings
+  build-depends:
+    , hedgehog-utils
+    , hspec-tidy-formatter >= 0.2.0.0 && < 1
+
+test-suite doctest
+  import:
+    , defaults
+    , dep_base
+  -- no solution for 9.14 due to doctest-parallell
+  -- (forcing with --alow-newer causes compilation error)
+  if !flag(doctest) || impl(ghc >= 9.14)
+      buildable: False
+  hs-source-dirs:  test/doctests
+  type:            exitcode-stdio-1.0
+  main-is:         doctests.hs
+  ghc-options:
+      -threaded
+  build-depends:
+    , hedgehog-utils
+    , doctest-parallel >= 0.3 && < 1.0
