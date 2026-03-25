@@ -1,0 +1,232 @@
+cabal-version:  3.0
+name:           taiwan-id
+version:        0.1.1.0
+synopsis:       Implementation of Taiwan's uniform ID number format.
+category:       Identification
+homepage:       https://github.com/jonathanknowles/taiwan-id#readme
+bug-reports:    https://github.com/jonathanknowles/taiwan-id/issues
+author:         Jonathan Knowles
+maintainer:     mail@jonathanknowles.net
+copyright:      Jonathan Knowles
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Simple
+
+description:
+
+  This package provides a Haskell implementation of Taiwan's uniform
+  identification number format.
+
+  This number format is used by both National Identification Cards (國民身分證)
+  and Resident Certificates (居留證) issued by the Republic of China (ROC)
+  government to individuals, with numbers assigned under each system occupying
+  disjoint parts of the same identifier space.
+
+  Each identification number consists of a single uppercase letter followed by
+  nine decimal digits, with the final digit serving as a checksum calculated
+  according to a standard algorithm.
+
+  Example: `A123456789`
+
+  This package offers a library with functions for validating, decoding, and
+  encoding these numbers, as well as a command-line tool for working with them
+  interactively.
+
+  See the "Taiwan.ID" module to get started.
+
+  For more details, see:
+
+  * https://zh.wikipedia.org/wiki/中華民國國民身分證
+  * https://zh.wikipedia.org/wiki/中華民國居留證
+  * https://en.wikipedia.org/wiki/National_identification_card_(Taiwan)
+  * https://en.wikipedia.org/wiki/Resident_certificate
+
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+common dependency-base
+    build-depends:base                      >= 4.17.2.1     && < 4.22
+common dependency-directory
+    build-depends:directory                 >= 1.3.7.1      && < 1.4
+common dependency-doctest-parallel
+    build-depends:doctest-parallel          >= 0.4.1        && < 0.5
+common dependency-filepath
+    build-depends:filepath                  >= 1.4.2.2      && < 1.6
+common dependency-finitary
+    build-depends:finitary                  >= 2.2.0.0      && < 2.3
+common dependency-finite-typelits
+    build-depends:finite-typelits           >= 0.2.1.0      && < 0.3
+common dependency-hspec
+    build-depends:hspec                     >= 2.11.17      && < 2.12
+common dependency-microlens
+    build-depends:microlens                 >= 0.5.0.0      && < 0.6
+common dependency-MonadRandom
+    build-depends:MonadRandom               >= 0.6.2.1      && < 0.7
+common dependency-nonempty-containers
+    build-depends:nonempty-containers       >= 0.3.5.0      && < 0.4
+common dependency-optparse-applicative
+    build-depends:optparse-applicative      >= 0.19.0.0     && < 0.20
+common dependency-QuickCheck
+    build-depends:QuickCheck                >= 2.16.0.0     && < 2.17
+common dependency-quickcheck-classes
+    build-depends:quickcheck-classes        >= 0.6.5.0      && < 0.7
+common dependency-random
+    build-depends:random                    >= 1.3.1        && < 1.4
+common dependency-tasty
+    build-depends:tasty                     >= 1.5.3        && < 1.6
+common dependency-tasty-hunit
+    build-depends:tasty-hunit               >= 0.10.2       && < 0.11
+common dependency-text
+    build-depends:text                      >= 2.1.4        && < 2.2
+
+source-repository head
+  type: git
+  location: https://github.com/jonathanknowles/taiwan-id
+
+flag taiwan-id-doc-test
+  description:
+    Enables the `taiwan-id-doc-test` test suite.
+    Requires that the package is built with:
+    write-ghc-environment-files: always
+  default:     False
+  manual:      True
+
+library
+  import:
+    , dependency-base
+    , dependency-finitary
+    , dependency-finite-typelits
+    , dependency-MonadRandom
+    , dependency-nonempty-containers
+    , dependency-text
+  exposed-modules:
+      Taiwan.ID
+      Taiwan.ID.CharIndex
+      Taiwan.ID.CharSet
+      Taiwan.ID.Digit
+      Taiwan.ID.Digit1289
+      Taiwan.ID.Gender
+      Taiwan.ID.Issuer
+      Taiwan.ID.Language
+      Taiwan.ID.Letter
+      Taiwan.ID.Region
+  other-modules:
+      Taiwan.ID.Unchecked
+      Taiwan.ID.Utilities
+  hs-source-dirs:
+      components/lib/taiwan-id
+  ghc-options: -Wall
+  default-language: Haskell2010
+
+library taiwan-id-cli
+  import:
+    , dependency-base
+    , dependency-MonadRandom
+    , dependency-nonempty-containers
+    , dependency-optparse-applicative
+    , dependency-random
+    , dependency-text
+  build-depends:
+    , taiwan-id
+  exposed-modules:
+      Taiwan.ID.CLI
+  other-modules:
+      Paths_taiwan_id
+  autogen-modules:
+      Paths_taiwan_id
+  hs-source-dirs:
+      components/lib/taiwan-id-cli
+  ghc-options: -Wall
+  default-language: Haskell2010
+  visibility: private
+
+library taiwan-id-test-common
+  import:
+    , dependency-base
+    , dependency-QuickCheck
+    , dependency-text
+  build-depends:
+    , taiwan-id
+  exposed-modules:
+      Taiwan.ID.Test
+  hs-source-dirs:
+      components/lib/taiwan-id-test-common
+  ghc-options: -Wall
+  default-language: Haskell2010
+  visibility: private
+
+executable taiwan-id
+  import:
+    , dependency-base
+    , dependency-MonadRandom
+    , dependency-text
+  build-depends:
+    , taiwan-id-cli
+  main-is: Main.hs
+  hs-source-dirs:
+      components/exe/taiwan-id
+  ghc-options: -Wall
+  default-language: Haskell2010
+
+test-suite taiwan-id-test
+  import:
+    , dependency-base
+    , dependency-finitary
+    , dependency-hspec
+    , dependency-MonadRandom
+    , dependency-microlens
+    , dependency-nonempty-containers
+    , dependency-QuickCheck
+    , dependency-quickcheck-classes
+    , dependency-text
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Test.QuickCheck.Classes.Hspec
+  hs-source-dirs:
+      components/test/taiwan-id-test
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , taiwan-id
+    , taiwan-id-test-common
+  default-language: Haskell2010
+
+test-suite taiwan-id-cli-test
+  import:
+    , dependency-base
+    , dependency-directory
+    , dependency-filepath
+    , dependency-MonadRandom
+    , dependency-QuickCheck
+    , dependency-quickcheck-classes
+    , dependency-random
+    , dependency-tasty
+    , dependency-tasty-hunit
+    , dependency-text
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+  hs-source-dirs:
+      components/test/taiwan-id-cli-test
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , taiwan-id
+    , taiwan-id-cli
+    , taiwan-id-test-common
+  default-language: Haskell2010
+
+test-suite taiwan-id-doc-test
+  import:
+    , dependency-base
+    , dependency-doctest-parallel
+  if !flag(taiwan-id-doc-test)
+    buildable: False
+  build-depends:
+    , taiwan-id
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    components/test/taiwan-id-doc-test
+  ghc-options: -threaded
+  default-language: Haskell2010
