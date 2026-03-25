@@ -1,0 +1,138 @@
+cabal-version:      2.2
+name:               eventlog-socket
+version:            0.1.2.0
+synopsis:           Stream GHC eventlog events to external processes.
+description:
+  The @eventlog-socket@ package lets you stream the GHC eventlog over a socket in realtime.
+  This package exports both a Haskell API (from "GHC.Eventlog.Socket") and a C API (from [@eventlog_socket.h@](./docs/c/index.html)).
+  For most uses, the Haskell API is sufficient.
+  However, if you want to instrument your application from a C main or install custom command handlers you need the C API.
+
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Eventlog Socket Contributors
+maintainer:         wen@well-typed.com
+copyright:          (c) 2018-2026 Well-Typed
+category:           System
+build-type:         Simple
+tested-with:
+  GHC ==9.2.8
+   || ==9.4.8
+   || ==9.6.7
+   || ==9.8.4
+   || ==9.10.2
+   || ==9.12.2
+
+extra-source-files:
+  cbits/eventlog_socket/control.c
+  cbits/eventlog_socket/control.h
+  cbits/eventlog_socket/debug.h
+  cbits/eventlog_socket/error.c
+  cbits/eventlog_socket/error.h
+  cbits/eventlog_socket/init_state.h
+  cbits/eventlog_socket/macros.h
+  cbits/eventlog_socket/poll.h
+  cbits/eventlog_socket/string.c
+  cbits/eventlog_socket/string.h
+  cbits/eventlog_socket/worker.c
+  cbits/eventlog_socket/worker.h
+  cbits/eventlog_socket/write_buffer.c
+  cbits/eventlog_socket/write_buffer.h
+  cbits/eventlog_socket.c
+  include/eventlog_socket.h
+
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/well-typed/eventlog-socket.git
+  subdir:   eventlog-socket
+
+source-repository this
+  type:     git
+  location: https://github.com/well-typed/eventlog-socket.git
+  tag:      eventlog-socket-0.1.2.0
+  subdir:   eventlog-socket
+
+flag debug
+  description: Enable debug logging.
+  default:     False
+  manual:      True
+
+flag debug-verbosity-trace
+  description: Set the debug verbosity to TRACE.
+  default:     False
+  manual:      True
+
+flag debug-verbosity-quiet
+  description: Set the debug verbosity to QUIET.
+  default:     False
+  manual:      True
+
+flag control
+  description: Enable control commands.
+  default:     False
+  manual:      True
+
+flag optimise-heavily
+  description: Pass @-O2@ to the C compiler.
+  default:     False
+  manual:      True
+
+library
+  exposed-modules:    GHC.Eventlog.Socket
+  other-extensions:
+    CApiFFI
+    GeneralizedNewtypeDeriving
+    PatternSynonyms
+    TypeApplications
+
+  -- Use base lower bound as proxy for GHC >= 8.10
+  build-depends:      base >=4.14 && <5
+  build-tool-depends: hsc2hs:hsc2hs
+  hs-source-dirs:     src
+  cc-options:         -std=c11 -D_POSIX_C_SOURCE=200112L
+  default-language:   Haskell2010
+  default-extensions: LambdaCase
+  c-sources:
+    cbits/eventlog_socket/error.c
+    cbits/eventlog_socket/string.c
+    cbits/eventlog_socket/worker.c
+    cbits/eventlog_socket/write_buffer.c
+    cbits/eventlog_socket.c
+
+  include-dirs:       cbits include
+  install-includes:   eventlog_socket.h
+
+  if flag(debug)
+    -- 2025-12-17:
+    -- cpp-options are not passed to C code, see:
+    -- https://github.com/haskell/cabal/issues/7635
+    cc-options: -DDEBUG=1
+
+  else
+    cc-options: -DNDEBUG=1
+
+  if flag(debug-verbosity-trace)
+    -- 2025-12-17:
+    -- cpp-options are not passed to C code, see:
+    -- https://github.com/haskell/cabal/issues/7635
+    cc-options: -DDEBUG_VERBOSITY=5
+
+  if flag(debug-verbosity-quiet)
+    -- 2025-12-17:
+    -- cpp-options are not passed to C code, see:
+    -- https://github.com/haskell/cabal/issues/7635
+    cc-options: -DDEBUG_VERBOSITY=0
+
+  if flag(control)
+    -- 2025-12-17:
+    -- cpp-options are not passed to C code, see:
+    -- https://github.com/haskell/cabal/issues/7635
+    cc-options: -DEVENTLOG_SOCKET_FEATURE_CONTROL=1
+    c-sources:  cbits/eventlog_socket/control.c
+
+  if flag(optimise-heavily)
+    cc-options: -O2
