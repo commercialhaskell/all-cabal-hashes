@@ -1,0 +1,168 @@
+cabal-version: 3.6
+
+--------------------------------------------------------------------------------
+--
+-- Λ-gent, (c) 2026 SPISE MISU ApS, https://spdx.org/licenses/SSPL-1.0
+--
+--------------------------------------------------------------------------------
+
+build-type: Simple
+                                              
+name: A-gent
+version: 0.11.0.7
+
+synopsis: Polite & well educated LLM agent with excellent manners that always behaves well
+description: Polite and well educated LLM agent with excellent manners that always behaves well
+             
+homepage: https://a-gent.org
+          
+license: SSPL-1.0 OR AGPL-3.0-only
+license-file: LICENSE.md
+              
+author: SPISE MISU
+maintainer: SPISE MISU <mail+hackage@spisemisu.com>
+copyright: (c) 2026 SPISE MISU ApS
+           
+stability: experimental
+           
+category: Agent, LLM
+          
+extra-doc-files: README.md, CHANGELOG.md
+
+tested-with:
+  GHC == 9.4.8
+  GHC == 9.6.7
+  GHC == 9.8.4
+  GHC == 9.10.3
+  GHC == 9.12.2
+                 
+source-repository head
+  type:
+      git
+  location:
+      https://gitlab.com/a-gent/a-gent
+                
+--------------------------------------------------------------------------------
+-- COMMON
+--------------------------------------------------------------------------------
+
+common base
+  default-extensions:
+      Safe
+  default-language:
+      Haskell2010
+  build-depends:
+      -- Prelude
+      base       >= 4        && < 5
+      -- Process
+      -- NOTE: github.com/NixOS/hydra builds with stackage lastest LST (24.…)
+      -- and stackage only has 'containers 0.7' while hackage has '0.8'
+    , process    >= 1.6.25.0 && < 2
+    , containers >= 0.7      && < 1
+      -- JSON
+    , mtl        >= 2.3.1    && < 3
+  ghc-options:
+      --------------------------------------------------------------------------
+      -- GHC 9.10.3 Users Guide
+      -- 9. Using GHC > 9.2. Warnings and sanity-checking
+      -- * Base: https://downloads.haskell.org/~ghc/9.10.3/docs/users_guide/
+      -- * File: using-warnings.html
+      -- Warnings that are not enabled by -Wall:
+      --------------------------------------------------------------------------
+      -Wall
+      -Wincomplete-record-updates
+      -- -Wmonomorphism-restriction
+      -- -Wimplicit-prelude
+      -- -Wmissing-local-signatures
+      -Wmissing-exported-signatures
+      -- -Wmissing-export-lists
+      -- -Wmissing-import-lists
+      -Wmissing-home-modules
+      -Widentities
+      -- -Wredundant-constraints
+      -- Added since GHC 8.4
+      -Wpartial-fields 
+      -- -Wmissed-specialisations
+      -- -Wall-missed-specialisations
+      --------------------------------------------------------------------------
+      -- Added to allow instance definition in other files, in order to keep the 
+      -- Effect module SAFE so it can be imported by the Process
+      --------------------------------------------------------------------------
+      -Wno-orphans
+      -- Makes any warning into a fatal error.
+      -- -Werror
+      --------------------------------------------------------------------------
+      -- Deterministic builds (Uniques):
+      -- * https://gitlab.haskell.org/ghc/ghc/wikis/deterministic-builds#progress
+      -- * https://www.youtube.com/watch?v=FNzTk4P4fL4 (08 GHC Determinism ICFP)
+      --------------------------------------------------------------------------
+      -- -dinitial-unique=0
+      -- -dunique-increment=1
+      --------------------------------------------------------------------------
+      -- GHC 9.10.3 Users Guide
+      -- 19. Known bugs and infelicities >
+      -- 19.1. Haskell standards vs. Glasgow Haskell: language non-compliance >
+      -- 19.1.1.3. Expressions and pointers
+      -- * Base: https://downloads.haskell.org/~ghc/9.10.3/docs/users_guide/
+      -- * File: bugs.html
+      --------------------------------------------------------------------------
+      -fpedantic-bottoms
+      -- To use when GHC uses to many ticks:
+      -- -ddump-simpl-stats
+      -- -fsimpl-tick-factor=100
+      --------------------------------------------------------------------------
+      -- GHC 9.10.3 Users Guide
+      -- 12.40. Safe Haskell > ... > 12.40.1.1. Strict type-safety (good style)
+      -- * Enforce good style, similar to the function of -Wall.
+      -- Only Trustworthy packages can be trusted
+      -- * Base: https://downloads.haskell.org/~ghc/9.10.3/docs/users_guide/
+      -- * File: safe_haskell.html
+      --------------------------------------------------------------------------
+      -fpackage-trust
+      -- Base
+      -trust=base
+      -- Process
+      -trust=process
+      -trust=array
+      -trust=ghc-prim
+      -trust=deepseq
+      -- JSON
+      -trust=containers
+      -trust=mtl
+  if impl(ghc >= 9.10 && < 9.13)              
+    ghc-options:
+      -- Base
+      -- NOTE: Issue with Hackage that builds with 9.8.4. 9.10.x requies this:
+      -trust=ghc-internal
+
+library
+  import:
+      base
+  hs-source-dirs:
+      src
+  other-modules:
+      Internal.GaloisInc.Text.JSON
+      Internal.GaloisInc.Text.JSON.Generic
+      Internal.GaloisInc.Text.JSON.String
+      Internal.GaloisInc.Text.JSON.Types
+      --
+      Internal.GlasgowUniversity.Data.Generics.Aliases
+  exposed-modules:
+      Agent.Control.Concurrent
+      Agent.Control.IFC
+      Agent.Control.MAC
+      --
+      Agent.IO.Effects
+      Agent.IO.Restricted
+      --
+      Agent.Utils.Common
+      Agent.Utils.Code
+      Agent.Utils.Plan
+      --
+      Agent.JSON
+      --
+      Agent.LLM
+
+-- Reference
+--
+-- - https://cabal.readthedocs.io/en/latest/cabal-package-description-file.html#pkg-field-tested-with
