@@ -1,0 +1,167 @@
+cabal-version: 3.0
+name:          css-class-bindings
+version:       0.0.3
+
+synopsis:      generates Haskell bindings for CSS classes
+description:
+    == Motivation
+    #motivation#
+    
+    Recently I migrated the
+    <https://github.com/yaitskov/vpn-router vpn-router> frontend to
+    <https://github.com/dmjio/miso Miso>, I noticed that DOM functions
+    (e.g. @div_@) accept CSS class names as plain strings. This prevents GHC
+    from catching typos in referenced names, even if stylesheets are correct
+    and defined with <https://hackage.haskell.org/package/clay clay>.
+    
+    == Usage
+    #usage#
+    
+    The library leverages the power of TH to parse CSS snippets from quasi
+    quotes or style files and to define Haskell constants for every class
+    mentioned in the input.
+    
+    === Quasi-quote input
+    #quasi-quote-input#
+    
+    > {-# LANGUAGE QuasiQuotes #-}
+    > module Css where
+    > import CssClassBindings ( css )
+    >
+    > [css|
+    > .foo-bar {
+    >   color: #fc2c2c;
+    > }
+    > #foo-bar {
+    >   color: #fc2c2c;
+    > }
+    > |]
+    
+    > module Main where
+    >
+    > import Css (fooBar, FooBar(..), cssAsLiteralText)
+    > import CssClassBindings qualified as C
+    > import Miso
+    > import Miso.Html.Element (div_, button_)
+    > import Miso.Html.Property qualified as P
+    >
+    > class_ :: C.CssClass MisoString -> Attribute action
+    > class_ = P.class_ . C.class_
+    >
+    > key_ :: C.CssIdentifier i => i -> Attribute action
+    > key_ = P.key_ . C.id_
+    >
+    > app :: App Model Action
+    > app = (component emptyModel updateModel viewModel)
+    >   { styles = [ Style cssAsLiteralText ]
+    >   }
+    >
+    > viewModel :: Model -> View Model Action
+    > viewModel m =
+    >   div_ []
+    >     [ button_
+    >       [ key_ FooBar
+    >       , class_ fooBar
+    >       ]
+    >       [ "Submit" ]
+    >     ]
+    
+    The library has been created to improve a miso-based app, but it does
+    not depend on miso and it can be used in other setups.
+    
+    > fooBar :: IsString s => CssClass s
+    > cssAsLiteralText :: IsString s => s
+    
+    === File input
+    #file-input#
+    
+    > {-# LANGUAGE TemplateHaskell #-}
+    > module Css where
+    > import CssClassBindings ( includeCss )
+    >
+    > includeCss "assets/style.css"
+    
+    > module Main where
+    >
+    > import Css (fooBar, FooBar(..), style)
+    > -- ...
+    
+    == Development environment
+    #development-environment#
+    
+    HLS should be available inside the default dev shell.
+    
+    > $ nix develop
+    > $ emacs src/*/*/Qq.hs &
+    > $ cabal build
+homepage:      http://github.com/yaitskov/css-class-bindings
+license:       BSD-3-Clause
+license-file:  LICENSE
+author:        Daniil Iaitskov
+maintainer:    dyaitskov@gmail.com
+copyright:     Daniil Iaitkov 2026
+category:      Miso, HTML, CSS, Template Haskell
+build-type:    Simple
+bug-reports:   https://github.com/yaitskov/css-class-bindings/issues
+extra-source-files:
+  test/style.css
+extra-doc-files:
+  changelog.md
+tested-with:
+  GHC == 9.12.2
+
+source-repository head
+  type:
+    git
+  location:
+    https://github.com/yaitskov/css-class-bindings.git
+
+common base
+  default-language: GHC2024
+  ghc-options: -Wall
+  default-extensions:
+    DefaultSignatures
+    NoImplicitPrelude
+    OverloadedStrings
+    TemplateHaskell
+  build-depends:
+    , base >=4.7 && < 5
+    , template-haskell  < 3
+
+library
+  import: base
+  hs-source-dirs: src
+  exposed-modules:
+    CssClassBindings
+  other-modules:
+    CssClassBindings.Escape
+    CssClassBindings.IncludeCss
+    CssClassBindings.Qq
+  build-depends:
+    , add-dependent-file >= 0.0.2 && < 1
+    , containers         < 1
+    , css-syntax         < 1
+    , filepath           < 2
+    , template-haskell   < 3
+    , text               < 3
+
+test-suite test
+  import: base
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  other-modules:
+    CssClassBindings.Test.IncludeCssDefs
+    CssClassBindings.Test.IncludeCssAsserts
+    CssClassBindings.Test.QqDefs
+    CssClassBindings.Test.QqAsserts
+    Discovery
+  hs-source-dirs:
+    test
+  ghc-options: -Wall -rtsopts -threaded -main-is Driver
+  build-depends:
+    , css-class-bindings
+    , QuickCheck
+    , tasty
+    , tasty-discover
+    , tasty-hunit
+    , tasty-quickcheck
