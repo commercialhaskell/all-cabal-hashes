@@ -1,0 +1,110 @@
+cabal-version: 3.0
+version:       1.0.0.1
+name:          mfmts
+build-type:    Simple
+author:        Zoey McBride
+maintainer:    zoeymcbride@mailbox.org
+license:       AGPL-3.0-or-later
+license-file:  LICENSE.txt
+category:      Hash, Codec, Protocol
+synopsis:      Implements multiformats specification
+description:
+    Implments the multiformats specification used in IPFS and other distributed
+    systems.
+extra-doc-files:
+    README.md
+    CHANGE_LOG.md
+source-repository head {
+    type: git
+    location: https://git.sr.ht/~z0/mfmts
+}
+
+-- | Sets flag for CI build toggle
+flag CI {
+    Description: CI Build options
+    Default: False
+    Manual: True
+}
+
+-- | Sets flag for developer build toggle
+flag Dev {
+    Description: Developer build options
+    Default: False
+    Manual: True
+}
+
+-- | These dependency versions are known to be compatable with mfmts
+common DefaultVersions {
+    build-depends:
+        base >= 4.18 && < 5,
+        basesystems ^>= 1.0,
+        array ^>= 0.5,
+        bytestring ^>= 0.11,
+        containers ^>= 0.6,
+        crypton ^>= 1.1,
+        ram >= 0.20.1 && < 0.23
+}
+
+-- | DefaultBuild: strict compilation + optimize for executable speed
+common DefaultBuild {
+    import: DefaultVersions
+    ghc-options: -Wall -Wextra -Wno-unused-top-binds
+}
+
+-- | CIBuild: strict compilation + optimize for compile time
+common CIBuild {
+    import: DefaultVersions
+    ghc-options: -Wall -Wextra -Werror -Wno-unused-top-binds
+}
+
+-- | Configures the Dev flag
+common DevBuild {
+   import: DefaultVersions
+   ghc-options: -Wall -Wextra -Wno-unused-top-binds
+}
+
+
+-- | Configures mfmts
+library {
+    default-language: GHC2021
+    default-extensions: StrictData
+    if flag(Dev) {
+        import: DevBuild
+    }
+    elif flag(CI) {
+        import: CIBuild
+    }
+    else {
+        import: DefaultBuild
+    }
+    exposed-modules:
+        -- * Unsigned binary varints
+        MultiFormats.VarInt,
+        MultiFormats.VarInt.Errors,
+        -- * Multicodecs for identifying data in CID
+        MultiFormats.MultiCodec,
+        -- * Multibase for labeling identifying basesystems via prefix
+        MultiFormats.MultiBase,
+        MultiFormats.MultiBaseSystems,
+        -- * Associates various hash functions with their Mutlicodec identifier
+        MultiFormats.MultiHash,
+        -- * CID definitions
+        MultiFormats.CID,
+        MultiFormats.CID.Errors,
+        -- * CID interfaces
+        MultiFormats.CID.Serializer,
+        MultiFormats.CID.Extractor,
+        MultiFormats.CID.Parser,
+        -- * Implements Extractors, Serializers, and Parsers for CID components
+        MultiFormats.CID.Internal,
+        MultiFormats.CID.Internal.CIDCodec,
+        MultiFormats.CID.Internal.CIDDecoder,
+        MultiFormats.CID.Internal.CIDHash,
+        MultiFormats.CID.Internal.CIDVersion,
+    hs-source-dirs:
+        cid
+        varint
+        multihash
+        multibase
+        multicodec
+}
