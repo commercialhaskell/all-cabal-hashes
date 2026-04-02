@@ -1,0 +1,183 @@
+cabal-version:          2.2
+
+name:                   accelerate-llvm-native
+version:                1.4.0.0
+tested-with:            GHC >= 9.4
+build-type:             Custom
+
+synopsis:               Accelerate backend for multicore CPUs
+description:
+    This library implements a backend for the /Accelerate/ language which
+    generates LLVM IR targeting multicore CPUs. For further information, refer
+    to the main <http://hackage.haskell.org/package/accelerate accelerate>
+    package.
+    .
+    [/Dependencies/]
+    .
+    Haskell dependencies are available from Hackage. The following external
+    dependencies are also required:
+    .
+    * <https://clang.llvm.org/ clang> (not used to compile C code, but to compile generated LLVM IR via a mostly LLVM-version-independent interface)
+    * <https://sourceware.org/libffi/ libFFI>
+    .
+    For installation instructions, see the <https://github.com/AccelerateHS/accelerate-llvm#readme README>.
+
+license:                BSD-3-Clause
+license-file:           LICENSE
+author:                 Trevor L. McDonell
+maintainer:             Trevor L. McDonell <trevor.mcdonell@gmail.com>
+bug-reports:            https://github.com/AccelerateHS/accelerate/issues
+category:               Accelerate, Compilers/Interpreters, Concurrency, Data, Parallelism
+
+extra-doc-files:
+    CHANGELOG.md
+    README.md
+
+custom-setup
+  setup-depends:
+      base              >= 4.10 && < 5
+    , Cabal             >= 2 && < 3.18
+    , filepath
+
+
+-- Build configuration
+-- -------------------
+
+Library
+  exposed-modules:
+    Data.Array.Accelerate.LLVM.Native
+    Data.Array.Accelerate.LLVM.Native.Plugin
+    Data.Array.Accelerate.LLVM.Native.Foreign
+
+  other-modules:
+    Data.Array.Accelerate.LLVM.Native.Array.Data
+    Data.Array.Accelerate.LLVM.Native.Debug
+    Data.Array.Accelerate.LLVM.Native.State
+    Data.Array.Accelerate.LLVM.Native.Target
+
+    Data.Array.Accelerate.LLVM.Native.CodeGen
+    Data.Array.Accelerate.LLVM.Native.CodeGen.Base
+    Data.Array.Accelerate.LLVM.Native.CodeGen.Fold
+    Data.Array.Accelerate.LLVM.Native.CodeGen.FoldSeg
+    Data.Array.Accelerate.LLVM.Native.CodeGen.Generate
+    Data.Array.Accelerate.LLVM.Native.CodeGen.Loop
+    Data.Array.Accelerate.LLVM.Native.CodeGen.Map
+    Data.Array.Accelerate.LLVM.Native.CodeGen.Permute
+    Data.Array.Accelerate.LLVM.Native.CodeGen.Scan
+    Data.Array.Accelerate.LLVM.Native.CodeGen.Stencil
+    Data.Array.Accelerate.LLVM.Native.CodeGen.Transform
+
+    Data.Array.Accelerate.LLVM.Native.Compile
+    Data.Array.Accelerate.LLVM.Native.Compile.Cache
+
+    Data.Array.Accelerate.LLVM.Native.Link
+    Data.Array.Accelerate.LLVM.Native.Link.Cache
+    Data.Array.Accelerate.LLVM.Native.Link.Object
+    Data.Array.Accelerate.LLVM.Native.Link.Runtime
+
+    Data.Array.Accelerate.LLVM.Native.Embed
+
+    Data.Array.Accelerate.LLVM.Native.Execute
+    Data.Array.Accelerate.LLVM.Native.Execute.Async
+    Data.Array.Accelerate.LLVM.Native.Execute.Divide
+    Data.Array.Accelerate.LLVM.Native.Execute.Environment
+    Data.Array.Accelerate.LLVM.Native.Execute.Marshal
+    Data.Array.Accelerate.LLVM.Native.Execute.Scheduler
+
+    Data.Array.Accelerate.LLVM.Native.Plugin.Annotation
+    Data.Array.Accelerate.LLVM.Native.Plugin.BuildInfo
+
+    Control.Concurrent.Extra
+
+    Paths_accelerate_llvm_native
+
+  autogen-modules:
+    Paths_accelerate_llvm_native
+
+  build-depends:
+          base                          >= 4.10 && < 5
+        , accelerate                    == 1.4.*
+        , accelerate-llvm               == 1.4.*
+        , bytestring                    >= 0.10.4
+        , containers                    >= 0.5 && < 0.9
+        , deepseq                       >= 1.4
+        , directory                     >= 1.0
+        , dlist                         >= 0.6
+        , filepath                      >= 1.0
+        , formatting                    >= 7.0
+        , ghc
+        , hashable                      >= 1.0
+        , libffi                        >= 0.1
+        -- , llvm-pretty                   >= 0.12
+        , lockfree-queue                >= 0.2
+        , mtl                           >= 2.2.1
+          -- only used to render llvm-pretty output
+        , pretty
+        , process                       >= 1.4.3
+          -- TODO: These are only used for lifting ByteStrings. bytestring
+          --       0.11.2.0 include its own, better lifting instances. Once
+          --       that's stable, we can remove this dependency and bump
+          --       bytestring's version bound.
+        , th-lift-instances
+        , template-haskell
+        , text                          >= 1.2
+        , unique
+        , unordered-containers          >= 0.2
+        , vector                        >= 0.11
+
+  hs-source-dirs:
+        src
+
+  default-language:
+        Haskell2010
+
+  ghc-options:
+        -O2
+        -Wall
+        -fwarn-tabs
+
+  if os(windows)
+    build-depends:
+          Win32
+  else
+    build-depends:
+          unix                          >= 2.7
+
+
+test-suite nofib-llvm-native
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       test/nofib
+  main-is:              Main.hs
+  other-modules:
+    Data.Array.Accelerate.LLVM.Native.NoFib.RunQ
+
+  build-depends:
+          base                          >= 4.10
+        , accelerate
+        , accelerate-llvm-native
+        , tasty
+        , tasty-hunit
+
+  default-language:
+        Haskell2010
+
+  ghc-options:
+        -Wall
+        -O2
+        -threaded
+        -rtsopts
+        -with-rtsopts=-A128M
+        -with-rtsopts=-n4M
+        -with-rtsopts=-N
+
+
+source-repository head
+  type:                 git
+  location:             https://github.com/AccelerateHS/accelerate-llvm.git
+
+source-repository this
+  type:                 git
+  tag:                  v1.4.0.0
+  location:             https://github.com/AccelerateHS/accelerate-llvm.git
+
+-- vim: nospell
