@@ -1,0 +1,144 @@
+cabal-version: 3.4
+name: checked-literals
+version: 0.1.0.0
+synopsis: GHC plugin for checked numeric literals
+description:
+  GHC plugin that rewrites numeric literals so out-of-bounds and inexact
+  literals fail at compile time.
+  See the GitHub README for usage and examples:
+  <https://github.com/clash-lang/checked-literals/blob/main/README.md>
+
+homepage: https://github.com/clash-lang/checked-literals
+bug-reports: https://github.com/clash-lang/checked-literals/issues
+license: BSD-2-Clause
+license-file: LICENSE
+author: Martijn Bastiaan
+maintainer: martijn@hmbastiaan.nl
+category: Development
+build-type: Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+common warnings
+  ghc-options: -Wall
+
+common typechecker-plugins
+  build-depends:
+    ghc-typelits-extra >=0.5 && <0.6,
+    ghc-typelits-knownnat >=0.8 && <0.9,
+    ghc-typelits-natnormalise >=0.9 && <0.10,
+
+  ghc-options:
+    -fplugin=GHC.TypeLits.KnownNat.Solver
+    -fplugin=GHC.TypeLits.Normalise
+    -fplugin=GHC.TypeLits.Extra.Solver
+
+common sane-records
+  default-extensions:
+    DisambiguateRecordFields
+    DuplicateRecordFields
+    NamedFieldPuns
+    NoFieldSelectors
+    OverloadedRecordDot
+
+source-repository head
+  type: git
+  location: https://github.com/clash-lang/checked-literals.git
+
+library
+  import: warnings, typechecker-plugins, sane-records
+  exposed-modules:
+    CheckedLiterals
+    CheckedLiterals.Class
+    CheckedLiterals.Class.Integer
+    CheckedLiterals.Class.Rational
+    CheckedLiterals.Class.Rational.TypeNats
+    CheckedLiterals.Class.TemplateHaskell
+    CheckedLiterals.Plugin
+    CheckedLiterals.Unchecked
+
+  other-modules:
+    Data.Ratio.Extra
+
+  build-depends:
+    base >=4.18 && <5,
+    ghc >=9.6 && <9.15,
+    mtl >=2.2.2 && <2.4,
+    syb >=0.7 && <0.8,
+    template-haskell >=2.20 && <2.25,
+
+  hs-source-dirs: src
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+    NoStarIsType
+    TypeOperators
+
+-- XXX: These modules are just here to provide convincing tests for Clash-like types. They're
+--      not tested well in any way, are incomplete in their implementation, and are certainly
+--      not translatable to RTL.
+library clash-nums
+  import: warnings, typechecker-plugins, sane-records
+  visibility: private
+  exposed-modules:
+    CheckedLiterals.Nums.Fixed
+    CheckedLiterals.Nums.Signed
+    CheckedLiterals.Nums.Unsigned
+
+  build-depends:
+    base,
+    checked-literals,
+    template-haskell,
+
+  hs-source-dirs: src-nums
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+    NoStarIsType
+    TypeOperators
+
+test-suite unittests
+  import: warnings, typechecker-plugins, sane-records
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+    Data.Ratio.Extra
+    Test.Tasty.AssertGhc
+    Tests.Common
+    Tests.Integer
+    Tests.Integer.Case
+    Tests.Integer.Fixed
+    Tests.Integer.FunctionPattern
+    Tests.Integer.Int
+    Tests.Integer.Signed
+    Tests.Integer.Unsigned
+    Tests.Integer.Word
+    Tests.Rational
+    Tests.Rational.Case
+    Tests.Rational.Fixed
+    Tests.Rational.FunctionPattern
+    Tests.Rational.Ratio
+
+  default-extensions:
+    DataKinds
+    NoStarIsType
+    TypeOperators
+
+  build-depends:
+    base,
+    checked-literals,
+    checked-literals:clash-nums,
+    directory,
+    filepath,
+    process,
+    string-interpolate >=0.3.4.0,
+    tasty >=0.10,
+    tasty-hunit >=0.9,
+    temporary,
+
+  hs-source-dirs:
+    tests
+    src
+
+  default-language: GHC2021
