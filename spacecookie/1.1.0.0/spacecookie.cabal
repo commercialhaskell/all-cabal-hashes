@@ -1,0 +1,115 @@
+cabal-version:       3.0
+name:                spacecookie
+version:             1.1.0.0
+synopsis:            Gopher server library and daemon
+description:         Simple gopher library that allows writing custom gopher
+                     applications. Also includes a fully-featured gopher server
+                     daemon complete with gophermap-support built on top of it.
+license:             GPL-3.0-only
+license-file:        LICENSE
+author:              Lukas Epple
+maintainer:          sternenseemann@systemli.org
+category:            Network
+build-type:          Simple
+homepage:            https://github.com/sternenseemann/spacecookie
+bug-reports:         https://github.com/sternenseemann/spacecookie/issues
+extra-source-files:  CHANGELOG.md
+                     README.md
+                     etc/spacecookie.json
+                     etc/spacecookie.service
+                     etc/spacecookie.socket
+                     docs/rfc1436.txt
+                     docs/man/spacecookie.1
+                     docs/man/spacecookie.json.5
+                     docs/man/spacecookie.gophermap.5
+                     test/data/pygopherd.gophermap
+                     test/data/bucktooth.gophermap
+                     test/integration/root/.gophermap
+                     test/integration/root/dir/.hidden
+                     test/integration/root/dir/another/.git-hello
+                     test/integration/root/dir/macintosh.hqx
+                     test/integration/root/dir/mystery-file
+                     test/integration/root/dir/strange.tXT
+                     test/integration/root/plain.txt
+                     test/integration/spacecookie.json
+
+common common
+  default-language:    Haskell2010
+  build-depends:       base >= 4.9 && <5
+                     , bytestring >= 0.10 && < 0.13
+                     , attoparsec >= 0.13 && < 0.15
+                     , containers >= 0.6 && < 0.9
+                     , filepath >= 1.5.2.0 && < 1.6
+                     , os-string >= 2.0.6 && < 2.1
+
+common common-executables
+  ghc-options:
+      -- Needed by curl to work reliably in the test suite
+      -- https://github.com/GaloisInc/curl/pull/25
+      -threaded
+      -- Limit frequency of the idle GC to every 10s
+      -rtsopts
+      -with-rtsopts=-I10
+
+common lib-exec-deps
+  build-depends:       socket >= 0.8.2 && < 0.9
+                     , text >= 1.2 && < 2.2
+                     , utf8-string >= 1.0 && < 1.1
+
+common exec-test-deps
+  build-depends:       directory >= 1.3 && < 1.4
+
+executable spacecookie
+  import:              common, common-executables
+                     , lib-exec-deps, exec-test-deps
+  main-is:             Main.hs
+  build-depends:       spacecookie
+                     , aeson >= 1.5 && < 2.3
+                     , systemd >= 2.1.0 && < 2.5
+                     , fast-logger >= 2.4.0 && < 3.3
+                     , unix >= 2.7 && < 2.9
+                     , file-io >= 0.1.0 && < 0.3
+  hs-source-dirs:      server
+  other-modules:       Network.Spacecookie.Config
+                     , Network.Spacecookie.Systemd
+                     , Network.Spacecookie.FileType
+                     , Network.Spacecookie.Path
+                     , Paths_spacecookie
+  autogen-modules:     Paths_spacecookie
+
+library
+  import:              common, lib-exec-deps
+  hs-source-dirs:      src
+  exposed-modules:     Network.Gopher
+                     , Network.Gopher.Util.Gophermap
+  other-modules:       Network.Gopher.Types
+                     , Network.Gopher.Log
+                     , Network.Gopher.Util.Socket
+  build-depends:       async >= 2.2 && < 2.3
+                     , mtl >= 2.2 && < 2.4
+
+test-suite test
+  import:              common, common-executables, exec-test-deps
+  type:                exitcode-stdio-1.0
+  main-is:             EntryPoint.hs
+  hs-source-dirs:      test, server
+  other-modules:       Test.FileTypeDetection
+                     , Test.Gophermap
+                     , Test.Integration
+                     , Test.Sanitization
+                     , Network.Spacecookie.FileType
+                     , Network.Spacecookie.Path
+  build-depends:       tasty >= 1.2 && < 1.6
+                     , tasty-hunit >= 0.10 && < 0.11
+                     , tasty-expected-failure >= 0.11 && < 0.13
+                     , spacecookie
+                     , process >= 1.2.0 && < 1.7
+                     , download-curl >= 0.1 && < 0.2
+
+source-repository head
+  type: git
+  location: https://github.com/sternenseemann/spacecookie.git
+
+source-repository head
+  type: git
+  location: https://git.sterni.lv/spacecookie
