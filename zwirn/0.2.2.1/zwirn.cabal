@@ -1,0 +1,221 @@
+cabal-version:      3.0
+name:               zwirn
+version:            0.2.2.1
+synopsis:           a live coding language for playing with nested functions of time
+description:        zwirn is a live coding language for playing with nested functions of time,
+                    which trigger the sending of osc-messages. it's syntax is inspired by TidalCycles'
+                    mini-notation and its API for manipulating patterns.
+license:            GPL-3.0-only
+license-file:       LICENSE
+author:             Martin Gius
+maintainer:         Martin Gius
+copyright:          Martin Gius
+category:           Language, Sound
+build-type:         Simple
+extra-doc-files:    README.md
+tested-with:        GHC == 9.12.2, GHC == 9.6.7
+
+source-repository head
+  type:              git
+  location:          https://codeberg.org/uzu/zwirn/
+
+common common-options
+  ghc-options:         -Wall
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wcompat
+                       -Widentities
+                       -Wredundant-constraints
+                 --      -Wmissing-export-lists
+                       -Wpartial-fields
+
+  default-language:    Haskell2010
+  default-extensions:  OverloadedStrings
+
+common common-deps
+  build-depends:    base >= 4.14 && < 4.22,
+                    mtl >= 2.3 && < 2.4,
+                    containers >= 0.6.8 && < 0.8,
+                    text >= 2 && < 2.2,
+
+
+
+library zwirn-core
+    import:          common-options,
+                     common-deps
+    visibility:      public
+    hs-source-dirs:  src/zwirn-core
+    exposed-modules: Zwirn.Core.Time
+                     Zwirn.Core.Core
+                     Zwirn.Core.Tree
+                     Zwirn.Core.Query
+                     Zwirn.Core.Types
+                     Zwirn.Core.Cord
+                     Zwirn.Core.Lib.Cord
+                     Zwirn.Core.Lib.Core
+                     Zwirn.Core.Lib.Random
+                     Zwirn.Core.Lib.Text
+                     Zwirn.Core.Lib.State
+                     Zwirn.Core.Lib.Modulate
+                     Zwirn.Core.Lib.Structure
+                     Zwirn.Core.Lib.Conditional
+                     Zwirn.Core.Lib.Number
+                     Zwirn.Core.Lib.Map
+    build-depends:   hmt >= 0.20 && < 0.21,
+                     stm >= 2.5 && < 2.6,
+                     random >= 1.2 && < 1.4,
+                     pure-noise >= 0.1.0.1 && < 0.2,
+
+
+
+library zwirn-lang
+  import:          common-options,
+                   common-deps
+  visibility:      public
+  hs-source-dirs:  src/zwirn-lang
+  exposed-modules: Zwirn.Language.TypeCheck.Types
+                   Zwirn.Language.TypeCheck.Constraint
+                   Zwirn.Language.TypeCheck.Infer
+                   Zwirn.Language.Syntax
+                   Zwirn.Language.Lexer
+                   Zwirn.Language.Parser
+                   Zwirn.Language.Compiler
+                   Zwirn.Language.Rotate
+                   Zwirn.Language.Simple
+                   Zwirn.Language.Pretty
+                   Zwirn.Language.Block
+                   Zwirn.Language.Macro
+                   Zwirn.Language.Location
+                   Zwirn.Language.Builtin.Internal
+                   Zwirn.Language.Builtin.Prelude
+                   Zwirn.Language.Builtin.Parameters
+                   Zwirn.Language.Environment
+                   Zwirn.Language.Evaluate
+                   Zwirn.Language.Evaluate.Convert
+                   Zwirn.Language.Evaluate.Expression
+                   Zwirn.Language.Evaluate.SKI
+                   Zwirn.Language.Evaluate.Internal
+                   Zwirn.Language.LSP.Hover
+                   Zwirn.Language.LSP.Eval
+                   Zwirn.Language.LSP.Diagnostics
+                   Zwirn.Language.LSP.InlayHints
+                   Zwirn.Language
+                   Zwirn.Stream.Handshake
+                   Zwirn.Stream.Process
+                   Zwirn.Stream.Types
+                   Zwirn.Stream.UI
+                   Zwirn.Stream.Listen
+                   Zwirn.Stream.Target
+  other-modules:   Paths_zwirn
+  autogen-modules: Paths_zwirn
+
+  build-depends:   zwirn:zwirn-core,
+                   array >= 0.5 && < 0.6,
+                   bytestring >= 0.12.1 && < 0.13,
+                   prettyprinter >= 1.7 && < 1.8,
+                   exceptions >= 0.10.9 && < 0.11,
+                   filepath >= 1.5.4 && < 1.6,
+                   hosc >= 0.21.1 && < 0.22,
+                   network >= 3.2.7 && < 3.3,
+                   tidal-link >= 1.1 && < 1.2,
+
+  build-tool-depends: alex:alex, happy:happy
+
+executable zwirnzi
+    import:           common-options,
+                      common-deps
+    hs-source-dirs:   app/zwirnzi
+    main-is:          Main.hs
+    other-modules:    CI.Backend
+                      CI.Setup
+                      CI.Config
+                      LSP.Main
+                      LSP.Diagnostic
+                      LSP.Util
+                      LSP.Handlers.Action
+                      LSP.Handlers.Command
+                      LSP.Handlers.Completion
+                      LSP.Handlers.File
+                      LSP.Handlers.Hover
+                      LSP.Handlers.InlayHint
+    build-depends:    zwirn:zwirn-core,
+                      zwirn:zwirn-lang,
+                      tidal-link >= 1.1 && < 1.2,
+                      bytestring >= 0.12.1 && < 0.13,
+                      exceptions >= 0.10.9 && < 0.11,
+                      lsp >= 2.7 && < 2.7.1,
+                      haskeline >= 0.8.4 && < 0.9,
+                      file-io >= 0.1.5 && < 0.1.6,
+                      filepath >= 1.5.4 && < 1.5.5,
+                      directory >= 1.3.9 && < 1.4,
+                      conferer >= 1.1 && < 1.2,
+                      conferer-yaml >= 1.1 && < 1.2,
+                      utf8-string >= 1.0.2 && < 1.1,
+                      lens >= 5.3 && < 5.3.6,
+                      text-rope >= 0.3 && < 0.4,
+                      aeson >= 2.2.3 && < 2.2.4
+    default-language: Haskell2010
+    ghc-options:      -threaded
+
+executable zwirn-plot
+    import:         common-options,
+                    common-deps
+    hs-source-dirs:   app/zwirn-plot
+    main-is:          Main.hs
+    build-depends:  zwirn:zwirn-core,
+                    easyplot >= 1 && < 1.1
+    default-language: Haskell2010
+    ghc-options:      -threaded
+
+executable zwirn-docs
+    import:         common-options,
+                    common-deps
+    hs-source-dirs:   app/zwirn-docs
+    main-is:          Main.hs
+    build-depends:  zwirn:zwirn-lang,
+                    directory >= 1.3.9 && < 1.4,
+                    file-io >= 0.1.5 && < 0.1.6,
+                    filepath >= 1.5.4 && < 1.5.5
+    default-language: Haskell2010
+    ghc-options:      -threaded
+
+
+test-suite test-zwirn-core
+    type:              exitcode-stdio-1.0
+    hs-source-dirs:    test/zwirn-core/
+    main-is:           Main.hs
+    build-depends:     zwirn:zwirn-core,
+                       base >= 4.14 && < 4.22,
+                       containers >= 0.6.8 && < 0.8,
+                       tasty >= 1.5,
+                       tasty-smallcheck >= 0.8.2,
+                       tasty-quickcheck >= 0.10.3,
+                       tasty-hunit >= 0.10.1,
+    default-language:  Haskell2010
+    ghc-options:       -threaded
+
+test-suite test-zwirn-lang
+    type:              exitcode-stdio-1.0
+    hs-source-dirs:    test/zwirn-lang/
+    main-is:           Main.hs
+    build-depends:     zwirn:zwirn-lang,
+                       base >= 4.14 && < 4.22,
+                       tasty >= 1.5,
+                       tasty-smallcheck >= 0.8.2,
+                       tasty-quickcheck >= 0.10.3,
+                       tasty-hunit >= 0.10.1,
+    default-language:  Haskell2010
+    ghc-options:       -threaded
+
+
+benchmark bench-zwirn-core
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    hs-source-dirs:   bench/Core
+    build-depends:
+                      base >= 4.14 && < 4.22,
+                      criterion >=1.6.4 && < 1.6.5,
+                      deepseq,
+                      zwirn:zwirn-core,
+    default-language: Haskell2010
+    ghc-options:      -Wall
