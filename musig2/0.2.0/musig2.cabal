@@ -1,0 +1,107 @@
+cabal-version:   3.0
+name:            musig2
+version:         0.2.0
+synopsis:        MuSig2 library
+license:         MIT
+license-file:    LICENSE
+author:          Jose Storopoli
+maintainer:      jose@storopoli.com
+homepage:        https://github.com/storopoli/musig2
+category:        Cryptography
+build-type:      Simple
+tested-with:     GHC ==9.8.4 || ==9.10.2 || ==9.10.3
+extra-doc-files: CHANGELOG
+description:
+  Pure BIP0327 MuSig2 (partial)signatures with tweak support on the elliptic curve secp256k1.
+
+source-repository head
+  type:     git
+  location: github.com/storopoli/musig2.git
+
+flag llvm
+  description: Use GHC's LLVM backend.
+  default:     False
+  manual:      True
+
+library
+  default-language: Haskell2010
+  hs-source-dirs:   lib
+  ghc-options:      -Wall
+
+  if flag(llvm)
+    ghc-options: -fllvm -O2
+
+  exposed-modules:  Crypto.Curve.Secp256k1.MuSig2
+  other-modules:    Crypto.Curve.Secp256k1.MuSig2.Internal
+  build-depends:
+    , base               >=4.19  && <5
+    , base16-bytestring  >=1.0   && <1.1
+    , binary             >=0.8   && <0.9
+    , bytestring         >=0.9   && <0.13
+    , containers         >=0.6   && <0.9
+    , entropy            >=0.4   && <0.5
+    , ppad-hmac-drbg     >=0.3.1 && <0.4
+    , ppad-secp256k1     >=0.5.4 && <0.6
+    , ppad-sha256        >=0.3.2 && <0.4
+
+test-suite musig2-tests
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  hs-source-dirs:   test lib
+  main-is:          Main.hs
+  other-modules:
+    AggNonces
+    AggPartials
+    AggPartialsProperty
+    AggPubkeys
+    ApplyTweaks
+    Crypto.Curve.Secp256k1.MuSig2
+    Crypto.Curve.Secp256k1.MuSig2.Internal
+    MonoidProjective
+    MonoidPubNonce
+    NonceGen
+    NonceGenProperty
+    ParityPub
+    SignVerify
+    SignVerifyProperty
+    SignVerifyTweakProperty
+    SortPubkeys
+    Tweak
+    Util
+
+  ghc-options:      -rtsopts -Wall
+
+  if flag(llvm)
+    ghc-options: -fllvm -O2
+
+  build-depends:
+    , base               >=4.19 && <5
+    , base16-bytestring
+    , binary
+    , bytestring
+    , containers
+    , entropy
+    , ppad-secp256k1
+    , ppad-sha256
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+
+benchmark musig2-bench
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  hs-source-dirs:   bench
+  main-is:          Main.hs
+  ghc-options:      -rtsopts -O2 -Wall -fno-warn-orphans
+
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  build-depends:
+    , base               >=4.19 && <5
+    , base16-bytestring
+    , bytestring
+    , criterion
+    , deepseq
+    , musig2
+    , ppad-secp256k1
