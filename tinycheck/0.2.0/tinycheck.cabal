@@ -1,0 +1,117 @@
+cabal-version: 3.0
+name: tinycheck
+version: 0.2.0
+synopsis: A lightweight enumeration-based property testing library
+description:
+  Tinycheck is a deterministic property testing library.
+  Instead of random generation, test cases are produced by exhaustive,
+  fairly-interleaved enumeration.  It integrates with the Tasty test
+  framework via "Test.Tasty.TinyCheck".
+
+license: BSD-3-Clause
+license-file: LICENSE
+author: Manuel Bärenz
+maintainer: programming@manuelbaerenz.de
+build-type: Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+tested-with:
+  ghc ==9.4
+  ghc ==9.6
+  ghc ==9.8
+  ghc ==9.10
+  ghc ==9.12
+
+flag dev
+  description: Enable stricter warnings for development
+  default: False
+  manual: True
+
+flag dump-core
+  description: Emit GHC Core output (.dump-simpl files) for inspection
+  default: False
+  manual: True
+
+common opts
+  ghc-options: -Wall
+
+  if flag(dev)
+    ghc-options: -Werror
+
+  if flag(dump-core)
+    ghc-options:
+      -ddump-simpl
+      -ddump-to-file
+      -dsuppress-coercions
+      -dsuppress-type-applications
+      -dsuppress-idinfo
+      -dsuppress-module-prefixes
+      -dppr-case-as-let
+      -O2
+  default-extensions:
+    DataKinds
+    DefaultSignatures
+    DerivingStrategies
+    DerivingVia
+    LambdaCase
+    ScopedTypeVariables
+    TypeApplications
+    TypeFamilies
+
+  default-language: GHC2021
+  build-depends:
+    base >=4.17 && <4.22,
+    tasty >=1.5 && <1.6,
+
+library
+  import: opts
+  exposed-modules:
+    Data.TestCases
+    Test.Tasty.TinyCheck
+
+  build-depends:
+    generics-sop >=0.5 && <0.6,
+    tagged >=0.8 && <0.9,
+    transformers >=0.5.6.2 && <0.7,
+
+  hs-source-dirs: src
+
+test-suite tinycheck-test
+  import: opts
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  other-modules:
+    Test.Base
+    Test.Combinators
+    Test.Generic
+    Test.HybridSort
+    Test.Strings
+
+  build-depends: tinycheck
+
+test-suite example-colour
+  import: opts
+  type: exitcode-stdio-1.0
+  hs-source-dirs: examples
+  main-is: Colour.hs
+  build-depends: tinycheck
+
+test-suite example-tree
+  import: opts
+  type: exitcode-stdio-1.0
+  hs-source-dirs: examples
+  main-is: Tree.hs
+  build-depends: tinycheck
+
+benchmark tinycheck-bench
+  import: opts
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: Main.hs
+  build-depends:
+    deepseq >=1.4 && <1.6,
+    tasty-bench >=0.3 && <0.5,
+    tinycheck,
