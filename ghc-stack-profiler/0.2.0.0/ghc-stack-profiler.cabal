@@ -1,0 +1,165 @@
+cabal-version: 3.8
+name: ghc-stack-profiler
+version: 0.2.0.0
+license: BSD-3-Clause
+author: Hannes Siebenhandl, Wen Kokke, Matthew Pickering
+maintainer: hannes@well-typed.com
+build-type: Simple
+synopsis: RTS Callstack profiler for GHC.
+description:
+  RTS Callstack profiler for GHC.
+
+  The main idea is to periodically sample the Haskell callstack and use IPE and [stack annotation](https://www.well-typed.com/blog/2025/09/better-haskell-stack-traces/) information in order to understand the source locations which
+  correspond to the stack frames.
+  To profile a program it needs to be compiled and instrumented with the 'ghc-stack-profiler' package via:
+
+  @
+  import GHC.Stack.Profiler.Sampler
+
+  main :: IO ()
+  main = 'withStackProfilerForMyThread' ('SampleIntervalMs' 10) $ do
+      ...
+  @
+
+  This will spawn a profiling thread that will periodically take a snapshot of the current RTS callstack of your program and serialises it to the eventlog.
+
+  To improve readability of the profile, compile the program with @-finfo-table-map@ and @-fdistinct-constructor-tables@.
+  Using @cabal@, this can be achieved with an appropriate @cabal.project@ file:
+
+  @
+  packages: ...
+
+  ...
+
+  package *
+      ghc-options: -finfo-table-map -fdistinct-constructor-tables
+  @
+
+  To emit the eventlog messages by the profiler, you need to run your program with the @-l@ RTS flag, for example via:
+
+  @
+  ./\<program\> ... +RTS -l -RTS
+  @
+
+  This will write out an eventlog to @\<program\>.eventlog@ which can be transformed for [speedscope.app](https://www.speedscope.app/) via the script 'ghc-stack-profiler-speedscope'.
+
+  @
+  ghc-stack-profiler-speedscope \<program\>.eventlog
+  @
+
+  The resulting profile @\<program\>.eventlog.json@ can be viewed and further analysed in [speedscope.app](https://www.speedscope.app/).
+
+  Note that the results are affected by compilation optimisation options, such as @-fno-omit-yields@.
+
+extra-doc-files: CHANGELOG.md
+category: Profiling, Benchmarking, Development
+tested-with:
+  ghc ==9.10.3
+  ghc ==9.12.2
+  ghc ==9.14.1
+
+common warnings
+  ghc-options:
+    -Wall
+    -Wunused-packages
+
+common exts
+  default-extensions:
+    DeriveGeneric
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    NamedFieldPuns
+    NoImportQualifiedPost
+    PatternSynonyms
+    ViewPatterns
+
+  default-language: GHC2021
+
+flag use-ghc-trace-events
+  description:
+    Use the package 'ghc-trace-events'. Disabling this flag makes it much easier to use @ghc-stack-profiler@ on the @ghc@ codebase, as
+    we don't have to package 'ghc-trace-events' for hadrian. Always enabled on GHC <9.12.
+
+  manual: True
+  default: True
+
+flag control
+  description:
+    Enable @eventlog-socket@ control commands.
+
+  manual: True
+  default: False
+
+library
+  import:
+    warnings, exts
+
+  exposed-modules:
+    Debug.Trace.Binary.Compat
+    GHC.Internal.ClosureTypes.Compat
+    GHC.Internal.Heap.Closures.Compat
+    GHC.Internal.InfoProv.Types.Compat
+    GHC.Internal.Stack.Constants.Compat
+    GHC.Internal.Stack.Decode.Compat
+    GHC.Stack.Annotation.Experimental.Compat
+    GHC.Stack.Profiler
+    GHC.Stack.Profiler.Commands
+    GHC.Stack.Profiler.Decode
+    GHC.Stack.Profiler.FFI
+    GHC.Stack.Profiler.Manager
+    GHC.Stack.Profiler.Stack.Compat
+    GHC.Stack.Profiler.Stack.Decode
+    GHC.Stack.Profiler.SymbolTable
+    GHC.Stack.Profiler.Util
+
+  build-depends:
+    async >=2.2 && <2.2.6,
+    base >=4.20 && <4.23,
+    binary >=0.8.9.3 && <0.11,
+    bytestring >=0.11 && <0.13,
+    containers >=0.6.8 && <0.9,
+    ghc-heap >=9.10.1 && <9.16,
+    ghc-internal >=9.1001 && <9.1600,
+    ghc-stack-profiler-core ==0.2.0.0,
+    stm ^>=2.5.3.0 || ^>=2.5.0.0,
+    text >=2 && <2.2,
+
+  hs-source-dirs:
+    src
+
+  if impl(ghc >=9.14)
+    build-depends: ghc-experimental >=9.1400 && <9.1600
+
+  if flag(use-ghc-trace-events) || impl(ghc <9.12)
+    cpp-options:
+      -DUSE_GHC_TRACE_EVENTS
+
+    build-depends:
+      ghc-trace-events ^>=0.1.2.10
+  else
+    build-depends:
+      ghc-prim >=0.6.0 && <1
+
+  -- Custom stack decoding for GHC <9.14.2
+  -- Fixes https://github.com/well-typed/ghc-stack-profiler/issues/14
+  -- See https://gitlab.haskell.org/ghc/ghc/-/issues/27009 for the fix.
+  if impl(ghc <9.14.2)
+    cmm-sources:
+      cbits/Stack.cmm
+
+    c-sources:
+      cbits/Stack_c.c
+
+  -- eventlog-socket custom command support
+  if flag(control) && !os(windows)
+    cpp-options:
+      -DEVENTLOG_SOCKET_SUPPORT
+
+    build-depends:
+      eventlog-socket ^>=0.1.3
+
+source-repository head
+  type: git
+  location: https://github.com/well-typed/ghc-stack-profiler.git
+  subdir: ghc-stack-profiler
