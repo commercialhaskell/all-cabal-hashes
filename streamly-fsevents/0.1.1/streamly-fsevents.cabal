@@ -1,0 +1,293 @@
+cabal-version:      2.2
+name:               streamly-fsevents
+version:            0.1.1
+synopsis:           File system event notification streams
+description:
+  A portable, robust, and stream-based file system event notification API for
+  Linux, macOS, and Windows. This library provides a streaming alternative to
+  the fsnotify package.
+  .
+  The portable module in this package offers a consistent,
+  cross-platform, common denominator API across all supported systems
+  whereas platform-specific modules expose more extensive APIs that
+  allow you to make full use of each operating system’s native
+  capabilities.
+
+homepage:            https://streamly.composewell.com
+bug-reports:         https://github.com/composewell/streamly-fsevents/issues
+license:             BSD-3-Clause
+license-file:        LICENSE
+tested-with:
+    GHC==9.14.1
+  , GHC==9.12.4
+  , GHC==9.10.3
+  , GHC==9.8.4
+  , GHC==9.6.3
+author:              Composewell Technologies
+maintainer:          streamly@composewell.com
+copyright:           2025 Composewell Technologies
+category:
+    Streamly, Streaming, Filesystem
+stability:           Stable
+build-type:          Configure
+
+extra-source-files:
+    configure
+    configure.ac
+    src/Streamly/Internal/FS/Event/Darwin.h
+    src/config.h.in
+
+extra-doc-files:
+    Changelog.md
+    README.md
+
+extra-tmp-files:
+    config.log
+    config.status
+    autom4te.cache
+    src/config.h
+
+source-repository head
+    type: git
+    location: https://github.com/composewell/streamly-fsevents
+
+flag fusion-plugin
+  description: Enable fusion plugin
+  manual: True
+  default: False
+
+flag internal-dev
+  description: Development build
+  manual: True
+  default: False
+
+flag opt
+  description: off=GHC default, on=-O2
+  manual: True
+  default: True
+
+flag limit-build-mem
+  description: Limits memory when building
+  manual: True
+  default: False
+
+-------------------------------------------------------------------------------
+-- Common stanzas
+-------------------------------------------------------------------------------
+
+common compile-options
+    default-language: Haskell2010
+
+    if os(darwin)
+      cpp-options:    -DCABAL_OS_DARWIN
+
+    if os(linux)
+      cpp-options:    -DCABAL_OS_LINUX
+
+    if os(windows)
+      cpp-options:    -DCABAL_OS_WINDOWS
+
+    if flag(internal-dev)
+      cpp-options:    -DDEVBUILD
+
+    ghc-options:    -Weverything
+                    -Wno-implicit-prelude
+                    -Wno-missing-deriving-strategies
+                    -Wno-missing-exported-signatures
+                    -Wno-missing-import-lists
+                    -Wno-missing-local-signatures
+                    -Wno-missing-safe-haskell-mode
+                    -Wno-missed-specialisations
+                    -Wno-all-missed-specialisations
+                    -Wno-monomorphism-restriction
+                    -Wno-prepositive-qualified-module
+                    -Wno-unsafe
+                    -Rghc-timing
+
+    if impl(ghc >= 9.2)
+      ghc-options:
+        -Wno-missing-kind-signatures
+        -Wno-redundant-bang-patterns
+        -Wno-operator-whitespace
+
+    if impl(ghc >= 9.8)
+      ghc-options:
+        -Wno-missing-role-annotations
+
+    if flag(internal-dev)
+      ghc-options:    -Wmissed-specialisations
+                      -Wall-missed-specialisations
+
+    if flag(limit-build-mem)
+        ghc-options: +RTS -M1000M -RTS
+
+common default-extensions
+    default-extensions:
+        BangPatterns
+        ConstraintKinds
+        DeriveDataTypeable
+        DeriveGeneric
+        DeriveTraversable
+        ExistentialQuantification
+        FlexibleContexts
+        FlexibleInstances
+        GeneralizedNewtypeDeriving
+        InstanceSigs
+        KindSignatures
+        MultiParamTypeClasses
+        RankNTypes
+        ScopedTypeVariables
+        TupleSections
+        TypeApplications
+        TypeOperators
+
+        -- Not GHC2021
+        CApiFFI
+        CPP
+        LambdaCase
+        MagicHash
+        RecordWildCards
+
+        -- TypeFamilies -- required by IsHashMap type class
+        -- MonoLocalBinds, enabled by TypeFamilies, causes performance
+        -- regressions. Disable it. This must come after TypeFamilies,
+        -- otherwise TypeFamilies will enable it again.
+        -- NoMonoLocalBinds
+
+        -- UndecidableInstances -- Does not show any perf impact
+        -- UnboxedTuples        -- interferes with (#.)
+
+common optimization-options
+  if flag(opt)
+    ghc-options: -O2
+                 -fdicts-strict
+                 -fspec-constr-recursive=16
+                 -fmax-worker-args=16
+
+  -- For this to be effective it must come after the -O2 option
+  if flag(internal-dev) || !flag(opt)
+    ghc-options: -fno-ignore-asserts
+
+  if flag(fusion-plugin)
+    ghc-options: -fplugin Fusion.Plugin
+
+
+common threading-options
+  ghc-options:  -threaded
+                -with-rtsopts=-N
+
+-- We need optimization options here to optimize internal (non-inlined)
+-- versions of functions. Also, we have some benchmarking inspection tests
+-- part of the library when built with --benchmarks flag. Thos tests fail
+-- if we do not use optimization options here. It was observed that due to
+-- -O2 here some concurrent/nested benchmarks improved and others regressed.
+-- We can investigate a bit more here why the regression occurred.
+common lib-options
+  import: compile-options, optimization-options, default-extensions
+
+common test-options
+  import: lib-options
+        , threading-options
+  ghc-options: -rtsopts -fno-ignore-asserts
+  hs-source-dirs: test
+  build-depends: streamly-core
+               , streamly
+               , streamly-fsevents
+               , base
+               , hspec
+               , directory
+               , filepath
+               , temporary
+  if flag(fusion-plugin)
+    build-depends:
+      fusion-plugin     >= 0.2   && < 0.3
+
+-------------------------------------------------------------------------------
+-- Library
+-------------------------------------------------------------------------------
+
+library
+    import: lib-options
+
+    if impl(ghc >= 8.6)
+      default-extensions: QuantifiedConstraints
+
+    include-dirs: src
+
+    hs-source-dirs: src
+
+    if os(windows)
+          exposed-modules: Streamly.Internal.FS.Event.Windows
+
+    if os(darwin)
+          include-dirs:  src/Streamly/Internal
+          c-sources: src/Streamly/Internal/FS/Event/Darwin.c
+          exposed-modules: Streamly.Internal.FS.Event.Darwin
+
+    if os(linux)
+          exposed-modules: Streamly.Internal.FS.Event.Linux
+
+    if os(linux) || os(darwin) || os(windows)
+          exposed-modules: Streamly.FileSystem.Event
+                           Streamly.Internal.FS.Event
+
+    build-depends:
+                       base              >= 4.12  && < 4.23
+                     , streamly-core     == 0.3.0
+
+    if flag(fusion-plugin)
+      build-depends:
+        fusion-plugin     >= 0.2   && < 0.3
+
+    -- For FS.Event module
+    if os(linux)
+      build-depends: directory >= 1.2.2 && < 1.4
+                   , containers >= 0.6.0 && < 0.9
+
+    if os(windows)
+      build-depends: Win32 >= 2.6 && < 2.15
+                   , streamly == 0.11.0
+
+    if os(darwin)
+      build-depends: mtl       >= 2.2.2 && < 2.4
+      frameworks: Cocoa
+
+
+test-suite FileSystem.Event
+  import: test-options
+  type: exitcode-stdio-1.0
+  ghc-options: -main-is Streamly.Test.FileSystem.Event
+  main-is: Streamly/Test/FileSystem/Event.hs
+  other-modules: Streamly.Test.FileSystem.Event.Common
+  if !((os(linux) && impl(ghc >= 9.4)) || os(darwin) || os(windows))
+    buildable: False
+
+test-suite FileSystem.Event.Darwin
+  import: test-options
+  type: exitcode-stdio-1.0
+  main-is: Streamly/Test/FileSystem/Event/Darwin.hs
+  other-modules: Streamly.Test.FileSystem.Event.Common
+  cpp-options: -DFILESYSTEM_EVENT_DARWIN
+  ghc-options: -main-is Streamly.Test.FileSystem.Event.Darwin
+  if !os(darwin)
+    buildable: False
+
+test-suite FileSystem.Event.Linux
+  import: test-options
+  type: exitcode-stdio-1.0
+  main-is: Streamly/Test/FileSystem/Event/Linux.hs
+  other-modules: Streamly.Test.FileSystem.Event.Common
+  cpp-options: -DFILESYSTEM_EVENT_LINUX
+  ghc-options: -main-is Streamly.Test.FileSystem.Event.Linux
+  if impl(ghc < 9.4) || !os(linux)
+    buildable: False
+
+test-suite FileSystem.Event.Windows
+  import: test-options
+  type: exitcode-stdio-1.0
+  main-is: Streamly/Test/FileSystem/Event/Windows.hs
+  other-modules: Streamly.Test.FileSystem.Event.Common
+  cpp-options: -DFILESYSTEM_EVENT_WINDOWS
+  ghc-options: -main-is Streamly.Test.FileSystem.Event.Windows
+  if !os(windows)
+    buildable: False
