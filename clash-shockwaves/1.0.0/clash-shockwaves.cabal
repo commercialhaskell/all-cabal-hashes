@@ -1,0 +1,175 @@
+cabal-version:       2.4
+name:                clash-shockwaves
+version:             1.0.0
+license:             BSD-2-Clause
+license-file:        LICENSE
+copyright:           Copyright © 2026 QBayLogic B.V.
+author:              Marijn Adriaanse <marijn@qbaylogic.com>
+maintainer:          QBayLogic B.V. <devops@qbaylogic.com>
+synopsis:            Typed waveforms for Clash using the Surfer waveform viewer
+description:         A library for creating typed waveforms.
+                     The library allows the user to specify what the waveforms
+                     for a data type should look like, and includes tools for
+                     storing this metadata in simulations.
+category:            Hardware
+
+flag large-tuples
+  description:
+    Generate instances for `Waveform` for tuples up to the GHC imposed maximum.
+
+  default: False
+  manual: True
+
+common common-options
+  default-extensions:
+    BangPatterns
+    BinaryLiterals
+    ConstraintKinds
+    DataKinds
+    DefaultSignatures
+    DeriveAnyClass
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveLift
+    DeriveTraversable
+    DerivingStrategies
+    FlexibleContexts
+    InstanceSigs
+    KindSignatures
+    LambdaCase
+    NamedFieldPuns
+    NoStarIsType
+    PolyKinds
+    QuasiQuotes
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    StandaloneDeriving
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    ViewPatterns
+
+    -- TemplateHaskell is used to support convenience functions such as
+    -- 'listToVecTH' and 'bLit'.
+    TemplateHaskell
+
+    -- Prelude isn't imported by default as Clash offers Clash.Prelude
+    NoImplicitPrelude
+
+  ghc-options:
+    -Wall -Wcompat
+    -haddock
+
+    -- Plugins to support type-level constraint solving on naturals
+    -fplugin GHC.TypeLits.Extra.Solver
+    -fplugin GHC.TypeLits.Normalise
+    -fplugin GHC.TypeLits.KnownNat.Solver
+
+    -- Clash needs access to the source code in compiled modules
+    -fexpose-all-unfoldings
+
+    -- Worker wrappers introduce unstable names for functions that might have
+    -- blackboxes attached for them. You can disable this, but be sure to add
+    -- a no-specialize pragma to every function with a blackbox.
+    -fno-worker-wrapper
+
+    -- Strict annotations - while sometimes preventing space leaks - trigger
+    -- optimizations Clash can't deal with. See:
+    --
+    --    https://github.com/clash-lang/clash-compiler/issues/2361
+    --
+    -- These flags disables these optimizations. Note that the fields will
+    -- remain strict.
+    -fno-unbox-small-strict-fields
+    -fno-unbox-strict-fields
+
+  build-depends:
+    aeson                         <2.3,
+    base                          >=4.18 && <5,
+    binary                        >=0.8.5 && <0.11,
+    bytestring                    >=0.10.8 && <0.13,
+    Cabal                         <3.17,
+    colour                        <2.4,
+    containers                    >=0.4.0 && <0.8,
+    data-default                  >=0.7 && <0.9,
+    deepseq                       >=1.4.1.0 && <1.6,
+    extra                         >=1.6.17 && <1.9,
+    filepath                      <1.6,
+    integer-logarithms            <1.1,
+    split                         <0.3,
+    template-haskell              >=2.20 && <2.25,
+    text                          >=0.11.3.1 && <2.2,
+    time                          >=1.8 && <1.15,
+
+    -- clash-prelude will set suitable version bounds for the plugins
+    clash-prelude                 >=1.8.2 && <1.10,
+    ghc-typelits-extra,
+    ghc-typelits-knownnat,
+    ghc-typelits-natnormalise,
+
+library
+  import: common-options
+  cpp-options: -DCABAL
+
+  if flag(large-tuples)
+    cpp-options: -DLARGE_TUPLES
+  hs-source-dirs: src
+  exposed-modules:
+    Clash.Shockwaves
+    Clash.Shockwaves.BitList
+    Clash.Shockwaves.Internal.BitList
+    Clash.Shockwaves.Internal.TH.Waveform
+    Clash.Shockwaves.Internal.Trace.CRE
+    Clash.Shockwaves.Internal.Translator
+    Clash.Shockwaves.Internal.Types
+    Clash.Shockwaves.Internal.Util
+    Clash.Shockwaves.Internal.Waveform
+    Clash.Shockwaves.LUT
+    Clash.Shockwaves.Style
+    Clash.Shockwaves.Style.Colors
+    Clash.Shockwaves.Trace
+    Clash.Shockwaves.Trace.CRE
+    Clash.Shockwaves.Waveform
+    Paths_clash_shockwaves
+
+  autogen-modules:
+    Paths_clash_shockwaves
+
+  default-language: Haskell2010
+
+-- Run a bunch of tests about translators and translations
+test-suite test-library
+  import: common-options
+  default-language: Haskell2010
+  hs-source-dirs: tests
+  type: exitcode-stdio-1.0
+  ghc-options: -threaded
+  main-is: tests.hs
+  other-modules:
+    Tests.Structure
+    Tests.Types
+
+  build-depends:
+    clash-shockwaves,
+    tasty                         >=1.2 && <1.6,
+    tasty-hunit,
+    tasty-th,
+
+-- Produce a VCD output of many different types to check in Surfer / use to test Surfer
+test-suite test-vcd
+  import: common-options
+  default-language: Haskell2010
+  hs-source-dirs: tests
+  type: exitcode-stdio-1.0
+  ghc-options: -threaded
+  main-is: vcd.hs
+  other-modules:
+    Tests.Types
+
+  build-depends:
+    clash-shockwaves,
+    directory,
