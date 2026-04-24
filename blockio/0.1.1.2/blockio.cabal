@@ -1,0 +1,171 @@
+cabal-version:   3.4
+name:            blockio
+version:         0.1.1.2
+synopsis:        Perform batches of disk I/O operations.
+description:
+  Perform batches of disk I\/O operations. Performing batches of disk I\/O can
+  lead to performance improvements over performing each disk I\/O operation
+  individually. Performing batches of disk I\/O /concurrently/ can lead to an
+  even bigger performance improvement depending on the implementation of batched
+  I\/O.
+
+  The batched I\/O functionality in the library is separated into an /abstract/
+  /interface/ and /implementations/ of that abstract interface. The advantage of
+  programming against an abstract interface is that code can be agnostic to the
+  implementation of the interface, allowing implementations to be freely swapped
+  out. The library provides multiple implementations of batched I\/O:
+  platform-dependent implementations using the /real/ file system (with
+  asynchronous I\/O), and a simulated implementation for testing purposes.
+
+  See the "System.FS.BlockIO" module for an example of how to use the library.
+
+license:         Apache-2.0
+license-files:
+  LICENSE
+  NOTICE
+
+author:
+  Duncan Coutts, Joris Dral, Matthias Heinzel, Wolfgang Jeltsch, Wen Kokke, and Alex Washburn
+
+maintainer:      joris@well-typed.com
+copyright:       (c) 2023-2025 Cardano Development Foundation
+category:        System
+build-type:      Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+tested-with:     GHC ==9.2 || ==9.4 || ==9.6 || ==9.8 || ==9.10 || ==9.12
+
+source-repository head
+  type:     git
+  location: https://github.com/IntersectMBO/lsm-tree
+  subdir:   blockio
+
+source-repository this
+  type:     git
+  location: https://github.com/IntersectMBO/lsm-tree
+  subdir:   blockio
+  tag:      blockio-0.1.1.2
+
+common warnings
+  ghc-options:
+    -Wall -Wcompat -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wpartial-fields -Widentities
+    -Wredundant-constraints -Wmissing-export-lists
+    -Wno-unticked-promoted-constructors -Wunused-packages
+
+  ghc-options: -Werror=missing-deriving-strategies
+
+common language
+  default-language:   GHC2021
+  default-extensions:
+    DeriveAnyClass
+    DerivingStrategies
+    DerivingVia
+    LambdaCase
+    OverloadedRecordDot
+
+flag serialblockio
+  description: Use serial HasBlockIO regardless of the operating system
+  default:     False
+  manual:      True
+
+library
+  import:          language, warnings
+  hs-source-dirs:  src
+  exposed-modules:
+    System.FS.BlockIO
+    System.FS.BlockIO.API
+    System.FS.BlockIO.IO
+    System.FS.BlockIO.Serial.Internal
+
+  other-modules:
+    System.FS.BlockIO.IO.Internal
+    System.FS.BlockIO.Serial
+
+  build-depends:
+    , base        >=4.16  && <4.23
+    , deepseq     ^>=1.4  || ^>=1.5
+    , fs-api      ^>=0.4
+    , io-classes  ^>=1.6  || ^>=1.7 || ^>=1.8.0.1 || ^>=1.9 || ^>=1.10
+    , primitive   ^>=0.9
+    , vector      ^>=0.13
+
+  if os(linux)
+    hs-source-dirs: src-linux
+    build-depends:  unix ^>=2.8.4
+    other-modules:
+      System.FS.BlockIO.Internal
+      System.FS.BlockIO.Internal.Fcntl
+
+    if !flag(serialblockio)
+      other-modules: System.FS.BlockIO.Async
+      build-depends: blockio-uring ^>=0.1
+
+  elif os(osx)
+    hs-source-dirs: src-macos
+    build-depends:  unix ^>=2.8.4
+    other-modules:
+      System.FS.BlockIO.Internal
+      System.FS.BlockIO.Internal.Fcntl
+
+  elif os(windows)
+    hs-source-dirs: src-windows
+    build-depends:  Win32 ^>=2.14
+    other-modules:  System.FS.BlockIO.Internal
+
+  if flag(serialblockio)
+    cpp-options: -DSERIALBLOCKIO
+
+test-suite test
+  import:         language, warnings
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  build-depends:
+    , async
+    , base              <5
+    , blockio
+    , bytestring
+    , fs-api
+    , primitive
+    , QuickCheck        >=2.15.0.1
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , temporary
+    , vector
+
+  ghc-options:    -threaded
+
+library sim
+  import:          language, warnings
+  visibility:      public
+  hs-source-dirs:  src-sim
+  exposed-modules: System.FS.BlockIO.Sim
+  build-depends:
+    , base                   >=4.16  && <4.23
+    , blockio
+    , bytestring             ^>=0.11 || ^>=0.12
+    , fs-api                 ^>=0.4
+    , fs-sim                 ^>=0.4
+    , io-classes             ^>=1.6  || ^>=1.7  || ^>=1.8.0.1 || ^>=1.9 || ^>=1.10
+    , io-classes:strict-stm
+    , primitive              ^>=0.9
+
+test-suite test-sim
+  import:         language, warnings
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test-sim
+  main-is:        Main.hs
+  build-depends:
+    , base                   <5
+    , blockio
+    , blockio:sim
+    , fs-api
+    , fs-sim
+    , io-classes:strict-stm
+    , QuickCheck
+    , tasty
+    , tasty-quickcheck
