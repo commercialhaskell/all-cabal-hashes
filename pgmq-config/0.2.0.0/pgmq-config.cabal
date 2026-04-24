@@ -1,0 +1,105 @@
+cabal-version:   3.4
+name:            pgmq-config
+version:         0.2.0.0
+synopsis:
+  Declarative queue configuration for PGMQ (PostgreSQL Message Queue)
+
+description:
+  A declarative DSL for configuring pgmq queues. Define your queue
+  topology as Haskell values and call a single function at startup
+  to ensure all queues exist with the desired settings. Supports
+  standard, unlogged, and partitioned queues, notification setup,
+  FIFO indexes, and topic bindings. All operations are idempotent.
+
+homepage:        https://github.com/shinzui/pgmq-hs
+license:         MIT
+license-file:    LICENSE
+author:          Nadeem Bitar
+maintainer:      Nadeem Bitar
+category:        Database
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+flag effectful
+  description: Enable effectful integration
+  default:     True
+  manual:      False
+
+common warnings
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+library
+  import:             warnings
+  exposed-modules:
+    Pgmq.Config
+    Pgmq.Config.Types
+
+  default-extensions:
+    DeriveGeneric
+    DuplicateRecordFields
+    GeneralisedNewtypeDeriving
+    ImportQualifiedPost
+    NamedFieldPuns
+    OverloadedLabels
+    OverloadedStrings
+
+  build-depends:
+    , base          >=4.18  && <5
+    , containers    >=0.6   && <0.8
+    , generic-lens  ^>=2.2  || ^>=2.3
+    , hasql         ^>=1.10
+    , hasql-pool    ^>=1.4
+    , lens          ^>=5.3
+    , pgmq-core     >=0.2   && <0.3
+    , pgmq-hasql    >=0.2   && <0.3
+    , text          ^>=2.1
+
+  if flag(effectful)
+    exposed-modules: Pgmq.Config.Effectful
+    build-depends:
+      , effectful-core  ^>=2.5 || ^>=2.6
+      , pgmq-effectful  >=0.2  && <0.3
+
+  hs-source-dirs:     src
+  default-language:   GHC2024
+
+test-suite pgmq-config-test
+  import:             warnings
+  default-language:   GHC2024
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Main.hs
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N
+  other-modules:
+    ConfigSpec
+    EphemeralDb
+
+  default-extensions:
+    DeriveGeneric
+    DuplicateRecordFields
+    GeneralisedNewtypeDeriving
+    ImportQualifiedPost
+    NamedFieldPuns
+    OverloadedLabels
+    OverloadedStrings
+
+  build-depends:
+    , base            >=4.18  && <5
+    , ephemeral-pg    >=0.2.1
+    , generic-lens    ^>=2.2  || ^>=2.3
+    , hasql
+    , hasql-pool      ^>=1.4
+    , lens            ^>=5.3
+    , pgmq-config
+    , pgmq-core
+    , pgmq-hasql
+    , pgmq-migration
+    , random          ^>=1.2
+    , tasty           ^>=1.5
+    , tasty-hunit     ^>=0.10
+    , text
+    , time            ^>=1.14
