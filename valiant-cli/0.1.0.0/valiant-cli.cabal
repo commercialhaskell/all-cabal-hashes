@@ -1,0 +1,134 @@
+cabal-version:   3.0
+name:            valiant-cli
+version:         0.1.0.0
+synopsis:        Compile-time checked SQL for Haskell: CLI tool
+description:
+  The @valiant@ CLI tool connects to a live PostgreSQL database,
+  validates @.sql@ files via @PREPARE@ / @DESCRIBE@, and caches
+  type metadata for the GHC source plugin to consume at compile time.
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Josh Burgess
+maintainer:      joshburgess.webdev@gmail.com
+category:        Database
+homepage:        https://github.com/joshburgess/valiant
+bug-reports:     https://github.com/joshburgess/valiant/issues
+build-type:      Simple
+extra-doc-files:
+    CHANGELOG.md
+    README.md
+tested-with:     GHC ==9.10.3
+
+source-repository head
+  type:     git
+  location: https://github.com/joshburgess/valiant
+
+flag werror
+  description: Enable -Werror for development builds.
+  default:     False
+  manual:      True
+
+common warnings
+  ghc-options: -Wall -Wcompat -Wno-unticked-promoted-constructors -funbox-strict-fields -fspecialise-aggressively
+  if flag(werror)
+    ghc-options: -Werror
+
+-- The valiant-cli package ships an executable (`valiant`). The CLI's
+-- implementation modules live in a private sublibrary so they don't
+-- pollute the Hackage public API surface; the executable and the test
+-- suite both depend on it directly.
+library cli-internal
+  import:           warnings
+  visibility:       private
+  hs-source-dirs:   src
+  default-language: GHC2021
+  default-extensions:
+    DeriveAnyClass
+    DerivingStrategies
+    LambdaCase
+    OverloadedStrings
+    RecordWildCards
+    StrictData
+
+  exposed-modules:
+    Valiant.CLI.App
+    Valiant.CLI.Cache
+    Valiant.CLI.Command.Check
+    Valiant.CLI.Command.Generate
+    Valiant.CLI.Command.Prepare
+    Valiant.CLI.Command.Types
+    Valiant.CLI.Command.Watch
+    Valiant.CLI.Config
+    Valiant.CLI.CustomTypes
+    Valiant.CLI.Describe
+    Valiant.CLI.Discover
+    Valiant.CLI.Error
+    Valiant.CLI.Hash
+    Valiant.CLI.NamedParams
+    Valiant.CLI.Nullability
+    Valiant.CLI.Output
+    Valiant.CLI.SqlMetadata
+    Valiant.CLI.TypeMap
+
+  build-depends:
+    , aeson                 >=2.1     && <2.3
+    , aeson-pretty          >=0.8     && <0.9
+    , ansi-terminal         >=1.0     && <1.2
+    , base                  >=4.17    && <5
+    , bytestring            >=0.11    && <0.13
+    , containers            >=0.6     && <0.8
+    , cryptohash-sha256     >=0.11    && <0.12
+    , directory             >=1.3     && <1.4
+    , dotenv                >=0.11    && <0.13
+    , filepath              >=1.4     && <1.6
+    , Glob                  >=0.10    && <0.11
+    , optparse-applicative  >=0.18    && <0.19
+    , pg-wire               ==0.1.*
+    , text                  >=2.0     && <2.2
+    , time                  >=1.12    && <1.15
+    , vector                >=0.13    && <0.14
+
+executable valiant
+  import:           warnings
+  hs-source-dirs:   app
+  main-is:          Main.hs
+  default-language: GHC2021
+  build-depends:
+    , base       >=4.17 && <5
+    , valiant-cli:cli-internal
+  ghc-options:      -threaded -rtsopts
+
+test-suite valiant-cli-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+
+  ghc-options: -rtsopts "-with-rtsopts=-K8K"
+
+  other-modules:
+    Valiant.CLI.CacheSpec
+    Valiant.CLI.CustomTypesSpec
+    Valiant.CLI.DiscoverSpec
+    Valiant.CLI.ErrorSpec
+    Valiant.CLI.HashSpec
+    Valiant.CLI.NamedParamsSpec
+    Valiant.CLI.SqlMetadataSpec
+    Valiant.CLI.TypeMapSpec
+
+  build-depends:
+    , aeson
+    , base             >=4.17 && <5
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , hspec            >=2.11 && <2.13
+    , pg-wire
+    , temporary        >=1.3  && <1.4
+    , text
+    , time
+    , valiant-cli:cli-internal
