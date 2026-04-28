@@ -1,0 +1,94 @@
+cabal-version:   3.0
+name:            http-core
+version:         0.1.0.0
+synopsis:        Backend-agnostic HTTP request and response types
+category:        Network.HTTP
+description:
+  Shared HTTP vocabulary types that are independent of any specific
+  server backend (warp, snap, etc.) or middleware framework.
+  .
+  This is the Haskell equivalent of Rust's @http@ crate: a tiny,
+  stable package defining Request and Response types that everyone
+  depends on. WAI, warp, and other backends are confined to adapter
+  packages; this package knows nothing about them.
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Josh Burgess
+maintainer:      Josh Burgess <joshburgess.webdev@gmail.com>
+homepage:        https://github.com/joshburgess/acolyte
+bug-reports:     https://github.com/joshburgess/acolyte/issues
+build-type:      Simple
+
+extra-doc-files:
+  CHANGELOG.md
+
+library
+  exposed-modules:
+    Http.Core
+    Http.Core.Request
+    Http.Core.Response
+    Http.Core.Extensions
+    Http.Core.Body
+
+  build-depends:
+      base         >= 4.20 && < 5
+    , bytestring   >= 0.11 && < 0.13
+    , text         >= 2.0  && < 2.2
+    , http-types   >= 0.12 && < 0.13
+    , containers   >= 0.6  && < 0.8
+
+  hs-source-dirs: src
+  default-language: GHC2024
+  default-extensions:
+    AllowAmbiguousTypes
+    OverloadedStrings
+    StrictData
+
+  -- -fno-full-laziness prevents GHC from floating IO actions out of
+  -- lambdas in the streaming Body module. This transformation can
+  -- silently introduce space leaks in pull-based streaming code.
+  -- Applied to the whole library since it's small and no module
+  -- benefits from full laziness floating.
+  -- See: https://www.well-typed.com/blog/2016/09/sharing-conduit/
+  ghc-options: -Wall -funbox-strict-fields -fno-full-laziness
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test
+  default-language: GHC2024
+  default-extensions:
+    StrictData
+
+  ghc-options: -Wall -rtsopts "-with-rtsopts=-K1K"
+
+  build-depends:
+      base         >= 4.20 && < 5
+    , http-core
+    , bytestring   >= 0.11 && < 0.13
+    , text         >= 2.0  && < 2.2
+    , http-types   >= 0.12 && < 0.13
+
+test-suite properties
+  type: exitcode-stdio-1.0
+  main-is: Properties.hs
+  hs-source-dirs: test
+  default-language: GHC2024
+  default-extensions:
+    OverloadedStrings
+    StrictData
+
+  ghc-options: -Wall
+
+  build-depends:
+      base         >= 4.20 && < 5
+    , http-core
+    , hedgehog     >= 1.4  && < 1.8
+    , bytestring   >= 0.11 && < 0.13
+    , text         >= 2.0  && < 2.2
+    , http-types   >= 0.12 && < 0.13
+
+source-repository head
+  type:     git
+  location: https://github.com/joshburgess/acolyte.git
