@@ -1,0 +1,107 @@
+cabal-version:   3.12
+name:            spire-server
+version:         0.1.0.1
+synopsis:        Spire-native HTTP/1.1 + HTTP/2 server, no WAI dependency
+category:        Network.HTTP
+description:
+  A lightweight HTTP server that speaks spire Service directly.
+  No WAI, no warp: just network sockets, HTTP parsing, and dispatch
+  to @Service IO (Request Body) (Response Body)@.
+  .
+  Supports HTTP/1.1 (custom parser), HTTP/2 (via the @http2@ package),
+  TLS with ALPN protocol negotiation, and automatic HTTP/1.1 vs HTTP/2
+  detection.
+  .
+  Proves the zero-WAI path: the entire acolyte stack
+  (including gRPC) can run without any WAI dependency.
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Josh Burgess
+maintainer:      Josh Burgess <joshburgess.webdev@gmail.com>
+homepage:        https://github.com/joshburgess/acolyte
+bug-reports:     https://github.com/joshburgess/acolyte/issues
+build-type:      Simple
+
+extra-doc-files:
+  CHANGELOG.md
+
+library
+  exposed-modules:
+    Spire.Server
+    Spire.Server.Parse
+    Spire.Server.Render
+    Spire.Server.TLS
+    Spire.Server.H2
+
+  build-depends:
+      base               >= 4.20 && < 5
+    , spire              >= 0.1  && < 0.2
+    , http-core          >= 0.1  && < 0.2
+    , network            >= 3.1  && < 3.3
+    , bytestring         >= 0.11 && < 0.13
+    , text               >= 2.0  && < 2.2
+    , http-types         >= 0.12 && < 0.13
+    , attoparsec         >= 0.14 && < 0.15
+    , case-insensitive   >= 1.2  && < 1.3
+    , tls                >= 2.0  && < 2.2
+    , data-default-class >= 0.1  && < 0.2
+    , http2              >= 5.3  && < 5.5
+    , http-semantics     >= 0.2  && < 0.3
+    , network-run        >= 0.4  && < 0.5
+    , async              >= 2.2  && < 2.3
+    , time-manager       >= 0.1  && < 0.2
+
+  hs-source-dirs: src
+  default-language: GHC2024
+  default-extensions:
+    OverloadedStrings
+    StrictData
+
+  -- -fno-full-laziness: spire-server has streaming response rendering
+  -- (chunked transfer encoding, HTTP/2 streaming) where full laziness
+  -- could theoretically float IO actions out of lambdas.
+  ghc-options: -Wall -funbox-strict-fields -fno-full-laziness
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test
+  default-language: GHC2024
+  default-extensions:
+    OverloadedStrings
+    StrictData
+
+  ghc-options: -Wall -rtsopts "-with-rtsopts=-K1K"
+
+  build-depends:
+      base         >= 4.20 && < 5
+    , spire-server >= 0.1  && < 0.2
+    , spire        >= 0.1  && < 0.2
+    , http-core    >= 0.1  && < 0.2
+    , network      >= 3.1  && < 3.3
+    , bytestring   >= 0.11 && < 0.13
+    , text         >= 2.0  && < 2.2
+    , http-types   >= 0.12 && < 0.13
+    , http-client  >= 0.7  && < 0.8
+
+test-suite properties
+  type: exitcode-stdio-1.0
+  main-is: Properties.hs
+  hs-source-dirs: test
+  default-language: GHC2024
+  default-extensions:
+    OverloadedStrings
+    StrictData
+  ghc-options: -Wall
+  build-depends:
+      base              >= 4.20 && < 5
+    , spire-server      >= 0.1  && < 0.2
+    , hedgehog          >= 1.4  && < 1.8
+    , bytestring        >= 0.11 && < 0.13
+    , http-types        >= 0.12 && < 0.13
+    , case-insensitive  >= 1.2  && < 1.3
+
+source-repository head
+  type:     git
+  location: https://github.com/joshburgess/acolyte.git

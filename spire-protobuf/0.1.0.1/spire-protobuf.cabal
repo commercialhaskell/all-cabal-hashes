@@ -1,0 +1,108 @@
+cabal-version:   3.12
+name:            spire-protobuf
+version:         0.1.0.1
+synopsis:        Minimal Protocol Buffers for Haskell, no codegen
+category:        Data, Codec
+description:
+  A fast, minimal protobuf library with zero-copy decoding and GHC
+  Generics integration. No code generation, no Template Haskell, no
+  external tools.
+  .
+  Define messages as Haskell records with 'Field' wrappers for field
+  numbers, derive 'Generic' and 'ProtoMessage', and get encode/decode
+  for free.
+  .
+  @
+  data User = User
+    { name  :: Field 1 Text
+    , age   :: Field 2 Int32
+    , email :: Field 3 (Maybe Text)
+    } deriving (Generic, ProtoMessage)
+  @
+  .
+  Key design decisions:
+  .
+  * Single-pass decoding directly into target type (no intermediate Map)
+  * Zero-copy string\/bytes fields (ByteString slices into input buffer)
+  * Length-memoizing Builder for correct submessage encoding
+  * GHC 9.10 @-finline-generics@ eliminates Generic overhead
+  * 4 dependencies: base, bytestring, text, containers
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Josh Burgess
+maintainer:      Josh Burgess <joshburgess.webdev@gmail.com>
+homepage:        https://github.com/joshburgess/acolyte
+bug-reports:     https://github.com/joshburgess/acolyte/issues
+build-type:      Simple
+
+extra-source-files:
+  test/test.proto
+
+extra-doc-files:
+  CHANGELOG.md
+
+library
+  exposed-modules:
+    Spire.Protobuf
+    Spire.Protobuf.Wire
+    Spire.Protobuf.Encode
+    Spire.Protobuf.Decode
+    Spire.Protobuf.Field
+    Spire.Protobuf.Message
+
+  build-depends:
+      base         >= 4.20 && < 5
+    , bytestring   >= 0.11 && < 0.13
+    , text         >= 2.0  && < 2.2
+    , containers   >= 0.6  && < 0.8
+
+  hs-source-dirs: src
+  default-language: GHC2024
+  default-extensions:
+    StrictData
+    OverloadedStrings
+
+  ghc-options: -Wall -funbox-strict-fields -finline-generics
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test
+  default-language: GHC2024
+  default-extensions:
+    StrictData
+    OverloadedStrings
+
+  ghc-options: -Wall -rtsopts "-with-rtsopts=-K1K"
+
+  build-depends:
+      base         >= 4.20 && < 5
+    , spire-protobuf
+    , bytestring   >= 0.11 && < 0.13
+    , text         >= 2.0  && < 2.2
+    , containers   >= 0.6  && < 0.8
+    , process      >= 1.6  && < 1.8
+
+test-suite properties
+  type: exitcode-stdio-1.0
+  main-is: Properties.hs
+  hs-source-dirs: test
+  default-language: GHC2024
+  default-extensions:
+    StrictData
+    OverloadedStrings
+
+  ghc-options: -Wall
+
+  build-depends:
+      base         >= 4.20 && < 5
+    , spire-protobuf
+    , hedgehog     >= 1.4  && < 1.8
+    , bytestring   >= 0.11 && < 0.13
+    , text         >= 2.0  && < 2.2
+    , containers   >= 0.6  && < 0.8
+
+source-repository head
+  type:     git
+  location: https://github.com/joshburgess/acolyte.git
