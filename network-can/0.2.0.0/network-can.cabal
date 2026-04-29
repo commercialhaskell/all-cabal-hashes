@@ -1,0 +1,166 @@
+cabal-version:       3.0
+name:                network-can
+version:             0.2.0.0
+synopsis:            CAN bus networking
+description:         Talk to CAN buses using Linux SocketCAN and SLCAN
+homepage:            https://github.com/DistRap/network-can
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              sorki
+maintainer:          srk@48.io
+copyright:           2024 sorki
+category:            Network
+build-type:          Simple
+
+extra-source-files:
+    LICENSE
+    README.md
+
+extra-doc-files:
+    CHANGELOG.md
+
+flag build-apps
+  default:
+    False
+  description:
+    Build example applications
+
+flag build-readme
+  default:
+    False
+  description:
+    Build readme example
+
+common commons
+  ghc-options:         -Wall -Wunused-packages
+  default-language:    Haskell2010
+
+common execs
+  ghc-options:         -threaded
+                       -rtsopts
+                       "-with-rtsopts -N"
+
+library
+  import:              commons
+  hs-source-dirs:      src
+  exposed-modules:     Network.CAN
+                       Network.CAN.Types
+  build-depends:       base >= 4.7 && < 5
+                     , QuickCheck
+
+library slcan
+  import:              commons
+  visibility:          public
+  hs-source-dirs:      src-slcan
+  exposed-modules:     Network.SLCAN
+                       Network.SLCAN.Builder
+                       Network.SLCAN.Parser
+                       Network.SLCAN.Types
+  build-depends:       base >= 4.7 && < 5
+                     , attoparsec >= 0.14
+                     , bytestring
+                     , containers
+                     , data-default
+                     , io-classes
+                     , network >= 3.1
+                     , network-can
+                     , QuickCheck
+
+library socketcan
+  import:              commons
+  visibility:          public
+  hs-source-dirs:      src-socketcan
+  exposed-modules:     Network.SocketCAN
+                       Network.SocketCAN.Bindings
+                       Network.SocketCAN.Example
+                       Network.SocketCAN.LowLevel
+                       Network.SocketCAN.Translate
+  build-depends:       base >= 4.7 && < 5
+                     , io-classes
+                     , network >= 3.1
+                     , network-can
+  build-tool-depends:  hsc2hs:hsc2hs
+
+test-suite pure
+  type:                exitcode-stdio-1.0
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  other-modules:       CANSpec
+                       Samples
+                       SLCANSpec
+                       SocketCANSpec
+  build-tool-depends:  hspec-discover:hspec-discover
+  build-depends:       base >= 4.7 && < 5
+                     , hspec
+                     , network-can
+                     , network-can:slcan
+                     , network-can:socketcan
+  default-language:    Haskell2010
+
+executable hcandump
+  import:              commons, execs
+  if !flag(build-apps)
+    buildable: False
+  build-depends:       base >=4.7 && <5
+                     , network-can
+                     , network-can:socketcan
+  main-is:             CANDump.hs
+  hs-source-dirs:      app
+
+executable hcanbridge
+  import:              commons, execs
+  if !flag(build-apps)
+    buildable: False
+  build-depends:       base >=4.7 && <5
+                     , network-can
+                     , network-can:slcan
+                     , network-can:socketcan
+                     , data-default
+                     , io-classes
+                     , serialport >= 0.5.5
+  main-is:             CANBridge.hs
+  hs-source-dirs:      app
+
+executable hslcanserial
+  import:              commons, execs
+  if !flag(build-apps)
+    buildable: False
+  build-depends:       base >=4.7 && <5
+                     , network-can
+                     , network-can:slcan
+                     , data-default
+                     , io-classes
+                     , serialport >= 0.5.5
+  main-is:             SLCANSerial.hs
+  hs-source-dirs:      app
+
+executable hslcanudp
+  import:              commons, execs
+  if !flag(build-apps)
+    buildable: False
+  build-depends:       base >=4.7 && <5
+                     , network
+                     , network-can
+                     , network-can:slcan
+                     , data-default
+                     , io-classes
+  main-is:             SLCANUDP.hs
+  hs-source-dirs:      app
+
+executable readme
+  import:              commons, execs
+  if !flag(build-readme)
+    buildable: False
+  build-depends:
+      base >=4.7 && <5
+    , network-can
+    , network-can:socketcan
+  build-tool-depends:
+      markdown-unlit:markdown-unlit
+  main-is: README.lhs
+  ghc-options: -pgmL markdown-unlit -Wall
+
+source-repository head
+  type:     git
+  location: https://github.com/DistRap/network-can
