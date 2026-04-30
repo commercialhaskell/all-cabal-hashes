@@ -1,0 +1,191 @@
+cabal-version:   3.0
+name:            pg-wire
+version:         0.2.0.0
+synopsis:        Pure Haskell PostgreSQL wire protocol driver
+description:
+  A complete implementation of the PostgreSQL v3 wire protocol in
+  pure Haskell. Includes connection management, authentication
+  (SCRAM-SHA-256, MD5, cleartext), TLS, connection pooling, and
+  binary format type classes. No dependency on libpq or any C library.
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Josh Burgess
+maintainer:      joshburgess.webdev@gmail.com
+category:        Database
+homepage:        https://github.com/joshburgess/valiant
+bug-reports:     https://github.com/joshburgess/valiant/issues
+build-type:      Simple
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+tested-with:     GHC ==9.10.3
+
+source-repository head
+  type:     git
+  location: https://github.com/joshburgess/valiant
+  subdir:   wire
+
+flag werror
+  description: Enable -Werror for development builds.
+  default:     False
+  manual:      True
+
+common warnings
+  ghc-options: -Wall -Wcompat -Wno-unticked-promoted-constructors -funbox-strict-fields -fspecialise-aggressively
+  if flag(werror)
+    ghc-options: -Werror
+
+library
+  import:           warnings
+  hs-source-dirs:   src
+  default-language: GHC2021
+  default-extensions:
+    DerivingStrategies
+    LambdaCase
+    OverloadedStrings
+    RecordWildCards
+    StrictData
+
+  exposed-modules:
+    PgWire.Async
+    PgWire.Auth.Cleartext
+    PgWire.Auth.MD5
+    PgWire.Auth.ScramSHA256
+    PgWire.Binary.Types
+    PgWire.Cache.Sieve
+    PgWire.Cancel
+    PgWire.Connection
+    PgWire.Connection.Config
+    PgWire.Error
+    PgWire.Pool
+    PgWire.Pool.Config
+    PgWire.Pool.Observation
+    PgWire.Protocol.Backend
+    PgWire.Protocol.Builders
+    PgWire.Protocol.Frontend
+    PgWire.Protocol.Oid
+    PgWire.Protocol.Parsers
+    PgWire.TypeCache
+    PgWire.Wire
+
+  build-depends:
+    -- Core
+    , base                  >=4.17    && <5
+    , bytestring            >=0.11    && <0.13
+    , text                  >=2.0     && <2.2
+    , containers            >=0.6     && <0.8
+    , vector                >=0.13    && <0.14
+    , time                  >=1.12    && <1.15
+    , deepseq               >=1.4     && <1.6
+
+    -- Networking
+    , network               >=3.1     && <3.3
+
+    -- TLS
+    , tls                   >=1.7     && <2.2
+    , crypton-x509-store    >=1.6     && <1.7
+    , crypton-x509-system   >=1.6     && <1.7
+
+    -- Crypto (auth)
+    , crypton               >=0.34    && <1.1
+    , cryptohash-md5        >=0.11    && <0.12
+    , memory                >=0.18    && <0.19
+    , base64-bytestring     >=1.2     && <1.3
+
+    -- Misc
+    , directory             >=1.3     && <1.4
+    , hashable              >=1.4     && <1.6
+    , nothunks              >=0.1     && <0.3
+    , random                >=1.2     && <1.4
+
+    -- Concurrency / pool
+    , stm                   >=2.5     && <2.6
+    , async                 >=2.2     && <2.3
+
+-- Mock PostgreSQL server for testing client behaviour without a real
+-- database. Sub-library so this isn't part of the public pg-wire API.
+library mockserver
+  import:           warnings
+  visibility:       public
+  hs-source-dirs:   mockserver
+  default-language: GHC2021
+  default-extensions:
+    DerivingStrategies
+    LambdaCase
+    OverloadedStrings
+    RecordWildCards
+    StrictData
+  exposed-modules:
+    PgWire.MockServer
+  build-depends:
+    , base                  >=4.17    && <5
+    , bytestring            >=0.11    && <0.13
+    , network               >=3.1     && <3.3
+    , pg-wire
+
+test-suite pg-wire-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+
+  other-modules:
+    PgWire.Auth.MD5Spec
+    PgWire.Auth.ScramFieldsSpec
+    PgWire.Cache.SieveSpec
+    PgWire.CancelSpec
+    PgWire.Connection.ConfigSpec
+    PgWire.Connection.EscapingSpec
+    PgWire.Connection.FeaturesSpec
+    PgWire.ErrorSpec
+    PgWire.MockServerSpec
+    PgWire.Pool.ConfigSpec
+    PgWire.Pool.NoThunksSpec
+    PgWire.Pool.PropertySpec
+    PgWire.Pool.StateMachineSpec
+    PgWire.Protocol.BuildersSpec
+    PgWire.Protocol.FuzzSpec
+    PgWire.Protocol.OidSpec
+    PgWire.Protocol.ParsersSpec
+
+  ghc-options: -rtsopts "-with-rtsopts=-K8K" -finfo-table-map -fdistinct-constructor-tables
+  build-depends:
+    , async        >=2.2  && <2.3
+    , base         >=4.17 && <5
+    , bytestring
+    , containers
+    , crypton
+    , deepseq
+    , hedgehog     >=1.2  && <1.6
+    , hspec        >=2.11 && <2.13
+    , hspec-hedgehog >=0.1 && <0.3
+    , memory
+    , nothunks
+    , pg-wire
+    , pg-wire:mockserver
+    , vector
+
+-- Pure microbenchmarks for the SIEVE-based prepared-statement cache
+-- ('PgWire.Cache.Sieve'), used per-connection by 'Valiant.Execute' and
+-- 'PgWire.Connection'.
+-- Run with:  cabal bench pg-wire-cache-bench
+benchmark pg-wire-cache-bench
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          Main.hs
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  build-depends:
+    , base                  >=4.17    && <5
+    , bytestring
+    , criterion             >=1.6     && <1.8
+    , deepseq
+    , pg-wire
+    , random                >=1.2     && <1.4
+  ghc-options: -O2
