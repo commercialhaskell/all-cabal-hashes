@@ -1,0 +1,241 @@
+cabal-version:          3.0
+name:                   natskell
+version:                0.0.0.1
+synopsis:               A NATS client library written in Haskell
+tested-with:
+  GHC ==8.8,
+  GHC ==8.10,
+  GHC ==9.0,
+  GHC ==9.2,
+  GHC ==9.4,
+  GHC ==9.6,
+  GHC ==9.8,
+  GHC ==9.10,
+  GHC ==9.12,
+  GHC ==9.14
+
+-- A longer description of the package.
+description:            Please see the README on GitHub at <https://github.com/samisagit/natskell#readme>
+
+-- homepage:
+
+-- A URL where users can report bugs.
+bug-reports: https://github.com/samisagit/natskell/issues
+
+license:                MIT
+license-file:           LICENSE
+author:                 samisagit
+maintainer:             sam@whiteteam.co.uk
+
+-- A copyright notice.
+-- copyright:
+
+category:               Web
+
+source-repository head
+  type:               git
+  location:           https://github.com/samisagit/natskell.git
+
+common shared
+  default-language:     Haskell2010
+  build-depends:
+    base  >= 4.13 && < 5,
+  ghc-options:
+    -haddock -W -Wunused-packages
+  pkgconfig-depends: zlib
+
+library
+  import:         shared
+  build-depends:
+    natskell-internal,
+    stm  >= 2.5 && < 2.6,
+    bytestring  >= 0.10 && < 0.13,
+    heap >= 0.6 && < 1.1,
+    time >= 1.9 && < 1.16
+
+  exposed-modules:
+    API
+    Client
+
+  hs-source-dirs:
+       client
+
+library natskell-internal
+  import:         shared
+  build-depends:
+    conduit >= 1.3 && < 1.4,
+    attoparsec >= 0.14 && < 0.15,
+    bytestring >= 0.10 && < 0.13,
+    aeson  >= 2.1 && < 2.3,
+    stm >= 2.5 && < 2.6,
+    containers >= 0.5 && < 0.9,
+    heap >= 0.6 && < 1.1,
+    time >= 1.9 && < 1.16,
+    network  >= 3.1 && < 3.3,
+    mtl >= 2.2 && < 2.4,
+    cryptonite >= 0.29 && < 0.31,
+    memory >= 0.14 && < 0.19,
+    random  >= 1.1 && < 1.3,
+    network-simple  >= 0.4 && < 0.5,
+    tls >= 1.8 && < 3,
+    text (>= 1.2 && < 1.3) || (>= 2.0 && < 2.2)
+
+  exposed-modules:
+    Auth.Types
+    Auth.None
+    Auth.Token
+    Auth.UserPass
+    Auth.NKey
+    Auth.Jwt
+    Handshake.Nats
+    Router.Nats
+    Subscription.Types
+    Subscription.Store
+    Engine
+    Publish.Config
+    Publish
+    State.Types
+    State.Store
+    Parser.API
+    Lib.Logger
+    Lib.Logger.Types
+    Lib.LoggerAPI
+    Lib.CallOption
+    Lib.WorkerPool
+    Parser.Attoparsec
+    Transformers.Transformers
+    Validators.Validators
+    Types.Msg
+    Types.Ping
+    Types.Pong
+    Types.Ok
+    Types.Err
+    Types.Info
+    Types.Pub
+    Types.Connect
+    Types.Sub
+    Types.Unsub
+    Sid
+    Nuid
+    WaitGroup
+    Pipeline.Broadcasting.Source
+    Pipeline.Broadcasting.Transformer
+    Pipeline.Broadcasting.Sink
+    Pipeline.Broadcasting.API
+    Pipeline.Broadcasting
+    Pipeline.Streaming.API
+    Pipeline.Streaming
+    Pipeline.Streaming.Source
+    Pipeline.Streaming.Parser
+    Pipeline.Streaming.Sink
+    Network.Connection
+    Network.ConnectionAPI
+    Network.Connection.Types
+    Network.Connection.Core
+    Network.Connection.Tcp
+    Network.Connection.Tls
+    Queue.API
+    Queue.TransactionalQueue
+  hs-source-dirs:
+    internal
+    internal/Types
+    internal/Lib
+    internal/Plumbing
+    internal/Policy
+
+library test-common
+    import:         shared
+    build-depends:
+      stm >= 2.5 && < 2.6,
+    exposed-modules:
+      WaitGroup
+    hs-source-dirs:
+      internal/Lib
+
+test-suite unit-test
+  import:         shared
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test/Unit
+  main-is:          Spec.hs
+  build-depends:   
+    natskell-internal,
+    hspec >= 2.7 && < 2.12,
+    bytestring,
+    network,
+    word8,
+    aeson,
+    stm,
+    text,
+    random
+
+  other-modules:
+    ParserSpec
+    MsgSpec
+    PingSpec
+    PongSpec
+    OkSpec
+    ErrSpec
+    InfoSpec
+    PubSpec
+    ConnectSpec
+    SubSpec
+    UnsubSpec
+    NKeySpec
+    ConnectionSpec
+    Fixtures
+    StreamingSpec
+    SidSpec
+    NuidSpec
+    WorkerPoolSpec
+    WaitGroupSpec
+
+test-suite fuzz-test
+  import:         shared
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       test/Fuzz
+  main-is:              Spec.hs
+  build-depends:    
+    natskell-internal,
+    hspec >= 2.7 && < 2.12,
+    bytestring,
+    QuickCheck >= 2.14 && < 2.17
+  other-modules:
+    ParserSpec
+    ValidatorsSpec
+
+benchmark parser-bench
+  import:         shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is:        Main.hs
+  ghc-options:
+    -rtsopts
+    -with-rtsopts=-T
+  build-depends:
+    natskell-internal,
+    bytestring
+
+flag impure
+  default: False
+  manual: True
+
+test-suite integration-tests
+  import:         shared
+  hs-source-dirs: test/Integration
+  build-depends:
+    natskell,
+    test-common,
+    port-utils >= 0.1 && < 0.3,
+    bytestring,
+    word8,
+    network,
+    stm,
+    hspec >= 2.7 && < 2.12
+  other-modules:
+      ClientSpec
+  if flag (impure)
+    type: exitcode-stdio-1.0
+    main-is:              Spec.hs
+  else
+    type: exitcode-stdio-1.0
+    main-is: Skip.hs
