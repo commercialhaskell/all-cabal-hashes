@@ -1,0 +1,92 @@
+cabal-version:   3.0
+name:            valiant-mtl
+version:         0.1.0.1
+synopsis:        MTL-style adapter for valiant
+description:
+  Provides valiant database operations as MTL-style functions that work in
+  any monad with @MonadReader pool m@ and @MonadIO m@ constraints. Unlike
+  the built-in @Valiant.Monad@ (which is @ReaderT Pool IO@), this adapter
+  composes with arbitrary monad stacks.
+
+  @
+  import Valiant.Mtl
+
+  myApp :: (HasPool m, MonadIO m) => m [User]
+  myApp = do
+    users <- fetchAllMtl listUsers ()
+    pure users
+  @
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Josh Burgess
+maintainer:      joshburgess.webdev@gmail.com
+category:        Database
+homepage:        https://github.com/joshburgess/valiant
+bug-reports:     https://github.com/joshburgess/valiant/issues
+build-type:      Simple
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+tested-with:     GHC ==9.10.3
+
+source-repository head
+  type:     git
+  location: https://github.com/joshburgess/valiant
+  subdir:   adapters/valiant-mtl
+
+flag werror
+  description: Enable -Werror for development builds.
+  default:     False
+  manual:      True
+
+common warnings
+  ghc-options: -Wall -Wcompat -Wno-unticked-promoted-constructors -funbox-strict-fields -fspecialise-aggressively
+  if flag(werror)
+    ghc-options: -Werror
+
+library
+  import:           warnings
+  hs-source-dirs:   src
+  default-language: GHC2021
+  default-extensions:
+    DerivingStrategies
+    FlexibleContexts
+    OverloadedStrings
+    StrictData
+
+  exposed-modules:
+    Valiant.Monad
+    Valiant.Mtl
+
+  build-depends:
+    , base            >=4.17 && <5
+    , valiant         >=0.1  && <0.2
+    , mtl             >=2.2  && <2.4
+    , pg-wire         >=0.2  && <0.3
+    , time            >=1.12 && <1.15
+    , transformers    >=0.6  && <0.7
+    , vector          >=0.12 && <0.14
+
+test-suite valiant-mtl-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  default-language: GHC2021
+  default-extensions:
+    FlexibleInstances
+    OverloadedStrings
+  ghc-options: -Wno-orphans -rtsopts "-with-rtsopts=-K8K"
+
+  other-modules:
+    TestSupport
+
+  build-depends:
+    , base            >=4.17 && <5
+    , bytestring      >=0.11 && <0.13
+    , hspec           >=2.11 && <2.13
+    , valiant
+    , valiant-mtl
+    , pg-wire
+    , text            >=2.0  && <2.2
+    , transformers    >=0.6  && <0.7

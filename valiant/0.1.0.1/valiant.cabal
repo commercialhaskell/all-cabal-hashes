@@ -1,0 +1,230 @@
+cabal-version:   3.0
+name:            valiant
+version:         0.1.0.1
+synopsis:        Compile-time checked SQL for Haskell, runtime library
+description:
+  Runtime library for valiant. Provides the @Statement@ type, binary format
+  codecs, query execution functions, and re-exports from @pg-wire@ (the
+  underlying PostgreSQL wire protocol driver).
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Josh Burgess
+maintainer:      joshburgess.webdev@gmail.com
+category:        Database
+homepage:        https://github.com/joshburgess/valiant
+bug-reports:     https://github.com/joshburgess/valiant/issues
+build-type:      Simple
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+tested-with:     GHC ==9.10.3
+
+source-repository head
+  type:     git
+  location: https://github.com/joshburgess/valiant
+  subdir:   runtime
+
+flag werror
+  description: Enable -Werror for development builds.
+  default:     False
+  manual:      True
+
+common warnings
+  ghc-options: -Wall -Wcompat -Wno-unticked-promoted-constructors -funbox-strict-fields -fspecialise-aggressively
+  if flag(werror)
+    ghc-options: -Werror
+
+library
+  import:           warnings
+  hs-source-dirs:   src
+  default-language: GHC2021
+  default-extensions:
+    DerivingStrategies
+    LambdaCase
+    OverloadedStrings
+    RecordWildCards
+    StrictData
+
+  exposed-modules:
+    Valiant
+    Valiant.Advisory
+    Valiant.Batch
+    Valiant.Binary.Array
+    Valiant.Binary.Composite
+    Valiant.Binary.Decode
+    Valiant.Binary.Encode
+    Valiant.Binary.Enum
+    Valiant.Binary.HStore
+    Valiant.Binary.Inet
+    Valiant.Binary.MacAddr
+    Valiant.Binary.Interval
+    Valiant.Binary.Point
+    Valiant.Binary.Unbounded
+    Valiant.Binary.JSON
+    Valiant.Binary.Range
+    Valiant.Binary.Scientific
+    Valiant.Binary.UUID
+    Valiant.Copy
+    Valiant.Dynamic
+    Valiant.Error
+    Valiant.Execute
+    Valiant.Fold
+    Valiant.FromRow
+    Valiant.FromRowFast
+    Valiant.FromRowStrict
+    Valiant.LargeObject
+    Valiant.Logging
+    Valiant.NamedParams
+    Valiant.Notify
+    Valiant.Pipeline
+    Valiant.Statement
+    Valiant.Streaming
+    Valiant.ToParams
+    Valiant.Transaction
+
+  build-depends:
+    -- Wire protocol driver
+    , pg-wire               ==0.2.*
+
+    -- Core
+    , base                  >=4.17    && <5
+    , bytestring            >=0.11    && <0.13
+    , text                  >=2.0     && <2.2
+    , containers            >=0.6     && <0.8
+    , hashable              >=1.4     && <1.6
+    , vector                >=0.13    && <0.14
+    , time                  >=1.12    && <1.15
+    , deepseq               >=1.4     && <1.6
+
+    -- Binary codec helpers
+    , scientific            >=0.3     && <0.4
+    , uuid-types            >=1.0     && <1.1
+    , aeson                 >=2.1     && <2.3
+
+    -- Concurrency (for Streaming, Notify)
+    , async                 >=2.2     && <2.3
+
+    -- Network (for Cancel, Notify)
+    , network               >=3.1     && <3.3
+
+test-suite valiant-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options: -rtsopts "-with-rtsopts=-K8K"
+
+  other-modules:
+    Valiant.Binary.ArraySpec
+    Valiant.Binary.CompositeSpec
+    Valiant.Binary.DecodeSpec
+    Valiant.Binary.EncodeSpec
+    Valiant.Binary.HStoreSpec
+    Valiant.Binary.InetSpec
+    Valiant.Binary.MacAddrSpec
+    Valiant.Binary.IntervalSpec
+    Valiant.Binary.JSONSpec
+    Valiant.Binary.NewtypeSpec
+    Valiant.Binary.PropertyHedgehogSpec
+    Valiant.Binary.RangeSpec
+    Valiant.Binary.RefineSpec
+    Valiant.Binary.ScientificSpec
+    Valiant.Binary.UUIDSpec
+    Valiant.ErrorSpec
+    Valiant.FromRowSpec
+    Valiant.NamedParamsSpec
+    Valiant.TupleSpec
+
+  build-depends:
+    , aeson
+    , base           >=4.17 && <5
+    , bytestring
+    , containers
+    , hedgehog       >=1.2  && <1.6
+    , hspec          >=2.11 && <2.13
+    , hspec-hedgehog >=0.1  && <0.3
+    , valiant
+    , pg-wire
+    , pg-wire:mockserver
+    , scientific
+    , text
+    , uuid-types
+    , time
+    , vector
+
+test-suite valiant-integration
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   integration
+  main-is:          Main.hs
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options: -threaded -rtsopts "-with-rtsopts=-K8K"
+
+  other-modules:
+    ChaosSpec
+    ConnectionSpec
+    ConnectionFeaturesSpec
+    CopySpec
+    ExecuteSpec
+    LargeObjectSpec
+    NotifySpec
+    PipelineSpec
+    PoolSpec
+    SoundnessSpec
+    StreamingSpec
+    TestSupport
+    TransactionSpec
+
+  build-depends:
+    , async        >=2.2  && <2.3
+    , base         >=4.17 && <5
+    , bytestring
+    , containers
+    , hspec        >=2.11 && <2.13
+    , nothunks     >=0.1  && <0.3
+    , valiant
+    , pg-wire
+    , stm          >=2.5  && <2.6
+    , text
+    , time         >=1.12 && <1.15
+    , vector
+
+  -- Requires DATABASE_URL. Run with:
+  --   eval $(scripts/pg-setup.sh)
+  --   cabal test valiant-integration --test-show-details=direct
+
+benchmark valiant-bench
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          Main.hs
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+
+  other-modules:
+    BenchAsyncpgCompare
+    BenchCodec
+    BenchConcurrent
+    BenchPool
+    BenchQuery
+    TestSupport
+
+  build-depends:
+    , async        >=2.2  && <2.3
+    , base         >=4.17 && <5
+    , bytestring
+    , containers
+    , criterion    >=1.6  && <1.8
+    , valiant
+    , pg-wire
+    , scientific
+    , text
+    , time
+    , vector
+  ghc-options: -threaded -rtsopts "-with-rtsopts=-I0 -A32m"
