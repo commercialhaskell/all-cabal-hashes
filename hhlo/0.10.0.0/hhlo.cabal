@@ -1,0 +1,642 @@
+cabal-version:      3.0
+name:               hhlo
+version:            0.10.0.0
+synopsis:           Haskell Frontend for StableHLO — type-safe ML training/inference on CPU and GPU
+description:
+    HHLO is a Haskell library and runtime for building, compiling, and executing
+    machine-learning programs targeting StableHLO, the portable intermediate
+    representation of the OpenXLA ecosystem.
+    .
+    Instead of replicating JAX's Python-based tracing infrastructure, HHLO
+    generates StableHLO MLIR text directly from Haskell and compiles it to
+    CPU or GPU via the PJRT plugin interface.
+    .
+    Key features:
+    .
+    * Type-safe EDSL with phantom-shape tensors (e.g. @Tensor '[2,3] 'F32@)
+    * 50+ ops: matmul, conv2d, softmax, batch-norm, control flow, and more
+    * CPU execution via PJRT CPU plugin
+    * GPU execution via PJRT CUDA plugin with device enumeration
+    * Multi-GPU concurrent inference scaling
+    * No LLVM/MLIR build dependency — emits text and lets PJRT parse it
+    .
+    See the README for setup instructions and examples.
+homepage:           https://github.com/overshiki/hhlo
+bug-reports:        https://github.com/overshiki/hhlo/issues
+license:            MIT
+license-file:       LICENSE
+copyright:          (c) 2026 overshiki
+author:             overshiki
+maintainer:         le.niu@hotmail.com
+category:           AI, Machine Learning, Compilers
+build-type:         Simple
+tested-with:        GHC == 9.6.7
+extra-source-files:
+    cbits/pjrt_shim.h
+    cbits/pjrt_c_api.h
+
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+    doc/*.md
+
+source-repository head
+    type:     git
+    location: https://github.com/overshiki/hhlo.git
+
+flag examples
+    description: Build the example executables
+    default:     False
+    manual:      True
+
+common warnings
+    ghc-options: -Wall -Wcompat -optl-lstdc++
+
+library
+    import:           warnings
+    exposed-modules:
+        HHLO.Prelude
+        HHLO.Core.Types
+        HHLO.IR.AST
+        HHLO.IR.Builder
+        HHLO.IR.Pretty
+        HHLO.EDSL.Ops
+        HHLO.ModuleBuilder
+        HHLO.Session
+        HHLO.Autograd
+        HHLO.Autograd.Core
+        HHLO.Autograd.Grad
+        HHLO.Autograd.ParamTree
+        HHLO.Autograd.Rules
+        HHLO.Runtime.PJRT.FFI
+        HHLO.Runtime.PJRT.Types
+        HHLO.Runtime.PJRT.Error
+        HHLO.Runtime.PJRT.Plugin
+        HHLO.Runtime.Device
+        HHLO.Runtime.Compile
+        HHLO.Runtime.Execute
+        HHLO.Runtime.Async
+        HHLO.Runtime.Buffer
+        HHLO.Runtime.CustomCall
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        text          >= 2.0   && < 2.2,
+        bytestring    >= 0.12  && < 0.13,
+        vector        >= 0.13  && < 0.14,
+        vector-sized  >= 1.5   && < 1.6,
+        containers    >= 0.6   && < 0.8,
+        transformers  >= 0.6   && < 0.7,
+        mtl           >= 2.3   && < 2.4,
+        async         >= 2.2   && < 2.3,
+        directory     >= 1.3   && < 1.4
+    hs-source-dirs:   src
+    default-language: GHC2021
+    include-dirs:     cbits
+    c-sources:        cbits/pjrt_shim.c
+    extra-libraries:  dl
+
+executable hhlo-demo
+    import:           warnings
+    main-is:          Main.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   app
+    default-language: GHC2021
+
+executable example-add
+    import:           warnings
+    main-is:          01-add.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-matmul
+    import:           warnings
+    main-is:          02-matmul.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-chain-ops
+    import:           warnings
+    main-is:          03-chain-ops.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-async
+    import:           warnings
+    main-is:          04-async.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-mlp
+    import:           warnings
+    main-is:          05-mlp.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-mlp-batched
+    import:           warnings
+    main-is:          06-mlp-batched.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-tuple
+    import:           warnings
+    main-is:          07-tuple.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-reduce
+    import:           warnings
+    main-is:          08-reduce.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-softmax
+    import:           warnings
+    main-is:          09-softmax.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-conv2d
+    import:           warnings
+    main-is:          10-conv2d.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-batch-norm
+    import:           warnings
+    main-is:          11-batch-norm.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-while
+    import:           warnings
+    main-is:          12-while.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-conditional
+    import:           warnings
+    main-is:          13-conditional.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-gather
+    import:           warnings
+    main-is:          14-gather.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-scatter
+    import:           warnings
+    main-is:          15-scatter.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-slice
+    import:           warnings
+    main-is:          16-slice.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-pad
+    import:           warnings
+    main-is:          17-pad.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-dynamic-slice
+    import:           warnings
+    main-is:          18-dynamic-slice.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-sort
+    import:           warnings
+    main-is:          19-sort.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-select
+    import:           warnings
+    main-is:          20-select.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-map
+    import:           warnings
+    main-is:          21-map.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-new-ops-smoke-test
+    import:           warnings
+    main-is:          22-new-ops-smoke-test.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-resnet
+    import:           warnings
+    main-is:          23-resnet.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-alexnet
+    import:           warnings
+    main-is:          24-alexnet.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-transformer
+    import:           warnings
+    main-is:          25-transformer.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-unet
+    import:           warnings
+    main-is:          26-unet.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-gpu-add
+    import:           warnings
+    main-is:          27-gpu-add.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-gpu-matmul-bench
+    import:           warnings
+    main-is:          28-gpu-matmul-bench.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2,
+        time          >= 1.12  && < 1.15
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-multi-gpu-inference
+    import:           warnings
+    main-is:          29-multi-gpu-inference.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2,
+        time          >= 1.12  && < 1.15
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+test-suite hhlo-test
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    other-modules:
+        Test.IR.Pretty
+        Test.IR.Builder
+        Test.EDSL.Ops
+        Test.ModuleBuilder
+        Test.Autograd.Grad
+        Test.Autograd.Rules
+        Test.Runtime.EndToEnd
+        Test.Runtime.EndToEndArithmetic
+        Test.Runtime.EndToEndShape
+        Test.Runtime.EndToEndMatmul
+        Test.Runtime.EndToEndNN
+        Test.Runtime.EndToEndReductions
+        Test.Runtime.EndToEndDataMovement
+        Test.Runtime.EndToEndMultiValue
+        Test.Runtime.EndToEndSession
+        Test.Runtime.EndToEndAutograd
+        Test.Runtime.Buffer
+        Test.Runtime.Async
+        Test.Runtime.Errors
+        Test.Utils
+        Test.Runtime.GPUResource
+        Test.Runtime.EndToEndGPU
+        Test.Runtime.BufferGPU
+        Test.Runtime.AsyncGPU
+        Test.Runtime.MultiGPU
+        Test.Runtime.EndToEndArithmeticGPU
+        Test.Runtime.EndToEndShapeGPU
+        Test.Runtime.EndToEndMatmulGPU
+        Test.Runtime.EndToEndNNGPU
+        Test.Runtime.EndToEndReductionsGPU
+        Test.Runtime.EndToEndDataMovementGPU
+        Test.Runtime.EndToEndMultiValueGPU
+        Test.Runtime.EndToEndAutogradGPU
+        Test.Runtime.EndToEndSessionGPU
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        text          >= 2.0   && < 2.2,
+        bytestring    >= 0.12  && < 0.13,
+        vector        >= 0.13  && < 0.14,
+        vector-sized  >= 1.5   && < 1.6,
+        tasty         >= 1.5   && < 1.6,
+        tasty-hunit   >= 0.10  && < 0.11
+    hs-source-dirs:   test
+    default-language: GHC2021
+    extra-libraries:  dl stdc++
+
+executable example-rng-uniform
+    import:           warnings
+    main-is:          30-rng-uniform.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-rng-normal
+    import:           warnings
+    main-is:          31-rng-normal.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-rng-bit-generator
+    import:           warnings
+    main-is:          32-rng-bit-generator.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-multi-value-loop
+    import:           warnings
+    main-is:          33-multi-value-loop.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-autograd-basic
+    import:           warnings
+    main-is:          34-autograd-basic.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-autograd-linear
+    import:           warnings
+    main-is:          35-autograd-linear.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-autograd-composite
+    import:           warnings
+    main-is:          36-autograd-composite.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
+
+executable example-custom-call
+    import:           warnings
+    main-is:          CustomCallPlugin.hs
+    build-depends:
+        base          >= 4.18.2 && < 5,
+        hhlo,
+        vector        >= 0.13  && < 0.14,
+        text          >= 2.0   && < 2.2
+    hs-source-dirs:   examples
+    default-language: GHC2021
+    if !flag(examples)
+        buildable: False
