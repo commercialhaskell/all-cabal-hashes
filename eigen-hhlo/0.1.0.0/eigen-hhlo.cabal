@@ -1,0 +1,193 @@
+cabal-version:      3.0
+name:               eigen-hhlo
+version:            0.1.0.0
+synopsis:           Dense linear algebra on HHLO (SVD, QR, eigenvalue, Cholesky, LU)
+description:
+    eigen-hhlo provides singular value decomposition, QR decomposition,
+    symmetric eigenvalue decomposition, Cholesky factorization, and LU
+    decomposition as first-class operations within the HHLO ecosystem.
+    .
+    The library targets both CPU (via LAPACK custom calls) and GPU
+    (via cuSOLVER custom calls, future work) through PJRT, with no
+    host-side numerical fallback.
+    .
+    See the README for important runtime notes regarding CPU custom-call
+    registration limitations in the current PJRT CPU plugin.
+homepage:           https://github.com/overshiki/eigen-hhlo
+bug-reports:        https://github.com/overshiki/eigen-hhlo/issues
+license:            MIT
+license-file:       LICENSE
+author:             overshiki
+maintainer:         le.niu@hotmail.com
+category:           Math, Numeric, Machine Learning
+tested-with:        GHC == 9.6.7
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+                    README.md
+extra-source-files:
+    cbits/**/*.c
+    cbits/**/*.cu
+    cbits/**/*.sh
+
+source-repository head
+    type:     git
+    location: https://github.com/overshiki/eigen-hhlo.git
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    hs-source-dirs:   src
+    exposed-modules:
+        EigenHHLO.Core.Types
+        EigenHHLO.Core.BackendConfig
+        EigenHHLO.IR.Cholesky
+        EigenHHLO.IR.Eigenvalue
+        EigenHHLO.IR.LU
+        EigenHHLO.IR.QR
+        EigenHHLO.IR.SVD
+        EigenHHLO.EDSL.Decomposition
+        EigenHHLO.Runtime.Session
+    build-depends:
+        base       >= 4.18.2 && < 5,
+        directory  >= 1.3   && < 1.4,
+        hhlo       >= 0.10.0.0 && < 0.11,
+        text       >= 2.0   && < 2.2
+    default-language: Haskell2010
+
+executable eigen-hhlo
+    import:           warnings
+    main-is:          Main.hs
+    hs-source-dirs:   app
+    build-depends:
+        base       >= 4.18.2 && < 5,
+        eigen-hhlo,
+        hhlo       >= 0.10.0.0 && < 0.11,
+        text       >= 2.0   && < 2.2,
+        vector     >= 0.13  && < 0.14
+    default-language: Haskell2010
+
+test-suite eigen-hhlo-test
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    hs-source-dirs:   test
+    other-modules:
+        EigenHHLO.Test.Cholesky
+        EigenHHLO.Test.Eigenvalue
+        EigenHHLO.Test.LU
+        EigenHHLO.Test.QR
+        EigenHHLO.Test.SVD
+    build-depends:
+        base       >= 4.18.2 && < 5,
+        eigen-hhlo,
+        hhlo       >= 0.10.0.0 && < 0.11,
+        text       >= 2.0   && < 2.2,
+        vector     >= 0.13  && < 0.14,
+        tasty      >= 1.4   && < 1.6,
+        tasty-hunit >= 0.10 && < 0.11
+    default-language: Haskell2010
+
+flag examples
+    description: Build the example executables
+    default:     False
+    manual:      True
+
+executable example-cholesky
+    import:           warnings
+    main-is:          01-cholesky.hs
+    hs-source-dirs:   examples
+    build-depends:
+        base       >= 4.18.2 && < 5,
+        eigen-hhlo,
+        hhlo       >= 0.10.0.0 && < 0.11,
+        text       >= 2.0   && < 2.2,
+        vector     >= 0.13  && < 0.14
+    default-language: Haskell2010
+    if !flag(examples)
+        buildable: False
+
+executable example-svd
+    import:           warnings
+    main-is:          02-svd.hs
+    hs-source-dirs:   examples
+    build-depends:
+        base       >= 4.18.2 && < 5,
+        eigen-hhlo,
+        hhlo       >= 0.10.0.0 && < 0.11,
+        text       >= 2.0   && < 2.2,
+        vector     >= 0.13  && < 0.14
+    default-language: Haskell2010
+    if !flag(examples)
+        buildable: False
+
+executable example-qr
+    import:           warnings
+    main-is:          03-qr.hs
+    hs-source-dirs:   examples
+    build-depends:
+        base       >= 4.18.2 && < 5,
+        eigen-hhlo,
+        hhlo       >= 0.10.0.0 && < 0.11,
+        text       >= 2.0   && < 2.2,
+        vector     >= 0.13  && < 0.14
+    default-language: Haskell2010
+    if !flag(examples)
+        buildable: False
+
+executable example-eigenvalue
+    import:           warnings
+    main-is:          04-eigenvalue.hs
+    hs-source-dirs:   examples
+    build-depends:
+        base       >= 4.18.2 && < 5,
+        eigen-hhlo,
+        hhlo       >= 0.10.0.0 && < 0.11,
+        text       >= 2.0   && < 2.2,
+        vector     >= 0.13  && < 0.14
+    default-language: Haskell2010
+    if !flag(examples)
+        buildable: False
+
+executable example-lu
+    import:           warnings
+    main-is:          05-lu.hs
+    hs-source-dirs:   examples
+    build-depends:
+        base       >= 4.18.2 && < 5,
+        eigen-hhlo,
+        hhlo       >= 0.10.0.0 && < 0.11,
+        text       >= 2.0   && < 2.2,
+        vector     >= 0.13  && < 0.14
+    default-language: Haskell2010
+    if !flag(examples)
+        buildable: False
+
+executable example-pipeline
+    import:           warnings
+    main-is:          06-pipeline.hs
+    hs-source-dirs:   examples
+    build-depends:
+        base       >= 4.18.2 && < 5,
+        eigen-hhlo,
+        hhlo       >= 0.10.0.0 && < 0.11,
+        text       >= 2.0   && < 2.2,
+        vector     >= 0.13  && < 0.14
+    default-language: Haskell2010
+    if !flag(examples)
+        buildable: False
+
+executable example-gpu-setup
+    import:           warnings
+    main-is:          07-gpu-setup.hs
+    hs-source-dirs:   examples
+    build-depends:
+        base       >= 4.18.2 && < 5,
+        eigen-hhlo,
+        hhlo       >= 0.10.0.0 && < 0.11,
+        text       >= 2.0   && < 2.2,
+        vector     >= 0.13  && < 0.14
+    default-language: Haskell2010
+    if !flag(examples)
+        buildable: False
