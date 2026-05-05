@@ -1,0 +1,85 @@
+cabal-version:   3.0
+name:            mealy-arrow
+version:         0.1.0.0
+synopsis:        Monadic Mealy machines with Arrow, ArrowChoice, and ArrowLoop
+description:
+  A monadic Mealy machine in the coalgebraic (continuation-passing)
+  representation:
+  .
+  @
+  newtype Auto m a b = Auto { step :: a -> m (b, Auto m a b) }
+  @
+  .
+  Each step consumes an input, produces an output in some monad @m@,
+  and returns the next state as a continuation. The monad parameter
+  controls the effect discipline: 'Identity' for pure machines, 'IO'
+  for effectful ones.
+  .
+  Instances: 'Category', 'Arrow', 'ArrowChoice', 'ArrowLoop',
+  'Profunctor', 'Functor'. Smart constructors: 'stateless', 'stateful',
+  'constAuto'. Natural transformation: 'hoistAuto'.
+  .
+  == How is this different from the @mealy@ package?
+  .
+  The Hackage package
+  <https://hackage.haskell.org/package/mealy mealy> provides a pure,
+  existentially-quantified inject\/step\/extract triple designed for
+  online statistics (moving averages, regression). It has 'Category'
+  and 'Profunctor' instances but no 'Arrow', no 'ArrowChoice', no
+  'ArrowLoop', and no monadic effects.
+  .
+  @mealy-arrow@ provides the Nu (greatest fixpoint) representation
+  with full Arrow instances and a monad parameter. It is designed
+  for interactive systems: terminal UIs, protocol handlers,
+  game logic, API clients — anything where each step may have
+  effects and the machine's control flow may branch.
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          mealy-arrow contributors
+maintainer:      mealy-arrow contributors
+category:        Control, Arrows
+build-type:      Simple
+extra-doc-files: README.md CHANGELOG.md
+extra-source-files:
+  example/Counter.hs
+  example/Echo.hs
+  example/Accumulator.hs
+tested-with:     GHC == 9.10.3
+
+source-repository head
+  type:     git
+  location: https://github.com/mealy-arrow/mealy-arrow
+
+common defaults
+  default-language: GHC2021
+  default-extensions:
+    LambdaCase
+  ghc-options: -Wall
+
+library
+  import:         defaults
+  hs-source-dirs: src
+  exposed-modules:
+    Control.Arrow.Mealy
+  build-depends:
+      base        >= 4.14  && < 5
+    , profunctors  >= 5.0   && < 6
+
+executable mealy-arrow-example
+  import:         defaults
+  hs-source-dirs: example
+  main-is:        Calculator.hs
+  build-depends:
+      base
+    , mealy-arrow
+  ghc-options:    -threaded
+
+test-suite mealy-arrow-test
+  import:         defaults
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  build-depends:
+      base
+    , mealy-arrow
+  ghc-options:    -threaded
