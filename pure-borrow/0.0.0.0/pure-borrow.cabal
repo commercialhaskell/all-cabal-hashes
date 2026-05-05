@@ -1,0 +1,298 @@
+cabal-version: 3.4
+name: pure-borrow
+version: 0.0.0.0
+synopsis: Rust-style borrowing in Linear Haskell with purity
+description:
+  This package realizes rust-style borrowing in Linear Haskell with purity and concurrency support.
+  See "Control.Monad.Borrow.Pure" for the main API documentation, and see our paper [/Pure Borrowing: Linear Haskell Meets Rust-Style Borrowing/](https://arxiv.org/abs/2604.15290) by Y. Matsushita and H. Ishii for the details.
+
+license: BSD-3-Clause
+license-file: LICENSE
+author: Yusuke Matsushita and Hiromi Ishii
+maintainer:
+  ysk.m24t@gmail.com
+  konn.jinro@gmail.com
+
+copyright: Copyright (c) 2025-present, Yusuke Matsushita and Hiromi Ishii
+category: Linear Haskell
+build-type: Simple
+homepage: https://github.com/SoftwareFoundationGroupAtKyotoU/pure-borrow
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+data-files:
+  dockerfiles/artifact/Dockerfile
+  scripts/genplot.gnuplot
+
+tested-with: ghc ==9.10.2 || ==9.12.4 || ==9.14.1
+
+source-repository head
+  type: git
+  location: https://github.com/SoftwareFoundationGroupAtKyotoU/pure-borrow
+
+flag artifact
+  description: Build the artifact runner executable, which runs all the benchmarks and produces CSV files.
+  default: False
+  manual: True
+
+common defaults
+  default-language: GHC2021
+  default-extensions: LinearTypes
+  autogen-modules: Paths_pure_borrow
+  other-modules: Paths_pure_borrow
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+    -Wunused-packages
+
+  build-depends:
+    base >=4.17 && <5,
+    linear-base >=0.7,
+
+library
+  import: defaults
+  build-depends:
+    array,
+    containers,
+    deepseq,
+    hybrid-vectors,
+    linear-generics,
+    stm,
+    vector,
+    vector-algorithms,
+
+  hs-source-dirs: src
+  -- cabal-gild: discover src --exclude src/**/Utils.hs --exclude src/**/Utils/**/*.hs
+  exposed-modules:
+    Control.Concurrent.DivideConquer.Linear
+    Control.Concurrent.STM.TMDeque
+    Control.Concurrent.STM.TMDequeRingBuffer
+    Control.Monad.Borrow.Pure
+    Control.Monad.Borrow.Pure.Affine
+    Control.Monad.Borrow.Pure.Affine.Internal
+    Control.Monad.Borrow.Pure.Affine.Unsafe
+    Control.Monad.Borrow.Pure.BO
+    Control.Monad.Borrow.Pure.BO.Internal
+    Control.Monad.Borrow.Pure.BO.Unsafe
+    Control.Monad.Borrow.Pure.Clone
+    Control.Monad.Borrow.Pure.Copyable
+    Control.Monad.Borrow.Pure.Experimental.Borrows
+    Control.Monad.Borrow.Pure.Experimental.Loop
+    Control.Monad.Borrow.Pure.Experimental.Reborrowable
+    Control.Monad.Borrow.Pure.Lifetime
+    Control.Monad.Borrow.Pure.Lifetime.Internal
+    Control.Monad.Borrow.Pure.Lifetime.Token
+    Control.Monad.Borrow.Pure.Lifetime.Token.Internal
+    Control.Monad.Borrow.Pure.Lifetime.Token.Unsafe
+    Control.Syntax.DataFlow
+    Data.Coerce.Directed
+    Data.Coerce.Directed.Internal
+    Data.Coerce.Directed.Unsafe
+    Data.Comonad.Linear
+    Data.Record.Linear.Borrow.Experimental.PatternMatch
+    Data.Record.Linear.Borrow.Experimental.Split
+    Data.Ref.Linear
+    Data.Ref.Linear.Borrow
+    Data.Ref.Linear.Unlifted
+    Data.Unique.Linear
+    Data.Vector.Mutable.Linear.Borrow
+
+  -- cabal-gild: discover src --include src/**/Utils.hs --include src/**/Utils/**/*.hs
+  other-modules:
+    Control.Concurrent.DivideConquer.Utils.OnceChan.Linear
+    Control.Concurrent.DivideConquer.Utils.OnceChan.Linear.Unlifted
+    Control.Concurrent.DivideConquer.Utils.QueuePool
+    Control.Monad.Borrow.Pure.Utils
+
+  build-tool-depends: cabal-gild:cabal-gild >=1.6.0.0
+  build-depends:
+
+test-suite pure-borrow-test
+  import: defaults
+  default-language: GHC2021
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  -- cabal-gild: discover test --exclude=test/Main.hs
+  other-modules:
+    Control.Concurrent.DivideConquer.LinearSpec
+    Control.Monad.Borrow.Pure.Lifetime.TypingCases
+    Control.Monad.Borrow.Pure.LifetimeSpec
+    Data.Vector.Mutable.Linear.BorrowSpec
+
+  ghc-options:
+    -O2
+    -threaded
+    -with-rtsopts=-N
+
+  build-tool-depends:
+    tasty-discover:tasty-discover >=5.0.1
+
+  build-depends:
+    deepseq,
+    falsify,
+    pure-borrow,
+    tasty,
+    tasty-expected-failure,
+    tasty-hunit,
+    vector,
+
+test-suite pure-borrow-doctests
+  import: defaults
+
+  -- NOTE: the older GHC has a bug where REPL segfaults with LinearTypes.
+  -- See: https://gitlab.haskell.org/ghc/ghc/-/issues/26565#note_645783
+  if impl(ghc <9.12.3)
+    buildable: False
+  default-language: GHC2021
+  type: exitcode-stdio-1.0
+  hs-source-dirs: doctests
+  main-is: doctests.hs
+  -- cabal-gild: discover doctests --exclude=test/doctests.hs
+  other-modules:
+  ghc-options:
+    -O2
+    -threaded
+    -with-rtsopts=-N
+
+  build-depends:
+    doctest-parallel >=0.4.1,
+    pure-borrow,
+
+library qsort-bench-suites
+  import: defaults
+  hs-source-dirs: internal-src/qsort-bench-suites
+  -- cabal-gild: discover internal-src/qsort-bench-suites
+  exposed-modules: PureBorrow.Internal.Bench.QSort
+  build-depends:
+    base >=4.7 && <5,
+    deepseq,
+    optparse-applicative,
+    pure-borrow,
+    random,
+    tasty,
+    tasty-bench,
+    vector,
+    vector-algorithms,
+
+  default-language: GHC2021
+
+benchmark qsort-bench
+  import: defaults
+  type: exitcode-stdio-1.0
+  main-is: qsort.hs
+  hs-source-dirs: bench
+  ghc-options:
+    -threaded
+    -rtsopts
+    -O2
+    "-with-rtsopts=-N -s"
+
+  build-depends:
+    base >=4.7 && <5,
+    pure-borrow:qsort-bench-suites,
+
+  default-language: GHC2021
+
+library qsort-demo-impl
+  import: defaults
+  hs-source-dirs: internal-src/qsort-demo-impl
+  -- cabal-gild: discover internal-src/qsort-demo-impl
+  exposed-modules: PureBorrow.Demo.QSort
+  build-depends:
+    base >=4.7 && <5,
+    deepseq,
+    optparse-applicative,
+    pure-borrow,
+    random,
+    vector,
+    vector-algorithms,
+
+  default-language: GHC2021
+
+executable qsort
+  import: defaults
+  main-is: qsort.hs
+  hs-source-dirs: app
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  build-depends:
+    base >=4.7 && <5,
+    pure-borrow:qsort-demo-impl,
+
+  default-language: GHC2021
+
+executable convert-qsort-bench-csv
+  import: defaults
+  main-is: convert-qsort-bench-csv.hs
+  hs-source-dirs: app
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  build-depends:
+    base >=4.7 && <5,
+    bytestring,
+    cassava,
+    deepseq,
+    monoidal-containers,
+    optparse-applicative,
+    pure-borrow,
+    text,
+    unordered-containers,
+    vector,
+    vector-algorithms,
+
+  default-language: GHC2021
+
+executable artifact-runner
+  import: defaults
+
+  if flag(artifact)
+    buildable: True
+  else
+    buildable: False
+
+  main-is: artifact-runner.hs
+  hs-source-dirs: app
+  ghc-options:
+    -O2
+    -threaded
+    -rtsopts
+    "-with-rtsopts=-N -s"
+
+  build-depends:
+    base >=4.7 && <5,
+    bytestring,
+    cassava,
+    containers,
+    deepseq,
+    directory,
+    file-embed,
+    monoidal-containers,
+    optparse-applicative,
+    process,
+    pure-borrow,
+    pure-borrow:qsort-bench-suites,
+    pure-borrow:qsort-demo-impl,
+    tasty,
+    template-haskell,
+    temporary,
+    text,
+    transformers,
+    vector,
+    vector-algorithms,
+
+  default-language: GHC2021
