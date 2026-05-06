@@ -1,0 +1,156 @@
+cabal-version: 2.2
+name:           webby
+version:        1.2.1
+synopsis:       A super-simple web server framework
+description:    A super-simple, easy to use web server framework inspired by
+                Scotty. The goals of the project are: (1) Be easy to use (2) Allow
+                graceful exception handling (3) Parse request parameters easily and
+                in a typed manner.
+category:       Web
+homepage:       https://github.com/donatello/webby
+bug-reports:    https://github.com/donatello/webby/issues
+maintainer:     aditya.mmy@gmail.com,
+                krishnan.parthasarathi@gmail.com
+license:        Apache-2.0
+license-file:   LICENSE
+build-type:     Simple
+extra-doc-files:  ChangeLog.md
+                  README.md
+extra-source-files:
+    examples/*.hs
+tested-with:    GHC == 9.0.2
+                GHC == 9.2.7
+                GHC == 9.4.4
+                GHC == 9.6.7
+                GHC == 9.8.4
+                GHC == 9.10.3
+                GHC == 9.12.4
+
+source-repository head
+  type: git
+  location: https://github.com/donatello/webby
+
+common base-settings
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -Wredundant-constraints
+                       -Wmissing-deriving-strategies
+                       -Werror=missing-deriving-strategies
+                       -Winvalid-haddock
+                       -fhide-source-paths
+                       -haddock
+
+  -- Add this when we have time. Fixing partial-fields requires major version
+  -- bump at this time.
+  -- ghc-options:       -Wpartial-fields
+  --                    -Wmissing-export-lists
+
+  -- -Wunused-packages is intentionally NOT enabled: combined with
+  -- `mixins: base hiding (Prelude)` below, GHC can't see uses of the
+  -- base-<ver> package-id (imports go through the mixin alias), so it
+  -- spuriously flags base as unused. Confirmed still firing on GHC 9.6.7,
+  -- 9.8.4, 9.10.3, and 9.12.4 (cabal 3.14.2.0). See GHC issue #19518.
+  if impl(ghc >= 9.2)
+    ghc-options:       -Wredundant-bang-patterns
+                       -Woperator-whitespace
+
+
+  default-language:    Haskell2010
+
+  default-extensions:
+      DerivingStrategies
+      FlexibleInstances
+      MultiParamTypeClasses
+      MultiWayIf
+      NoImplicitPrelude
+      OverloadedStrings
+      ScopedTypeVariables
+      TupleSections
+
+  other-modules:
+      Prelude
+      Webby.Server
+      Webby.Types
+      Paths_webby
+
+  autogen-modules:
+      Paths_webby
+  build-depends:
+      aeson >=1.4 && <3
+    , base >=4.15 && <5
+    , binary >=0.8 && <1
+    , bytestring >=0.10 && <1
+    , formatting >=6.3.7 && <8
+    , http-api-data >=0.4 && <1
+    , http-types ==0.12.*
+    , relude >=0.7 && <2
+    , resourcet >=1.2 && <1.4
+    , text >=1.2 && <3
+    , unliftio >=0.2.13 && <0.3
+    , unliftio-core ==0.2.*
+    , unordered-containers >=0.2.9 && <0.3
+    , wai ==3.2.*
+    , mime-types ==0.1.*
+
+  mixins:              base hiding (Prelude)
+
+library
+  import:
+      base-settings
+  exposed-modules:
+      Webby
+  hs-source-dirs:
+      src
+
+test-suite webby-test
+  import:
+      base-settings
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      AppTests
+      ErrorTests
+      Webby
+  hs-source-dirs:
+      src
+      test
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      bytestring
+    , http-types
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , text
+    , wai
+    , wai-extra
+    , webby
+
+Flag examples
+  Description: Build the examples
+  Default: False
+  Manual: True
+
+common examples-settings
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+  default-extensions:  OverloadedStrings
+  build-depends:       base >= 4.15 && < 5
+                     , http-types
+                     , relude
+                     , text
+                     , warp < 4
+                     , webby
+                     , unliftio
+                     , unordered-containers
+  hs-source-dirs:      examples
+  if !flag(examples)
+    buildable: False
+
+executable Basic
+  import:   examples-settings
+  scope:    private
+  main-is: Basic.hs
