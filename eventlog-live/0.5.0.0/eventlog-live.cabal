@@ -1,0 +1,161 @@
+cabal-version: 3.0
+name: eventlog-live
+version: 0.5.0.0
+synopsis: Live processing of eventlog data.
+description:
+  This package provides [machines](https://hackage.haskell.org/package/machines) for processing live eventlog data.
+  It is primarily intended for use via the [eventlog-live-otelcol](https://hackage.haskell.org/package/eventlog-live-otelcol) package.
+
+  [⚠️ Warning]:
+      This package is experimental.
+      It is versioned according to the [PVP](https://pvp.haskell.org).
+      However, breaking changes should be expected and no effort will be
+      made to avoid major version bumps until at least version @1.0.0.0@.
+
+  For more information, see [the README](https://github.com/well-typed/eventlog-live#readme).
+
+license: BSD-3-Clause
+license-file: LICENSE
+author: Wen Kokke
+maintainer: wen@well-typed.com
+copyright: (c) 2021-2025 Well-Typed
+build-type: Simple
+category: Debug, Monitoring, System
+extra-doc-files: CHANGELOG.md
+tested-with:
+  ghc ==9.2.8 || ==9.4.8 || ==9.6.7 || ==9.8.4 || ==9.10.2 || ==9.12.2
+
+source-repository head
+  type: git
+  location: https://github.com/well-typed/eventlog-live.git
+  subdir: eventlog-live
+
+source-repository this
+  type: git
+  location: https://github.com/well-typed/eventlog-live.git
+  tag: eventlog-live-0.5.0.0
+  subdir: eventlog-live
+
+-- 2025-12-09:
+-- This flag should enable switching between concurrent-machines and the
+-- vendored copy of the packages, as it currently does not easily build.
+flag use-concurrent-machines
+  description: Use concurrent-machines in place of the vendored copy
+  default: False
+  manual: False
+
+common language
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wprepositive-qualified-module
+    -Wredundant-constraints
+    -Wunticked-promoted-constructors
+    -Wunused-packages
+
+  default-language: Haskell2010
+  default-extensions:
+    BangPatterns
+    ConstraintKinds
+    DataKinds
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveTraversable
+    DerivingStrategies
+    DuplicateRecordFields
+    FlexibleContexts
+    FlexibleInstances
+    FunctionalDependencies
+    GADTs
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    InstanceSigs
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    NamedFieldPuns
+    NoFieldSelectors
+    NumericUnderscores
+    OverloadedRecordDot
+    PatternSynonyms
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    StandaloneDeriving
+    StandaloneKindSignatures
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    ViewPatterns
+
+library
+  import: language
+  hs-source-dirs: src
+  exposed-modules:
+    GHC.Eventlog.Live.Data.Attribute
+    GHC.Eventlog.Live.Data.Group
+    GHC.Eventlog.Live.Data.LogRecord
+    GHC.Eventlog.Live.Data.Metric
+    GHC.Eventlog.Live.Data.Severity
+    GHC.Eventlog.Live.Data.Span
+    GHC.Eventlog.Live.Logger
+    GHC.Eventlog.Live.Machine.Analysis.Capability
+    GHC.Eventlog.Live.Machine.Analysis.Heap
+    GHC.Eventlog.Live.Machine.Analysis.Log
+    GHC.Eventlog.Live.Machine.Analysis.Profile
+    GHC.Eventlog.Live.Machine.Analysis.Thread
+    GHC.Eventlog.Live.Machine.Core
+    GHC.Eventlog.Live.Machine.Decoder
+    GHC.Eventlog.Live.Machine.Sink
+    GHC.Eventlog.Live.Machine.Source
+    GHC.Eventlog.Live.Machine.WithStartTime
+    GHC.Eventlog.Live.Options
+    GHC.Eventlog.Live.Source
+    GHC.Eventlog.Live.Source.Core
+
+  build-depends:
+    ansi-terminal >=1.1 && <1.2,
+    base >=4.16 && <4.22,
+    bytestring >=0.11 && <0.13,
+    clock >=0.8 && <0.9,
+    co-log-core >=0.3 && <0.4,
+    dlist >=1.0 && <1.1,
+    ghc-events >=0.20 && <0.21,
+    ghc-stack-profiler-core >=0.2 && <0.3,
+    hashable >=1.4 && <1.6,
+    machines >=0.7.4 && <0.8,
+    monad-control >=1.0 && <1.1,
+    network >=3.2.7 && <3.3,
+    optparse-applicative >=0.17 && <0.20,
+    stm >=2.5 && <2.6,
+    text >=1.2 && <2.2,
+    transformers >=0.2 && <0.7,
+    unordered-containers >=0.2.20 && <0.3,
+    vector >=0.11 && <0.14,
+
+  -- 2025-12-09:
+  -- This configures the build requirements for the vendored copy of
+  -- the concurrent-machines package version 0.3.1.5.
+  if flag(use-concurrent-machines)
+    build-depends: concurrent-machines >=0.1 && <0.4
+  else
+    ghc-options: -Wno-prepositive-qualified-module
+    hs-source-dirs: vendor/concurrent-machines-0.3.1.5/src
+    other-modules:
+      Data.Machine.Concurrent
+      Data.Machine.Concurrent.AsyncStep
+      Data.Machine.Concurrent.Buffer
+      Data.Machine.Concurrent.Fanout
+      Data.Machine.Concurrent.Scatter
+      Data.Machine.Concurrent.Tee
+      Data.Machine.Concurrent.Wye
+      Data.Machine.Regulated
+
+    build-depends:
+      async >=2.0.1 && <2.3,
+      containers >=0.5 && <0.8,
+      lifted-async >=0.10 && <0.12,
+      time >=1.4 && <1.16,
+      transformers-base >=0.4 && <0.5,
