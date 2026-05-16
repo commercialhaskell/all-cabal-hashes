@@ -1,0 +1,104 @@
+cabal-version:      3.0
+name:               ppad-base64
+version:            0.1.0
+synopsis:           Fast base64 encoding and decoding on bytestrings.
+license:            MIT
+license-file:       LICENSE
+author:             Jared Tobin
+maintainer:         jared@ppad.tech
+category:           Cryptography
+build-type:         Simple
+tested-with:        GHC == { 9.10.3 }
+extra-doc-files:    CHANGELOG
+description:
+  Fast base64 encoding and decoding on strict bytestrings.
+
+flag llvm
+  description: Use GHC's LLVM backend.
+  default:     False
+  manual:      True
+
+flag sanitize
+  description: Build with AddressSanitizer and UndefinedBehaviorSanitizer.
+  default:     False
+  manual:      True
+
+source-repository head
+  type:     git
+  location: git.ppad.tech/base64.git
+
+library
+  default-language: Haskell2010
+  hs-source-dirs:   lib
+  ghc-options:
+      -Wall
+  if flag(llvm)
+    ghc-options: -fllvm -O2
+  exposed-modules:
+      Data.ByteString.Base64
+      Data.ByteString.Base64.Arm
+  build-depends:
+      base >= 4.9 && < 5
+    , bytestring >= 0.9 && < 0.13
+  c-sources:
+      cbits/base64_arm.c
+  if arch(aarch64)
+    cc-options: -march=armv8-a
+  if flag(sanitize)
+    cc-options: -fsanitize=address,undefined -fno-omit-frame-pointer
+    ghc-options: -optl=-fsanitize=address,undefined
+
+test-suite base64-tests
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      test
+  main-is:             Main.hs
+
+  ghc-options:
+    -rtsopts -Wall -O2
+  if flag(sanitize)
+    ghc-options: -optl=-fsanitize=address,undefined
+
+  build-depends:
+      base
+    , base64-bytestring
+    , bytestring
+    , ppad-base64
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+
+benchmark base64-bench
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      bench
+  main-is:             Main.hs
+
+  ghc-options:
+    -rtsopts -O2 -Wall
+
+  build-depends:
+      base
+    , base64
+    , base64-bytestring
+    , bytestring
+    , criterion
+    , ppad-base64
+
+benchmark base64-weigh
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      bench
+  main-is:             Weight.hs
+
+  ghc-options:
+    -rtsopts -O2 -Wall
+
+  build-depends:
+      base
+    , base64
+    , base64-bytestring
+    , bytestring
+    , criterion
+    , ppad-base64
+    , weigh
