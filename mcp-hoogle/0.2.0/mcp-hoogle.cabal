@@ -1,0 +1,126 @@
+cabal-version:      3.0
+
+name:           mcp-hoogle
+version:        0.2.0
+synopsis:       MCP server exposing Hoogle search over local project dependencies
+description:    An MCP (Model Context Protocol) server that exposes Hoogle search
+                over your project's local Haskell dependencies. Run from within a
+                nix-shell to give AI assistants type-aware search across all packages.
+category:       Development, IDE
+homepage:       https://github.com/jappeace/mcp-hoogle#readme
+bug-reports:    https://github.com/jappeace/mcp-hoogle/issues
+author:         Jappie Klooster
+maintainer:     hi@jappie.me
+copyright:      2025 Jappie Klooster
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    Readme.md
+    LICENSE
+extra-doc-files:
+    Changelog.md
+
+source-repository head
+  type: git
+  location: https://github.com/jappeace/mcp-hoogle
+
+flag werror
+  description: Enable -Werror during development
+  manual: True
+  default: False
+
+common common-options
+  default-extensions:
+      EmptyCase
+      FlexibleContexts
+      FlexibleInstances
+      InstanceSigs
+      MultiParamTypeClasses
+      LambdaCase
+      MultiWayIf
+      NamedFieldPuns
+      TupleSections
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveLift
+      DeriveTraversable
+      DerivingStrategies
+      GeneralizedNewtypeDeriving
+      StandaloneDeriving
+      OverloadedStrings
+      TypeApplications
+      NumericUnderscores
+      ImportQualifiedPost
+      TemplateHaskell
+
+  ghc-options:
+    -Wall -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Widentities -Wredundant-constraints
+    -Wcpp-undef -fwarn-tabs -Wpartial-fields
+    -fdefer-diagnostics -Wunused-packages
+    -fenable-th-splice-warnings
+    -fno-omit-yields
+
+  if flag(werror)
+    ghc-options: -Werror
+
+  build-depends:
+      base >=4.9.1.0 && <4.22
+
+  default-language: Haskell2010
+
+library
+  import: common-options
+  exposed-modules:
+      McpHoogle
+      McpHoogle.Tools
+      McpHoogle.Format
+  autogen-modules:
+      Paths_mcp_hoogle
+  other-modules:
+      Paths_mcp_hoogle
+  hs-source-dirs:
+      src
+  build-depends:
+      hoogle >=5.0 && <5.1
+    -- 0.1.0.17 added protocol version negotiation; older versions reject
+    -- Claude Code's 2024-11-05 handshake and tools silently don't appear.
+    , mcp-server >=0.1.0.17 && <0.2
+    , text >=1.2 && <2.2
+    , directory >=1.3 && <1.4
+    , stm >=2.5 && <2.6
+    , time >=1.9 && <1.15
+
+executable mcp-hoogle
+  import: common-options
+  main-is: Main.hs
+  hs-source-dirs:
+      app
+  autogen-modules:
+      Paths_mcp_hoogle
+  other-modules:
+      Paths_mcp_hoogle
+  build-depends:
+      mcp-hoogle
+    , hoogle >=5.0 && <5.1
+    , optparse-applicative >=0.16 && <0.19
+  ghc-options: -Wno-unused-packages -threaded -rtsopts "-with-rtsopts=-N -M7G -T -Iw10"
+
+test-suite unit
+  import: common-options
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  ghc-options: -Wno-unused-packages -threaded -rtsopts "-with-rtsopts=-N -M7G -T -Iw10"
+  hs-source-dirs:
+      test
+  build-depends:
+      tasty >=1.4 && <1.6
+    , tasty-hunit >=0.10 && <0.11
+    , mcp-hoogle
+    , hoogle >=5.0 && <5.1
+    , text >=1.2 && <2.2
+    , directory >=1.3 && <1.4
+    , stm >=2.5 && <2.6
+    , time >=1.9 && <1.15
