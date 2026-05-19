@@ -1,0 +1,96 @@
+cabal-version: 3.0
+version:       1.1.0.0
+name:          mfmts
+build-type:    Simple
+author:        Zoey McBride
+maintainer:    zoeymcbride@mailbox.org
+license:       AGPL-3.0-or-later
+license-file:  LICENSE.txt
+category:      Hash, Codec, Protocol
+synopsis:      Implements multiformats specification
+description:
+    Implments the multiformats specification used in IPFS and other distributed
+    systems.
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head {
+    type: git
+    location: https://git.sr.ht/~z0/mfmts
+}
+
+-- | Sets flag for CI build toggle
+flag CI {
+    Description: CI Build options
+    Default: False
+    Manual: True
+}
+
+-- | Configures the Haskell toolchain for the library clause
+common HaskellConfig {
+    default-language: GHC2021
+    default-extensions: StrictData
+    hs-source-dirs: cid varint multihash multibase multicodec
+}
+
+-- | These dependency versions are known to be compatable with mfmts
+common DefaultVersions {
+    build-depends:
+        base >= 4.18 && < 5,
+        basesystems ^>= 1.1,
+        text >= 2.1 && < 2.2,
+        array ^>= 0.5,
+        bytestring ^>= 0.12,
+        containers >= 0.7 && < 0.8,
+        crypton ^>= 1.1,
+        ram >= 0.20.1 && < 0.23
+}
+
+-- | BuildUser: strict compilation + optimize for executable speed
+common BuildUser {
+    import: DefaultVersions
+    ghc-options: -Wall -Wextra -Wno-unused-top-binds
+}
+
+-- | BuildCI: strict compilation + optimize for compile time
+common BuildCI {
+    import: DefaultVersions
+    ghc-options: -Wall -Wextra -Werror -Wno-unused-top-binds
+}
+
+-- | Configures mfmts
+library {
+    import: HaskellConfig
+    if flag(CI) { import: BuildCI }
+    else { import: BuildUser }
+    exposed-modules:
+        -- * Unsigned binary varints
+        MultiFormats.VarInt,
+        MultiFormats.VarInt.Errors,
+        -- * Multicodecs for identifying data in CID
+        MultiFormats.MultiCodec,
+        -- * Multibase for labeling identifying basesystems via prefix
+        -- for ShortByteString, LazyByteString, and strict ByteString
+        MultiFormats.MultiBase,
+        MultiFormats.MultiBase.Lazy,
+        MultiFormats.MultiBase.Strict,
+        -- * Data.BaseSystem.DigitSystems with prefix identifiers for MultiBase
+        MultiFormats.MultiBase.DigitSystem,
+        -- * Instance of Data.BaseSystem.DigitTranscoder for MultiBase
+        MultiFormats.MultiBase.DigitTranscoder,
+        -- * Associates various hash functions with their Mutlicodec identifier
+        MultiFormats.MultiHash,
+        -- * CID definitions
+        MultiFormats.CID,
+        MultiFormats.CID.Errors,
+        -- * CID interfaces
+        MultiFormats.CID.Serializer,
+        MultiFormats.CID.Extractor,
+        MultiFormats.CID.Parser,
+        -- * Implements Extractors, Serializers, and Parsers for CID components
+        MultiFormats.CID.Component.Codec,
+        MultiFormats.CID.Component.Decoder,
+        MultiFormats.CID.Component.Hash,
+        MultiFormats.CID.Component.Version,
+}
