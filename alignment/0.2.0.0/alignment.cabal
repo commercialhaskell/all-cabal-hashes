@@ -1,0 +1,112 @@
+cabal-version:        2.4
+name:                 alignment
+version:              0.2.0.0
+synopsis:             Principled functor alignment with leftovers
+description:
+                      A principled approach to zipping functors that preserves both matched
+                      pairs and leftovers.
+                      .
+                      The @alignment@ library provides type classes and operations for aligning
+                      two functors into a structure (@This@) that captures:
+                      .
+                      * Matched pairs where both functors have elements at the same position
+                      .
+                      * Leftovers when one functor is longer than the other
+                      .
+                      This is more principled than traditional @zip@ which silently discards
+                      extra elements. The library uses functional dependencies (@f -> g@) to
+                      relate the \"paired\" functor to the \"leftover\" functor, ensuring type safety.
+                      .
+                      Key features:
+                      .
+                      * @Semialign@, @Align@, and @Unalign@ type classes with comprehensive laws
+                      .
+                      * @Unalign@ provides inverse operation to recover original functors
+                      .
+                      * Full lens\/optics integration
+                      .
+                      * Instances for common functors: @[]@, @Maybe@, @NonEmpty@, @Vector@,
+                        @Map@, @Seq@, and more
+                      .
+                      * Testable law-checking functions for property-based testing
+                      .
+                      * Complete documentation with 211 doctests
+                      .
+                      Example:
+                      .
+                      > import Data.Alignment
+                      >
+                      > -- Align two lists of different lengths
+                      > align [1,2,3] [10,20] :: This [] NonEmpty Int Int
+                      > -- Result: This [(1,10),(2,20)] (Just (Left (3 :| [])))
+                      .
+                      <<https://logo.systemf.com.au/systemf-450x450.png>>
+license:              BSD-3-Clause
+license-file:         LICENCE
+author:               Tony Morris <oᴉ˙ldɟb@llǝʞsɐɥ>
+maintainer:           Tony Morris <oᴉ˙ldɟb@llǝʞsɐɥ>
+copyright:            Copyright (C) 2022-2026 Tony Morris
+category:             Data
+build-type:           Simple
+extra-doc-files:      changelog.md
+homepage:             https://gitlab.com/system-f/code/alignment
+bug-reports:          https://gitlab.com/system-f/code/alignment/issues
+tested-with:          GHC == 9.6.7
+
+source-repository     head
+  type:               git
+  location:           git@gitlab.com:system-f/code/alignment.git
+
+library
+  exposed-modules:    Data.Alignment
+
+  build-depends:      base >= 4.18 && < 6
+                    , bifunctors >= 5 && < 6
+                    , deepseq >= 1.4 && < 1.6
+                    , lens >= 4 && < 6
+                    , semigroupoids >= 6 && < 7
+                    , assoc >= 1 && < 2
+                    , containers >= 0.6 && < 0.8
+                    , vector >= 0.12 && < 0.14
+
+  hs-source-dirs:     src
+
+  default-language:   Haskell2010
+
+  ghc-options:        -Wall
+
+  if flag(dev)
+    ghc-options:      -Werror
+
+flag dev
+  description:        Enable -Werror for development
+  manual:             True
+  default:            False
+
+test-suite doctest
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Main.hs
+  build-depends:      base >= 4.8 && < 6
+                    , process >= 1 && < 2
+  build-tool-depends: doctest:doctest >= 0.22
+  default-language:   Haskell2010
+  ghc-options:        -Wall
+                      -Wno-inline-rule-shadowing
+
+benchmark alignment-bench
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     bench
+  main-is:            Main.hs
+  build-depends:      base >= 4.8 && < 6
+                    , alignment
+                    , criterion >= 1.5 && < 1.7
+                    , deepseq >= 1.4 && < 1.6
+                    , vector >= 0.12 && < 0.14
+                    , containers >= 0.6 && < 0.8
+  default-language:   Haskell2010
+  ghc-options:        -Wall
+                      -O2
+                      -threaded
+                      -rtsopts
+                      -with-rtsopts=-N
