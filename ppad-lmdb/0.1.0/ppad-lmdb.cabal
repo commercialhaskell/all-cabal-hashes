@@ -1,0 +1,104 @@
+cabal-version:      3.0
+name:               ppad-lmdb
+version:            0.1.0
+synopsis:           Minimal bindings to LMDB.
+license:            MIT
+license-file:       LICENSE
+author:             Jared Tobin
+maintainer:         jared@ppad.tech
+category:           Database
+build-type:         Simple
+tested-with:        GHC == 9.10.3
+extra-doc-files:    CHANGELOG
+extra-source-files: cbits/LICENSE
+                  , cbits/lmdb.h
+                  , cbits/mdb.c
+                  , cbits/midl.c
+                  , cbits/midl.h
+description:
+  Minimal bindings to
+  [LMDB](https://www.symas.com/lmdb) (Lightning Memory-Mapped
+  Database), an embedded ACID key-value store. The upstream LMDB C
+  source is vendored at release @LMDB_0.9.33@ under @cbits/@; no
+  external @liblmdb@ is required.
+
+flag llvm
+  description: Use GHC's LLVM backend.
+  default:     False
+  manual:      True
+
+source-repository head
+  type:     git
+  location: git.ppad.tech/lmdb.git
+
+library
+  default-language: Haskell2010
+  hs-source-dirs:   lib
+  include-dirs:     cbits
+  c-sources:        cbits/mdb.c
+                  , cbits/midl.c
+  cc-options:       -w
+  ghc-options:
+      -Wall
+      -optc-Wno-incompatible-pointer-types
+  if flag(llvm)
+    ghc-options: -fllvm -O2
+  if !os(windows)
+    extra-libraries: pthread
+  exposed-modules:
+      Database.LMDB
+      Database.LMDB.Internal
+  build-depends:
+      base       >= 4.9  && < 5
+    , bytestring >= 0.9  && < 0.13
+
+test-suite lmdb-tests
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      test
+  main-is:             Main.hs
+  ghc-options:
+      -rtsopts -Wall -O2
+  build-depends:
+      base
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , ppad-lmdb
+    , QuickCheck
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+
+benchmark lmdb-bench
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      bench
+  main-is:             Main.hs
+  ghc-options:
+      -rtsopts -O2 -Wall
+  build-depends:
+      base
+    , bytestring
+    , criterion
+    , directory
+    , filepath
+    , ppad-lmdb
+
+benchmark lmdb-weigh
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      bench
+  main-is:             Weight.hs
+  ghc-options:
+      -rtsopts -O2 -Wall -fno-warn-orphans
+  if flag(llvm)
+    ghc-options: -fllvm
+  build-depends:
+      base
+    , bytestring
+    , directory
+    , filepath
+    , ppad-lmdb
+    , weigh
