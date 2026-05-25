@@ -1,0 +1,157 @@
+cabal-version: 3.0
+
+name:
+    semaphore-compat
+version:
+    2.0.0
+license:
+    BSD-3-Clause
+
+author:
+    The GHC team
+maintainer:
+    ghc-devs@haskell.org
+homepage:
+    https://gitlab.haskell.org/ghc/semaphore-compat
+bug-reports:
+    https://gitlab.haskell.org/ghc/ghc/issues/new
+
+category:
+    System
+synopsis:
+    Cross-platform abstraction for system semaphores
+description:
+    Cross-platform semaphores for managing resources across processes,
+    abstracting over Win32 named semaphores on Windows and Unix domain sockets
+    on POSIX.
+
+build-type:
+    Simple
+
+extra-source-files:
+    changelog.md
+  , readme.md
+
+
+flag build-testing
+    description: Build test helper library, executable, and test suite
+    default: False
+    manual: True
+
+source-repository head
+    type:     git
+    location: https://gitlab.haskell.org/ghc/semaphore-compat.git
+
+library
+    hs-source-dirs:
+        src
+
+    exposed-modules:
+        System.Semaphore
+        System.Semaphore.Internal.Common
+
+    build-depends:
+        base
+          >= 4.11 && < 4.24
+      , directory
+          >= 1.3  && < 1.4
+      , exceptions
+          >= 0.7  && < 0.11
+      , filepath
+          >= 1.4  && < 1.6
+
+    if os(windows)
+      build-depends:
+        Win32
+          >= 2.13.4.0 && < 2.15
+      exposed-modules:
+          System.Semaphore.Internal.Win32
+    elif arch(wasm32) || arch(javascript)
+      exposed-modules:
+          System.Semaphore.Internal.Unsupported
+    else
+      build-depends:
+          unix
+            >= 2.8.1.0 && < 2.9
+        , stm
+            >= 2.4     && < 2.6
+        , containers
+            >= 0.5     && < 0.9
+      c-sources:
+          cbits/domain.c
+      exposed-modules:
+          System.Semaphore.Internal.DomainSocket
+          System.Semaphore.Internal.Posix
+
+    default-language:
+        Haskell2010
+
+library semaphore-test-common
+    visibility:
+        private
+    hs-source-dirs:
+        test-common
+    exposed-modules:
+        System.Semaphore.TestHelper
+    build-depends:
+        base
+          >= 4.11 && < 4.23
+      , semaphore-compat
+      , process
+          >= 1.6.16 && < 1.8
+    if !os(windows)
+      build-depends:
+        unix
+          >= 2.8.1.0 && < 2.9
+    if !flag(build-testing)
+      buildable: False
+    ghc-options:
+        -Wall
+    default-language:
+        Haskell2010
+
+executable semaphore-helper
+    hs-source-dirs:
+        helper
+    main-is:
+        Main.hs
+    build-depends:
+        base
+          >= 4.11 && < 4.23
+      , semaphore-compat:semaphore-test-common
+    if !flag(build-testing)
+      buildable: False
+    ghc-options:
+        -threaded
+    default-language:
+        Haskell2010
+
+test-suite semaphore-compat-test
+    type:
+        exitcode-stdio-1.0
+    hs-source-dirs:
+        test
+    main-is:
+        Main.hs
+    build-depends:
+        base
+          >= 4.11 && < 4.23
+      , semaphore-compat
+      , semaphore-compat:semaphore-test-common
+      , process
+          >= 1.6.16 && < 1.8
+      , tasty
+      , tasty-expected-failure
+      , tasty-hunit
+    if !os(windows)
+      build-depends:
+        unix
+          >= 2.8.1.0 && < 2.9
+    build-tool-depends:
+        semaphore-compat:semaphore-helper
+    if !flag(build-testing)
+      buildable: False
+    ghc-options:
+        -threaded -rtsopts "-with-rtsopts=-N"
+    default-language:
+        Haskell2010
