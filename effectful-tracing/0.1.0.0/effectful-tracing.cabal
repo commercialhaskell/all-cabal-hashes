@@ -1,0 +1,358 @@
+cabal-version:      3.0
+name:               effectful-tracing
+version:            0.1.0.0
+synopsis:           Tracing as a scoped effect, built on effectful, with OpenTelemetry interop.
+description:
+  A Haskell tracing library built natively on the @effectful@ effect system.
+  Spans are modeled as scoped, higher-order effects, so the current span is
+  lexical rather than thread-local. Real export is provided by an
+  OpenTelemetry interpreter that compiles down to @hs-opentelemetry@; other
+  interpreters (no-op, in-memory, pretty-print) cover testing and development.
+  .
+  This is an early release: the API is experimental and may change between
+  versions. See the README and the @docs@ directory for a tutorial, cookbook,
+  and design overview.
+homepage:           https://github.com/joshburgess/effectful-tracing
+bug-reports:        https://github.com/joshburgess/effectful-tracing/issues
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             The effectful-tracing contributors
+maintainer:         joshualoganburgess@gmail.com
+copyright:          (c) The effectful-tracing contributors
+category:           Tracing, Observability, Effect
+build-type:         Simple
+tested-with:        GHC == 9.6.7 || == 9.8.4 || == 9.10.3
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+  docs/tutorial.md
+  docs/cookbook.md
+  docs/design.md
+
+source-repository head
+  type:     git
+  location: https://github.com/joshburgess/effectful-tracing.git
+
+flag otel
+  description:
+    Build the OpenTelemetry export interpreter
+    (@Effectful.Tracing.Interpreter.OpenTelemetry@), which bridges to
+    @hs-opentelemetry@. Off by default so the base package stays free of the
+    OpenTelemetry dependency tree.
+  default:     False
+  manual:      True
+
+flag wai
+  description:
+    Build the WAI tracing middleware
+    (@Effectful.Tracing.Instrumentation.Wai@). Off by default so the base
+    package does not depend on @wai@.
+  default:     False
+  manual:      True
+
+flag http-client
+  description:
+    Build the http-client tracing wrappers
+    (@Effectful.Tracing.Instrumentation.HttpClient@). Off by default so the base
+    package does not depend on @http-client@.
+  default:     False
+  manual:      True
+
+flag postgresql-simple
+  description:
+    Build the @postgresql-simple@ tracing wrappers
+    (@Effectful.Tracing.Instrumentation.PostgresqlSimple@). Off by default so the
+    base package does not depend on @postgresql-simple@ (and its @libpq@ C
+    dependency).
+  default:     False
+  manual:      True
+
+flag sqlite-simple
+  description:
+    Build the @sqlite-simple@ tracing wrappers
+    (@Effectful.Tracing.Instrumentation.SqliteSimple@). Off by default so the
+    base package does not depend on @sqlite-simple@ (and its bundled SQLite C
+    sources).
+  default:     False
+  manual:      True
+
+flag valiant
+  description:
+    Build the @valiant@ tracing wrappers
+    (@Effectful.Tracing.Instrumentation.Valiant@) over the @valiant-effectful@
+    adapter. Off by default so the base package does not depend on @valiant@ /
+    @valiant-effectful@.
+  default:     False
+  manual:      True
+
+flag amqp
+  description:
+    Build the @amqp@ (RabbitMQ) tracing wrappers
+    (@Effectful.Tracing.Instrumentation.Amqp@). Off by default so the base
+    package does not depend on @amqp@.
+  default:     False
+  manual:      True
+
+flag servant
+  description:
+    Build the Servant route-aware tracing middleware
+    (@Effectful.Tracing.Instrumentation.Servant@). Off by default so the base
+    package does not depend on @servant-server@. Implies the WAI middleware, which
+    it builds on, so it also pulls in @wai@.
+  default:     False
+  manual:      True
+
+flag secure-ids
+  description:
+    Mint trace and span identifiers from a cryptographically secure source
+    (@crypton@'s system entropy) instead of the default fast splitmix PRNG. Off
+    by default: the fast PRNG is the conventional SDK choice and keeps per-span
+    cost low. Turn this on when identifiers must be unpredictable to an
+    attacker. The @newTraceId@ \/ @newSpanId@ surface is identical either way.
+  default:     False
+  manual:      True
+
+common warnings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wpartial-fields
+    -Wredundant-constraints
+    -funbox-strict-fields
+
+common language
+  default-language:   GHC2021
+  default-extensions: StrictData
+
+library
+  import:          warnings, language
+  hs-source-dirs:  src
+  exposed-modules:
+    Effectful.Tracing
+    Effectful.Tracing.Attribute
+    Effectful.Tracing.Baggage
+    Effectful.Tracing.Concurrent
+    Effectful.Tracing.Effect
+    Effectful.Tracing.EnvConfig
+    Effectful.Tracing.Instrumentation.Database
+    Effectful.Tracing.Instrumentation.Messaging
+    Effectful.Tracing.Log
+    Effectful.Tracing.Interpreter.InMemory
+    Effectful.Tracing.Interpreter.NoOp
+    Effectful.Tracing.Interpreter.PrettyPrint
+    Effectful.Tracing.Propagation
+    Effectful.Tracing.Propagation.B3
+    Effectful.Tracing.Propagation.Baggage
+    Effectful.Tracing.Propagation.Composite
+    Effectful.Tracing.Propagation.Jaeger
+    Effectful.Tracing.Sampler
+    Effectful.Tracing.SemConv
+    Effectful.Tracing.SpanLimits
+    Effectful.Tracing.Testing
+    Effectful.Tracing.Internal.Clock
+    Effectful.Tracing.Internal.Ids
+    Effectful.Tracing.Internal.Live
+    Effectful.Tracing.Internal.Types
+
+  build-depends:
+    , base             >=4.18  && <4.21
+    , bytestring       >=0.11  && <0.13
+    , case-insensitive >=1.2   && <1.3
+    , containers       >=0.6   && <0.8
+    , effectful        ==2.6.1.0
+    , effectful-core   ==2.6.1.0
+    , hashable         >=1.4   && <1.6
+    , http-types       >=0.12  && <0.13
+    , random           >=1.2.1 && <1.4
+    , stm              >=2.5   && <2.6
+    , text             >=2.0   && <2.2
+    , time             >=1.12  && <1.15
+    , vector           >=0.13  && <0.14
+
+  if flag(otel)
+    exposed-modules: Effectful.Tracing.Interpreter.OpenTelemetry
+    build-depends:
+      , clock                >=0.8   && <0.9
+      , hs-opentelemetry-api ==0.3.1.0
+
+  -- The Wai middleware backs the Servant integration, so it is built whenever
+  -- either flag is on.
+  if flag(wai) || flag(servant)
+    exposed-modules: Effectful.Tracing.Instrumentation.Wai
+    build-depends:   wai >=3.2 && <3.3
+
+  if flag(servant)
+    exposed-modules: Effectful.Tracing.Instrumentation.Servant
+    build-depends:
+      , servant        >=0.19 && <0.21
+      , servant-server  >=0.19 && <0.21
+      , vault           >=0.3  && <0.4
+
+  if flag(http-client)
+    exposed-modules: Effectful.Tracing.Instrumentation.HttpClient
+    build-depends:   http-client >=0.7 && <0.8
+
+  if flag(postgresql-simple)
+    exposed-modules: Effectful.Tracing.Instrumentation.PostgresqlSimple
+    build-depends:   postgresql-simple >=0.6 && <0.8
+
+  if flag(sqlite-simple)
+    exposed-modules: Effectful.Tracing.Instrumentation.SqliteSimple
+    build-depends:   sqlite-simple >=0.4 && <0.5
+
+  if flag(valiant)
+    exposed-modules: Effectful.Tracing.Instrumentation.Valiant
+    build-depends:
+      , valiant           >=0.1 && <0.2
+      , valiant-effectful >=0.1 && <0.2
+
+  if flag(amqp)
+    exposed-modules: Effectful.Tracing.Instrumentation.Amqp
+    build-depends:   amqp >=0.22 && <0.25
+
+  if flag(secure-ids)
+    cpp-options:   -DSECURE_IDS
+    build-depends: crypton >=1.0 && <1.2
+
+test-suite effectful-tracing-test
+  import:         warnings, language
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  ghc-options:    -threaded -rtsopts "-with-rtsopts=-N"
+  other-modules:
+    Effectful.Tracing.AsyncExceptionSpec
+    Effectful.Tracing.AttributeSpec
+    Effectful.Tracing.BaggageSpec
+    Effectful.Tracing.CompileTest
+    Effectful.Tracing.ConcurrentSpec
+    Effectful.Tracing.EnvConfigSpec
+    Effectful.Tracing.FuzzSpec
+    Effectful.Tracing.Gen
+    Effectful.Tracing.IdGenSpec
+    Effectful.Tracing.IdsSpec
+    Effectful.Tracing.InMemorySpec
+    Effectful.Tracing.Instrumentation.DatabaseSpec
+    Effectful.Tracing.Instrumentation.MessagingSpec
+    Effectful.Tracing.LifecycleSpec
+    Effectful.Tracing.LogSpec
+    Effectful.Tracing.NoOpSpec
+    Effectful.Tracing.PrettyPrintLeakSpec
+    Effectful.Tracing.PrettyPrintSpec
+    Effectful.Tracing.Propagation.B3Spec
+    Effectful.Tracing.Propagation.CompositeSpec
+    Effectful.Tracing.Propagation.JaegerSpec
+    Effectful.Tracing.PropagationSpec
+    Effectful.Tracing.PropertySpec
+    Effectful.Tracing.SamplerSpec
+    Effectful.Tracing.SpanLimitsSpec
+    Effectful.Tracing.TestingSpec
+    Effectful.Tracing.ThunkSpec
+    Effectful.Tracing.TypesSpec
+
+  build-depends:
+    , base              >=4.18  && <4.21
+    , bytestring        >=0.11  && <0.13
+    , containers        >=0.6   && <0.8
+    , effectful         ==2.6.1.0
+    , effectful-core    ==2.6.1.0
+    , effectful-tracing
+    , hedgehog          >=1.4   && <1.6
+    , http-types        >=0.12  && <0.13
+    , nothunks          >=0.2   && <0.4
+    , stm               >=2.5   && <2.6
+    , tasty             >=1.4   && <1.6
+    , tasty-golden      >=2.3   && <2.4
+    , tasty-hedgehog    >=1.4   && <1.5
+    , tasty-hunit       >=0.10  && <0.11
+    , temporary         >=1.3   && <1.4
+    , text              >=2.0   && <2.2
+    , time              >=1.12  && <1.15
+    , vector            >=0.13  && <0.14
+
+  if flag(otel)
+    cpp-options:     -DOTEL
+    other-modules:   Effectful.Tracing.OpenTelemetrySpec
+    build-depends:
+      , async                >=2.2 && <2.3
+      , hs-opentelemetry-api ==0.3.1.0
+
+  if flag(wai) || flag(servant)
+    build-depends: wai >=3.2 && <3.3
+
+  if flag(wai)
+    cpp-options:     -DWAI
+    other-modules:   Effectful.Tracing.Instrumentation.WaiSpec
+
+  if flag(servant)
+    cpp-options:     -DSERVANT
+    other-modules:   Effectful.Tracing.Instrumentation.ServantSpec
+    build-depends:
+      , servant        >=0.19 && <0.21
+      , servant-server  >=0.19 && <0.21
+
+  if flag(http-client)
+    cpp-options:     -DHTTP_CLIENT
+    other-modules:   Effectful.Tracing.Instrumentation.HttpClientSpec
+    build-depends:
+      , http-client >=0.7 && <0.8
+      , wai         >=3.2 && <3.3
+      , warp        >=3.3 && <3.5
+
+  if flag(postgresql-simple)
+    cpp-options:   -DPOSTGRESQL_SIMPLE
+    build-depends: postgresql-simple >=0.6 && <0.8
+
+  if flag(sqlite-simple)
+    cpp-options:   -DSQLITE_SIMPLE
+    build-depends: sqlite-simple >=0.4 && <0.5
+
+  if flag(valiant)
+    cpp-options:   -DVALIANT
+    build-depends:
+      , valiant           >=0.1 && <0.2
+      , valiant-effectful >=0.1 && <0.2
+
+  if flag(amqp)
+    -- Named AMQP_BINDING, not AMQP: a bare -DAMQP would expand the AMQP token
+    -- inside the Network.AMQP import path and break the parse.
+    cpp-options:   -DAMQP_BINDING
+    other-modules: Effectful.Tracing.Instrumentation.AmqpSpec
+    build-depends: amqp >=0.22 && <0.25
+
+  -- The id generator tests (Effectful.Tracing.IdGenSpec) run in both modes; this
+  -- only flips the source label so the test output names which byte source was
+  -- exercised. The crypton path itself is exercised because the linked library
+  -- was built with +secure-ids.
+  if flag(secure-ids)
+    cpp-options:     -DSECURE_IDS
+
+-- A standalone space-leak regression guard, run under a deliberately tiny
+-- maximum stack (-K1K) so a thunk-accumulation regression in the span lifecycle
+-- overflows and fails. Kept separate from the tasty suite, whose property tests
+-- legitimately need a larger stack and so cannot share these RTS options.
+test-suite effectful-tracing-space-leak
+  import:         warnings, language
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test-space-leak
+  main-is:        Main.hs
+  ghc-options:    -rtsopts "-with-rtsopts=-K1K"
+  build-depends:
+    , base              >=4.18 && <4.21
+    , effectful-core    ==2.6.1.0
+    , effectful-tracing
+
+benchmark effectful-tracing-bench
+  import:         warnings, language
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is:        Main.hs
+  build-depends:
+    , base              >=4.18  && <4.21
+    , effectful-core    ==2.6.1.0
+    , effectful-tracing
+    , tasty-bench       >=0.3.1 && <0.5
