@@ -1,0 +1,351 @@
+cabal-version:      3.0
+name:               dataframe
+version:            2.1.0.1
+
+synopsis: A fast, safe, and intuitive DataFrame library.
+
+description: A fast, safe, and intuitive DataFrame library for exploratory data analysis.
+
+bug-reports: https://github.com/mchav/dataframe/issues
+license:            MIT
+license-file:       LICENSE
+author:             Michael Chavinda
+maintainer:         mschavinda@gmail.com
+
+copyright: (c) 2024-2025 Michael Chavinda
+category: Data
+tested-with: GHC ==9.4.8 || ==9.6.7 || ==9.8.4 || ==9.10.3 || ==9.12.2
+extra-doc-files: CHANGELOG.md README.md
+extra-source-files: cbits/arrow_abi.h
+                    tests/data/typing/texts.txt
+                    tests/data/typing/texts_with_empties.txt
+                    tests/data/typing/texts_with_empties_and_nullish.txt
+                    data/titanic/*.csv
+                    data/sharded/*.parquet
+                    tests/data/*.csv
+                    tests/data/*.tsv
+                    tests/data/*.parquet
+                    tests/data/unstable_csv/*.csv
+                    tests/data/unstable_csv/*.tsv
+                    -- tests/data/*.md
+                    -- tests/data/*.bin
+                    -- tests/data/*.json
+                    -- tests/data/*.txt
+                    -- tests/data/*.encrypted
+
+source-repository head
+  type:     git
+  location: https://github.com/mchav/dataframe
+
+common warnings
+    ghc-options:
+        -Wall
+
+flag no-csv
+    default:     False
+    manual:      True
+    description: Exclude the CSV reader/writer (@dataframe-csv@). Enable
+                 with @-f +no-csv@ (or @flags: no-csv@ in cabal.project)
+                 to trim the dep set of the meta package when CSV is not
+                 needed.
+
+flag no-parquet
+    default:     False
+    manual:      True
+    description: Exclude the Parquet reader/writer (@dataframe-parquet@
+                 plus pinch, zstd, snappy, streamly, http-conduit).
+                 Enable with @-f +no-parquet@.
+
+flag no-th
+    default:     False
+    manual:      True
+    description: Exclude the Template Haskell splices (@dataframe-th@,
+                 @dataframe-csv-th@, @dataframe-parquet-th@). Enable
+                 with @-f +no-th@ to drop the @template-haskell@ dep for
+                 downstream packages that don't use compile-time schema
+                 derivation.
+
+library
+    import: warnings
+    default-extensions: Strict
+    -- Lock the unused-packages gate locally; haskell-ci already runs the
+    -- same Werror against this stanza. Catches the case where a satellite
+    -- gets added to build-depends but never re-exported.
+    ghc-options: -Werror=unused-packages
+    exposed-modules: DataFrame,
+                    DataFrame.Typed
+    reexported-modules: DataFrame.Functions,
+                        DataFrame.Synthesis,
+                        DataFrame.Display.Web.Plot,
+                        DataFrame.Internal.Types,
+                        DataFrame.Internal.Expression,
+                        DataFrame.Internal.Grouping,
+                        DataFrame.Internal.Interpreter,
+                        DataFrame.Internal.Nullable,
+                        DataFrame.Internal.Parsing,
+                        DataFrame.Internal.Column,
+                        DataFrame.Internal.Binary,
+                        DataFrame.Internal.Statistics,
+                        DataFrame.Display.Terminal.PrettyPrint,
+                        DataFrame.Display.Terminal.Colours,
+                        DataFrame.Internal.DataFrame,
+                        DataFrame.Internal.Row,
+                        DataFrame.Internal.Schema,
+                        DataFrame.Errors,
+                        DataFrame.Operations.Core,
+                        DataFrame.Operations.Join,
+                        DataFrame.Operations.Merge,
+                        DataFrame.Operators,
+                        DataFrame.Operations.Permutation,
+                        DataFrame.Operations.Subset,
+                        DataFrame.Operations.Statistics,
+                        DataFrame.Operations.Transformations,
+                        DataFrame.Operations.Typing,
+                        DataFrame.Operations.Aggregation,
+                        DataFrame.Display,
+                        DataFrame.Display.Terminal.Plot,
+                        DataFrame.Monad,
+                        DataFrame.DecisionTree,
+                        DataFrame.IO.JSON,
+                        DataFrame.Typed.Types,
+                        DataFrame.Typed.Schema,
+                        DataFrame.Typed.Freeze,
+                        DataFrame.Typed.Access,
+                        DataFrame.Typed.Operations,
+                        DataFrame.Typed.Join,
+                        DataFrame.Typed.Aggregate,
+                        DataFrame.Typed.Expr,
+                        DataFrame.Typed.Record,
+                        DataFrame.Typed.Generic
+    build-depends:    base >= 4 && <5,
+                      dataframe-core ^>= 1.0,
+                      dataframe-json ^>= 1.0,
+                      dataframe-operations ^>= 1.0,
+                      dataframe-parsing ^>= 1.0,
+                      dataframe-viz ^>= 1.0,
+                      dataframe-learn ^>= 1.0
+
+    if !flag(no-csv)
+        reexported-modules: DataFrame.IO.CSV
+        build-depends:   dataframe-csv ^>= 1.0
+        cpp-options:     -DWITH_CSV
+
+    if !flag(no-parquet)
+        reexported-modules: DataFrame.IO.Parquet,
+                            DataFrame.IO.Parquet.Binary,
+                            DataFrame.IO.Parquet.Dictionary,
+                            DataFrame.IO.Parquet.Levels,
+                            DataFrame.IO.Parquet.Thrift,
+                            DataFrame.IO.Parquet.Decompress,
+                            DataFrame.IO.Parquet.Encoding,
+                            DataFrame.IO.Parquet.Page,
+                            DataFrame.IO.Parquet.Schema,
+                            DataFrame.IO.Parquet.Utils,
+                            DataFrame.IO.Parquet.Seeking,
+                            DataFrame.IO.Parquet.Time,
+                            DataFrame.IO.Utils.RandomAccess
+        build-depends:   dataframe-parquet ^>= 1.0
+        cpp-options:     -DWITH_PARQUET
+
+    -- The lazy executor calls both CSV and Parquet readers directly, so
+    -- it can only be pulled in when both backends are present.
+    if !flag(no-csv) && !flag(no-parquet)
+        reexported-modules: DataFrame.Lazy,
+                            DataFrame.Lazy.IO.Binary,
+                            DataFrame.Lazy.IO.CSV,
+                            DataFrame.Lazy.Internal.DataFrame,
+                            DataFrame.Lazy.Internal.LogicalPlan,
+                            DataFrame.Lazy.Internal.PhysicalPlan,
+                            DataFrame.Lazy.Internal.Optimizer,
+                            DataFrame.Lazy.Internal.Executor,
+                            DataFrame.Typed.Lazy
+        build-depends:   dataframe-lazy ^>= 1.0
+        cpp-options:     -DWITH_LAZY
+
+    if !flag(no-th)
+        build-depends:   dataframe-th ^>= 1.0
+        cpp-options:     -DWITH_TH
+        exposed-modules: DataFrame.TH,
+                         DataFrame.Typed.TH
+
+    if !flag(no-th) && !flag(no-csv)
+        build-depends:   dataframe-csv-th ^>= 1.0
+        cpp-options:     -DWITH_CSV_TH
+
+    if !flag(no-th) && !flag(no-parquet)
+        build-depends:   dataframe-parquet-th ^>= 1.0
+        cpp-options:     -DWITH_PARQUET_TH
+
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+library arrow-bridge
+    import: warnings
+    visibility: public
+    hs-source-dirs:   ffi
+    exposed-modules:  DataFrame.IO.Arrow
+                      DataFrame.IR
+                      DataFrame.IR.ExprJson
+    -- The Arrow bridge IR loads CSV + Parquet readers, so it requires
+    -- both backends. If either flag is off, skip building it.
+    if flag(no-csv) || flag(no-parquet)
+        buildable: False
+    build-depends:
+        base        >= 4   && < 5,
+        dataframe-core ^>= 1.0,
+        dataframe-csv ^>= 1.0,
+        dataframe-json ^>= 1.0,
+        dataframe-lazy ^>= 1.0,
+        dataframe-operations ^>= 1.0,
+        dataframe-parquet ^>= 1.0,
+        dataframe-parsing ^>= 1.0,
+        text        >= 2.0 && < 3,
+        aeson       >= 0.11 && < 3,
+        bytestring  >= 0.11 && < 0.13,
+        containers  >= 0.6.7 && < 0.9,
+        vector      ^>= 0.13
+    include-dirs:     cbits
+    default-language: Haskell2010
+
+executable dataframe-benchmark-example
+    import: warnings
+    main-is: Benchmark.hs
+    build-depends:    base >= 4 && < 5,
+                      dataframe >= 1 && < 3,
+                      dataframe-operations ^>= 1.0,
+                      random >= 1 && < 2,
+                      time >= 1.12 && < 2,
+                      vector ^>= 0.13,
+    hs-source-dirs:   app
+    default-language: Haskell2010
+    ghc-options: -rtsopts -threaded -with-rtsopts=-N
+
+executable synthesis
+    import: warnings
+    main-is: Synthesis.hs
+    build-depends:    base >= 4 && < 5,
+                      dataframe >= 1 && < 3,
+                      dataframe-core ^>= 1.0,
+                      dataframe-learn ^>= 1.0,
+                      dataframe-operations ^>= 1.0,
+                      random >= 1 && < 2,
+                      text >= 2.0 && < 3
+    hs-source-dirs:   app
+    default-language: Haskell2010
+    ghc-options: -rtsopts -threaded -with-rtsopts=-N
+
+executable dataframe
+    import: warnings
+    main-is: Main.hs
+    build-depends:    base >= 4 && < 5,
+                      directory >= 1.3.0.0 && < 2,
+                      filepath >= 1.4 && < 2,
+                      process >= 1.6 && < 2,
+                      time >= 1.12 && < 2
+    if !os(windows)
+        build-depends: unix >= 2 && < 3
+    hs-source-dirs:   app
+    default-language: Haskell2010
+    ghc-options: -rtsopts -threaded -with-rtsopts=-N
+
+executable lazy-bench
+    import: warnings
+    main-is: LazyBenchmark.hs
+    -- lazy-bench drives the lazy executor against CSV/Parquet sources, so
+    -- it can only build when both backends are present.
+    if flag(no-csv) || flag(no-parquet)
+        buildable: False
+    build-depends:    base >= 4 && < 5,
+                      bytestring >= 0.11 && < 0.13,
+                      containers >= 0.6.7 && < 0.9,
+                      dataframe >= 1 && < 3,
+                      dataframe-core ^>= 1.0,
+                      dataframe-lazy ^>= 1.0,
+                      dataframe-parsing ^>= 1.0,
+                      directory >= 1.3.0.0 && < 2,
+                      random >= 1 && < 2,
+                      text >= 2.0 && < 3,
+                      time >= 1.12 && < 2,
+    hs-source-dirs:   app
+    default-language: Haskell2010
+    ghc-options: -rtsopts -threaded -with-rtsopts=-N
+
+benchmark dataframe-benchmark
+    import: warnings
+    type: exitcode-stdio-1.0
+    main-is: Main.hs
+    hs-source-dirs: benchmark
+    build-depends: base >= 4 && < 5,
+                   criterion >= 1 && < 2,
+                   deepseq >= 1.4 && < 2,
+                   process >= 1.6 && < 2,
+                   dataframe >= 1 && < 3,
+                   random >= 1 && < 2,
+    default-language: Haskell2010
+    ghc-options:
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
+
+test-suite tests
+    import: warnings
+    type: exitcode-stdio-1.0
+    main-is: Main.hs
+    -- The test runner imports CSV, JSON, Parquet, Lazy, and TH-derived
+    -- schema modules. All features must be enabled for it to compile.
+    if flag(no-csv) || flag(no-parquet) || flag(no-th)
+        buildable: False
+    other-modules: Assertions,
+                   DecisionTree,
+                   Functions,
+                   GenDataFrame,
+                   Internal.Parsing,
+                   IO.CSV,
+                   IO.JSON,
+                   Operations.Aggregations,
+                   Operations.Apply,
+                   Operations.Core,
+                   Operations.Derive,
+                   Operations.Filter,
+                   Operations.GroupBy,
+                   Operations.InsertColumn,
+                   Operations.Join,
+                   Operations.Merge,
+                   Operations.Nullable,
+                   Operations.Provenance,
+                   Operations.ReadCsv,
+                   Operations.Window,
+                   Operations.WriteCsv,
+                   Operations.Shuffle,
+                   Operations.Sort,
+                   Operations.Subset,
+                   Operations.Statistics,
+                   Operations.Take,
+                   Operations.Typing,
+                   Operations.Record,
+                   LazyParquet,
+                   Parquet,
+                   ParquetTestData,
+                   Properties,
+                   Monad
+    build-depends:  base >= 4 && < 5,
+                    bytestring >= 0.11 && < 0.13,
+                    dataframe >= 1 && < 3,
+                    dataframe-core ^>= 1.0,
+                    dataframe-csv ^>= 1.0,
+                    dataframe-json ^>= 1.0,
+                    dataframe-lazy ^>= 1.0,
+                    dataframe-learn ^>= 1.0,
+                    dataframe-operations ^>= 1.0,
+                    dataframe-parquet ^>= 1.0,
+                    dataframe-parsing ^>= 1.0,
+                    HUnit ^>= 1.6,
+                    QuickCheck >= 2 && < 3,
+                    random-shuffle >= 0.0.4 && < 1,
+                    random >= 1 && < 2,
+                    text >= 2.0 && < 3,
+                    time >= 1.12 && < 2,
+                    vector ^>= 0.13,
+                    containers >= 0.6.7 && < 0.9
+    hs-source-dirs: tests
+    default-language: Haskell2010
