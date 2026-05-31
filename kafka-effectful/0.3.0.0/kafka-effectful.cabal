@@ -1,0 +1,202 @@
+cabal-version:   3.4
+name:            kafka-effectful
+version:         0.3.0.0
+synopsis:        Effectful effects for hw-kafka-client
+description:
+  Effectful effects and interpreters for hw-kafka-client, a Haskell
+  binding to Apache Kafka via librdkafka. Provides typed, composable
+  KafkaProducer and KafkaConsumer effects.
+
+license:         MIT
+license-file:    LICENSE
+author:          Nadeem Bitar
+maintainer:      Nadeem Bitar
+category:        Network, Messaging
+build-type:      Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/shinzui/kafka-effectful.git
+
+flag examples
+  description: Build example executables
+  manual:      True
+  default:     False
+
+common warnings
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+library
+  import:             warnings
+  exposed-modules:
+    Kafka.Effectful
+    Kafka.Effectful.Consumer
+    Kafka.Effectful.Consumer.Effect
+    Kafka.Effectful.Consumer.Interpreter
+    Kafka.Effectful.OpenTelemetry
+    Kafka.Effectful.OpenTelemetry.Consumer.Interpreter
+    Kafka.Effectful.OpenTelemetry.Producer.Interpreter
+    Kafka.Effectful.OpenTelemetry.Propagation
+    Kafka.Effectful.OpenTelemetry.Semantic
+    Kafka.Effectful.Producer
+    Kafka.Effectful.Producer.Effect
+    Kafka.Effectful.Producer.Interpreter
+    Kafka.Effectful.Producer.Transaction
+
+  build-depends:
+    , base                                   >=4.21 && <5
+    , bytestring                             >=0.11 && <0.13
+    , case-insensitive                       >=1.2  && <1.3
+    , containers                             >=0.6  && <0.8
+    , effectful-core                         >=2.5  && <2.7
+    , hs-opentelemetry-api                   ^>=1.0
+    , hs-opentelemetry-semantic-conventions  >=1.40 && <2
+    , http-types                             >=0.12 && <0.13
+    , hw-kafka-client                        >=5.3  && <6
+    , text                                   >=2.0  && <2.2
+    , unliftio-core                          >=0.2  && <0.3
+    , unordered-containers                   >=0.2  && <0.3
+
+  hs-source-dirs:     src
+  default-language:   GHC2024
+  default-extensions:
+    DataKinds
+    DuplicateRecordFields
+    GADTs
+    GeneralisedNewtypeDeriving
+    ImportQualifiedPost
+    LambdaCase
+    NoFieldSelectors
+    OverloadedRecordDot
+    OverloadedStrings
+    TypeFamilies
+    TypeOperators
+
+executable example-sync-publish
+  import:             warnings
+  main-is:            SyncPublish.hs
+  hs-source-dirs:     examples
+  default-language:   GHC2024
+  default-extensions:
+    ImportQualifiedPost
+    LambdaCase
+    OverloadedStrings
+    TypeApplications
+
+  if !flag(examples)
+    buildable: False
+
+  build-depends:
+    , base             >=4.21 && <5
+    , bytestring       >=0.11 && <0.13
+    , effectful-core   >=2.5  && <2.7
+    , hw-kafka-client  >=5.3  && <6
+    , kafka-effectful
+
+executable example-transactional-etl
+  import:             warnings
+  main-is:            TransactionalEtl.hs
+  hs-source-dirs:     examples
+  default-language:   GHC2024
+  default-extensions:
+    ImportQualifiedPost
+    LambdaCase
+    OverloadedStrings
+    TypeApplications
+
+  if !flag(examples)
+    buildable: False
+
+  build-depends:
+    , base             >=4.21 && <5
+    , bytestring       >=0.11 && <0.13
+    , containers       >=0.6  && <0.8
+    , effectful-core   >=2.5  && <2.7
+    , hw-kafka-client  >=5.3  && <6
+    , kafka-effectful
+
+executable example-otel-tracing
+  import:             warnings
+  main-is:            OtelTracing.hs
+  hs-source-dirs:     examples
+
+  -- The hs-opentelemetry batch span processor requires the threaded
+  -- runtime; without it, initializeGlobalTracerProvider raises at
+  -- runtime.
+  ghc-options:        -threaded
+  default-language:   GHC2024
+  default-extensions:
+    DuplicateRecordFields
+    ImportQualifiedPost
+    LambdaCase
+    NoFieldSelectors
+    OverloadedRecordDot
+    OverloadedStrings
+    TypeApplications
+
+  if !flag(examples)
+    buildable: False
+
+  build-depends:
+    , base                            >=4.21 && <5
+    , bytestring                      >=0.11 && <0.13
+    , effectful-core                  >=2.5  && <2.7
+    , hs-opentelemetry-api            ^>=1.0
+    , hs-opentelemetry-exporter-otlp  ^>=1.0
+    , hs-opentelemetry-sdk            ^>=1.0
+    , hw-kafka-client                 >=5.3  && <6
+    , kafka-effectful
+    , text                            >=2.0  && <2.2
+
+test-suite kafka-effectful-test
+  import:             warnings
+  type:               exitcode-stdio-1.0
+  main-is:            Main.hs
+  hs-source-dirs:     test
+
+  -- The hs-opentelemetry batch span processor requires the threaded
+  -- runtime. Without -threaded, even initializing the global tracer
+  -- provider in PropagationTest's withResource block raises an
+  -- exception at runtime.
+  ghc-options:        -threaded
+  default-language:   GHC2024
+  default-extensions:
+    DataKinds
+    DuplicateRecordFields
+    GADTs
+    ImportQualifiedPost
+    LambdaCase
+    OverloadedRecordDot
+    OverloadedStrings
+    TypeApplications
+    TypeOperators
+
+  other-modules:
+    Kafka.Effectful.OpenTelemetry.PropagationTest
+    Kafka.Effectful.OpenTelemetry.SemanticTest
+    Kafka.Effectful.OpenTelemetry.ShibuyaCompatibilityTest
+
+  build-depends:
+    , base                                   >=4.21  && <5
+    , bytestring                             >=0.11  && <0.13
+    , case-insensitive                       >=1.2   && <1.3
+    , containers                             >=0.6   && <0.8
+    , effectful-core                         >=2.5   && <2.7
+    , hs-opentelemetry-api                   ^>=1.0
+    , hs-opentelemetry-exporter-in-memory    ^>=1.0
+    , hs-opentelemetry-sdk                   ^>=1.0
+    , hs-opentelemetry-semantic-conventions  >=1.40  && <2
+    , http-types                             >=0.12  && <0.13
+    , hw-kafka-client                        >=5.3   && <6
+    , kafka-effectful
+    , tasty                                  ^>=1.5
+    , tasty-hunit                            ^>=0.10
+    , text                                   >=2.0   && <2.2
+    , unordered-containers                   >=0.2   && <0.3
