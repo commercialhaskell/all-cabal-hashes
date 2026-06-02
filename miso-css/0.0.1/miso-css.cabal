@@ -1,0 +1,521 @@
+cabal-version: 3.0
+name:          miso-css
+version:       0.0.1
+
+synopsis:      wrapper over miso checking CSS classes applicability through dependent types
+description:
+    == Motivation
+    #motivation#
+    
+    __miso-css__ is an evolutionary step ahead from
+    <https://github.com/yaitskov/css-class-bindings css-class-bindings>.
+    
+    CSS class of an atomic selector can be applied to any DOM element, but
+    that is not true for classes used in composite selectors. Rules with
+    partially matched selectors are silently ignored by browser and this
+    open a door for introducing bugs during consequent changes.
+    Css-class-binding just cannot cope with such problem and miso-css uses
+    dependent types to track what CSS classes can applied to HTML elements.
+    
+    == Usage
+    #usage#
+    
+    miso-css runs a css parser to extract CSS selectors and generates
+    Haskell constants for every CSS class with correspondent name that is
+    found in the input. A type of such constant describes all possible ways
+    the class can used in DOM.
+    
+    Besides that the library ships __E__ type representing an HTML element
+    and a set of operators for constructing tags and combining them in DOM
+    tree. E is miso
+    <https://hackage-content.haskell.org/package/miso/docs/Miso-Types.html#t:View VNode>
+    type protected with a few type parameters.
+    
+    === Composing tags
+    #composing-tags#
+    
+    Before jumping straight to style application lets get familiar with
+    syntax for tag composition because it is different in vanilla
+    <https://hackage-content.haskell.org/package/miso miso>.
+    
+    ==== Appending a child
+    #appending-a-child#
+    
+    > div_ </ p_
+    
+    > <div>
+    >   <p></p>
+    > </div>
+    
+    ==== Adding a sibling
+    #adding-a-sibling#
+    
+    > ul_ </ li_ </ li_
+    
+    > <ul>
+    >   <li></li>
+    >   <li></li>
+    > </ul>
+    
+    ==== Appending a child to child
+    #appending-a-child-to-child#
+    
+    > body_ </ (section_ </ p_)
+    
+    > <body>
+    >   <section>
+    >     <p></p>
+    >   </section>
+    > </body>
+    
+    ==== Adding CDATA
+    #adding-cdata#
+    
+    > a_ <@ "click"
+    
+    > <a>click</a>
+    
+    ==== Adding a raw miso DOM chunk
+    #adding-a-raw-miso-dom-chunk#
+    
+    > import Miso.Html qualified as MH
+    > import Miso.Html.Property qualified as MH
+    >
+    > go = div_ =< MH.p_ [] [ "h" ]
+    
+    > <div>
+    >   <p>h</p>
+    > </div>
+    
+    ==== Adding tag attribute
+    #adding-tag-attribute#
+    
+    > a_ =<| atr @"href" "http://link.com"
+    
+    > <a href="http://link.com"></a>
+    
+    ==== Binding event handler
+    #binding-event-handler#
+    
+    > button_ =! onClick YourActionDc
+    
+    ==== Applying CSS class
+    #applying-css-class#
+    
+    > {-# LANGUAGE QuasiQuotes #-}
+    > {-# OPTIONS_GHC -Wno-missing-signatures #-}
+    > [css|.red { color: red; }|]
+    >
+    > div_ =. red
+    
+    > <div class="red"></div>
+    
+    ==== Adding tag ID
+    #adding-tag-id#
+    
+    Handmade tag id:
+    
+    > div_ =# ElementId "footer"
+    
+    Generated tag id:
+    
+    > {-# LANGUAGE QuasiQuotes #-}
+    > {-# OPTIONS_GHC -Wno-missing-signatures #-}
+    > [css|#footer { color: red; }|]
+    >
+    > div_ =# Footer
+    
+    > <div id="footer"></div>
+    
+    ==== Mix all at once
+    #mix-all-at-once#
+    
+    > {-# LANGUAGE QuasiQuotes #-}
+    > {-# OPTIONS_GHC -Wno-missing-signatures #-}
+    > [css|.form .red { color: red; }|]
+    >
+    > div_ =. form =# ElementId "footer"
+    >   </ (a_ =. red =<| atr @"href" "/click.php?x=1"
+    >       </ (span_ <@ "Click me"))
+    
+    > <div class="form" id="footer>
+    >   <a class="red" href="/click.php?x=1">
+    >     <span>Click me</span>
+    >   </a>
+    > </div>
+    
+    === Breaking rules
+    #breaking-rules#
+    
+    Until now all above samples must be valid and should type check. This
+    section enumerates HTML snippets with ill-applied classes, expected
+    errors and comments.
+    
+    ==== There can be only one
+    #there-can-be-only-one#
+    
+    An element ID can be used once in a HTML document.
+    
+    > div_ =# ElementId "Duncan MacLeod"
+    >   </ div_ =# ElementId "Duncan MacLeod"
+    
+    > Couldn't match type: '[DuplicatedId "Duncan MacLeod"]
+    >                with: '[]
+    
+    ==== Parent class is missing
+    #parent-class-is-missing#
+    
+    > [css|.a .b {}|]
+    >
+    > div_ =. b
+    
+    The error message is a list of triples where first element is a list of
+    not applied classes, ids (hashes), tag names or attribute names.
+    
+    > [([C "a"], [], [])]
+    
+    Class __a__ and __b__ are missing:
+    
+    > [css|.a .b .c {}|]
+    >
+    > div_ =. c
+    
+    > [ ([C "b"], [], [])
+    > , ([C "a"], [], [])
+    > ]
+    
+    ==== B element
+    #b-element#
+    
+    When selector with a child relation is partially applied the triple
+    contains B element. It is a synthetic element preventing the failed rule
+    from matching later somewhere upper in DOM by an accident.
+    
+    > [css|.a > .b {}|]
+    >
+    > div_ </ div_ =. b
+    
+    > [([B, C "a"], [], [])]
+    
+    ==== One of classes is missing
+    #one-of-classes-is-missing#
+    
+    Second element of triple is a list of applied classes. It helps to
+    understand what worked out and what didn’t in a composite selector.
+    
+    > [css|.a.b > .c {}|]
+    >
+    > div_ =. a </ div_ =. c
+    
+    > [([B, C "b"], [C "a"], [])]
+    
+    ===== Sibling is missing
+    #sibling-is-missing#
+    
+    The third element of triple explains sibling errors.
+    
+    > [css|.a + .b {}|]
+    >
+    > div_ </ div_ =. b
+    
+    Class __a__ is not applied:
+    
+    > [([B], [], [[ [B], [C "a"]]])]
+    
+    === Non-leaf classes constraints
+    #non-leaf-classes-constraints#
+    
+    By default non-leaf classes in selector don’t contribute to constraints.
+    e.g.
+    
+    > .a > .b .c
+    
+    @b@ doesn’t require @a@ as immediate parent it is handled by constraints
+    form @c@.
+    
+    It is possible to generate constraints for @b@ to make checking even
+    stricter, though in such mode following DOM can’t pass type check:
+    
+    > enableRulesForNonLeafClasses
+    >
+    > [css|.a > .b .c {}|]
+    > test_t = testGroup cssAsLiteralText
+    >   [ doNotTcNoBr [] [[[(JustNow, [B], [C "a"], [])]]] $
+    >       div_ =. a </ (div_ =. b </ (div_ =. b </ div_ =. c))
+    >   ]
+    
+    === E type
+    #e-type#
+    
+    > data E
+    >      model
+    >      action
+    >      (en :: Symbol)
+    >      (es :: ElementStructure)
+    >      (re :: Maybe Root)
+    >      (ei :: Maybe Symbol)
+    >      (atrs :: [Symbol])
+    >      (knownIds :: KnownIDS)
+    >      (cls :: [Symbol])
+    >      (l :: [[[Seg]]])
+    >      (children :: [[SubSeg]])
+    
+    First two parameters __model__ and __action__ are forwarded to miso
+    <https://hackage-content.haskell.org/package/miso/docs/Miso-Types.html#t:View VNode>
+    type.
+    
+    ==== en - tag name
+    #en---tag-name#
+    
+    In ghci session:
+    
+    > :t div_
+    > div_
+    >   :: E model
+    >        action
+    >        "div"
+    > ...
+    
+    ==== es - element structure
+    #es---element-structure#
+    
+    Most often its value is __Composite__ which means that the element could
+    have children. /Es/ parameter of /CDATA/ element is __Atomic__.
+    
+    ==== re - root indicator
+    #re---root-indicator#
+    
+    It is a root tag indicator. A root tag cannot be adopted.
+    
+    > [css|:root > .a {}|]
+    
+    ==== ei - HTML tag hash
+    #ei---html-tag-hash#
+    
+    > div_ =# ElementId "Duncan"
+    
+    ==== atrs - names of tag attributes
+    #atrs---names-of-tag-attributes#
+    
+    > :t a_ =# ElementId "x" =<| atr @"href" "/click.php?x=1"
+    > ...
+    >        ["href", "id"]
+    > ...
+    
+    ==== knownIds - hashes used in tag descendants
+    #knownids---hashes-used-in-tag-descendants#
+    
+    > :t div_ =# ElementId "x" </ div_ =# ElementId "y" </ div_ =# ElementId "z"
+    > ...
+    >        (KnownIds '[] ["x", "y", "z"])
+    > ...
+    
+    ==== cls - classes applied to tag
+    #cls---classes-applied-to-tag#
+    
+    Classes applied to children and descendants are not included.
+    
+    > :t div_ =. a =. b </ div_ =. c
+    > ...
+    >        ["b", "a"]
+    > ...
+    
+    ==== l - ancestor constraints
+    #l---ancestor-constraints#
+    
+    The parameter describes requirements to be satisfied in ancestors of the
+    tag.
+    
+    > [css|.a .b {}|]
+    
+    > :t div_ =. b
+    > ...
+    >        '[ '[['(AutoClean, '[], '[], '[]),
+    >              '(NowOrLater, '[C "a"], '[], '[])]]]
+    > ...
+    
+    ==== children
+    #children#
+    
+    List of lists of children subselectors in reverse order.
+    
+    > [css|.a {} .b {}|]
+    
+    > :t div_ </ ul_ =. a =. b </ ol_ =# ElementId "x"
+    > ...
+    >        [[I "x", T "ol"], [T "ul", C "b", C "a"]]
+    > ...
+    
+    === Hello World
+    #hello-world#
+    
+    > {-# LANGUAGE QuasiQuotes #-}
+    > {-# OPTIONS_GHC -Wno-missing-signatures #-}
+    > module Miso.Css.Test.HelloWorld where
+    >
+    > import Miso ( component, App, CSS(Style), Component(styles), View )
+    > import Miso.Css
+    > import Prelude
+    >
+    > type Model = ()
+    > type Action = ()
+    >
+    > -- default name is "cssAsLiteralText"
+    > renameCssTextConst "cssFromQq"
+    >
+    > [css|
+    > .c .b .a {
+    >   color: #fc2c2c;
+    > }
+    > |]
+    >
+    > -- instead of quasi-quoted CSS
+    > -- the whole CSS file can be included with:
+    > --   includeCss "assets/style.css"
+    >
+    > app :: App Model Action
+    > app = (component () pure viewModel)
+    >   { styles = [ Style cssFromQq ] }
+    >
+    > {-
+    > viewModel produce following HTML snippet:
+    >
+    >     <div class="c">
+    >       <div class="b">
+    >         <button class="a">
+    >           Submit
+    >         </button>
+    >       </div>
+    >     </div>
+    >
+    > html_ and body_ don't produce tags,
+    > because miso mount cannot be higher than body tag.
+    >
+    > they serve just for type checking purpose
+    > (e.g. html_ satisfies :root pseudo class)
+    >
+    > -}
+    > viewModel :: Model -> View Model Action
+    > viewModel () = toView . html_ . body_ $
+    >   div_ =. c
+    >   </ (div_ =. b
+    >        </ (button_ =. a
+    >             <@ "Submit"))
+    
+    == Development environment
+    #development-environment#
+    
+    HLS should be available inside the default dev shell.
+    
+    > $ nix develop
+    > $ emacs src/*/*/Qq.hs &
+    > $ cabal build
+    > $ cabal test --test-option=--hide-successes
+    
+    miso-css was developed with miso v1.9
+homepage:      http://github.com/yaitskov/miso-css
+license:       BSD-3-Clause
+license-file:  LICENSE
+author:        Daniil Iaitskov
+maintainer:    dyaitskov@gmail.com
+copyright:     Daniil Iaitkov 2026
+category:      Miso, HTML, CSS, Template Haskell
+build-type:    Simple
+bug-reports:   https://github.com/yaitskov/miso-css/issues
+extra-source-files:
+  test/style.css
+extra-doc-files:
+  changelog.md
+tested-with:
+  GHC == 9.12.2
+
+source-repository head
+  type:
+    git
+  location:
+    https://github.com/yaitskov/miso-css.git
+
+common base
+  default-language: GHC2024
+  ghc-options: -Wall
+  default-extensions:
+    DefaultSignatures
+    NoImplicitPrelude
+    OverloadedRecordDot
+    OverloadedStrings
+    TemplateHaskell
+  build-depends:
+    , base >=4.7 && < 5
+    , template-haskell  < 3
+
+library
+  import: base
+  hs-source-dirs: src
+  exposed-modules:
+    Miso.Css
+    Miso.Css.Escape
+    Miso.Css.Event
+    Miso.Css.Gen
+    Miso.Css.IncludeCss
+    Miso.Css.List
+    Miso.Css.Miso
+    Miso.Css.Operator
+    Miso.Css.Parser
+    Miso.Css.Prelude
+    Miso.Css.Qq
+    Miso.Css.Segment
+    Miso.Css.Sibling
+    Miso.Css.Style
+    Miso.Css.Style.E
+    Miso.Css.Style.AncestorConstraint
+    Miso.Css.Style.OrClass
+    Miso.Css.Style.PostAppend
+    Miso.Css.Style.PreAppend
+    Miso.Css.Tags
+  build-depends:
+    , add-dependent-file >= 0.0.2 && < 1
+    , containers         < 1
+    , css-parser         < 1
+    , filepath           < 2
+    , miso               >= 1.9 && < 2
+    , mtl                < 3
+    , tagged             < 1
+    , template-haskell   < 3
+    , text               < 3
+
+test-suite test
+  import: base
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  default-extensions:
+    MultilineStrings
+    QuasiQuotes
+  other-modules:
+    Miso.Css.Test.BindEventHandlers
+    Miso.Css.Test.HelloWorld
+    Miso.Css.Test.IncludeCssAsserts
+    Miso.Css.Test.Prelude
+    Miso.Css.Test.QqAsserts
+    Miso.Css.Test.Style
+    Miso.Css.Test.StyleMock
+    Miso.Css.Test.Th.AmoreBmoreC
+    Miso.Css.Test.Th.AplusBplusC
+    Miso.Css.Test.Th.DivPlusPtildeSpanMoreAplusB
+    Miso.Css.Test.Th.DotAdotB
+    Miso.Css.Test.Th.ForkBranchOnJnMatchAfterNol
+    Miso.Css.Test.Th.ForkBranchSibling
+    Miso.Css.Test.Th.PmoreXplusYplusZmoreAspaceBmoreC
+    Miso.Css.Test.Th.RootMoreA
+    Discovery
+  hs-source-dirs:
+    test
+  ghc-options: -Wall -Wno-missing-signatures -rtsopts -threaded -main-is Driver
+  build-depends:
+    , bytestring
+    , miso
+    , miso-css
+    , QuickCheck
+    , tasty
+    , tasty-discover
+    , tasty-hunit
+    , tasty-quickcheck
