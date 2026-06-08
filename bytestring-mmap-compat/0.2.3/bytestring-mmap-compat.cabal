@@ -1,0 +1,58 @@
+cabal-version:      2.0
+name:               bytestring-mmap-compat
+version:            0.2.3
+synopsis:           mmap support for strict ByteStrings (unix >= 2.8 fork)
+description:
+    A fork of @bytestring-mmap@ that compiles against @unix >= 2.8@.
+    .
+    The original package (Don Stewart, last uploaded 2011) calls
+    @System.Posix.openFd@ with the pre-2.8 four-argument signature.
+    Upstream is unmaintained and the latest Hackage revision restricts
+    the @unix@ bound to @< 2.8@, which makes the package unusable in
+    package sets that pull in a newer @unix@ transitively.
+    .
+    This fork adds a tiny @System.Posix.IO.Compat@ shim that selects
+    the right @openFd@ signature via CPP and widens the @unix@ bound,
+    leaving the public API (@System.IO.Posix.MMap@,
+    @System.IO.Posix.MMap.Lazy@) byte-for-byte compatible with the
+    upstream.
+    .
+    The package name is suffixed with @-compat@ so it can coexist on
+    Hackage with the original; switch back to upstream
+    @bytestring-mmap@ once it adopts a compatible @openFd@ call site.
+category:           System
+homepage:           https://github.com/NCrashed/bytestring-mmap-compat
+bug-reports:        https://github.com/NCrashed/bytestring-mmap-compat/issues
+license:            BSD3
+license-file:       LICENSE
+author:             Don Stewart
+maintainer:         Anton Gushcha <ncrashed@gmail.com>
+copyright:          (c) Don Stewart 2008-2011, (c) Anton Gushcha 2024-2026
+build-type:         Simple
+tested-with:        GHC == 9.6.6
+extra-doc-files:    README.md
+                    CHANGELOG.md
+extra-source-files: include/hs_bytestring_mmap.h
+                    cbits/hs_bytestring_mmap.c
+
+source-repository head
+  type:     git
+  location: https://github.com/NCrashed/bytestring-mmap-compat.git
+
+library
+  default-language:  Haskell2010
+  hs-source-dirs:    .
+  exposed-modules:   System.IO.Posix.MMap
+                     System.IO.Posix.MMap.Lazy
+                     System.IO.Posix.MMap.Internal
+  other-modules:     System.Posix.IO.Compat
+  build-depends:     base       >= 4.14 && < 5
+                   , bytestring >= 0.10 && < 0.13
+                   , unix       >= 2.7  && < 2.9
+  default-extensions: CPP, ForeignFunctionInterface, BangPatterns,
+                      NondecreasingIndentation
+  ghc-options:       -Wall
+  c-sources:         cbits/hs_bytestring_mmap.c
+  include-dirs:      include
+  includes:          hs_bytestring_mmap.h
+  install-includes:  hs_bytestring_mmap.h
