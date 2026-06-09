@@ -1,0 +1,133 @@
+cabal-version:      2.4
+name:               magic
+version:            2.0.0
+synopsis:           Interface to C file/magic library
+description:
+  This package provides a Haskell interface to the C libmagic library.
+  With it, you can determine the type of a file by examining its contents
+  rather than its name.  The Haskell interface provides a full-featured
+  binding.
+  .
+  Note: this package requires the C libmagic library (part of the @file@
+  package) and its development headers to be installed at build time.
+
+category:           Text
+license:            BSD-3-Clause
+license-file:       COPYING
+author:             John Goerzen
+maintainer:         Philippe <philippedev101@gmail.com>
+copyright:          Copyright (c) 2005-2009 John Goerzen
+homepage:           https://github.com/philippedev101/magic-haskell
+bug-reports:        https://github.com/philippedev101/magic-haskell/issues
+build-type:         Simple
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+
+tested-with:
+  GHC ==9.6.7
+   || ==9.8.4
+   || ==9.10.3
+   || ==9.12.4
+
+source-repository head
+  type:     git
+  location: https://github.com/philippedev101/magic-haskell.git
+
+flag pkgconfig
+  description:
+    Use pkg-config to locate the C libmagic library. Enabled by default;
+    because this flag is automatic, Cabal's solver transparently falls back
+    to plain @extra-libraries@ linking when pkg-config or libmagic.pc is
+    unavailable.
+  default: True
+  manual:  False
+
+flag dev
+  description: Turn on developer settings, notably -Werror.
+  default:     False
+  manual:      True
+
+-- Strict warning set shared by all components. Based on -Weverything with the
+-- pedantic / Safe-Haskell / style categories that the existing bindings cannot
+-- satisfy without source changes disabled. The genuine bug-catching warnings
+-- (unused bindings, incomplete patterns, name shadowing, missing local/export
+-- signatures, type defaults, ...) remain ON. -Werror is opt-in via the `dev`
+-- flag so a normal build, Hackage, or Stackage is never broken by a future
+-- GHC introducing new warnings.
+common warnings
+  ghc-options:
+    -Weverything
+    -Wno-all-missed-specialisations
+    -Wno-missed-specialisations
+    -Wno-implicit-prelude
+    -Wno-missing-deriving-strategies
+    -Wno-missing-import-lists
+    -Wno-missing-kind-signatures
+    -Wno-missing-safe-haskell-mode
+    -Wno-prepositive-qualified-module
+    -Wno-safe
+    -Wno-unsafe
+
+  if flag(dev)
+    ghc-options: -Werror
+
+library
+  import:           warnings
+  hs-source-dirs:   src
+  default-language: Haskell2010
+  exposed-modules:
+    Magic
+    Magic.Data
+    Magic.Types
+    Magic.Init
+    Magic.Operations
+    Magic.FilePath
+
+  other-modules:
+    Magic.Internal
+
+  default-extensions:
+    EmptyDataDecls
+    ForeignFunctionInterface
+    TypeSynonymInstances
+
+  build-depends:
+    , base        >=4.9     && <5
+    , bytestring  >=0.10    && <0.13
+    , deepseq     >=1.4     && <1.6
+    , filepath    >=1.4.100 && <1.6
+    , text        >=1.2.3   && <2.2
+
+  -- The OsString internal types (used to marshal OsPath to a C string without a
+  -- lossy locale round-trip) live in os-string on GHC >= 9.10; on 9.6/9.8 they
+  -- are provided by filepath itself.
+  if impl(ghc >= 9.10)
+    build-depends: os-string >=2.0 && <2.1
+
+  if flag(pkgconfig)
+    pkgconfig-depends: libmagic
+  else
+    extra-libraries:   magic
+
+test-suite magic-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          runtests.hs
+  hs-source-dirs:   test
+  ghc-options:      -threaded -with-rtsopts=-N
+  other-modules:
+    Inittest
+    Tests
+
+  default-language: Haskell2010
+  build-depends:
+    , base        >=4.9  && <5
+    , bytestring  >=0.10 && <0.13
+    , deepseq     >=1.4     && <1.6
+    , directory   >=1.2     && <1.4
+    , filepath    >=1.4.100 && <1.6
+    , HUnit       >=1.6   && <1.7
+    , magic
+    , text        >=1.2.3 && <2.2
+    , unix        >=2.8   && <2.9
