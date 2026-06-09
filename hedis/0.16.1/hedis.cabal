@@ -1,0 +1,240 @@
+cabal-version:      3.0
+build-type:         Simple
+name:               hedis
+version:            0.16.1
+synopsis:
+    Client library for the Redis datastore: supports full command set,
+    pipelining.
+Description:
+    Redis is an open source, advanced key-value store. It is often referred to
+    as a data structure server since keys can contain strings, hashes, lists,
+    sets and sorted sets. This library is a Haskell client for the Redis
+    datastore. Compared to other Haskell client libraries it has some
+    advantages:
+    .
+    [Compatibility with Latest Stable Redis:] Hedis is intended
+        to be used with the latest stable version of Redis (currently 5.0).
+    Most redis commands (<http://redis.io/commands>) are available as
+    haskell functions, although MONITOR and SYNC are intentionally
+    omitted. Additionally, a low-level API is
+        exposed that  makes it easy for the library user to implement further
+        commands, such as new commands from an experimental Redis version.
+    .
+    [Automatic Optimal Pipelining:] Commands are pipelined
+        (<http://redis.io/topics/pipelining>) as much as possible without any
+        work by the user. See
+        <http://informatikr.com/2012/redis-pipelining.html> for a
+        technical explanation of automatic optimal pipelining.
+    .
+    [Enforced Pub\/Sub semantics:] When subscribed to the Redis Pub\/Sub server
+        (<http://redis.io/topics/pubsub>), clients are not allowed to issue
+        commands other than subscribing to or unsubscribing from channels. This
+        library uses the type system to enforce the correct behavior.
+    .
+    [Connect via TCP or Unix Domain Socket:] TCP sockets are the default way to
+        connect to a Redis server. For connections to a server on the same
+        machine, Unix domain sockets offer higher performance than the standard
+        TCP connection.
+    .
+    For detailed documentation, see the "Database.Redis" module.
+    .
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Falko Peters <falko.peters@gmail.com>
+maintainer:         Kostiantyn Rybnikov <k-bx@k-bx.com>, Alexander Vershilov <alexander.vershilov@gmail.com>
+copyright:          Copyright (c) 2011 Falko Peters
+category:           Database
+homepage:           https://github.com/informatikr/hedis
+bug-reports:        https://github.com/informatikr/hedis/issues
+extra-source-files: CHANGELOG
+
+tested-with: GHC == { 9.6.7, 9.8.4, 9.10.3, 9.12.4, 9.14.1 }
+
+source-repository head
+  type:     git
+  location: https://github.com/informatikr/hedis
+
+flag dev
+  description: enable this for local development -Werror and profiling options
+  default: False
+  manual: True
+
+flag cluster
+  description: enable it to run cluster tests if you have required setup
+  default: False
+  manual: True
+
+library
+  default-language: Haskell2010
+  hs-source-dirs:   src
+  ghc-options:      -Wall -Wcompat
+  if impl(ghc >= 9.8)
+    ghc-options:    -Wno-x-partial
+  if flag(dev)
+    ghc-options:    -Werror
+  if flag(dev)
+    ghc-prof-options: -auto-all
+  exposed-modules:  Database.Redis
+                  , Database.Redis.Cluster
+                  , Database.Redis.Cluster.Command
+                  , Database.Redis.Cluster.HashSlot
+                  , Database.Redis.Commands
+                  , Database.Redis.Connection
+                  , Database.Redis.ConnectionContext
+                  , Database.Redis.Core
+                  , Database.Redis.Core.Internal
+                  , Database.Redis.Hooks
+                  , Database.Redis.ManualCommands
+                  , Database.Redis.Protocol
+                  , Database.Redis.ProtocolPipelining
+                  , Database.Redis.PubSub
+                  , Database.Redis.Sentinel
+                  , Database.Redis.Transactions
+                  , Database.Redis.Types
+                  , Database.Redis.URL
+  build-depends:    scanner >= 0.2 && <0.4,
+                    async >= 2.1 && <2.3,
+                    base >= 4.18 && < 5,
+                    bytestring >= 0.9 && <0.13,
+                    bytestring-lexing >= 0.5 && <0.6,
+                    exceptions >= 0.10 && <0.11,
+                    unordered-containers >= 0.2 && <0.3,
+                    containers >= 0.6 && <0.9,
+                    http-types >= 0.12 && <0.13,
+                    text >= 2.0 && <2.2,
+                    deepseq <1.6,
+                    mtl >= 2 && <3,
+                    network >= 2 && < 3.3,
+                    resource-pool >= 0.5 && <0.6,
+                    stm < 2.6,
+                    time < 1.17,
+                    tls >= 1.3 && <2.5,
+                    vector >= 0.9 && <0.14,
+                    HTTP < 4001,
+                    errors < 2.4,
+                    network-uri < 2.7,
+                    unliftio-core < 0.2.2,
+                    hashable <1.6
+  if !impl(ghc >= 8.0)
+    build-depends:
+      semigroups >= 0.11 && < 0.19
+
+  other-extensions: StrictData
+
+benchmark hedis-benchmark
+    default-language: Haskell2010
+    type: exitcode-stdio-1.0
+    main-is: benchmark/Benchmark.hs
+    build-depends:
+        base == 4.*,
+        mtl >= 2.0,
+        hedis,
+        time >= 1.2
+    ghc-options: -O2 -Wall -rtsopts
+    if flag(dev)
+      ghc-options: -Werror
+    if flag(dev)
+      ghc-prof-options: -auto-all
+
+test-suite hedis-test
+    default-language: Haskell2010
+    type: exitcode-stdio-1.0
+    hs-source-dirs: test
+    main-is: Main.hs
+    other-modules: PubSubTest
+                   Tests
+    build-depends:
+        base == 4.*,
+        bytestring >= 0.10,
+        hedis,
+        HUnit,
+        async,
+        stm,
+        text,
+        mtl == 2.*,
+        network,
+        test-framework,
+        test-framework-hunit,
+        transformers,
+        time
+    -- We use -O0 here, since GHC takes *very* long to compile so many constants
+    ghc-options: -O0 -Wall -rtsopts -fno-warn-unused-do-bind
+    if flag(dev)
+      ghc-options: -Werror
+    if flag(dev)
+      ghc-prof-options: -auto-all
+
+test-suite redis7
+    default-language: Haskell2010
+    type: exitcode-stdio-1.0
+    hs-source-dirs: test
+    main-is: MainRedis7.hs
+    other-modules: PubSubTest
+                   Tests
+    build-depends:
+        base == 4.*,
+        bytestring >= 0.10,
+        hedis,
+        HUnit,
+        async,
+        stm,
+        text,
+        mtl == 2.*,
+        network,
+        test-framework,
+        test-framework-hunit,
+        transformers,
+        time
+    -- We use -O0 here, since GHC takes *very* long to compile so many constants
+    ghc-options: -O0 -Wall -rtsopts -fno-warn-unused-do-bind
+    if flag(dev)
+      ghc-options: -Werror
+    if flag(dev)
+      ghc-prof-options: -auto-all
+
+test-suite hedis-test-cluster
+    default-language: Haskell2010
+    type: exitcode-stdio-1.0
+    hs-source-dirs: test
+    main-is: ClusterMain.hs
+    other-modules: PubSubTest
+                   Tests
+    build-depends:
+        base == 4.*,
+        bytestring >= 0.10,
+        hedis,
+        HUnit,
+        async,
+        stm,
+        text,
+        mtl == 2.*,
+        network,
+        test-framework,
+        test-framework-hunit,
+        time,
+        transformers
+    -- We use -O0 here, since GHC takes *very* long to compile so many constants
+    ghc-options: -O0 -Wall -rtsopts -fno-warn-unused-do-bind
+    if flag(dev)
+      ghc-options: -Werror
+      ghc-prof-options: -auto-all
+    if !flag(cluster)
+      buildable: False
+
+test-suite hedis-test-hooks
+    default-language: Haskell2010
+    type: exitcode-stdio-1.0
+    hs-source-dirs: test
+    main-is: MainHooks.hs
+    build-depends:
+        base == 4.*,
+        hedis,
+        HUnit,
+        test-framework,
+        test-framework-hunit
+    -- We use -O0 here, since GHC takes *very* long to compile so many constants
+    ghc-options: -O0 -Wall -rtsopts -fno-warn-unused-do-bind -Wunused-packages
+    if flag(dev)
+      ghc-options: -Werror
+    if flag(dev)
+      ghc-prof-options: -auto-all
