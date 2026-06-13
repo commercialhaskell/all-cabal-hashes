@@ -1,0 +1,111 @@
+cabal-version:   3.4
+name:            shikumi-optimize
+version:         0.1.0.0
+synopsis:        The optimizer framework for shikumi LM programs (EP-10)
+category:        AI
+description:
+  The optimizer framework for shikumi: search procedures that automatically
+  improve a 'Shikumi.Program.Program' by rewriting its per-node optimizable
+  parameters (instruction strings and few-shot demonstrations) and scoring each
+  candidate with @evaluate@ (EP-8) over a typed dataset and metric. Four
+  strategies ship — labeled few-shot demo selection, bootstrap few-shot (recover
+  demonstrations from a teacher's successful runs), instruction search
+  (MIPRO/COPRO-style coordinate ascent under an explicit call budget), and
+  ensemble search (combine complementary candidates by majority vote). Each
+  optimizer returns a @CompiledProgram@ (EP-9, MasterPlan integration point #6).
+  Every acceptance assertion runs fully offline against a deterministic stub LM,
+  so the whole package tests with no network and no API key.
+
+license:         BSD-3-Clause
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+common common-options
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+  default-language:   GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+library
+  import:          common-options
+  hs-source-dirs:  src
+  exposed-modules:
+    Shikumi.Optimize
+    Shikumi.Optimize.Bootstrap
+    Shikumi.Optimize.COPRO
+    Shikumi.Optimize.Ensemble
+    Shikumi.Optimize.GEPA
+    Shikumi.Optimize.Instruction
+    Shikumi.Optimize.KNN
+    Shikumi.Optimize.LabeledFewShot
+    Shikumi.Optimize.MIPRO
+    Shikumi.Optimize.Pareto
+    Shikumi.Optimize.Propose
+    Shikumi.Optimize.Propose.Grounded
+    Shikumi.Optimize.Propose.Summarize
+    Shikumi.Optimize.Propose.Tips
+    Shikumi.Optimize.Propose.Types
+    Shikumi.Optimize.RandomSearch
+    Shikumi.Optimize.Search
+    Shikumi.Optimize.Types
+
+  build-depends:
+    , aeson
+    , base             >=4.20     && <5
+    , containers
+    , effectful
+    , shikumi          ^>=0.1.0.0
+    , shikumi-compile  ^>=0.1.0.0
+    , shikumi-eval     ^>=0.1.0.0
+    , shikumi-trace    ^>=0.1.0.0
+    , text             ^>=2.1
+    , vector
+
+test-suite shikumi-optimize-test
+  import:         common-options
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  ghc-options:    -threaded -with-rtsopts=-N
+  other-modules:
+    AcceptanceSpec
+    BootstrapSpec
+    CoproSpec
+    EnsembleSpec
+    GepaSpec
+    InstructionSpec
+    KNNSpec
+    LabeledFewShotSpec
+    Miprov2Spec
+    OptimizeSpec
+    ProposeSpec
+    RandomSearchSpec
+    StubLM
+
+  build-depends:
+    , aeson
+    , baikai
+    , base
+    , containers
+    , effectful
+    , generic-lens
+    , lens
+    , shikumi           ^>=0.1.0.0
+    , shikumi-compile   ^>=0.1.0.0
+    , shikumi-eval      ^>=0.1.0.0
+    , shikumi-optimize  ^>=0.1.0.0
+    , shikumi-trace     ^>=0.1.0.0
+    , tasty
+    , tasty-hunit
+    , text
+    , vector

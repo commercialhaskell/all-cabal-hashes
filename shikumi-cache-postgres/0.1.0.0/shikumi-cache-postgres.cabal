@@ -1,0 +1,67 @@
+cabal-version:   3.4
+name:            shikumi-cache-postgres
+version:         0.1.0.0
+synopsis:        Postgres-backed shikumi cache (EP-6)
+category:        AI
+description:
+  A PostgreSQL backend for shikumi's @Cache@ effect (EP-6), in a separate
+  package so the @hasql@ client (and libpq) is only pulled in when used. Entries
+  live in a @shikumi_cache(key text primary key, value jsonb, stored_at
+  timestamptz)@ table, upserted on conflict; the value is the JSON of a
+  @CachedResponse@ (the @Response@ round-trip comes from @shikumi-cache@'s
+  @Shikumi.Cache.ResponseJSON@). The test uses @ephemeral-pg@ to spin up a
+  throwaway server, so it needs no external database.
+
+license:         BSD-3-Clause
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+common common-options
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+  default-language:   GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    MultilineStrings
+    OverloadedLabels
+    OverloadedStrings
+
+library
+  import:          common-options
+  hs-source-dirs:  src
+  exposed-modules: Shikumi.Cache.Backend.Postgres
+  build-depends:
+    , aeson
+    , base           >=4.20     && <5
+    , effectful
+    , hasql
+    , shikumi-cache  ^>=0.1.0.0
+    , text           ^>=2.1
+
+test-suite shikumi-cache-postgres-test
+  import:         common-options
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  ghc-options:    -threaded -with-rtsopts=-N
+  build-depends:
+    , baikai
+    , base
+    , effectful
+    , ephemeral-pg
+    , generic-lens
+    , lens
+    , shikumi                 ^>=0.1.0.0
+    , shikumi-cache           ^>=0.1.0.0
+    , shikumi-cache-postgres  ^>=0.1.0.0
+    , tasty
+    , tasty-hunit
+    , text
+    , vector
