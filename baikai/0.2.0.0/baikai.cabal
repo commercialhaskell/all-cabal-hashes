@@ -1,0 +1,165 @@
+cabal-version:   3.4
+name:            baikai
+version:         0.2.0.0
+synopsis:        Unified Haskell interface for multiple AI providers
+description:
+  baikai provides a unified, provider-agnostic Haskell interface for working
+  with multiple AI providers. It abstracts chat and streaming completions, tool
+  use, model catalogs, cost accounting, and tracing behind a single API, with
+  concrete provider implementations supplied by companion packages such as
+  @baikai-claude@ and @baikai-openai@.
+
+category:        AI
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+copyright:       (c) 2026 Nadeem Bitar
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+common common-options
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+  default-language:   GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+library
+  import:          common-options
+  hs-source-dirs:  src
+  exposed-modules:
+    Baikai
+    Baikai.AgentAssets
+    Baikai.Api
+    Baikai.Auth
+    Baikai.CacheRetention
+    Baikai.Compat
+    Baikai.Content
+    Baikai.Context
+    Baikai.Cost
+    Baikai.Cost.Log
+    Baikai.Cost.Pricing
+    Baikai.Embedding
+    Baikai.Error
+    Baikai.Interactive
+    Baikai.Message
+    Baikai.Model
+    Baikai.Models.Generated
+    Baikai.Options
+    Baikai.Prelude
+    Baikai.Provider
+    Baikai.Provider.Cli.Internal
+    Baikai.Provider.Registry
+    Baikai.Response
+    Baikai.ResponseFormat
+    Baikai.StopReason
+    Baikai.Stream
+    Baikai.Stream.Event
+    Baikai.ThinkingLevel
+    Baikai.Tool
+    Baikai.Trace
+    Baikai.Trace.Event
+    Baikai.Trace.Sink
+    Baikai.Usage
+
+  build-depends:
+    , aeson
+    , base               >=4.20 && <5
+    , base64-bytestring
+    , bytestring
+    , containers
+    , generic-lens
+    , lens               ^>=5.3
+    , openai
+    , scientific
+    , streamly           >=0.11 && <0.13
+    , streamly-core      >=0.3  && <0.5
+    , text               ^>=2.1
+    , time
+    , unliftio-core
+    , vector
+
+executable baikai-gen-models
+  import:         common-options
+  hs-source-dirs: gen
+  main-is:        GenModels.hs
+  build-depends:
+    , aeson
+    , baikai
+    , base        >=4.20 && <5
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , scientific
+    , text        ^>=2.1
+
+executable baikai-fetch-models
+  import:         common-options
+  hs-source-dirs: fetch
+  main-is:        FetchModels.hs
+  other-modules:  FetchModelsCore
+
+  -- The main module is named @FetchModels@ (not @Main@) so the pure
+  -- core can be compiled into the test suite alongside its own
+  -- @Main.hs@ without a module-name clash.
+  ghc-options:    -main-is FetchModels
+  build-depends:
+    , aeson
+    , baikai
+    , base             >=4.20 && <5
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , http-client
+    , http-client-tls
+    , scientific
+    , text             ^>=2.1
+    , vector
+
+test-suite baikai-test
+  import:             common-options
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test fetch
+  main-is:            Main.hs
+  other-modules:
+    AgentAssetsSpec
+    CatalogSpec
+    CostSpec
+    EmbeddingSpec
+    ErrorInfoSpec
+    ErrorSpec
+    FetchModelsCore
+    FetchModelsSpec
+    InteractiveSpec
+    TraceSpec
+    UsageSpec
+
+  build-tool-depends: baikai:baikai-gen-models
+  build-depends:
+    , aeson
+    , baikai
+    , base
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , openai
+    , process
+    , scientific
+    , stm
+    , streamly-core  >=0.3 && <0.5
+    , tasty
+    , tasty-hunit
+    , temporary
+    , text
+    , vector
