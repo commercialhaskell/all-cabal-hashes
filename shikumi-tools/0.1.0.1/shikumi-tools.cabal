@@ -1,0 +1,97 @@
+cabal-version:   3.4
+name:            shikumi-tools
+version:         0.1.0.1
+synopsis:
+  Typed tools and ReAct agents for shikumi LM programs (EP-11)
+
+category:        AI
+description:
+  Typed tools and multi-step ReAct agents for shikumi. A @Tool i o@ is an ordinary
+  function over record types whose JSON-Schema argument shape is Generic-derived
+  (reusing the schema generator from the signatures plan) and which lowers to
+  baikai's untyped wire @Tool@ (MasterPlan integration point #8). A heterogeneous
+  @ToolRegistry@ erases the per-tool @i@/@o@ behind an existential while retaining
+  the decode/encode dictionaries, so a ReAct loop can dispatch by the name the model
+  emits at run time. On top of typed tools, @react@/@reactWithTrajectory@ build a
+  @Program i o@ whose embedded loop alternates propose -> dispatch -> observe until
+  the model finishes or a bound is hit, then extracts the typed answer — recording a
+  structured @Trajectory@ throughout. The whole agent is a first-class, composable,
+  inspectable shikumi program. Every test runs against a deterministic mock LM with
+  no network.
+
+license:         BSD-3-Clause
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+common common-options
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+  default-language:   GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+library
+  import:          common-options
+  hs-source-dirs:  src
+  exposed-modules:
+    Shikumi.Agent.ReAct
+    Shikumi.CodeExec.CodeAct
+    Shikumi.CodeExec.Interpreter
+    Shikumi.CodeExec.ProgramOfThought
+    Shikumi.CodeExec.Prompt
+    Shikumi.Tool
+
+  build-depends:
+    , aeson
+    , baikai        >=0.2      && <0.3
+    , base          >=4.20     && <5
+    , bytestring
+    , containers
+    , effectful
+    , generic-lens
+    , lens          ^>=5.3
+    , shikumi       ^>=0.1.0.1
+    , text          ^>=2.1
+    , vector
+
+test-suite shikumi-tools-test
+  import:         common-options
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  ghc-options:    -threaded -with-rtsopts=-N
+  other-modules:
+    AcceptanceSpec
+    CodeActSpec
+    Fixtures
+    MockLLM
+    ProgramOfThoughtSpec
+    ProtocolSpec
+    ReActSpec
+    RestrictedSpec
+    SchemaSpec
+    ToolSpec
+
+  build-depends:
+    , aeson
+    , baikai         >=0.2      && <0.3
+    , base
+    , containers
+    , effectful
+    , generic-lens
+    , lens
+    , shikumi        ^>=0.1.0.1
+    , shikumi-tools  ^>=0.1.0.1
+    , tasty
+    , tasty-hunit
+    , text
+    , vector
