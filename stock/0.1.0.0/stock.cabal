@@ -2,96 +2,102 @@ cabal-version:       3.0
 name:                stock
 version:             0.1.0.0
 synopsis:            Stock-style deriving via coercion, with no Generic
+x-revision:          1
 description:
   A GHC type-checker plugin that derives class instances for @Stock T@
   and higher-kinded variants at /compile time/, straight from the
   structure of /T/ without a @Generic@ representation or runtime cost.
-  .
+
   Supported classes:
-  .
-  * @Stock@:  Eq, Ord, Show, Read, Semigroup, Monoid, Enum, Bounded, Ix, Generic
-  * @Stock1@: Functor, Foldable, Traversable, Contravariant, Applicative, Eq1, Ord1, Show1, Read1, Generic1, TestEquality, TestCoercion
-  * @Stock2@: Bifunctor, Bifoldable, Bitraversable, Eq2, Ord2, Show2, Read2, Category
-  .
+
+  * @Stock@: @Eq@, @Ord@, @Show@, @Read@, @Semigroup@, @Monoid@,
+    @Enum@, @Bounded@, @Ix@, @Generic@
+  * @Stock1@: @Functor@, @Foldable@, @Traversable@, @Contravariant@,
+    @Applicative@, @Eq1@, @Ord1@, @Show1@, @Read1@, @Generic1@,
+    @TestEquality@, @TestCoercion@
+  * @Stock2@: @Bifunctor@, @Bifoldable@, @Bitraversable@, @Eq2@,
+    @Ord2@, @Show2@, @Read2@, @Category@
+
   Every claim below is machine-checked with @inspection-testing@ (it
   compares optimised Core, not behaviour):
-  .
+
   * For @Eq@, @Ord@, @Enum@, @Functor@, @Bounded@ and @Foldable@ the
     emitted Core is /byte-identical/ to GHC's own stock deriving.
-  * @Traversable@ and @Bitraversable@ — which GHC cannot stock-derive
-    at all — produce a @traverse@\/@bitraverse@ /byte-identical/ to the
+  * @Traversable@ and @Bitraversable@ (which GHC cannot stock-derive
+    at all) produce a @traverse@/@bitraverse@ /byte-identical/ to the
     natural hand-written definition.
   * Every remaining class is proven to erase the @Stock@ wrapper and
     its coercions /completely/, so the instance is exactly as fast as a
     hand-written one and behaves identically to stock deriving wherever
     GHC has it.
-  .
+
   In short: where GHC derives the class, the result is the same Core
   GHC emits; where it does not, the result is the Core you would have
   written by hand.
-  .
-  @Traversable@\/@Bitraversable@ are synthesised as genuine instances
+
+  @Traversable@/@Bitraversable@ are synthesised as genuine instances
   but cannot be reached by a bare @deriving via@ (the coercion is
-  blocked by the abstract applicative's nominal role; see @"Stock"@).
-  .
+  blocked by the abstract applicative's nominal role; see @Stock@).
+
   Companion packages add more classes through @DeriveStock@ instances
-  (see @"Stock.Derive"@), discovered automatically without an extra
-  @-fplugin@ flag :
-  .
-  * @stock-deepseq@:     NFData, NFData1, NFData2
-  * @stock-hashable@:    Hashable, Hashable1, Hashable2
-  * @stock-aeson@:       ToJSON, ToJSON1, ToJSON2; FromJSON, FromJSON1, FromJSON2
-  * @stock-quickcheck@:  Arbitrary, Arbitrary1, Arbitrary2; CoArbitrary
-  * @stock-profunctors@: Profunctor
-  .
+  (see @Stock.Derive@), discovered automatically without an extra
+  @-fplugin@ flag:
+
+  * @stock-deepseq@: @NFData@, @NFData1@, @NFData2@
+  * @stock-hashable@: @Hashable@, @Hashable1@, @Hashable2@
+  * @stock-aeson@: @ToJSON@, @ToJSON1@, @ToJSON2@; @FromJSON@,
+    @FromJSON1@, @FromJSON2@
+  * @stock-quickcheck@: @Arbitrary@, @Arbitrary1@, @Arbitrary2@;
+    @CoArbitrary@
+  * @stock-profunctors@: @Profunctor@
+
   Ordinary @DerivingVia@ modifiers compose with @Stock@:
   @Down (Stock T)@ reverses ordering, enumeration and bounds;
   @Backwards (Stock1 F)@ reverses @Applicative@ effects; @Reverse
-  (Stock1 F)@ reverses @Foldable@\/@Traversable@.
-  .
+  (Stock1 F)@ reverses @Foldable@/@Traversable@.
+
   > {-# options_ghc -fplugin Stock #-}
   > {-# language DerivingVia #-}
-  > 
+  >
   > import Stock
   > import Data.Ord (Down(..))
   >
   > -- >>> sort [Bronze, Silver, Gold]
   > -- [Gold,Silver,Bronze]
   > data Place = Bronze | Silver | Gold
-  >   deriving (Eq, Show)           via Stock Place
+  >   deriving (Eq, Show) via Stock Place
   >   deriving (Ord, Bounded, Enum) via Down (Stock Place)
-  .
-  Per-field modifiers (@Override@, @"Stock.Override"@, re-exported by
-  @"Stock"@) customise individual fields by name, type, or position; @_@
+
+  Per-field modifiers (@Override@, @Stock.Override@, re-exported by
+  @Stock@) customise individual fields by name, type, or position; @_@
   leaves a field unchanged. A modifier is any newtype with the relevant
   instance.
-  . 
+
   Hit points and coins accumulate with addition, poisoning
   contaminates by disjunction (or), @items@, and @weapons@ union with
-  addition to product a multiset.
-  .
+  addition to produce a multiset.
+
   > import Data.Map.Monoidal (MonoidalMap(..))
-  > ..
+  >
   > type MultiSet key = MonoidalMap key (Sum Int)
-  > 
+  >
   > data Inventory = Inventory
   >   { hp       :: Int
   >   , coins    :: Int
   >   , poisoned :: Bool
-  >   , items    :: Map Item   Int    -- these unfortunately default
-  >   , weapons  :: Map Weapon Int    -- to left-biased union
+  >   , items    :: Map Item Int
+  >   , weapons  :: Map Weapon Int
   >   }
-  >   deriving (Eq, Ord, Show, Read) via
-  >     Stock Inventory
-  >   deriving (Semigroup, Monoid) via 
+  >   deriving (Eq, Ord, Show, Read) via Stock Inventory
+  >   deriving (Semigroup, Monoid) via
   >     Overriding Inventory
-  >    '[ hp       via Sum 
-  >     , coins    via Sum 
-  >     , poisoned via Any
-  >     , items    via MultiSet Item
-  >     , weapons  via MultiSet Weapon
-  >     ]
-  .
+  >       '[ hp via Sum
+  >        , coins via Sum
+  >        , poisoned via Any
+  >        , items via MultiSet Item
+  >        , weapons via MultiSet Weapon
+  >        ]
+
   Synthesis runs once per instance (not per use): @deriving Cls via Stock
   T@ produces a single shared @instance Cls T@ that every call reuses.
 license:             BSD-3-Clause
