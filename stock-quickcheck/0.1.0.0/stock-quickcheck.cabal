@@ -1,0 +1,75 @@
+cabal-version: 3.0
+name:          stock-quickcheck
+version:       0.1.0.0
+synopsis:      Derive Arbitrary via the stock plugin
+description:
+  The @stock@ plugin provides a datatype for deriving and synthesising
+  instances at compile time. @stock-quickcheck@ extends the @stock@
+  with support for @Arbitrary@ (and higher-kinded variants) and
+  @CoArbitrary@.
+
+  > {-# options_ghc -fplugin Stock #-}
+  > 
+  > {-# language DerivingVia #-}
+  > {-# language DataKinds   #-}
+  > 
+  > import Stock
+  > import Stock.QuickCheck
+  > import Stock.Override
+  > 
+  > import Test.QuickCheck
+  > 
+  > data Person = P { name :: String, age :: Int }
+  >   deriving (Eq, Ord, Show, Read) via
+  >     Stock Person
+  >   deriving Arbitrary via
+  >     Overriding Person
+  >       [ name via ASCIIString, age via Positive ]
+
+  @stock-quickcheck@ provides four instances, that signal to the
+  plugin how to derive @Arbitrary@, @Arbitrary1@, @Arbitrary2@ and
+  @CoArbitrary@. 
+
+  @arbitrary@ is structural and size-aware, in the style of
+  @generic-arbitrary@. It picks a constructor, preferring terminal
+  constructors once the size runs out, so recursive types terminate,
+  and fills each field with its own @arbitrary@, dividing the size
+  among recursive fields. @shrink@ defaults.
+
+  > instance DeriveStock  Arbitrary   ..
+  > instance DeriveStock1 Arbitrary1  ..
+  > instance DeriveStock2 Arbitrary2  ..
+  > instance DeriveStock  CoArbitrary ..
+license:      BSD-3-Clause
+license-file: LICENSE
+author:       Baldur Blöndal
+maintainer:   baldur.blondal@iohk.io
+category:     Type System
+build-type:   Simple
+tested-with:  GHC == 9.8.1
+            , GHC == 9.10.3
+            , GHC == 9.12.4
+            , GHC == 9.14.1
+
+library
+  exposed-modules: Stock.QuickCheck
+  build-depends:   base >=4.18 && <5
+                 , ghc >=9.6 && <9.16
+                 , stock >=0.1 && <0.2
+                 , QuickCheck >=2.14 && <2.19
+  hs-source-dirs:    .
+  default-language:  GHC2021
+  ghc-options:       -Wall
+
+test-suite test
+  type:              exitcode-stdio-1.0
+  main-is:           Test.hs
+  build-depends:     base, stock, stock-quickcheck, QuickCheck
+  ghc-options:       -fplugin=Stock
+  hs-source-dirs:    test
+  default-language:  GHC2021
+
+source-repository head
+  type:     git
+  location: https://github.com/Icelandjack/stock.git
+  subdir:   quickcheck

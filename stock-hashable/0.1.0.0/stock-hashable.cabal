@@ -1,0 +1,71 @@
+cabal-version: 3.0
+name:          stock-hashable
+version:       0.1.0.0
+synopsis:      Derive Hashable via the stock plugin
+description:
+  The @stock@ plugin provides a datatype for deriving and synthesising
+  instances at compile time. @stock-hashable@ extends the @stock@ with
+  support for @Hashable@ and higher-kinded variants.
+
+  > {-# options_ghc -fplugin Stock #-}
+  > 
+  > {-# language DerivingVia #-}
+  > 
+  > import Stock
+  > import Stock.Hashable
+  > 
+  > data Pair a b = Pair a b
+  >  deriving (Eq,  Hashable)  via Stock  (Pair a b)
+  >  deriving (Eq1, Hashable1) via Stock1 (Pair a)
+  >  deriving (Eq2, Hashable2) via Stock2 Pair
+
+  @stock-hashable@ provides three instances, that signal to the plugin
+  how to derive @Hashable@.
+
+  > instance DeriveStock  Hashable  ..
+  > instance DeriveStock1 Hashable1 ..
+  > instance DeriveStock2 Hashable2 ..
+license:      BSD-3-Clause
+license-file: LICENSE
+author:       Baldur Blöndal
+maintainer:   baldur.blondal@iohk.io
+category:     Type System
+build-type:   Simple
+tested-with:  GHC == 9.8.1
+            , GHC == 9.10.3
+            , GHC == 9.12.4
+            , GHC == 9.14.1
+library
+  exposed-modules: Stock.Hashable
+  build-depends: base >=4.18 && <5
+               , ghc >=9.6 && <9.16
+               , stock >=0.1 && <0.2
+               , hashable >=1.4 && <1.6
+  hs-source-dirs: .
+  default-language: GHC2021
+  ghc-options: -Wall
+
+test-suite test
+  type:             exitcode-stdio-1.0
+  main-is:          Test.hs
+  build-depends:    base, stock, stock-hashable, hashable
+  ghc-options:      -fplugin=Stock
+  hs-source-dirs:   test
+  default-language: GHC2021
+
+-- zero-cost proof: Stock wrapper is fully erased
+test-suite inspection
+  type:              exitcode-stdio-1.0
+  main-is:           Inspection.hs
+  build-depends:     base, stock, stock-hashable, hashable, inspection-testing
+  ghc-options:       -fplugin=Stock
+  hs-source-dirs:    inspection
+  default-language:  GHC2021
+  -- no inspection-testing support
+  if impl(ghc >= 9.14)
+    buildable: False
+
+source-repository head
+  type:     git
+  location: https://github.com/Icelandjack/stock.git
+  subdir:   hashable

@@ -1,0 +1,70 @@
+cabal-version:       3.0
+name:                stock-aeson
+version:             0.1.0.0
+synopsis:            Derive ToJSON / FromJSON via the stock plugin
+description:
+  The @stock@ plugin provides a datatype for deriving and synthesising
+  instances at compile time. @stock-aeson@ extends the @stock@ with
+  support for @FromJSON@ and @ToJSON@, and their higher-kinded variants.
+
+  > {-# options_ghc -fplugin Stock #-}
+  > 
+  > {-# language DerivingVia #-}
+  > 
+  > import Stock
+  > import Stock.Aeson
+  > 
+  > data T = MkT Int String
+  >   deriving (ToJSON, FromJSON) via Stock T
+
+  The wire format reproduces aeson's @genericToJSON \/ genericParseJSON
+  defaultOptions@ exactly (a self-inverse tagged object,
+  @{ "tag": "Con", "contents": [field0, …] }@), so @stock-aeson@ is a drop-in
+  for @deriving stock Generic@ + @deriving anyclass (ToJSON, FromJSON)@.
+
+  > instance DeriveStock  ToJSON     ..
+  > instance DeriveStock  FromJSON   ..
+  > instance DeriveStock1 ToJSON1    ..
+  > instance DeriveStock1 FromJSON1  ..
+  > instance DeriveStock2 ToJSON2    ..
+  > instance DeriveStock2 FromJSON2  ..
+
+  The lifted variants derive the same zero-cost way (no @Generic@ at runtime):
+  parameter fields route through the supplied per-parameter encoders\/parsers, so
+  the bytes still match @aeson@'s generic deriving.
+
+  > data F a   = MkF a [a]   deriving (ToJSON1, FromJSON1) via Stock1 F
+  > data P a b = MkP a b [b] deriving (ToJSON2, FromJSON2) via Stock2 P
+
+  (@aeson@ has no @Generic2@; the arity-2 encoding is defined to coincide with
+  the value encoding when both per-parameter encoders are @toJSON@.)
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Baldur Blöndal
+maintainer:          baldur.blondal@iohk.io
+category:            Type System
+build-type:          Simple
+tested-with:         GHC == 9.8.1, GHC == 9.10.3, GHC == 9.12.4, GHC == 9.14.1
+
+library
+  exposed-modules:   Stock.Aeson
+  build-depends:     base >=4.18 && <5,
+                     ghc >=9.6 && <9.16,
+                     stock >=0.1 && <0.2,
+                     aeson >=2 && <3
+  hs-source-dirs:    .
+  default-language:  GHC2021
+  ghc-options:       -Wall
+
+test-suite test
+  type:              exitcode-stdio-1.0
+  main-is:           Test.hs
+  build-depends:     base, stock, stock-aeson, aeson, bytestring
+  ghc-options:       -fplugin=Stock
+  hs-source-dirs:    test
+  default-language:  GHC2021
+
+source-repository head
+  type:     git
+  location: https://github.com/Icelandjack/stock.git
+  subdir:   aeson

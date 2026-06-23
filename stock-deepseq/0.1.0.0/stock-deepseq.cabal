@@ -1,0 +1,103 @@
+cabal-version: 3.0
+name:          stock-deepseq
+version:       0.1.0.0
+synopsis:      Derive NFData via the stock plugin
+description:
+  The @stock@ plugin provides a datatype for deriving and synthesising
+  instances at compile time. @stock-deepseq@ extends the @stock@ with
+  support for @NFData@ and higher-kinded variants.
+
+  > {-# options_ghc -fplugin Stock -Wno-unused-top-binds #-}
+  > 
+  > {-# language DerivingVia #-}
+  > {-# language DataKinds   #-}
+  >
+  > import Stock
+  > import Stock.NFData
+  > import Stock.Override
+  > 
+  > import Control.Exception
+  > 
+  > data Person = P { name :: String, age :: Int, secret :: Person }
+  >   deriving (Eq, Ord, Show, NFData) via 
+  >     Stock Person
+  > 
+  > -- >> try @SomeException (evaluate (rnf geir))
+  > -- Left stack overflow
+  > -- >> geir == geir
+  > -- <loop>
+  > -- >> geir
+  > -- P {name = "Geir", age = 10, secret = P {name = "Geir", .. } }
+  > geir :: Person
+  > geir = P { name = "Geir", age = 10, secret = geir }
+
+  The @rnf@ function triggers the loop, but by pinning @secret@ as an
+  ignored field, we can happily force the other fields.
+
+  > newtype Ignore a = Ignore a
+  > instance NFData (Ignore a) where rnf _ = ()
+  > instance Eq     (Ignore a) where _ == _ = True
+  > instance Ord    (Ignore a) where compare _ _ = EQ
+  > instance Show   (Ignore a) where show _ = "<ignored>"
+  >
+  > data Person = P { name :: String, age :: Int, secret :: Person }
+  >   deriving (Eq, Ord, Show, NFData) via 
+  >     Overriding Person '[ secret via Ignore ]
+  >
+  > -- >> try @SomeException (evaluate (rnf geir))
+  > -- Right ()
+  > -- >> geir == geir
+  > -- True
+  > -- >> geir
+  > -- P {name = "Geir", age = 10, secret = <ignored>}
+
+  @stock-deepseq@ provides three instances, that signal to the
+  plugin how to derive @NFData@, @NFData1@, @NFData2@.
+
+  > instance DeriveStock  NFData  ..
+  > instance DeriveStock1 NFData1 ..
+  > instance DeriveStock2 NFData2 ..
+license:      BSD-3-Clause
+license-file: LICENSE
+author:       Baldur Blöndal
+maintainer:   baldur.blondal@iohk.io
+category:     Type System
+build-type:   Simple
+tested-with:  GHC == 9.8.1
+            , GHC == 9.10.3
+            , GHC == 9.12.4
+            , GHC == 9.14.1
+
+library
+  exposed-modules: Stock.NFData
+  build-depends:   base >=4.18 && <5
+                 , ghc >=9.8 && <9.16
+                 , stock >=0.1 && <0.2
+                 , deepseq >=1.4 && <1.6
+  hs-source-dirs: .
+  default-language: GHC2021
+  ghc-options: -Wall
+
+test-suite test
+  type:              exitcode-stdio-1.0
+  main-is:           Test.hs
+  build-depends:     base, stock, stock-deepseq, deepseq
+  ghc-options:       -fplugin=Stock
+  hs-source-dirs:    test
+  default-language:  GHC2021
+
+-- Zero-cost proof: Stock is fully erased
+test-suite inspection
+  type:              exitcode-stdio-1.0
+  main-is:           Inspection.hs
+  build-depends:     base, stock, stock-deepseq, deepseq, inspection-testing
+  ghc-options:       -fplugin=Stock
+  hs-source-dirs:    inspection
+  default-language:  GHC2021
+  if impl(ghc >= 9.14)
+    buildable: False
+
+source-repository head
+  type:     git
+  location: https://github.com/Icelandjack/stock.git
+  subdir:   deepseq
