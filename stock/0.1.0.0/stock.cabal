@@ -1,0 +1,196 @@
+cabal-version:       3.0
+name:                stock
+version:             0.1.0.0
+synopsis:            Stock-style deriving via coercion, with no Generic
+description:
+  A GHC type-checker plugin that derives class instances for @Stock T@
+  and higher-kinded variants at /compile time/, straight from the
+  structure of /T/ without a @Generic@ representation or runtime cost.
+  .
+  Supported classes:
+  .
+  * @Stock@:  Eq, Ord, Show, Read, Semigroup, Monoid, Enum, Bounded, Ix, Generic
+  * @Stock1@: Functor, Foldable, Traversable, Contravariant, Applicative, Eq1, Ord1, Show1, Read1, Generic1, TestEquality, TestCoercion
+  * @Stock2@: Bifunctor, Bifoldable, Bitraversable, Eq2, Ord2, Show2, Read2, Category
+  .
+  Every claim below is machine-checked with @inspection-testing@ (it
+  compares optimised Core, not behaviour):
+  .
+  * For @Eq@, @Ord@, @Enum@, @Functor@, @Bounded@ and @Foldable@ the
+    emitted Core is /byte-identical/ to GHC's own stock deriving.
+  * @Traversable@ and @Bitraversable@ — which GHC cannot stock-derive
+    at all — produce a @traverse@\/@bitraverse@ /byte-identical/ to the
+    natural hand-written definition.
+  * Every remaining class is proven to erase the @Stock@ wrapper and
+    its coercions /completely/, so the instance is exactly as fast as a
+    hand-written one and behaves identically to stock deriving wherever
+    GHC has it.
+  .
+  In short: where GHC derives the class, the result is the same Core
+  GHC emits; where it does not, the result is the Core you would have
+  written by hand.
+  .
+  @Traversable@\/@Bitraversable@ are synthesised as genuine instances
+  but cannot be reached by a bare @deriving via@ (the coercion is
+  blocked by the abstract applicative's nominal role; see @"Stock"@).
+  .
+  Companion packages add more classes through @DeriveStock@ instances
+  (see @"Stock.Derive"@), discovered automatically without an extra
+  @-fplugin@ flag :
+  .
+  * @stock-deepseq@:     NFData, NFData1, NFData2
+  * @stock-hashable@:    Hashable, Hashable1, Hashable2
+  * @stock-aeson@:       ToJSON, ToJSON1, ToJSON2; FromJSON, FromJSON1, FromJSON2
+  * @stock-quickcheck@:  Arbitrary, Arbitrary1, Arbitrary2; CoArbitrary
+  * @stock-profunctors@: Profunctor
+  .
+  Ordinary @DerivingVia@ modifiers compose with @Stock@:
+  @Down (Stock T)@ reverses ordering, enumeration and bounds;
+  @Backwards (Stock1 F)@ reverses @Applicative@ effects; @Reverse
+  (Stock1 F)@ reverses @Foldable@\/@Traversable@.
+  .
+  > {-# options_ghc -fplugin Stock #-}
+  > {-# language DerivingVia #-}
+  > 
+  > import Stock
+  > import Data.Ord (Down(..))
+  >
+  > -- >>> sort [Bronze, Silver, Gold]
+  > -- [Gold,Silver,Bronze]
+  > data Place = Bronze | Silver | Gold
+  >   deriving (Eq, Show)           via Stock Place
+  >   deriving (Ord, Bounded, Enum) via Down (Stock Place)
+  .
+  Per-field modifiers (@Override@, @"Stock.Override"@, re-exported by
+  @"Stock"@) customise individual fields by name, type, or position; @_@
+  leaves a field unchanged. A modifier is any newtype with the relevant
+  instance.
+  . 
+  Hit points and coins accumulate with addition, poisoning
+  contaminates by disjunction (or), @items@, and @weapons@ union with
+  addition to product a multiset.
+  .
+  > import Data.Map.Monoidal (MonoidalMap(..))
+  > ..
+  > type MultiSet key = MonoidalMap key (Sum Int)
+  > 
+  > data Inventory = Inventory
+  >   { hp       :: Int
+  >   , coins    :: Int
+  >   , poisoned :: Bool
+  >   , items    :: Map Item   Int    -- these unfortunately default
+  >   , weapons  :: Map Weapon Int    -- to left-biased union
+  >   }
+  >   deriving (Eq, Ord, Show, Read) via
+  >     Stock Inventory
+  >   deriving (Semigroup, Monoid) via 
+  >     Overriding Inventory
+  >    '[ hp       via Sum 
+  >     , coins    via Sum 
+  >     , poisoned via Any
+  >     , items    via MultiSet Item
+  >     , weapons  via MultiSet Weapon
+  >     ]
+  .
+  Synthesis runs once per instance (not per use): @deriving Cls via Stock
+  T@ produces a single shared @instance Cls T@ that every call reuses.
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Baldur Blöndal
+maintainer:          baldur.blondal@iohk.io
+category:            Type System
+build-type:          Simple
+tested-with:         GHC >= 9.6 && < 9.15
+                   , GHC == 9.6.7
+                   , GHC == 9.8.1,  GHC == 9.8.2,  GHC == 9.8.4
+                   , GHC == 9.10.1, GHC == 9.10.2, GHC == 9.10.3
+                   , GHC == 9.12.1, GHC == 9.12.2, GHC == 9.12.4
+                   , GHC == 9.14.1
+extra-doc-files:     README.md
+                     CHANGELOG.md
+extra-source-files:  LICENSE
+
+common warnings
+  ghc-options:       -Wall -Wcompat -Wincomplete-record-updates
+                     -Wincomplete-uni-patterns -Wredundant-constraints
+  default-language:  GHC2021
+
+library
+  import:           warnings
+  exposed-modules:  Stock
+                    Stock.Type
+                    Stock.Derive
+                    Stock.Override
+                    Stock.Surface
+                    Stock.Internal
+                    Stock.Compat
+                    Stock.Bounded
+                    Stock.Eq
+                    Stock.Ord
+                    Stock.Semigroup
+                    Stock.Show
+                    Stock.Read
+                    Stock.Enum
+                    Stock.Functor
+                    Stock.Applicative
+                    Stock.Traversable
+                    Stock.TestEquality
+                    Stock.Bifunctor
+                    Stock.Generic
+                    Stock.Classes1
+  other-modules:    Stock.Trans
+  build-depends:    base >=4.18 && <5,
+                    ghc >=9.6 && <9.16
+  hs-source-dirs:   src plugin
+
+test-suite examples
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  other-modules:    QualOverride
+  build-depends:    base >=4.18 && <5,
+                    transformers < 0.7,
+                    stock
+  ghc-options:      -fplugin=Stock
+  hs-source-dirs:   examples
+
+test-suite spec
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  other-modules:    Twin
+  build-depends:    base >=4.18 && <5,
+                    stock
+  ghc-options:      -fplugin=Stock
+  hs-source-dirs:   test
+
+benchmark bench
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          Bench.hs
+  build-depends:    base >=4.18 && <5,
+                    stock
+  ghc-options:      -O2 -rtsopts "-with-rtsopts=-K512m" -fplugin=Stock
+  hs-source-dirs:   bench
+
+benchmark configs
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          Configs.hs
+  build-depends:    base, stock
+  ghc-options:      -O2 -fplugin=Stock
+  hs-source-dirs:   bench
+
+test-suite inspection
+  type:             exitcode-stdio-1.0
+  main-is:          Inspection.hs
+  build-depends:    base, stock, inspection-testing
+  ghc-options:      -fplugin=Stock
+  hs-source-dirs:   inspection
+  default-language: GHC2021
+  if impl(ghc >= 9.14)
+    buildable: False
+
+source-repository head
+  type:     git
+  location: https://github.com/Icelandjack/stock.git
