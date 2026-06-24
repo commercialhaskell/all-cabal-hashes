@@ -2,13 +2,12 @@ cabal-version:       3.0
 name:                stock
 version:             0.1.0.0
 synopsis:            Stock-style deriving via coercion, with no Generic
-x-revision:          9
+x-revision:          12
 description:
   A GHC type-checker plugin that derives class instances for
-  <https://hackage-content.haskell.org/package/stock-0.1.0.0/docs/Stock.html#t:Stock
-  Stock> @T@ and higher-kinded variants at /compile time/, straight
+  __@<https://hackage-content.haskell.org/package/stock-0.1.0.0/docs/Stock.html#t:Stock Stock T>@__ and higher-kinded variants at /compile time/, straight
   from the structure of /T/ without a @Generic@ representation or
-  runtime cost. Synthesized instances emulate GHC's stock @deriving@.
+  runtime cost. Synthesized instances emulate GHC's /stock/ deriving.
 
   Supported classes:
 
@@ -22,7 +21,7 @@ description:
 
   @<https://hackage-content.haskell.org/package/base-4.22.0.0/docs/Data-Traversable.html#t:Traversable Traversable>@,
   @<https://hackage-content.haskell.org/package/base-4.22.0.0/docs/Data-Bitraversable.html#t:Bitraversable Bitraversable>@ 
-  are supported by but cannot be derived via.
+  are synthesisable but cannot be derived via.
 
   Companion packages add more classes through @DeriveStock@ instances
   (see "Stock.Derive"), discovered automatically without an extra
@@ -67,22 +66,22 @@ description:
   > type MultiSet key = MonoidalMap key (Sum Int)
   >
   > data Inventory = Inventory
-  >   { hp       :: Int
-  >   , coins    :: Int
-  >   , poisoned :: Bool
-  >   , items    :: Map Item Int
-  >   , weapons  :: Map Weapon Int
+  >   { hp       :: Int              -- (+)
+  >   , coins    :: Int              -- (+)
+  >   , poisoned :: Bool             -- (||)
+  >   , items    :: Map Item Int     -- unionWith (+)
+  >   , weapons  :: Map Weapon Int   -- unionWith (+)
   >   }
   >   deriving (Eq, Ord, Show, Read) via 
   >     Stock Inventory
   >   deriving (Semigroup, Monoid) via
   >     Overriding Inventory
-  >       '[ hp       via Sum
-  >        , coins    via Sum
-  >        , poisoned via Any
-  >        , items    via MultiSet Item
-  >        , weapons  via MultiSet Weapon
-  >        ]
+  >      '[ hp       via Sum
+  >       , coins    via Sum
+  >       , poisoned via Any
+  >       , items    via MultiSet Item
+  >       , weapons  via MultiSet Weapon
+  >       ]
 
   Synthesis runs once per instance (not per use): @deriving Cls via Stock
   T@ produces a single shared @instance Cls T@ that every call reuses.
