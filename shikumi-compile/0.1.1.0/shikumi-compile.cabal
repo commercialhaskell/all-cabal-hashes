@@ -1,0 +1,83 @@
+cabal-version:   3.4
+name:            shikumi-compile
+version:         0.1.1.0
+synopsis:        The compiler layer for shikumi LM programs (EP-9)
+category:        AI
+description:
+  The compiler layer for shikumi: pure @Program -> Program@ transformations that
+  bake a prompting strategy into a program's per-node parameters or structure
+  (zero-shot, few-shot, chain-of-thought, retrieval-augmented), the owned type
+  @CompiledProgram@ (MasterPlan integration point #6), a minimal @Retriever@
+  interface with a trivial in-memory implementation, and parameter-state
+  serialization mirroring DSPy's @dump_state@/@load_state@. A compiler never calls
+  the LM to try variations and keep the best — that is the optimizer (EP-10). Every
+  acceptance assertion is about the prompt the model would have seen, observed
+  offline through a capturing stub, so the whole package tests with no network.
+
+license:         BSD-3-Clause
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+common common-options
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+  default-language:   GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+library
+  import:          common-options
+  hs-source-dirs:  src
+  exposed-modules:
+    Shikumi.Compile
+    Shikumi.Compile.ChainOfThought
+    Shikumi.Compile.FewShot
+    Shikumi.Compile.RAG
+    Shikumi.Compile.Retriever
+    Shikumi.Compile.Serialize
+    Shikumi.Compile.Types
+    Shikumi.Compile.ZeroShot
+
+  build-depends:
+    , aeson
+    , base          >=4.20     && <5
+    , bytestring
+    , effectful
+    , generic-lens  ^>=2.2
+    , lens          ^>=5.3
+    , shikumi       ^>=0.2.0.0
+    , text          ^>=2.1
+
+test-suite shikumi-compile-test
+  import:         common-options
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  ghc-options:    -threaded -with-rtsopts=-N
+  other-modules:
+    Test.Capture
+    Test.Fixtures
+
+  build-depends:
+    , aeson
+    , baikai           >=0.2      && <0.3
+    , base
+    , bytestring
+    , effectful
+    , generic-lens
+    , lens
+    , shikumi          ^>=0.2.0.0
+    , shikumi-compile  ^>=0.1.1.0
+    , tasty
+    , tasty-hunit
+    , text
+    , vector
