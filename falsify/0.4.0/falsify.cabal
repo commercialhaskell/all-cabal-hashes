@@ -1,0 +1,169 @@
+cabal-version:      3.0
+name:               falsify
+version:            0.4.0
+synopsis:           Property-based testing with internal integrated shrinking
+description:        This library provides property based testing with support
+                    for internal integrated shrinking: integrated in the sense
+                    of Hedgehog, meaning that there is no need to write a
+                    separate shrinker and generator; and internal in the sense
+                    of Hypothesis, meaning that this works well even across
+                    monadic bind. However, the actual techniques that power
+                    @falsify@ are quite different from both of these two
+                    libraries.
+
+                    Most users will probably want to use the integration with
+                    @<https://hackage.haskell.org/package/tasty tasty>@,
+                    and use "Test.Tasty.Falsify" from the @tasty-falsify@
+                    package as their main entrypoint into the library.
+                    The "Test.Falsify.Interactive" module can be used to
+                    experiment with the library in @ghci@.
+
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Edsko de Vries
+maintainer:         edsko@well-typed.com
+copyright:          Well-Typed LLP
+category:           Testing
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+tested-with:        GHC==8.10.7
+                  , GHC==9.0.2
+                  , GHC==9.2.8
+                  , GHC==9.4.8
+                  , GHC==9.6.7
+                  , GHC==9.8.4
+                  , GHC==9.10.3
+                  , GHC==9.12.4
+                  , GHC==9.14.1
+
+source-repository head
+  type:     git
+  location: https://github.com/well-typed/falsify
+
+common lang
+  ghc-options:
+      -Wall
+      -Wredundant-constraints
+      -Widentities
+  build-depends:
+      base >= 4.12 && < 4.23
+  default-language:
+      Haskell2010
+  default-extensions:
+      BangPatterns
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveTraversable
+      DerivingStrategies
+      DerivingVia
+      DisambiguateRecordFields
+      FlexibleContexts
+      FlexibleInstances
+      GADTs
+      GeneralizedNewtypeDeriving
+      InstanceSigs
+      KindSignatures
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NamedFieldPuns
+      NumericUnderscores
+      PatternSynonyms
+      QuantifiedConstraints
+      RankNTypes
+      ScopedTypeVariables
+      StandaloneDeriving
+      TupleSections
+      TypeApplications
+      TypeOperators
+      ViewPatterns
+
+  if impl(ghc >= 9.2)
+    ghc-options: -Wunused-packages
+
+library
+  import:
+      lang
+  exposed-modules:
+      Test.Falsify
+      Test.Falsify.Context
+      Test.Falsify.Driver
+      Test.Falsify.GenDefault
+      Test.Falsify.GenDefault.Std
+      Test.Falsify.Generator
+      Test.Falsify.Interactive
+      Test.Falsify.Marked
+      Test.Falsify.Predicate
+      Test.Falsify.Range
+      Test.Falsify.SampleTree
+      Test.Falsify.ShrinkTree
+
+      -- General purpose datatypes
+      Data.Falsify.ConcreteFun
+      Data.Falsify.Permutation
+      Data.Falsify.ProperFraction
+      Data.Falsify.Tree
+      Data.Falsify.WordN
+  other-modules:
+      Test.Falsify.Internal.Driver
+      Test.Falsify.Internal.Driver.ReplaySeed
+      Test.Falsify.Internal.Fun
+      Test.Falsify.Internal.Generator
+      Test.Falsify.Internal.Generator.Compound
+      Test.Falsify.Internal.Generator.Function
+      Test.Falsify.Internal.Generator.Precision
+      Test.Falsify.Internal.Generator.Shrinking
+      Test.Falsify.Internal.Generator.Simple
+      Test.Falsify.Internal.Marked.Tree
+      Test.Falsify.Internal.Property
+      Test.Falsify.Internal.Range
+      Test.Falsify.Internal.SampleTree
+      Test.Falsify.Internal.Search
+      Test.Falsify.Internal.Shrinking
+
+      Data.Falsify.Internal.Integer
+      Data.Falsify.Internal.List
+  hs-source-dirs:
+      src
+  build-depends:
+    , base16-bytestring >= 1.0  && < 1.1
+    , binary            >= 0.8  && < 0.9
+    , bytestring        >= 0.10 && < 0.13
+    , containers        >= 0.6  && < 0.9
+    , data-default      >= 0.7  && < 0.9
+    , mtl               >= 2.2  && < 2.4
+    , optics-core       >= 0.3  && < 0.5
+    , selective         >= 0.4  && < 0.8
+    , sop-core          >= 0.5  && < 0.6
+    , splitmix          >= 0.1  && < 0.2
+    , vector            >= 0.12 && < 0.14
+
+-- NOTE: We test the /generators/ as part of the @tasty-falsify@ test suite,
+-- since we need the @tasty@ integration.
+test-suite test-falsify
+  import:
+      lang
+  type:
+      exitcode-stdio-1.0
+  hs-source-dirs:
+      test
+  main-is:
+      Main.hs
+  other-modules:
+      TestSuite.GenDefault
+      TestSuite.Regression
+      TestSuite.Sanity.Predicate
+      TestSuite.Sanity.Range
+      TestSuite.Sanity.Selective
+  build-depends:
+      -- Inherited bounds from the main library
+    , containers
+    , falsify
+    , selective
+  build-depends:
+    , tasty       >= 1.3  && < 1.6
+    , tasty-hunit >= 0.10 && < 0.11
