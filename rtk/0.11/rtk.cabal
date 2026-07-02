@@ -1,0 +1,158 @@
+Cabal-Version:       2.4
+Name:                rtk
+Version:             0.11
+Synopsis:            Parser and rewrite facility generator from grammar specifications
+Description:         RTK (Rewrite ToolKit) generates Alex lexer and Happy parser
+                     files from grammar specifications. It supports quasi-quotation
+                     for embedding parsed syntax in Haskell code.
+                     .
+                     Projects that compile the generated modules need to depend on
+                     @array@ and @syb@ (lexer and parser), plus @containers@ and
+                     @template-haskell@ for the generated quasi-quoter; see the
+                     README for details.
+License:             MIT
+License-File:        LICENSE
+Author:              prozak
+Maintainer:          nickolay.lysenko@gmail.com
+Homepage:            https://github.com/prozak/rtk
+Bug-Reports:         https://github.com/prozak/rtk/issues
+Category:            Language, Development
+Build-Type:          Simple
+Tested-With:         GHC == 9.4.7 || == 9.6.4
+
+Extra-Source-Files:
+    CHANGELOG.md
+    README.md
+    test-grammars/*.pg
+    test/golden/**/*.x
+    test/golden/**/*.y
+    test/golden/**/*.hs
+
+Source-Repository head
+    Type:     git
+    Location: https://github.com/prozak/rtk.git
+
+Common warnings
+  Default-Language:  Haskell2010
+  ghc-options:       -Wall -Wunused-imports -Wunused-top-binds -Wunused-local-binds -Wunused-matches
+
+-- The self-hosted front end (the default): the lexer/parser RTK generated
+-- from test-grammars/grammar.pg, compiled directly from the checked-in golden
+-- snapshot in test/golden/grammar (the bootstrap stage, produced by the
+-- previous rtk binary like every self-hosting compiler's stage files).
+-- Compiling the snapshot directly means `make accept-golden` keeps the build
+-- input of the default front end in sync by construction.
+-- GrammarQQ deliberately stays out: compiling the generated quasi-quoter
+-- would pull Template Haskell into the bootstrap build path.
+-- Separate component because generated alex code trips -Wunused-matches
+-- (happy output carries its own -w; alex output does not suppress that one),
+-- and the snapshot must not be edited to placate the linter.
+Library generated-frontend
+  Import:            warnings
+  ghc-options:       -Wno-unused-matches
+  -- The snapshot's splice-token actions use 'tail', which GHC >= 9.8 warns
+  -- about on every use (-Wx-partial, on by default). Same policy as
+  -- -Wno-unused-matches above: generated code, not edited to placate the
+  -- linter. Guarded because older GHCs would warn about the unrecognised
+  -- flag (fatal under -Werror).
+  if impl(ghc >= 9.8)
+    ghc-options:     -Wno-x-partial
+  Hs-Source-Dirs:    test/golden/grammar
+  Exposed-Modules:
+                     GrammarLexer,
+                     GrammarParser
+  Build-Depends:
+                     base                 >= 4.17 && < 4.19,
+                     array                >= 0.5  && < 0.6,
+                     syb                  >= 0.7  && < 0.8,
+                     -- grammar.pg's imports section pulls in Data.Map
+                     containers           >= 0.6  && < 0.7
+  Build-Tool-Depends: happy:happy == 2.2.*, alex:alex == 3.5.*
+  Default-Extensions:  DeriveDataTypeable, StandaloneDeriving
+
+Library
+  Import:            warnings
+  Hs-Source-Dirs:    .
+                     src/generated
+  Exposed-Modules:
+                     Diagnostics,
+                     Syntax,
+                     Lexer,
+                     Parser,
+                     TokenProcessing,
+                     Grammar,
+                     GenAST,
+                     GenQ,
+                     GenX,
+                     GenY,
+                     Normalize,
+                     StrQuote,
+                     StringLiterals,
+                     DebugOptions,
+                     Debug,
+                     ASTAdapter
+  Build-Depends:
+                     generated-frontend,
+                     base                 >= 4.17 && < 4.19,
+                     array                >= 0.5  && < 0.6,
+                     syb                  >= 0.7  && < 0.8,
+                     template-haskell     >= 2.19 && < 2.21,
+                     containers           >= 0.6  && < 0.7,
+                     mtl                  >= 2.2  && < 2.4,
+                     pretty               >= 1.1  && < 1.2,
+                     pretty-show          >= 1.10 && < 1.11,
+                     MissingH             >= 1.6  && < 1.7,
+                     haskell-src-exts     >= 1.23 && < 1.24,
+                     haskell-src-meta     >= 0.8  && < 0.9,
+                     lens                 >= 5.2  && < 5.4,
+                     optparse-applicative >= 0.18 && < 0.20,
+                     time                 >= 1.12 && < 1.13,
+                     ansi-terminal        >= 1.0  && < 1.2
+  -- CI pins the exact tool versions (alex-3.5.4.2, happy-2.2 in
+  -- .github/workflows/ci.yml); these ranges must stay compatible with them.
+  Build-Tool-Depends: happy:happy == 2.2.*, alex:alex == 3.5.*
+  Default-Extensions:  DeriveDataTypeable, StandaloneDeriving
+
+Executable rtk
+  Import:            warnings
+  Main-is:           main.hs
+  Hs-Source-Dirs:    app
+  Build-Depends:     base      >= 4.17 && < 4.19,
+                     directory >= 1.3  && < 1.4,
+                     rtk
+  ghc-options:       -rtsopts
+
+-- In-process tests of the generation pipeline (lex/parse/normalize/generate).
+-- They do not need alex, happy, or a GHC compile cycle, so they are fast and
+-- can run with plain `cabal test`.
+Test-Suite unit
+  Import:            warnings
+  Type:              exitcode-stdio-1.0
+  Main-Is:           UnitTests.hs
+  Hs-Source-Dirs:    test
+  Other-Modules:     TestSupport
+  Build-Depends:
+                     base       >= 4.17 && < 4.19,
+                     rtk,
+                     HUnit      >= 1.6  && < 1.7,
+                     containers >= 0.6  && < 0.7,
+                     directory  >= 1.3  && < 1.4,
+                     filepath   >= 1.4  && < 1.6,
+                     syb        >= 0.7  && < 0.8
+
+-- Golden tests: generated .x/.y/QQ.hs output for every grammar under
+-- test-grammars/ is compared against snapshots in test/golden/.
+-- Refresh the snapshots with `make accept-golden` after intentional
+-- generator changes.
+Test-Suite golden
+  Import:            warnings
+  Type:              exitcode-stdio-1.0
+  Main-Is:           GoldenTests.hs
+  Hs-Source-Dirs:    test
+  Other-Modules:     TestSupport
+  Build-Depends:
+                     base       >= 4.17 && < 4.19,
+                     rtk,
+                     HUnit      >= 1.6  && < 1.7,
+                     directory  >= 1.3  && < 1.4,
+                     filepath   >= 1.4  && < 1.6
