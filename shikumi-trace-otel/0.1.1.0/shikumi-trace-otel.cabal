@@ -1,0 +1,80 @@
+cabal-version:   3.4
+name:            shikumi-trace-otel
+version:         0.1.1.0
+synopsis:
+  OpenTelemetry export of shikumi hierarchical trace trees (EP-7)
+
+category:        AI
+description:
+  An opt-in OpenTelemetry adapter for shikumi's hierarchical trace trees.
+  'Shikumi.Trace.OpenTelemetry.exportTree' walks a finished 'TraceTree' and emits
+  one OTel span per node, preserving parent/child nesting (each child span is
+  created in a context carrying its parent span). LM-call spans carry GenAI
+  semantic-convention attributes; every span carries @shikumi.@-prefixed
+  span-kind/cost/latency/retry attributes. The heavy @hs-opentelemetry-*@
+  dependency tree is isolated in this package, mirroring baikai's
+  @baikai-trace-otel@ split.
+
+license:         BSD-3-Clause
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+common common-options
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+  default-language:   GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+library
+  import:          common-options
+  hs-source-dirs:  src
+  exposed-modules:
+    Shikumi.Trace.LiveExport
+    Shikumi.Trace.OpenTelemetry
+
+  build-depends:
+    , aeson
+    , base                                   >=4.20     && <5
+    , containers
+    , generic-lens
+    , hs-opentelemetry-api                   >=1.0      && <1.1
+    , hs-opentelemetry-exporter-otlp         >=1.0      && <1.1
+    , hs-opentelemetry-sdk                   >=1.0      && <1.1
+    , hs-opentelemetry-semantic-conventions  >=1.40     && <2
+    , lens                                   ^>=5.3
+    , scientific
+    , shikumi-trace                          ^>=0.2.0.0
+    , text                                   ^>=2.1
+    , time
+    , unordered-containers
+
+test-suite shikumi-trace-otel-test
+  import:         common-options
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  ghc-options:    -threaded -with-rtsopts=-N
+  build-depends:
+    , aeson
+    , base
+    , containers
+    , hs-opentelemetry-api                 >=1.0      && <1.1
+    , hs-opentelemetry-exporter-in-memory  >=1.0      && <1.1
+    , hs-opentelemetry-sdk                 >=1.0      && <1.1
+    , shikumi-trace                        ^>=0.2.0.0
+    , shikumi-trace-otel                   ^>=0.1.1.0
+    , tasty
+    , tasty-hunit
+    , text
+    , time
+    , unordered-containers
