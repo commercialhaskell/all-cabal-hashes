@@ -1,0 +1,109 @@
+cabal-version:      3.0
+
+name:               limcalc
+version:            0.1.0.0
+
+synopsis:           Limit-based symbolic calculus engine via log-Puiseux series
+
+description:
+    limcalc is a symbolic calculus engine grounded in the limit definition
+    rather than rewriting rules. The core thesis: the derivative is a limit,
+    so compute it that way — expand f(x+h) as a log-Puiseux series in h and
+    read off the h^1 coefficient. The product rule and chain rule are not
+    implemented; both are consequences of the limit definition and are
+    observable in the output.
+    .
+    The log-Puiseux series type supports terms of the form
+    c * h^p * log(h)^k with c an algebraic number, p rational, and k a
+    natural number. This is strictly more expressive than pure Puiseux
+    series: the cosine integral Ci and exponential integral Ei have genuine
+    logarithmic singularities that cannot be represented as pure power series.
+    .
+    Capabilities:
+    .
+    * Univariate and multivariate limits with certified result types
+      (Exists, Pole, DoesNotExist, LimitError)
+    .
+    * Symbolic differentiation — gradient, Jacobian, Hessian — derived
+      from the same log-Puiseux representation, without rule tables
+    .
+    * Integration via the Risch algorithm over the differential field the
+      representation naturally provides, with NonElementary as a proved
+      certificate when no elementary antiderivative exists
+    .
+    * Recognition of non-elementary integrals as named special functions:
+      erf, Si, Ci, Ei, li
+    .
+    * JSON line protocol CLI (limcalc-cli) for language-agnostic use;
+      a Python interface is available as the limcalc-py package on PyPI
+
+license:            MIT
+license-file:       LICENSE
+author:             Jason Parker
+maintainer:         jparker588@gmail.com
+copyright:          2026 Jason Parker
+homepage:           https://github.com/penny4nonsense/limcalc
+bug-reports:        https://github.com/penny4nonsense/limcalc/issues
+category:           Math
+build-type:         Simple
+tested-with:        GHC == 9.10.3
+extra-doc-files:    CHANGELOG.md
+                    README.md
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    exposed-modules:  LimCalc.Core.Expr
+                      LimCalc.Series.Puiseux
+                      LimCalc.Core.Types
+                      LimCalc.Series.Expand
+                      LimCalc.Differentiation.Calculus
+                      LimCalc.Series.SymPuiseux
+                      LimCalc.Series.SymExpand
+                      LimCalc.Core.Simplify
+                      LimCalc.Differentiation.Limit
+                      LimCalc.Differentiation.MultivariateLimit
+                      LimCalc.Algebra.Poly
+                      LimCalc.Algebra.RationalFunction
+                      LimCalc.Differentiation.DiffField
+                      LimCalc.Integration.Risch.Primitive
+                      LimCalc.Integration.Risch.Exponential
+                      LimCalc.Integration.Risch
+                      LimCalc.Algebra.AlgNum
+                      LimCalc.Algebra.BivPoly
+                      LimCalc.Algebra.QPoly
+                      LimCalc.Pretty
+                      LimCalc.Core.ExprJSON
+    build-depends:
+        base ^>=4.20.2.0,
+        containers >= 0.7 && < 0.8,
+        aeson >= 2.3.0 && < 2.4
+    hs-source-dirs:   src
+    default-language: GHC2021
+
+test-suite limcalc-test
+    import:           warnings
+    default-language: GHC2021
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:
+        base ^>=4.20.2.0,
+        limcalc,
+        tasty,
+        tasty-hunit,
+        containers
+
+executable limcalc-cli
+    import:           warnings
+    default-language: GHC2021
+    hs-source-dirs:   app
+    main-is:          Main.hs
+    build-depends:
+        base ^>=4.20.2.0,
+        limcalc,
+        aeson >= 2.3.0 && < 2.4,
+        bytestring >= 0.12.2 && < 0.13,
+        containers >= 0.7 && < 0.8
