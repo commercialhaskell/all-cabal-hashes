@@ -1,0 +1,91 @@
+cabal-version:   3.0
+version:         1.0.0.0
+name:            ipldm
+build-type:      Simple
+author:          Zoey McBride
+maintainer:      zoeymcbride@mailbox.org
+license:         AGPL-3.0-or-later
+license-file:    LICENSE.txt
+extra-doc-files: README.md, CHANGELOG.md
+category:        Network
+synopsis:        The InterPlanetary Linked Data Model and codec formats.
+description:
+    Provides the IPLD data model in an abstract form with the different IPLD
+    data kinds. Also codecs for decoding these kinds from serialized formats
+    such as DAG-CBOR, and encoding the abstract data model back into binary
+    formats.
+tested-with:
+    GHC == 9.6.7
+
+source-repository head {
+    type: git
+    location: https://git.sr.ht/~z0/ipldm
+}
+
+
+common HaskellConfig {
+    hs-source-dirs: ipld dagcbor
+    default-language: GHC2021
+    default-extensions: StrictData PatternSynonyms
+}
+
+common Depends {
+    build-depends:
+        base >= 4.18 && < 5,
+        xcodec ^>= 1.1,
+        basesystems ^>= 1.2,
+        mfmts ^>= 1.2,
+        array ^>= 0.5,
+        bytestring ^>= 0.12,
+        containers ^>= 0.7,
+        text ^>= 2.1,
+        parallel ^>= 3.3,
+        deepseq ^>= 1.4
+}
+
+common BuildUser {
+    import: Depends
+    ghc-options: -Wall -Wextra -Wno-unused-top-binds -threaded
+}
+
+common BuildCI {
+    import: Depends
+    ghc-options: -Wall -Wextra -Werror -Wno-unused-top-binds -threaded
+}
+
+flag CI {
+    Description: CI Build options
+    Default: False
+    Manual: True
+}
+
+library {
+    import: HaskellConfig
+    if flag(CI) { import: BuildCI }
+    else { import: BuildUser }
+    exposed-modules:
+        -- * Provides sum-type for different data model kinds
+        IPLD.DM
+        -- * Type-class of IPLD data model encoders
+        IPLD.DM.Encoder
+        -- * Type-class of IPLD data model decoders
+        IPLD.DM.Decoder
+        -- * NOTE: changing file
+        IPLD.DagCBOR
+        -- * Implements DM.Decoder for DAG-CBOR
+        IPLD.DagCBOR.Decoder
+        IPLD.DagCBOR.Decoder.Errors
+        IPLD.DagCBOR.Decoder.Arguments
+        IPLD.DagCBOR.Decoder.Objects
+        IPLD.DagCBOR.Decoder.MajorTypes
+        IPLD.DagCBOR.Decoder.Supplemental
+        -- * Implements DM.Encoder for DAG-CBOR
+        IPLD.DagCBOR.Encoder
+        IPLD.DagCBOR.Encoder.Arguments
+        IPLD.DagCBOR.Encoder.Errors
+        IPLD.DagCBOR.Encoder.Strings
+        IPLD.DagCBOR.Encoder.Floats
+        IPLD.DagCBOR.Encoder.Ints
+        IPLD.DagCBOR.Encoder.CID
+        IPLD.DagCBOR.Encoder.SimpleTypes
+}
