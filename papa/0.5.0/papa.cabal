@@ -1,0 +1,299 @@
+cabal-version:      2.4
+name:               papa
+version:            0.5.0
+license:            BSD-3-Clause
+license-file:       LICENCE
+author:             Tony Morris <ʇǝu˙sıɹɹoɯʇ@ןןǝʞsɐɥ> <dibblego>
+maintainer:         Tony Morris <ʇǝu˙sıɹɹoɯʇ@ןןǝʞsɐɥ> <dibblego>
+copyright:          Copyright (c) 2016-2017 Commonwealth Scientific and Industrial Research Organisation (CSIRO) ABN 41 687 119 230
+                    Copyright (c) 2017-2026 Tony Morris
+synopsis:           Type class-driven prelude with lens, comonads, and safe alternatives
+category:           Prelude
+description:
+  <<https://logo.systemf.com.au/systemf-450x450.png>>
+  .
+  Papa is a curated Haskell prelude that re-exports only total, safe functions and integrates
+  seamlessly with the modern Haskell ecosystem. It eliminates partial functions while providing
+  comprehensive type class coverage across base, lens, bifunctors, semigroupoids, comonads,
+  profunctors, and more.
+  .
+  = Core Design Principles
+  .
+  * __No Partial Functions__ — All re-exported functions are total and safe
+  * __Type Class-Driven__ — Maximizes use of standard type classes for polymorphic code
+  * __Optics Integration__ — Full lens support with indexed operations and plated recursion
+  * __Modern Ecosystem__ — Integrates adjunctions, comonads, profunctors, selective functors, and more
+  .
+  = What's Included
+  .
+  Papa provides a comprehensive set of type classes and operations:
+  .
+  * __Base functionality__ — Safe alternatives to Prelude with Eq1/Eq2, Ord1/Ord2, Show1/Show2
+  * __Functor hierarchy__ — Functor, Applicative, Monad, Alternative, MonadPlus, with Apply/Bind
+  * __Foldable/Traversable__ — Including Foldable1/Traversable1 for non-empty structures
+  * __Lens integration__ — Full optics support with At, Ixed, Plated, IndexedPlated, Field1-9
+  * __Bifunctors__ — Bifunctor, Bifoldable, Bitraversable with indexed variants
+  * __Comonads__ — Comonad, ComonadApply, Env, Store, Traced comonads
+  * __Profunctors__ — Strong, Choice, Closed profunctors (import qualified)
+  * __Containers__ — Map, Set, IntMap, IntSet, Seq, Tree (import qualified)
+  * __Free structures__ — Free monads and Cofree comonads
+  * __Transformers__ — MonadTrans, MonadIO, mtl classes (MonadReader, State, Writer, etc.)
+  * __Specialized functors__ — Contravariant, Distributive, Selective, Witherable
+  * __Generic programming__ — Generic, Generic1, Data, Typeable
+  * __Performance__ — NFData for strict evaluation, all utility functions marked INLINE
+  .
+  = Forbidden Functions
+  .
+  Papa explicitly does NOT export these partial functions:
+  .
+  * @head@, @tail@, @init@, @last@ — Use optics or pattern matching
+  * @(!!)@ — Use safe @(^? ix n)@ from lens (Papa provides a safe version)
+  * @maximum@, @minimum@ — Use @maximum1@/@minimum1@ for non-empty structures
+  * @foldl1@, @foldr1@ — Use Foldable1 versions
+  * @fromJust@ — Use @fromMaybe@ or pattern matching
+  * @read@ — Use @readMaybe@ or parser libraries
+  * @error@, @undefined@ — Use typed errors with Either
+  * All @unsafe*@ functions
+  .
+  = Usage
+  .
+  > {-# LANGUAGE NoImplicitPrelude #-}
+  > import Papa
+  >
+  > -- Use safe, total functions
+  > safeHead :: [a] -> Maybe a
+  > safeHead = (^? ix 0)
+  >
+  > -- Leverage type classes
+  > genericLength :: (Foldable f, Num n) => f a -> n
+  > genericLength = foldl' (\n _ -> n + 1) 0
+  >
+  > -- Work with lenses
+  > data Person = Person { _name :: String, _age :: Int }
+  > name :: Lens' Person String
+  .
+  Some modules require qualified import to avoid name conflicts:
+  .
+  > import qualified Papa.Containers.Data.Map as Map
+  > import qualified Papa.Profunctors.Data.Profunctor as Profunctor
+  .
+  = Future Plans
+  .
+  __Note:__ Future versions may split this package into separate dependencies to reduce
+  compilation times and allow finer-grained control over transitive dependencies. The
+  current monolithic structure prioritizes ease of use and comprehensive type class
+  coverage, but may be reorganized as:
+  .
+  * @papa-base@ — Core prelude with base, bifunctors, semigroupoids
+  * @papa-lens@ — Lens integration and optics
+  * @papa-comonad@ — Comonad hierarchy
+  * @papa-transformers@ — MTL and transformer classes
+  * @papa-ecosystem@ — Profunctors, selective, witherable, etc.
+  .
+  This reorganization would allow users to depend only on the pieces they need while
+  maintaining API compatibility through the top-level @papa@ package as a convenience
+  re-export.
+homepage:           https://gitlab.com/system-f/code/papa
+bug-reports:        https://gitlab.com/system-f/code/papa/issues
+build-type:         Simple
+extra-doc-files:    changelog.md
+tested-with:        GHC == 9.6.7
+                  , GHC == 9.8.4
+                  , GHC == 9.10.1
+                  , GHC == 9.12.4
+                  -- GHC 9.0-9.4 require older versions of dependencies:
+                  -- one < 0.0.4, associative < 0.0.4, id < 0.0.3
+                  -- (liftA2 and MkSolo compatibility issues)
+
+flag dev
+  description:      Enable development warnings (-Werror)
+  manual:           True
+  default:          False
+
+source-repository   head
+  type:             git
+  location:         git@gitlab.com:system-f/code/papa.git
+
+library
+  default-language:
+                    Haskell2010
+
+  build-depends:
+                    base >= 4.11 && < 6
+                    , adjunctions >= 4 && < 5
+                    , associative >= 0 && < 1
+                    , bifunctors >= 5 && < 7
+                    , comonad >= 5 && < 6
+                    , containers >= 0.5 && < 1
+                    , contravariant >= 1 && < 2
+                    , deepseq >= 1.4 && < 2
+                    , distributive >= 0 && < 1
+                    , free >= 5 && < 6
+                    , id >= 0 && < 1
+                    , lens >= 4 && < 6
+                    , mtl >= 2 && < 3
+                    , one >= 0.0.4 && < 1
+                    , polytree >= 0 && < 1
+                    , profunctors >= 5 && < 6
+                    , selective >= 0 && < 1
+                    , semigroupoids >= 5 && < 7
+                    , transformers >= 0.5 && < 1
+                    , witherable >= 0 && < 1
+
+  ghc-options:
+                    -Wall
+
+  if flag(dev)
+    ghc-options:    -Werror
+
+  default-extensions:
+                    NoImplicitPrelude
+
+  hs-source-dirs:
+                    src
+
+  exposed-modules:
+                    Papa
+                    Papa.Adjunctions
+                    Papa.Adjunctions.Data.Functor.Adjunction
+                    Papa.Adjunctions.Data.Functor.Rep
+                    Papa.Adjunctions.Renamed
+                    Papa.Associative
+                    Papa.Associative.Data.Associative
+                    Papa.Associative.Renamed
+                    Papa.Base
+                    Papa.Base.Control.Applicative
+                    Papa.Base.Control.Arrow
+                    Papa.Base.Control.Category
+                    Papa.Base.Control.DeepSeq
+                    Papa.Base.Control.Monad
+                    Papa.Base.Control.Monad.Cont
+                    Papa.Base.Control.Monad.Error
+                    Papa.Base.Control.Monad.Reader
+                    Papa.Base.Control.Monad.RWS
+                    Papa.Base.Control.Monad.State
+                    Papa.Base.Control.Monad.Trans
+                    Papa.Base.Control.Monad.Writer
+                    Papa.Base.Data.Bool
+                    Papa.Base.Data.Char
+                    Papa.Base.Data.Data
+                    Papa.Base.Data.Either
+                    Papa.Base.Data.Eq
+                    Papa.Base.Data.Foldable
+                    Papa.Base.Data.Function
+                    Papa.Base.Data.Functor
+                    Papa.Base.Data.Int
+                    Papa.Base.Data.List
+                    Papa.Base.Data.List.NonEmpty
+                    Papa.Base.Data.Maybe
+                    Papa.Base.Data.Monoid
+                    Papa.Base.Data.Ord
+                    Papa.Base.Data.Ratio
+                    Papa.Base.Data.Semigroup
+                    Papa.Base.Data.Show
+                    Papa.Base.Data.String
+                    Papa.Base.Data.Traversable
+                    Papa.Base.Data.Void
+                    Papa.Base.GHC.Generics
+                    Papa.Base.Prelude
+                    Papa.Bifunctors
+                    Papa.Bifunctors.Data.Bifoldable
+                    Papa.Comonad
+                    Papa.Comonad.Control.Comonad
+                    Papa.Comonad.Control.Comonad.Env
+                    Papa.Comonad.Control.Comonad.Store
+                    Papa.Comonad.Control.Comonad.Traced
+                    Papa.Comonad.Renamed
+                    Papa.Containers
+                    Papa.Contravariant
+                    Papa.Contravariant.Data.Functor.Contravariant
+                    Papa.Containers.Data.IntMap
+                    Papa.Containers.Data.IntSet
+                    Papa.Containers.Data.Map
+                    Papa.Containers.Data.Seq
+                    Papa.Containers.Data.Set
+                    Papa.Containers.Data.Tree
+                    Papa.Distributive
+                    Papa.Distributive.Data.Distributive
+                    Papa.Free
+                    Papa.Free.Control.Applicative.Free
+                    Papa.Free.Control.Comonad.Cofree
+                    Papa.Free.Control.Monad.Free
+                    Papa.Id
+                    Papa.Id.Data.BiId
+                    Papa.Id.Data.Id
+                    Papa.Lens
+                    Papa.Lens.Data.List
+                    Papa.Lens.Data.Tuple
+                    Papa.One
+                    Papa.One.Control.One
+                    Papa.One.Renamed
+                    Papa.Polytree
+                    Papa.Polytree.Data.Polytree
+                    Papa.Polytree.Renamed
+                    Papa.Profunctors
+                    Papa.Profunctors.Data.Profunctor
+                    Papa.Profunctors.Data.Profunctor.Choice
+                    Papa.Profunctors.Data.Profunctor.Strong
+                    Papa.Profunctors.Renamed
+                    Papa.Selective
+                    Papa.Selective.Control.Selective
+                    Papa.Selective.Renamed
+                    Papa.Semigroupoids
+                    Papa.Semigroupoids.Data.Functor.Bind
+                    Papa.Semigroupoids.Data.Semigroup.Foldable
+                    Papa.Witherable
+                    Papa.Witherable.Renamed
+                    Papa.Witherable.Witherable
+
+test-suite papa-test
+  type:
+                    exitcode-stdio-1.0
+
+  default-language:
+                    Haskell2010
+
+  hs-source-dirs:
+                    test
+
+  main-is:
+                    Main.hs
+
+  build-depends:
+                    base >= 4.11 && < 6
+                    , papa
+
+  ghc-options:
+                    -Wall
+
+  if flag(dev)
+    ghc-options:    -Werror
+
+  default-extensions:
+                    NoImplicitPrelude
+
+test-suite doctest
+  type:
+                    exitcode-stdio-1.0
+
+  hs-source-dirs:
+                    test
+
+  main-is:
+                    Doctest.hs
+
+  build-depends:
+                    base >= 4.11 && < 6
+                    , process >= 1 && < 2
+
+  build-tool-depends:
+                    doctest:doctest >= 0.22 && < 1
+
+  default-language:
+                    Haskell2010
+
+  ghc-options:
+                    -Wall
+
+  if flag(dev)
+    ghc-options:    -Werror
