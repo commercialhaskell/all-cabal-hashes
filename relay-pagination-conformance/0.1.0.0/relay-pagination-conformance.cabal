@@ -1,0 +1,103 @@
+cabal-version:   3.0
+name:            relay-pagination-conformance
+version:         0.1.0.0
+synopsis:        Conformance suite proving no-skip/no-duplicate pagination
+description:
+  A conformance suite that services run against their own paginated
+  endpoints to prove no-skip/no-duplicate behavior: a page walker with
+  cursor-loop detection and an invariant checker producing human-readable
+  reports. Pages are fetched through a plain callback, so the suite stays
+  decoupled from any session runner or HTTP client.
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Nadeem Bitar
+maintainer:      Nadeem Bitar
+category:        Testing, Web
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/shinzui/relay-pagination
+
+common warnings
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wredundant-constraints -Wunused-packages
+
+common lang
+  import:             warnings
+  default-language:   GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+library
+  import:          lang
+  hs-source-dirs:  src
+  exposed-modules:
+    Relay.Pagination.Conformance
+    Relay.Pagination.Conformance.Check
+    Relay.Pagination.Conformance.Tasty
+    Relay.Pagination.Conformance.Walk
+
+  build-depends:
+    , base              >=4.21     && <5
+    , bytestring        >=0.11     && <0.13
+    , containers        >=0.7      && <0.9
+    , relay-pagination  ^>=0.1.0.0
+    , tasty             >=1.4      && <1.6
+    , tasty-hunit       >=0.10     && <0.11
+    , text              >=2.0      && <2.2
+
+test-suite relay-pagination-conformance-test
+  import:             lang
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Main.hs
+
+  -- MultilineStrings: fixture DDL and the multi-row insert (ADR 1)
+  default-extensions: MultilineStrings
+
+  -- warp (M6 HTTP walk) requires the threaded RTS
+  ghc-options:        -threaded
+  other-modules:
+    Broken
+    CheckSpec
+    DbFixture
+    DbSpec
+    Generators
+    HttpSpec
+    MutationSpec
+    Oracle
+    WalkSpec
+
+  build-depends:
+    , aeson                         >=2.2      && <2.3
+    , base
+    , bytestring
+    , containers
+    , ephemeral-pg
+    , hasql                         >=1.10     && <1.11
+    , hasql-dynamic-statements      >=0.5      && <0.6
+    , http-client                   >=0.7      && <0.8
+    , quickcheck-instances          >=0.3      && <0.4
+    , relay-pagination              ^>=0.1.0.0
+    , relay-pagination-conformance
+    , relay-pagination-hasql        ^>=0.1.0.0
+    , relay-pagination-servant      ^>=0.1.0.0
+    , servant                       >=0.20.3   && <0.21
+    , servant-client                >=0.20.3   && <0.21
+    , servant-client-core
+    , servant-server
+    , sop-core                      >=0.5      && <0.6
+    , tasty                         >=1.4      && <1.6
+    , tasty-hunit                   >=0.10     && <0.11
+    , tasty-quickcheck              >=0.10     && <0.12
+    , text
+    , time                          >=1.12     && <1.15
+    , uuid-types                    >=1.0      && <1.1
+    , warp                          >=3.3      && <3.5
