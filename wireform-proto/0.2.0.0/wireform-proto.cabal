@@ -1,0 +1,424 @@
+cabal-version: 3.0
+name: wireform-proto
+version: 0.2.0.0
+synopsis: Protocol Buffers (proto2/proto3) with IDL parser, code generation, JSON mapping
+description:
+  A high-performance Protocol Buffers implementation for Haskell.
+  .
+  Features:
+  .
+  * @.proto@ IDL parser (proto2 + proto3) and pure-text Haskell code generator
+  * Annotation-driven Template Haskell deriver (@Proto.TH.Derive@) that emits
+    wire codecs directly from a hand-written Haskell record
+  * @loadProto@ Template Haskell splice that pairs the IDL parser with the
+    deriver for in-place type and instance generation
+  * Allocation-disciplined hot path: unboxed-sum decoder, two-pass sized
+    encoder, pre-computed tags, packed repeated fields, lazy submessage
+    decoding
+  * @protoc@ plugin (@protoc-gen-wireform@), Cabal @Setup.hs@ hook
+    (@Proto.Setup@), and an inline @[proto|...|]@ quasi-quoter
+  * Proto3 canonical JSON mapping, well-known types
+    (@Timestamp@, @Duration@, @Any@, @FieldMask@, @Struct@, @Wrappers@, …),
+    @.pbtxt@ text format, proto2 typed extensions, dynamic / untyped
+    messages, and a runtime @TypeRegistry@
+  * gRPC service-method codegen (the wire framing lives in
+    @wireform-grpc@)
+  * Conformance suite driver that runs the upstream
+    @conformance_test_runner@ end-to-end
+  .
+  See the umbrella package @wireform@ for the multi-format facade and the
+  @wireform-gen@ codegen CLI.
+homepage: https://github.com/iand675/wireform-
+bug-reports: https://github.com/iand675/wireform-/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Ian Duncan
+maintainer: ian@iankduncan.com
+copyright: 2026 Ian Duncan
+category: Data, Codec, Network, Serialization
+build-type: Simple
+tested-with: GHC == 9.6.4, GHC == 9.8.4
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+data-dir: data
+data-files: proto/google/protobuf/*.proto
+
+source-repository head
+  type:     git
+  location: https://github.com/iand675/wireform-
+
+common defaults
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wpartial-fields
+    -Wredundant-constraints
+    -O2
+  default-language: GHC2021
+  default-extensions:
+    StrictData
+    DerivingStrategies
+    DeriveGeneric
+    DeriveAnyClass
+    OverloadedStrings
+    LambdaCase
+
+library
+  import: defaults
+  hs-source-dirs: src
+  ghc-options: -O2
+  autogen-modules: Paths_wireform_proto
+  other-modules: Paths_wireform_proto
+  exposed-modules:
+    -- Convenience re-export
+    Proto
+
+    -- Encoding & decoding
+    Proto.Encode
+    Proto.Decode
+    Proto.Decode.Collect
+    Proto.Decode.Stream
+
+    -- Internal wire format primitives (for generated code & advanced use)
+    Proto.Internal.Wire
+    Proto.Internal.Wire.Decode
+    Proto.Internal.Wire.Encode
+    Proto.Internal.SizedBuilder
+    Proto.Internal.Encode.Archetype
+    Proto.Internal.GrowList
+    Proto.Internal.CodeGen.Combinators
+
+    -- Internal JSON helpers (used by generated code)
+    Proto.Internal.JSON
+    Proto.Internal.JSON.Extension
+    Proto.Internal.JSON.WellKnown
+
+    -- Message infrastructure
+    Proto.Schema
+    Proto.Extension
+    Proto.Dynamic
+    Proto.Lens
+    Proto.Registry
+
+    -- IDL: AST, parser, annotations, options, printing, inspection
+    Proto.IDL.AST
+    Proto.IDL.AST.Span
+    Proto.IDL.Annotations
+    Proto.IDL.Options
+    Proto.IDL.Options.Custom
+    Proto.IDL.Parser
+    Proto.IDL.Parser.Error
+    Proto.IDL.Parser.Lexer
+    Proto.IDL.Parser.Resolver
+    Proto.IDL.Print
+    Proto.IDL.Inspect
+    Proto.IDL.Descriptor
+
+    -- Code generation (public API)
+    Proto.CodeGen
+    Proto.CodeGen.Hooks
+    Proto.CodeGen.Types
+    Proto.Repr
+
+    -- Schema-derived docs (transport-agnostic JSON Schema)
+    Proto.JSONSchema
+
+    -- TH splices
+    Proto.TH
+    Proto.TH.Metadata
+    Proto.TH.QQ
+    Proto.TH.Derive
+    Proto.Setup
+
+    -- Text format
+    Proto.TextFormat
+
+    -- Compatibility
+    Proto.Compat
+
+    -- Well-known types
+    Proto.Google.Protobuf.Any
+    Proto.Google.Protobuf.Any.Util
+    Proto.Google.Protobuf.Compiler.Plugin
+    Proto.Google.Protobuf.Descriptor
+    Proto.Google.Protobuf.Duration
+    Proto.Google.Protobuf.Duration.Util
+    Proto.Google.Protobuf.Empty
+    Proto.Google.Protobuf.FieldMask
+    Proto.Google.Protobuf.FieldMask.Util
+    Proto.Google.Protobuf.SourceContext
+    Proto.Google.Protobuf.Struct
+    Proto.Google.Protobuf.Struct.Util
+    Proto.Google.Protobuf.Timestamp
+    Proto.Google.Protobuf.Timestamp.Util
+    Proto.Google.Protobuf.Wrappers
+    Proto.Google.Protobuf.Wrappers.Util
+
+  other-modules:
+    -- Internal codegen sub-modules (used only by Proto.CodeGen)
+    Proto.CodeGen.Decode
+    Proto.CodeGen.Encode
+    Proto.CodeGen.Service
+    -- Internal derive implementation (used by Proto.TH and Proto.TH.Derive)
+    Proto.Internal.Derive
+    -- Conformance test harness (used only by conformance runner)
+    Proto.Conformance
+    -- Unboxed sum types for zero-allocation decode (not yet wired)
+    Proto.Internal.Either
+    Proto.Internal.Maybe
+  build-depends:
+    base >= 4.16 && < 5,
+    wireform-core == 0.2.*,
+    wireform-derive == 0.2.*,
+    bytestring >= 0.11 && < 0.13,
+    containers >= 0.6 && < 0.9,
+    megaparsec >= 9.0 && < 10,
+    text >= 2.0 && < 2.2,
+    vector >= 0.13 && < 0.14,
+    primitive >= 0.7 && < 0.10,
+    mtl >= 2.2 && < 2.4,
+    filepath >= 1.4 && < 1.6,
+    directory >= 1.3 && < 1.4,
+    deepseq >= 1.4 && < 1.6,
+    template-haskell >= 2.18 && < 2.25,
+    prettyprinter >= 1.7 && < 1.8,
+    base16-bytestring >= 1.0 && < 1.1,
+    base64-bytestring >= 1.2 && < 1.3,
+    aeson >= 2.1 && < 2.3,
+    scientific >= 0.3 && < 0.4,
+    hashable >= 1.3 && < 1.6,
+    unordered-containers >= 0.2.16 && < 0.3,
+    time >= 1.9 && < 1.16,
+    cryptohash-md5 >= 0.11 && < 0.12,
+    stm >= 2.5 && < 2.6,
+    reflection >= 2.1 && < 2.2
+
+-- ===========================================================
+-- Integration test suite: wire format, JSON, parser, well-known
+-- types, code generation, schema handling, etc.
+-- ===========================================================
+
+test-suite wireform-proto-test
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test-integration
+  main-is: Main.hs
+  other-modules:
+    Test.Wire
+    Test.Roundtrip
+    Test.Collect
+    Test.StreamCodec
+    Test.TDP
+    Test.JSON
+    Test.WellKnown
+    Test.WellKnownUtil
+    Test.Parser
+    Test.CodeGen
+    Test.Resolver
+    Test.Schema
+    Test.Options
+    Test.Lens
+    Test.PrintInspect
+    Test.Compat
+    Test.Hooks
+  build-depends:
+    base,
+    wireform-proto,
+    wireform-core,
+    aeson,
+    bytestring,
+    containers,
+    directory,
+    filepath,
+    hashable,
+    unordered-containers,
+    text,
+    time,
+    vector,
+    hedgehog             >= 1.0  && < 1.8,
+    sydtest,
+    sydtest-hedgehog
+
+-- ===========================================================
+-- Regenerate well-known types from .proto files.
+-- Run: cabal run regen-wkt
+-- ===========================================================
+
+executable regen-wkt
+  import: defaults
+  main-is: Main.hs
+  hs-source-dirs: regen-wkt
+  build-depends:
+    base,
+    wireform-proto,
+    containers,
+    directory,
+    filepath,
+    text
+
+-- ===========================================================
+-- Conformance suite: drives the upstream protobuf
+-- conformance_test_runner against a wireform-conformance binary.
+-- See `test-conformance/README.md` for setup.
+-- ===========================================================
+
+benchmark loadproto-bench
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: LoadProtoBench.hs
+  -- The bench splice is small (one schema, ~20 lines), so -O2
+  -- is fine here.
+  ghc-options: -O2 -rtsopts -threaded
+  build-depends:
+    base >= 4.16 && < 5,
+    wireform-proto,
+    aeson,
+    bytestring,
+    deepseq,
+    reflection,
+    template-haskell,
+    text,
+    vector
+
+executable wireform-conformance-runner
+  import: defaults
+  hs-source-dirs: test-conformance
+  main-is: Runner.hs
+  -- The TestAllTypesProto3 splice generates ~90 record fields,
+  -- each contributing wire-codec + JSON + ProtoMessage +
+  -- Hashable + ProtoEnum stub clauses. At -O2 the per-module
+  -- optimization peaks well over what a 15 GB VM can swallow.
+  -- The conformance runner is an IO loop, not a perf hot path,
+  -- so -O0 is fine and keeps the splice headroom comfortable.
+  ghc-options: -O0
+  other-modules:
+    Test.Conformance.Schema
+    Test.Conformance.Handler
+  build-depends:
+    base >= 4.16 && < 5,
+    wireform-proto,
+    aeson,
+    bytestring,
+    containers,
+    deepseq,
+    hashable,
+    reflection,
+    template-haskell,
+    text,
+    vector
+
+test-suite protobuf-conformance-test
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test-conformance
+  main-is: Driver.hs
+  -- Match the runner exec (same TestAllTypesProto3 splice; see
+  -- the wireform-conformance-runner stanza above for why -O0).
+  ghc-options: -O0
+  other-modules:
+    Test.Conformance.Schema
+    Test.Conformance.Handler
+  build-depends:
+    base >= 4.16 && < 5,
+    wireform-proto,
+    aeson,
+    bytestring,
+    containers,
+    deepseq,
+    directory,
+    filepath,
+    hashable,
+    process,
+    reflection,
+    template-haskell,
+    text,
+    vector,
+    sydtest
+
+test-suite wireform-proto-derive-test
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  other-modules:
+    Test.Proto.Derive
+    Test.Proto.Derive.Types
+    Test.Proto.Derive.Instances
+    Test.Proto.Derive.TranslatedTypes
+    Test.Proto.Derive.TranslatedInstances
+    Test.Proto.Derive.RichTypes
+    Test.Proto.Derive.RichInstances
+    Test.Proto.Derive.RegressionTypes
+    Test.Proto.Derive.RegressionInstances
+    Test.Proto.Derive.Oneof
+    Test.Proto.Derive.OneofInstances
+    Test.Proto.Derive.AutoTypes
+    Test.Proto.Derive.AutoInstances
+    Test.Proto.Derive.Auto
+    Test.Proto.Derive.Golden
+    Test.Proto.Derive.TopEnumInstances
+    Test.Proto.Derive.TopEnum
+    Test.Proto.Derive.Metadata
+  build-depends:
+    base,
+    wireform-proto,
+    wireform-derive,
+    aeson,
+    bytestring,
+    containers,
+    hashable,
+    text,
+    template-haskell,
+    reflection,
+    vector,
+    sydtest
+
+-- ===========================================================
+-- protoc plugin: reads CodeGeneratorRequest, writes Haskell
+-- ===========================================================
+
+executable protoc-gen-wireform
+  import: defaults
+  main-is: Main.hs
+  hs-source-dirs: protoc-plugin
+  build-depends:
+    base,
+    wireform-proto,
+    bytestring,
+    text,
+    containers,
+    vector,
+    directory,
+    filepath,
+    optparse-applicative   >= 0.17 && < 0.20
+
+-- ===========================================================
+-- proto-lens comparison benchmark
+-- ===========================================================
+
+benchmark compare-bench
+  import: defaults
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+    WireformTypes
+    Proto.Bench
+    Proto.Bench_Fields
+  build-depends:
+      base               >= 4.16 && < 5
+    , wireform-core
+    , wireform-proto
+    , bytestring
+    , text
+    , vector
+    , deepseq
+    , criterion          >= 1.5  && < 1.7
+    , proto-lens         >= 0.7  && < 0.8
+    , proto-lens-runtime >= 0.7  && < 0.8
+    , lens-family        >= 2.1  && < 2.2
+  hs-source-dirs: bench/compare, bench/compare/gen
