@@ -1,0 +1,2691 @@
+cabal-version: 3.0
+name:          hanalyze
+version:       0.2.0.0
+synopsis:      A general-purpose statistical analysis, optimization and visualization toolkit
+description:
+    @hanalyze@ is a self-contained Haskell toolkit for classical regression
+    (LM, GLM, GLMM, splines, kernels, GP, RFF), Bayesian modeling
+    (HBM DSL with MH, HMC, NUTS, Gibbs, ADVI), design of experiments
+    (full/fractional factorial, RSM, D-optimal, orthogonal arrays, Taguchi),
+    optimization (Nelder-Mead, L-BFGS, DE, CMA-ES, NSGA-II, Bayesian
+    optimization, augmented Lagrangian), and Vega-Lite-based visualization
+    with HTML / PNG / SVG output.
+    .
+    All algorithms are implemented natively in Haskell — no R / Stan / Python
+    bridges. Data interchange uses the @dataframe@ package as a first-class
+    citizen.
+    .
+    A unified @hanalyze@ command-line interface exposes the most common
+    workflows (@regress@, @info@, @hist@, @doe@, @taguchi@, @ridge@,
+    @kernel@, @spline@, @multireg@, @clean@, @melt@, @regrid@, ...).
+homepage:      https://github.com/frenzieddoll/hanalyze
+bug-reports:   https://github.com/frenzieddoll/hanalyze/issues
+license:       BSD-3-Clause
+license-file:  LICENSE
+author:        Toshiaki Honda
+maintainer:    frenzieddoll@gmail.com
+copyright:     2026 Aelysce Project (Toshiaki Honda)
+category:      Math, Statistics, Numeric, Machine Learning
+build-type:    Simple
+tested-with:   GHC == 9.6.7
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+
+extra-source-files:
+    data/dirty/*.csv
+    data/distributions/*.csv
+    data/io/*.csv
+    data/readme/*.csv
+    data/regression/*.csv
+
+source-repository head
+  type:     git
+  location: https://github.com/frenzieddoll/hanalyze.git
+
+flag plot-integration
+  description: hgg 連携 (Hanalyze.Plot = toPlot/Plottable) を有効化する。
+               on にすると hgg-core/-svg に依存する (= sibling repo 必須)。
+               既定 off で upstream hanalyze は plot 非依存・standalone build を維持。
+  default:     False
+  manual:      True
+
+flag demos
+  description: デモ/例 executable 群 (*-demo / *-smoke / hbm-example 等) を build する。
+               既定 off で default build は library + hanalyze のみ (高速)。
+               有効化: cabal build -f demos / cabal run -f demos <name>。
+  default:     False
+  manual:      True
+
+flag benches
+  description: ベンチ executable 群 (bench-* / *-bench-demo / bench-data-gen) を build する。
+               既定 off で bench の重い依存 (tasty-bench 等) も default build から外す。
+               有効化: cabal build -f benches / cabal run -f benches <name>。
+  default:     False
+  manual:      True
+
+common warnings
+  ghc-options: -Wall -Wcompat -Widentities -Wredundant-constraints
+
+common opt
+  ghc-options: -O2 -funbox-strict-fields
+
+-- demo/bench executable をフラグ配下に置くゲート (import: …, demo-gate で適用)。
+-- フラグ off のとき buildable: False = default build から外れる。
+common demo-gate
+  if !flag(demos)
+    buildable: False
+
+common bench-gate
+  if !flag(benches)
+    buildable: False
+
+library
+  import:           warnings, opt
+  hs-source-dirs:   src
+  default-language: GHC2021
+  exposed-modules:
+    Hanalyze
+    Hanalyze.Data.ColumnSource
+    Hanalyze.Data.Factor
+    Hanalyze.Data.Strings
+    Hanalyze.Data.Transform
+    Hanalyze.Data.Wrangle
+    Hanalyze.DataIO.CSV
+    Hanalyze.DataIO.Preprocess
+    Hanalyze.DataIO.External
+    Hanalyze.DataIO.Convert
+    Hanalyze.DataIO.Log
+    Hanalyze.DataIO.Health
+    Hanalyze.DataIO.Sniff
+    Hanalyze.DataIO.Clean
+    Hanalyze.DataIO.Reshape
+    Hanalyze.Viz.Core
+    Hanalyze.Viz.PlotConfig
+    Hanalyze.Viz.PlotData
+    Hanalyze.Viz.PlotData.DataFrame
+    Hanalyze.Viz.Scatter
+    Hanalyze.Viz.Histogram
+    Hanalyze.Viz.Bar
+    Hanalyze.Model.Core
+    Hanalyze.Model.Wrappers
+    Hanalyze.Diagnostics
+    Hanalyze.Fit
+    Hanalyze.Model.LM
+    Hanalyze.Model.LM.Diagnostics
+    Hanalyze.Model.Formula
+    Hanalyze.Model.Formula.Frame
+    Hanalyze.Model.Formula.Design
+    Hanalyze.Model.Formula.RFormula
+    Hanalyze.Model.Formula.Nonlinear
+    Hanalyze.Model.Formula.Mixed
+    Hanalyze.Model.GLM
+    Hanalyze.Model.GLMM
+    Hanalyze.Model.Spline
+    Hanalyze.Model.Kernel
+    Hanalyze.Model.KernelRegression
+    Hanalyze.Model.Regularized
+    Hanalyze.Model.RFF
+    Hanalyze.Model.GPRobust
+    Hanalyze.Model.DAG
+    Hanalyze.Model.LiNGAM.Direct
+    Hanalyze.Model.LiNGAM.Bootstrap
+    Hanalyze.Model.LiNGAM.Pairwise
+    Hanalyze.Model.LiNGAM.ICA
+    Hanalyze.Model.LiNGAM.VAR
+    Hanalyze.Model.LiNGAM.MultiGroup
+    Hanalyze.Model.LiNGAM.Parce
+    Hanalyze.Math.ICA
+    Hanalyze.Math.Hungarian
+    Hanalyze.Math.HSIC
+    Hanalyze.Model.Quantile
+    Hanalyze.Model.GAM
+    Hanalyze.Model.RandomForest
+    Hanalyze.Model.MultiLM
+    Hanalyze.Model.Multivariate
+    Hanalyze.Model.MultiGP
+    Hanalyze.Model.MultiOutput
+    Hanalyze.Model.PCA
+    Hanalyze.Model.MDS
+    Hanalyze.Model.Cluster
+    Hanalyze.Model.DecisionTree
+    Hanalyze.Model.PartialDependence
+    Hanalyze.Model.TimeSeries
+    Hanalyze.Model.Survival
+    Hanalyze.Model.Weibull
+    Hanalyze.Model.Reliability
+    Hanalyze.Model.PLS
+    Hanalyze.Model.Discriminant
+    Hanalyze.Model.HierarchicalCluster
+    Hanalyze.Model.AFT
+    Hanalyze.Model.RandomForestClassifier
+    Hanalyze.Model.FitYByX
+    Hanalyze.Model.StateSpace
+    Hanalyze.Model.NeuralNetwork
+    Hanalyze.Design.GaugeRR
+    Hanalyze.Design.Diagnostics
+    Hanalyze.Design.SpaceFilling
+    Hanalyze.Design.DSD
+    Hanalyze.Design.Mixture
+    Hanalyze.Design.Sequential
+    Hanalyze.Design.Factorial
+    Hanalyze.Design.Block
+    Hanalyze.Design.Mixed
+    Hanalyze.Design.Anova
+    Hanalyze.Design.Power
+    Hanalyze.Design.Quality
+    Hanalyze.Design.RSM
+    Hanalyze.Design.Workflow
+    Hanalyze.Design.Optimal
+    Hanalyze.Design.Constraint
+    Hanalyze.Design.Custom.Factor
+    Hanalyze.Design.Custom.Model
+    Hanalyze.Design.Custom.Constraint
+    Hanalyze.Design.Custom.Coordinate
+    Hanalyze.Design.Custom.Compare
+    Hanalyze.Design.Custom.Power
+    Hanalyze.Design.Custom.Augment
+    Hanalyze.Design.Custom.SplitPlot
+    Hanalyze.Design.Custom.Structured
+    Hanalyze.Design.Custom.Bayesian
+    Hanalyze.Design.Custom.RegionMoment
+    Hanalyze.MCMC.SMC
+    Hanalyze.Stat.BridgeSampling
+    Hanalyze.Stat.BayesFactor
+    Hanalyze.Stat.BayesianModelAveraging
+    Hanalyze.Stat.Causal.PropensityScore
+    Hanalyze.Stat.Causal.IPW
+    Hanalyze.Stat.Causal.DoublyRobust
+    Hanalyze.Stat.Causal.CATE
+    Hanalyze.Model.RegularizedAdvanced
+    Hanalyze.Model.Robust
+    Hanalyze.Stat.CorrelationNetwork
+    Hanalyze.Model.LatentClassAnalysis
+    Hanalyze.Model.FDA
+    Hanalyze.Model.GradientBoosting
+    Hanalyze.Model.SVM
+    Hanalyze.Stat.MDS
+    Hanalyze.Model.KNN
+    Hanalyze.Model.NaiveBayes
+    Hanalyze.Model.GARCH
+    Hanalyze.Model.VAR
+    Hanalyze.Model.CompetingRisks
+    Hanalyze.Model.ReliabilityBlockDiagram
+    Hanalyze.Design.MultiRSM
+    Hanalyze.Design.Orthogonal
+    Hanalyze.Design.Taguchi
+    Hanalyze.Optim.Desirability
+    Hanalyze.Model.HBM
+    Hanalyze.Model.HBM.Ast
+    Hanalyze.Model.HBM.Distribution
+    Hanalyze.Model.HBM.Eval
+    Hanalyze.Model.HBM.Gradient
+    Hanalyze.Model.HBM.IR
+    Hanalyze.Model.HBM.Interp
+    Hanalyze.Model.HBM.Model
+    Hanalyze.Model.HBM.Sampling
+    Hanalyze.Model.HBM.Track
+    Hanalyze.Model.HBM.Util
+    Hanalyze.Model.HBM.VecAD
+    Hanalyze.MCMC.Core
+    Hanalyze.MCMC.MH
+    Hanalyze.MCMC.HMC
+    Hanalyze.MCMC.NUTS
+    Hanalyze.MCMC.Progress
+    Hanalyze.MCMC.BayesianTest
+    Hanalyze.MCMC.Gibbs
+    Hanalyze.MCMC.Slice
+    Hanalyze.Stat.Descriptive
+    Hanalyze.Stat.Distribution
+    Hanalyze.Stat.Standardize
+    Hanalyze.Stat.NumberFormat
+    Hanalyze.Stat.MCMC
+    Hanalyze.Stat.ModelSelect
+    Hanalyze.Stat.AD
+    Hanalyze.Stat.VI
+    Hanalyze.Stat.PosteriorPredictive
+    Hanalyze.Stat.Summary
+    Hanalyze.Stat.Interpolate
+    Hanalyze.Stat.AdaptiveGrid
+    Hanalyze.Stat.KernelDist
+    Hanalyze.Stat.Cholesky
+    Hanalyze.Stat.QuasiRandom
+    Hanalyze.Stat.Test
+    Hanalyze.Stat.ClassMetrics
+    Hanalyze.Stat.CV
+    Hanalyze.Stat.MultipleTesting
+    Hanalyze.Stat.Bootstrap
+    Hanalyze.Stat.Effect
+    Hanalyze.Stat.Interpret
+    Hanalyze.Stat.SPC
+    Hanalyze.Stat.GroupComparison
+    Hanalyze.Optim.Adam
+    Hanalyze.Optim.GradAscent
+    Hanalyze.Optim.Numeric
+    Hanalyze.Optim.Common
+    Hanalyze.Optim.NelderMead
+    Hanalyze.Optim.LBFGS
+    Hanalyze.Optim.LineSearch
+    Hanalyze.Optim.DifferentialEvolution
+    Hanalyze.Optim.CMAES
+    Hanalyze.Optim.CMAESFull
+    Hanalyze.Optim.SimulatedAnnealing
+    Hanalyze.Optim.ParticleSwarm
+    Hanalyze.Optim.Constrained
+    Hanalyze.Optim.NSGA
+    Hanalyze.Optim.Pareto
+    Hanalyze.Optim.Acquisition
+    Hanalyze.Optim.BayesOpt
+    Hanalyze.Viz.MCMC
+    Hanalyze.Viz.ModelGraph
+    Hanalyze.Viz.ModelGraphDot
+    Hanalyze.Viz.Report
+    Hanalyze.Model.GP
+    Hanalyze.Viz.GP
+    Hanalyze.Viz.GPReport
+    Hanalyze.Viz.Assets
+    Hanalyze.Viz.AnalysisReport
+    Hanalyze.Viz.Pareto
+    Hanalyze.Viz.Taguchi
+    Hanalyze.Viz.ReportBuilder
+    Hanalyze.Viz.ReportInstances
+  build-depends:
+      base                 >= 4.14 && < 5
+    , array                >= 0.5  && < 0.6
+    , async                >= 2.2  && < 2.3
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , filepath             >= 1.4  && < 1.6
+    , hmatrix              >= 0.20 && < 0.22
+    , hvega                >= 0.12 && < 0.13
+    , mwc-random           >= 0.15 && < 0.16
+    , primitive            >= 0.7  && < 0.10
+    , deepseq              >= 1.4  && < 1.6
+    , parallel             >= 3.2  && < 3.3
+    , process              >= 1.6  && < 1.8
+    , statistics           >= 0.16 && < 0.17
+    , text                 >= 1.2  && < 2.2
+    , aeson                >= 2.0  && < 2.3
+    , directory            >= 1.3  && < 1.4
+    , temporary            >= 1.3  && < 1.4
+    , unordered-containers >= 0.2  && < 0.3
+    , ad                   >= 4.4  && < 4.6
+    -- Phase 92 B3: logDensityRD (AD 定数正規化項の畳み込み) の Reifies 制約用
+    -- (ad の依存 closure 内・新規 install なし)
+    , reflection           >= 2.1  && < 2.2
+    , vector               >= 0.12 && < 0.14
+    , dataframe-core        ^>= 1.1
+    , dataframe-operations  >= 1.1.1 && < 1.2
+    , dataframe-csv         ^>= 1.0.2
+    , dataframe-json        ^>= 1.0
+    , dataframe-parquet     ^>= 1.1
+    , deepseq              >= 1.4  && < 1.6
+    , massiv               >= 1.0  && < 1.1
+    , parallel             >= 3.2  && < 3.3
+    , vector-algorithms    >= 0.9  && < 0.10
+    , megaparsec           >= 9.0  && < 9.7
+    , parser-combinators   >= 1.3  && < 1.4
+    , unicode-transforms   >= 0.4  && < 0.5
+    , regex-tdfa           >= 1.3  && < 1.4
+    , regex-base           >= 0.94 && < 0.95
+
+  -- hgg 連携 (flag plot-integration 配下・upstream 非 portable)。
+  -- 既定 off では Hanalyze.Plot を build せず plot 依存も持たない (standalone 維持)。
+  if flag(plot-integration)
+    exposed-modules:
+        Hanalyze.Plot
+        Hanalyze.Plot.Core
+        Hanalyze.Plot.Linear
+        Hanalyze.Plot.Smooth
+        Hanalyze.Plot.Robust
+        Hanalyze.Plot.Bayes
+        Hanalyze.Plot.ML
+        Hanalyze.Plot.Wrappers
+    build-depends:
+        hgg-core
+      , hgg-svg
+      , hgg-3d
+      , hgg-custom
+
+-- NOTE (public sync 2026-07-18): hanalyze-plot-test / phase104-probe-prof /
+-- plot-integration-demo は fork 側の demo-plot/ test-plot/ experiments/ 配下
+-- を参照するが、 これらのディレクトリは同期対象外 (private plot 連携リポジトリ
+-- 側の開発物)。 plot-integration flag は残すが、 上記 3 stanza は hs-source-dirs
+-- が存在しないため省いている。
+
+-- Phase 82: DOE demo — RSM 予測精度 vs 実験数 (必要実験数の見極め)。
+--   hgg で RMSE vs n の折れ線 (noise sd 参照線つき) を SVG 出力。
+executable doe-rsm-samplesize-demo
+  import:           warnings
+  main-is:          RSMSampleSizeDemo.hs
+  hs-source-dirs:   demo/doe
+  default-language: GHC2021
+  if flag(plot-integration)
+    build-depends:
+        base
+      , text
+      , vector
+      , hmatrix
+      , directory
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-svg
+  else
+    buildable: False
+
+-- Phase 83: 逐次DOE デモ (半導体インプラ最適化・30因子スクリーニング→試作RSM)。
+executable doe-implant-sequential-demo
+  import:           warnings
+  main-is:          ImplantSequentialDemo.hs
+  hs-source-dirs:   demo/doe
+  default-language: GHC2021
+  if flag(plot-integration)
+    build-depends:
+        base
+      , text
+      , vector
+      , hmatrix
+      , directory
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-svg
+  else
+    buildable: False
+
+executable hanalyze
+  import:           warnings, opt
+  main-is:          Main.hs
+  hs-source-dirs:   app
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , vector     >= 0.12 && < 0.14
+    , hmatrix    >= 0.20 && < 0.22
+    , mwc-random >= 0.15 && < 0.16
+    , containers >= 0.6  && < 0.8
+    , filepath   >= 1.4  && < 1.6
+    , hvega      >= 0.12 && < 0.13
+    , dataframe-core        ^>= 1.1
+    , dataframe-operations  >= 1.1.1 && < 1.2
+    , dataframe-csv         ^>= 1.0.2
+    , time       >= 1.11 && < 1.13
+
+executable glmm-demo
+  import:           warnings, opt, demo-gate
+  main-is:          Demo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base     >= 4.14 && < 5
+    , hanalyze
+    , vector   >= 0.12 && < 0.14
+    , hmatrix  >= 0.20 && < 0.22
+    , text     >= 1.2  && < 2.2
+    , dataframe-core        ^>= 1.1
+
+executable hbm-example
+  import:           warnings, opt, demo-gate
+  main-is:          HBMExample.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable phase37-a0-verify
+  import:           warnings, opt, demo-gate
+  main-is:          Phase37A0VerifyDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable plate-notation-demo
+  import:           warnings, opt, demo-gate
+  main-is:          PlateNotationDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , directory  >= 1.3  && < 1.4
+
+executable test-hmc-nuts
+  import:           warnings, opt, demo-gate
+  main-is:          TestHMCNUTS.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable bench-mcmc
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMCMC.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+    , time       >= 1.9  && < 1.15
+
+executable vi-demo
+  import:           warnings, opt, demo-gate
+  main-is:          VIDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+    , time       >= 1.9  && < 1.15
+
+executable gibbs-demo
+  import:           warnings, opt, demo-gate
+  main-is:          GibbsDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+    , time       >= 1.9  && < 1.15
+
+executable regrid-bench-demo
+  import:           warnings, opt, bench-gate
+  main-is:          RegridBenchDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , dataframe-core        ^>= 1.1
+    , mwc-random >= 0.15 && < 0.16
+    , text       >= 1.2  && < 2.2
+
+executable bar-demo
+  import:           warnings, opt, demo-gate
+  main-is:          BarDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+
+executable clinical-trial
+  import:           warnings, opt, demo-gate
+  main-is:          ClinicalTrial.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable gp-demo
+  import:           warnings, opt, demo-gate
+  main-is:          GPDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base     >= 4.14 && < 5
+    , hanalyze
+
+executable preprocess-demo
+  import:           warnings, opt, demo-gate
+  main-is:          PreprocessDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , vector     >= 0.12 && < 0.14
+    , dataframe-core        ^>= 1.1
+    , dataframe-operations  >= 1.1.1 && < 1.2
+
+executable dirty-data-demo
+  import:           warnings, opt, demo-gate
+  main-is:          DirtyDataDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , dataframe-core        ^>= 1.1
+    , dataframe-operations  >= 1.1.1 && < 1.2
+
+executable external-io-demo
+  import:           warnings, opt, demo-gate
+  main-is:          ExternalIODemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , vector     >= 0.12 && < 0.14
+    , dataframe-core        ^>= 1.1
+    , dataframe-operations  >= 1.1.1 && < 1.2
+
+executable analysis-compare-demo
+  import:           warnings, opt, demo-gate
+  main-is:          AnalysisCompareDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , vector     >= 0.12 && < 0.14
+    , hmatrix    >= 0.20 && < 0.22
+    , mwc-random >= 0.15 && < 0.16
+    , containers >= 0.6  && < 0.8
+    , dataframe-core        ^>= 1.1
+    , dataframe-operations  >= 1.1.1 && < 1.2
+
+executable new-sections-demo
+  import:           warnings, opt, demo-gate
+  main-is:          NewSectionsDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , vector     >= 0.12 && < 0.14
+    , hmatrix    >= 0.20 && < 0.22
+    , mwc-random >= 0.15 && < 0.16
+
+executable robust-gp-demo
+  import:           warnings, opt, demo-gate
+  main-is:          RobustGPDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+
+executable rff-demo
+  import:           warnings, opt, demo-gate
+  main-is:          RFFDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , hmatrix    >= 0.20 && < 0.21
+    , vector     >= 0.12 && < 0.14
+    , mwc-random >= 0.15 && < 0.16
+    , time       >= 1.9  && < 1.13
+
+executable gibbs-hbm-demo
+  import:           warnings, opt, demo-gate
+  main-is:          GibbsHBMDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable newdistribs-demo
+  import:           warnings, opt, demo-gate
+  main-is:          NewDistribsDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable regularized-demo
+  import:           warnings, opt, demo-gate
+  main-is:          RegularizedDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , vector     >= 0.12 && < 0.14
+    , hmatrix    >= 0.20 && < 0.22
+    , mwc-random >= 0.15 && < 0.16
+
+executable optimaldoe-demo
+  import:           warnings, opt, demo-gate
+  main-is:          OptimalDOEDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+
+executable pareto-smoke
+  import:           warnings, opt, demo-gate
+  main-is:          ParetoSmokeDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+
+executable materials-moo-demo
+  import:           warnings, opt, demo-gate
+  main-is:          MaterialsMOODemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , vector     >= 0.12 && < 0.14
+    , hmatrix    >= 0.20 && < 0.22
+    , mwc-random >= 0.15 && < 0.16
+
+executable bayesopt-demo
+  import:           warnings, opt, demo-gate
+  main-is:          BayesOptDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , mwc-random >= 0.15 && < 0.16
+
+executable multirsm-demo
+  import:           warnings, opt, demo-gate
+  main-is:          MultiRSMDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , hmatrix    >= 0.20 && < 0.22
+
+executable multivariate-demo
+  import:           warnings, opt, demo-gate
+  main-is:          MultivariateDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , hmatrix    >= 0.20 && < 0.22
+    , mwc-random >= 0.15 && < 0.16
+
+executable multilm-demo
+  import:           warnings, opt, demo-gate
+  main-is:          MultiLMDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , hmatrix    >= 0.20 && < 0.22
+    , mwc-random >= 0.15 && < 0.16
+
+executable nsga-demo
+  import:           warnings, opt, demo-gate
+  main-is:          NSGADemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , mwc-random >= 0.15 && < 0.16
+    , text       >= 1.2  && < 2.2
+    , vector     >= 0.13 && < 0.14
+
+executable nsga-smoke
+  import:           warnings, opt, demo-gate
+  main-is:          NSGASmokeDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , mwc-random >= 0.15 && < 0.16
+
+executable rsm-demo
+  import:           warnings, opt, demo-gate
+  main-is:          RSMDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , hmatrix    >= 0.20 && < 0.22
+    , mwc-random >= 0.15 && < 0.16
+
+executable doe-demo
+  import:           warnings, opt, demo-gate
+  main-is:          DOEDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+
+executable cis-implant-workflow-demo
+  import:           warnings, opt, demo-gate
+  main-is:          CISImplantWorkflowDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base            >= 4.14 && < 5
+    , hanalyze
+    , text            >= 1.2  && < 2.2
+    , hmatrix         >= 0.20
+    , vector          >= 0.12 && < 0.14
+    , directory       >= 1.3
+
+executable kernel-demo
+  import:           warnings, opt, demo-gate
+  main-is:          KernelDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , vector     >= 0.12 && < 0.14
+    , hvega      >= 0.12 && < 0.13
+    , mwc-random >= 0.15 && < 0.16
+
+executable spline-demo
+  import:           warnings, opt, demo-gate
+  main-is:          SplineDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , vector     >= 0.12 && < 0.14
+    , hmatrix    >= 0.20 && < 0.22
+    , hvega      >= 0.12 && < 0.13
+    , mwc-random >= 0.15 && < 0.16
+
+executable integrated-demo
+  import:           warnings, opt, demo-gate
+  main-is:          IntegratedDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable slice-demo
+  import:           warnings, opt, demo-gate
+  main-is:          SliceDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable ar1-demo
+  import:           warnings, opt, demo-gate
+  main-is:          AR1Demo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable lkj3d-demo
+  import:           warnings, opt, demo-gate
+  main-is:          LKJ3DDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable lkj-demo
+  import:           warnings, opt, demo-gate
+  main-is:          LKJDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable zeroinflated-demo
+  import:           warnings, opt, demo-gate
+  main-is:          ZeroInflatedDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable multinomial-demo
+  import:           warnings, opt, demo-gate
+  main-is:          MultinomialDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable negbinom-demo
+  import:           warnings, opt, demo-gate
+  main-is:          NegBinomDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable mvnormal-latent-demo
+  import:           warnings, opt, demo-gate
+  main-is:          MvNormalLatentDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable setdata-demo
+  import:           warnings, opt, demo-gate
+  main-is:          SetDataDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable dirichlet-demo
+  import:           warnings, opt, demo-gate
+  main-is:          DirichletDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable noncentered-demo
+  import:           warnings, opt, demo-gate
+  main-is:          NonCenteredDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable deterministic-demo
+  import:           warnings, opt, demo-gate
+  main-is:          DeterministicDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable summary-demo
+  import:           warnings, opt, demo-gate
+  main-is:          SummaryDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable pymc-status-demo
+  import:           warnings, opt, demo-gate
+  main-is:          PyMCStatusDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+
+executable energy-demo
+  import:           warnings, opt, demo-gate
+  main-is:          EnergyDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable mvnormal-demo
+  import:           warnings, opt, demo-gate
+  main-is:          MvNormalDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable cdf-test
+  import:           warnings, opt, demo-gate
+  main-is:          CDFTestDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+
+executable trunc-censor-demo
+  import:           warnings, opt, demo-gate
+  main-is:          TruncCensorDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable mixture-demo
+  import:           warnings, opt, demo-gate
+  main-is:          MixtureDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable potential-demo
+  import:           warnings, opt, demo-gate
+  main-is:          PotentialDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable potential-multiout-demo
+  import:           warnings, opt, demo-gate
+  main-is:          PotentialMultiOut.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , vector     >= 0.12 && < 0.14
+    , hmatrix    >= 0.20 && < 0.22
+
+executable potential-multikr-demo
+  import:           warnings, opt, demo-gate
+  main-is:          PotentialMultiKR.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , vector     >= 0.12 && < 0.14
+    , hmatrix    >= 0.20 && < 0.22
+
+executable single-opt-bench-demo
+  import:           warnings, opt, bench-gate
+  main-is:          SingleOptBench.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , mwc-random >= 0.15 && < 0.16
+    , hvega      >= 0.12 && < 0.13
+
+executable forest-compare
+  import:           warnings, opt, demo-gate
+  main-is:          ForestCompareDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable ppc-demo
+  import:           warnings, opt, demo-gate
+  main-is:          PPCDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable discrete-obs-demo
+  import:           warnings, opt, demo-gate
+  main-is:          DiscreteObsDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable new-distrib-demo
+  import:           warnings, opt, demo-gate
+  main-is:          NewDistribDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+
+executable hbm-random-slope
+  import:           warnings, opt, demo-gate
+  main-is:          HBMRandomSlopeDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+    , vector     >= 0.12 && < 0.14
+    , dataframe-core        ^>= 1.1
+
+executable simpson-paradox
+  import:           warnings, opt, demo-gate
+  main-is:          SimpsonParadoxDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+    , vector     >= 0.12 && < 0.14
+    , hmatrix    >= 0.20 && < 0.22
+    , dataframe-core        ^>= 1.1
+
+executable hbm-regression
+  import:           warnings, opt, demo-gate
+  main-is:          HBMRegressionDemo.hs
+  hs-source-dirs:   demo demo/regression demo/doe-optim demo/bayesian demo/visualization demo/io
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , text       >= 1.2  && < 2.2
+    , containers >= 0.6  && < 0.8
+    , mwc-random >= 0.15 && < 0.16
+    , vector     >= 0.12 && < 0.14
+    , dataframe-core        ^>= 1.1
+
+-- Bench data generator: produces deterministic CSVs that both the Haskell
+-- benchmarks and the Python comparison scripts read. (See bench/README.md.)
+executable bench-data-gen
+  import:           warnings, opt, bench-gate
+  main-is:          BenchDataGen.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , directory            >= 1.3  && < 1.4
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , vector               >= 0.12 && < 0.14
+
+-- Phase 47 A5: Formula DSL の Haskell 参照値生成器 (statsmodels/scipy 突合用)。
+executable formula-ref-gen
+  import:           warnings, opt, demo-gate
+  main-is:          BenchFormulaRef.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , hanalyze
+    , dataframe-core        ^>= 1.1
+    , hmatrix              >= 0.20 && < 0.22
+    , text                 >= 1.2  && < 2.2
+    , vector               >= 0.12 && < 0.14
+
+-- Bayesian optimization bench (B5): Branin / Hartmann6.
+executable bench-bo
+  import:           warnings, opt, bench-gate
+  main-is:          BenchBO.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 1-7 (Spotfire/JMP gap) features の Python/R 比較ベンチ。
+-- 共通入力 CSV を bench/data/ に生成 + Haskell 側時間と精度を計測。
+executable bench-phase17
+  import:           warnings, opt, bench-gate
+  main-is:          BenchPhase17.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , directory            >= 1.3  && < 1.4
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 27: JMP 同等性検証ベンチ。 文献例題 + JMP 公式 example の参照値と
+-- hanalyze 実装出力を golden CSV で比較する。 deterministic seed 固定。
+executable bench-custom-design
+  import:           warnings, opt, bench-gate
+  main-is:          BenchCustomDesign.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , directory            >= 1.3  && < 1.4
+    , hmatrix              >= 0.20 && < 0.22
+    , text                 >= 1.2  && < 2.2
+    , vector               >= 0.12 && < 0.14
+
+executable bench-tier12
+  import:           warnings, opt, bench-gate
+  main-is:          BenchTier12.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , directory            >= 1.3  && < 1.4
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Standalone bench: hmatrix vs massiv on pairwise squared distance
+-- (F4 evaluation, F5 multi-core Par evaluation).
+executable bench-massiv
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMassiv.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base                 >= 4.14 && < 5
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , massiv               >= 1.0  && < 1.1
+    , time                 >= 1.9  && < 1.13
+    , deepseq              >= 1.4  && < 1.6
+
+-- Multi-objective optimization bench (B4): NSGA-II on ZDT/DTLZ.
+executable bench-mo
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMO.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Standalone investigation: P37 Cheng-BB Beta sampler vs 2-Gamma + division.
+executable bench-beta-isolate
+  import:           warnings, opt, bench-gate
+  main-is:          BenchBetaIsolate.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , hanalyze
+    , mwc-random           >= 0.15 && < 0.16
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+
+-- Standalone investigation: P40 Bootstrap resampling hot-path
+-- (uniformVector batch + GEMV row-sum vs naive index-loop).
+executable bench-bootstrap-isolate
+  import:           warnings, opt, bench-gate
+  main-is:          BenchBootstrapIsolate.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+
+-- Single-objective optimization bench (B3).
+executable bench-optim
+  import:           warnings, opt, bench-gate
+  main-is:          BenchOptim.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- OOM regression bench (Phase 11b): RFF.medianPairwiseDist + rbfKernelMat.
+executable bench-rff-oom
+  import:           warnings, opt, bench-gate
+  main-is:          BenchRFFOOM.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  build-depends:
+      base                 >= 4.14 && < 5
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , time                 >= 1.9  && < 1.13
+
+executable bench-mem-vi
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMemVI.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  build-depends:
+      base                 >= 4.14 && < 5
+    , hanalyze
+    , containers           >= 0.6  && < 0.8
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , mwc-random           >= 0.15 && < 0.16
+
+executable bench-mem-aggregate
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMemAggregate.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  build-depends:
+      base                 >= 4.14 && < 5
+    , hanalyze
+    , dataframe-core        ^>= 1.1
+    , dataframe-operations  >= 1.1.1 && < 1.2
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.13 && < 0.14
+
+executable bench-mem-nsga2
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMemNSGA.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  build-depends:
+      base                 >= 4.14 && < 5
+    , hanalyze
+    , time                 >= 1.9  && < 1.13
+    , mwc-random           >= 0.15 && < 0.16
+
+executable bench-mem-bo
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMemBO.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  build-depends:
+      base                 >= 4.14 && < 5
+    , hanalyze
+    , time                 >= 1.9  && < 1.13
+    , mwc-random           >= 0.15 && < 0.16
+
+executable bench-mem-mcmc
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMemMCMC.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  build-depends:
+      base                 >= 4.14 && < 5
+    , hanalyze
+    , containers           >= 0.6  && < 0.8
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , mwc-random           >= 0.15 && < 0.16
+
+-- Kernel / GP bench (B2): KR / NW / RFF / GP / GPRobust.
+executable bench-kernel
+  import:           warnings, opt, bench-gate
+  main-is:          BenchKernel.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- ML bench (B6): PCA / KMeans / DecisionTree / RandomForest.
+executable bench-ml
+  import:           warnings, opt, bench-gate
+  main-is:          BenchML.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Survival / TimeSeries bench (B8): ARIMA / Cox / KM / Quantile / GAM / Spline.
+executable bench-survts
+  import:           warnings, opt, bench-gate
+  main-is:          BenchSurvTS.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , random               >= 1.2  && < 1.4
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- MCMC diagnostic (B10b): explore why hanalyze NUTS ESS is poor.
+executable bench-mcmc-diag
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMCMCDiag.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- MCMC bench (B7): HMC / NUTS on hierarchical normal model.
+executable bench-mcmc-b7
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMCMCB7.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- HBM サンプラ性能スケーリング (NUTS vs PyMC・iter 掃き)。
+executable bench-hbm-scaling
+  import:           warnings, opt, bench-gate
+  main-is:          BenchHBMScaling.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 54.4a: ハイブリッド gradADU (vec-tape ObserveLM) per-call 計測。
+executable bench-hbm-54a
+  import:           warnings, opt, bench-gate
+  main-is:          BenchHBM54a.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 53: HBM 勾配ボトルネック診断 (forward vs reverse AD)。
+executable bench-hbm-profile
+  import:           warnings, opt, bench-gate
+  main-is:          BenchHBMProfile.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 85.1: radon 相関モデルの gradVecIR per-eval 内訳プロファイル。
+executable bench-hbm-vecir-prof
+  import:           warnings, opt, bench-gate
+  main-is:          BenchHBMVecIRProf.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , ad                   >= 4.4  && < 4.6
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 85.3a: vecIR 融合方式の feasibility spike (synthetic chain)。
+executable bench-hbm-fuse-spike
+  import:           warnings, opt, bench-gate
+  main-is:          BenchHBMFuseSpike.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 85.5: M2 単独 NUTS の A/B 計測 (+RTS -s で alloc/GC 突合・rtsopts 付)。
+executable bench-m2-iso
+  import:           warnings, opt, bench-gate
+  main-is:          BenchM2Iso.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 85.6a: warmup 固定費の内訳プロファイル (radon)。
+executable bench-warmup-prof
+  import:           warnings, opt, bench-gate
+  main-is:          BenchWarmupProf.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 89: posteriordb 横断ベンチマーク・モデル別実行体 (1 モデル = 1 exe)。
+-- hgg (dashboardFullOf の PNG 出力) を使うため plot-integration
+-- flag 配下 (`cabal build --project-file=cabal.project.plot`)。
+executable posteriordb-glm-poisson
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/01-glm-poisson, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-dogs
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/02-dogs, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-garch11
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/03-garch11, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-eight-schools
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/09-eight-schools, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-gp-regr
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/07-gp-regr, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-low-dim-gauss-mix
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/04-low-dim-gauss-mix, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , containers
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-mh
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/05-mh, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-irt-2pl
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/06-irt-2pl, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-rats
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/10-rats, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-seeds
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/11-seeds, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-ark
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/12-ark, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-bym2
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/13-traffic-accident-nyc, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , containers
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-hmm
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/14-hmm-example, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-dugongs
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/15-dugongs, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-lda
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/16-lda, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-nes
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/17-nes, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-loss-curves
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/18-loss-curves, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-surgical
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/19-surgical, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-bones
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/20-bones, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-radon
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/21-radon, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+executable posteriordb-arma
+  import:           warnings
+  main-is:          Model.hs
+  other-modules:    Common
+  hs-source-dirs:   bench/posteriordb/22-arma, bench/posteriordb
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  if flag(plot-integration)
+    build-depends:
+        base
+      , aeson
+      , text
+      , vector
+      , hanalyze
+      , hgg-core
+      , hgg-frame
+      , hgg-rasterific
+      , time
+      , deepseq
+  else
+    buildable: False
+
+-- Phase 53 追加調査: NUTS コストセンタ・プロファイル用 (+RTS -p)。
+executable prof-nuts
+  import:           warnings, opt, bench-gate
+  main-is:          ProfNUTS.hs
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  ghc-options:      -rtsopts
+  build-depends:
+      base                 >= 4.14 && < 5
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , vector               >= 0.12 && < 0.14
+
+-- Phase 55.3: heteroscedastic σ 式モデルの per-call 勾配 A/B (IR 吸収 vs 旧 fallback)。
+-- Phase 56.6: 観測分布ごとの per-call 勾配 A/B (bench-hbm-het の一般化)。
+executable bench-hbm-dist
+  import:           warnings, opt, bench-gate
+  main-is:          BenchHBMDist.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , ad                   >= 4.4  && < 4.6
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+executable bench-hbm-het
+  import:           warnings, opt, bench-gate
+  main-is:          BenchHBMHet.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , ad                   >= 4.4  && < 4.6
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 54.11 spike: 非線形 μ の vec-tape (手組みベクトル式 IR) ゲート判定。
+executable bench-hbm-vecir
+  import:           warnings, opt, bench-gate
+  main-is:          BenchHBMVecIRSpike.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , ad                   >= 4.4  && < 4.6
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 53 追加調査: AD モード比較 (forward/reverse/reverse.double/kahn)。
+executable bench-hbm-admodes
+  import:           warnings, opt, bench-gate
+  main-is:          BenchHBMADModes.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , ad                   >= 4.4  && < 4.6
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 54.0 feasibility spike: 観測尤度ベクトル化 × Reverse.Double 勾配保存/per-grad 計測。
+executable bench-hbm-vecspike
+  import:           warnings, opt, bench-gate
+  main-is:          BenchHBMVecSpike.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , ad                   >= 4.4  && < 4.6
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Phase 54 専用ベクトル化 AD feasibility spike: ad vs 手書きベクトル化解析勾配。
+executable bench-hbm-vecad
+  import:           warnings, opt, bench-gate
+  main-is:          BenchHBMVecADSpike.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , ad                   >= 4.4  && < 4.6
+    , array                >= 0.5  && < 0.6
+    , backprop             >= 0.2  && < 0.3
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- B7 残: Gibbs / ADVI / WAIC.
+executable bench-mcmc-extras
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMCMCExtras.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , containers           >= 0.6  && < 0.8
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- B13 Regrid: regridLong on a jagged long-form fixture.
+executable bench-regrid
+  import:           warnings, opt, bench-gate
+  main-is:          BenchRegrid.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , dataframe-operations  >= 1.1.1 && < 1.2
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- B12 Multi-output: MultiLM / MultiGP.
+executable bench-multi-output
+  import:           warnings, opt, bench-gate
+  main-is:          BenchMultiOutput.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- B10 Stat util: Bootstrap / t-test / KS / MW / BH / Halton / AUC / k-fold.
+executable bench-stat-util
+  import:           warnings, opt, bench-gate
+  main-is:          BenchStatUtil.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- B9 Optim+: Constrained / Adam / CMAESFull.
+executable bench-optim-plus
+  import:           warnings, opt, bench-gate
+  main-is:          BenchOptimPlus.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- B8 残: Holt-Winters / GAM / Spline 補間.
+executable bench-ts-extras
+  import:           warnings, opt, bench-gate
+  main-is:          BenchTSExtras.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+-- Regression bench (B1): LM / GLM / GLMM / Ridge / Lasso / ElasticNet.
+executable bench-regression
+  import:           warnings, opt, bench-gate
+  main-is:          BenchRegression.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+executable bench-profile
+  import:           warnings, opt, bench-gate
+  main-is:          BenchProfile.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  ghc-options:      -rtsopts "-with-rtsopts=-T"
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , deepseq              >= 1.4  && < 1.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+
+executable bench-tasty
+  import:           warnings, opt, bench-gate
+  main-is:          BenchTasty.hs
+  other-modules:    BenchUtil
+  hs-source-dirs:   bench/haskell
+  default-language: GHC2021
+  build-depends:
+      base                 >= 4.14 && < 5
+    , bytestring           >= 0.11 && < 0.13
+    , cassava              >= 0.5  && < 0.6
+    , hanalyze
+    , hmatrix              >= 0.20 && < 0.22
+    , tasty-bench          >= 0.3  && < 0.5
+    , tasty                >= 1.4  && < 1.6
+    , text                 >= 1.2  && < 2.2
+    , time                 >= 1.9  && < 1.13
+    , vector               >= 0.12 && < 0.14
+
+test-suite hanalyze-test
+  import:           warnings, opt
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  hs-source-dirs:   test
+  default-language: GHC2021
+  -- WorkflowSpec の一部診断テスト (tracesOf / MultiVarModel 事後予測帯) は plot 連携層
+  -- 依存ゆえ CPP (#ifdef PLOT_INTEGRATION) で囲む。 flag on のときだけ define し compile。
+  if flag(plot-integration)
+    cpp-options: -DPLOT_INTEGRATION
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , hspec      >= 2.10 && < 2.12
+    , QuickCheck >= 2.14 && < 2.16
+    , vector     >= 0.12 && < 0.14
+    , mwc-random >= 0.15 && < 0.16
+    , text       >= 1.2  && < 2.2
+    , dataframe-core        ^>= 1.1
+    , dataframe-operations  >= 1.1.1 && < 1.2
+    , temporary  >= 1.3  && < 1.4
+    , bytestring >= 0.11 && < 0.13
+    , hmatrix    >= 0.20 && < 0.22
+    , containers >= 0.6  && < 0.8
+    , ad         >= 4.4  && < 4.6
+  build-tool-depends:
+    hspec-discover:hspec-discover >= 2.10 && < 2.12
+  -- per-module Spec 群 (hspec-discover が Spec.hs から自動収集)。
+  -- SpecHelper は共通 helper / orphan Arbitrary instance。
+  other-modules:
+      Hanalyze.Data.FactorSpec
+    , Hanalyze.Data.StringsSpec
+    , Hanalyze.Data.TransformSpec
+    , Hanalyze.Data.WrangleSpec
+    , Hanalyze.DataIO.CSVSpec
+    , Hanalyze.DataIO.ConvertSpec
+    , Hanalyze.DataIO.HealthSpec
+    , Hanalyze.DataIO.LogSpec
+    , Hanalyze.DataIO.PreprocessSpec
+    , Hanalyze.DataIO.ReshapeSpec
+    , Hanalyze.Design.ConstraintSpec
+    , Hanalyze.Design.Custom.AugmentSpec
+    , Hanalyze.Design.Custom.BayesianSpec
+    , Hanalyze.Design.Custom.CompareSpec
+    , Hanalyze.Design.Custom.CoordinateSpec
+    , Hanalyze.Design.Custom.FactorSpec
+    , Hanalyze.Design.Custom.GoldenSpec
+    , Hanalyze.Design.Custom.PowerSpec
+    , Hanalyze.Design.Custom.SplitPlotSpec
+    , Hanalyze.Design.DSDSpec
+    , Hanalyze.Design.DiagnosticsSpec
+    , Hanalyze.Design.GaugeRRSpec
+    , Hanalyze.Design.MixtureSpec
+    , Hanalyze.Design.OptimalSpec
+    , Hanalyze.Design.OrthogonalSpec
+    , Hanalyze.Design.QualitySpec
+    , Hanalyze.Design.SequentialSpec
+    , Hanalyze.Design.SpaceFillingSpec
+    , Hanalyze.Design.TaguchiSpec
+    , Hanalyze.Design.WorkflowSpec
+    , Hanalyze.MCMC.BayesianTestSpec
+    , Hanalyze.MCMC.NUTSSpec
+    , Hanalyze.MCMC.ProgressSpec
+    , Hanalyze.MCMC.SMCSpec
+    , Hanalyze.MCMC.SamplersPureSpec
+    , Hanalyze.Math.HSICSpec
+    , Hanalyze.Math.HungarianSpec
+    , Hanalyze.Model.AFTSpec
+    , Hanalyze.Model.ClusterSpec
+    , Hanalyze.Model.CompetingRisksSpec
+    , Hanalyze.Model.DAGSpec
+    , Hanalyze.Model.DecisionTreeSpec
+    , Hanalyze.Model.PartialDependenceSpec
+    , Hanalyze.Model.DiscriminantSpec
+    , Hanalyze.Model.FDASpec
+    , Hanalyze.Model.FitYByXSpec
+    , Hanalyze.Model.Formula.ContrastSpec
+    , Hanalyze.Model.Formula.DesignSpec
+    , Hanalyze.Model.Formula.FrameSpec
+    , Hanalyze.Model.Formula.MixedSpec
+    , Hanalyze.Model.Formula.NonlinearSpec
+    , Hanalyze.Model.Formula.RFormulaSpec
+    , Hanalyze.Model.Formula.WLSSpec
+    , Hanalyze.Model.FormulaSpec
+    , Hanalyze.Model.GARCHSpec
+    , Hanalyze.Model.GLMMSpec
+    , Hanalyze.Model.GLMSpec
+    , Hanalyze.Model.GPRobustSpec
+    , Hanalyze.Model.GradientBoostingSpec
+    , Hanalyze.Model.HBM.InterpSpec
+    , Hanalyze.Model.HBM.LogpSpec
+    , Hanalyze.Model.HBMSpec
+    , Hanalyze.Model.HBMSummarySpec
+    , Hanalyze.Model.HierarchicalClusterSpec
+    , Hanalyze.Model.KNNSpec
+    , Hanalyze.Model.KernelSpec
+    , Hanalyze.Model.SVMSpec
+    , Hanalyze.Model.LM.DiagnosticsSpec
+    , Hanalyze.Model.LatentClassAnalysisSpec
+    , Hanalyze.Model.LiNGAM.BootstrapSpec
+    , Hanalyze.Model.LiNGAM.DirectSpec
+    , Hanalyze.Model.LiNGAM.ICASpec
+    , Hanalyze.Model.LiNGAM.MultiGroupSpec
+    , Hanalyze.Model.LiNGAM.PairwiseSpec
+    , Hanalyze.Model.LiNGAM.ParceSpec
+    , Hanalyze.Model.LiNGAM.VARSpec
+    , Hanalyze.Model.MultiOutputSpec
+    , Hanalyze.Model.NaiveBayesSpec
+    , Hanalyze.Model.NeuralNetworkSpec
+    , Hanalyze.Model.PCASpec
+    , Hanalyze.Model.PLSSpec
+    , Hanalyze.Model.RFFSpec
+    , Hanalyze.Model.RandomForestClassifierSpec
+    , Hanalyze.Model.RegularizedAdvanced.AdaptiveLassoSpec
+    , Hanalyze.Model.RegularizedAdvanced.GroupLassoSpec
+    , Hanalyze.Model.RegularizedAdvanced.MCPSpec
+    , Hanalyze.Model.RegularizedAdvanced.SCADSpec
+    , Hanalyze.Model.RegularizedSpec
+    , Hanalyze.Model.ReliabilityBlockDiagramSpec
+    , Hanalyze.Model.ReliabilitySpec
+    , Hanalyze.Model.RobustSpec
+    , Hanalyze.Model.StateSpaceSpec
+    , Hanalyze.Model.SurvivalSpec
+    , Hanalyze.Model.TimeSeriesSpec
+    , Hanalyze.Model.VARSpec
+    , Hanalyze.Model.WeibullSpec
+    , Hanalyze.Optim.BayesOptSpec
+    , Hanalyze.Optim.CMAESSpec
+    , Hanalyze.Optim.CommonSpec
+    , Hanalyze.Optim.ConstrainedSpec
+    , Hanalyze.Optim.DifferentialEvolutionSpec
+    , Hanalyze.Optim.LBFGSSpec
+    , Hanalyze.Optim.LineSearchSpec
+    , Hanalyze.Optim.NSGASpec
+    , Hanalyze.Optim.NelderMeadSpec
+    , Hanalyze.Optim.ParticleSwarmSpec
+    , Hanalyze.Optim.SimulatedAnnealingSpec
+    , Hanalyze.Stat.AdaptiveGridSpec
+    , Hanalyze.Stat.BayesFactorSpec
+    , Hanalyze.Stat.BayesianModelAveragingSpec
+    , Hanalyze.Stat.BootstrapSpec
+    , Hanalyze.Stat.BridgeSamplingSpec
+    , Hanalyze.Stat.CVSpec
+    , Hanalyze.Stat.Causal.CATESpec
+    , Hanalyze.Stat.Causal.DoublyRobustSpec
+    , Hanalyze.Stat.Causal.IPWSpec
+    , Hanalyze.Stat.Causal.PropensityScoreSpec
+    , Hanalyze.Stat.CholeskySpec
+    , Hanalyze.Stat.ClassMetricsSpec
+    , Hanalyze.Stat.CorrelationNetworkSpec
+    , Hanalyze.Stat.DescriptiveSpec
+    , Hanalyze.Stat.EffectSpec
+    , Hanalyze.Stat.GroupComparisonSpec
+    , Hanalyze.Stat.InterpolateSpec
+    , Hanalyze.Stat.InterpretSpec
+    , Hanalyze.Stat.KernelDistSpec
+    , Hanalyze.Stat.MCMCSpec
+    , Hanalyze.Stat.MDSSpec
+    , Hanalyze.Stat.MultipleTestingSpec
+    , Hanalyze.Stat.NumberFormatSpec
+    , Hanalyze.Stat.QuasiRandomSpec
+    , Hanalyze.Stat.SPCSpec
+    , Hanalyze.Stat.StandardizeSpec
+    , Hanalyze.Stat.SummarySpec
+    , Hanalyze.Stat.TestSpec
+    , Hanalyze.Stat.VISpec
+    , Hanalyze.Viz.ModelGraphSpec
+    , Hanalyze.Viz.ReportBuilderSpec
+    , SpecHelper
