@@ -1,0 +1,203 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.39.6.
+--
+-- see: https://github.com/sol/hpack
+
+name:           pure-noise
+version:        0.2.2.0
+synopsis:       Performant, modern noise generation (Perlin, OpenSimplex2, Cellular)
+description:    Fast, modern noise generation In pure Haskell with an algebraic interface.
+                Provides Perlin, OpenSimplex2, OpenSimplex2S, Value, and Cellular noise variants.
+category:       Math, Numeric, Noise
+homepage:       https://github.com/jtnuttall/pure-noise#readme
+bug-reports:    https://github.com/jtnuttall/pure-noise/issues
+author:         Jeremy Nuttall
+maintainer:     jeremy@jeremy-nuttall.com
+copyright:      2026 Jeremy Nuttall
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Simple
+tested-with:
+    GHC == 9.6.7
+  , GHC == 9.8.4
+  , GHC == 9.12.2
+extra-source-files:
+    README.md
+    LICENSE
+    LICENSE_FastNoiseLite
+    bench/fnl-compare/cbits/FastNoiseLite.h
+extra-doc-files:
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/jtnuttall/pure-noise
+
+flag llvm-bench
+  description: Build the benchmark suites via GHC's LLVM backend with a pinned toolchain
+               (-fllvm, -pgmlo opt, -pgmlc llc, -pgmlas clang) plus -mavx -mfma and fast
+               FP contraction in llc (-optlc-fp-contract=fast). Requires opt/llc/clang
+               on PATH (LLVM <= 19 for GHC 9.12) and GHC >= 9.10 (for -pgmlas). Off by
+               default so `cabal build --enable-benchmarks` works on machines and CI
+               runners without LLVM. Published benchmark numbers are collected with this
+               flag on; see bench/README.md.
+  manual: True
+  default: False
+
+flag mavx
+  description: Compile with AVX instructions
+  manual: True
+  default: False
+
+flag mfma
+  description: Compile with native fused-multiply-add instructions
+  manual: True
+  default: False
+
+flag optimize
+  description: Turns on -O2 for pure-noise. Since the library is pretty small, this shouldn't be
+               too much trouble, but you can disable this flag if it's slowing your builds too
+               much.
+               .
+               Rationale:
+               - -O1 leaves ~3x on the table for tight noise loops in downstream code.
+               - -O2 seems to produce higher-quality unfoldings, which in turn causes pure-noise's
+               kernels to inline and optimize more reliably at call sites.
+  manual: True
+  default: True
+
+library
+  exposed-modules:
+      Numeric.Noise
+      Numeric.Noise.Cellular
+      Numeric.Noise.Fractal
+      Numeric.Noise.OpenSimplex
+      Numeric.Noise.Perlin
+      Numeric.Noise.SuperSimplex
+      Numeric.Noise.Value
+      Numeric.Noise.ValueCubic
+  other-modules:
+      Numeric.Noise.Internal
+      Numeric.Noise.Internal.Math
+      Paths_pure_noise
+  autogen-modules:
+      Paths_pure_noise
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      base >=4.16 && <5
+    , primitive >=0.8 && <0.10
+  default-language: GHC2021
+  if flag(optimize)
+    ghc-options: -O2
+  if flag(mfma)
+    ghc-options: -mfma
+    cpp-options: -DHAS_FMA
+  if flag(mavx)
+    ghc-options: -mavx
+    cpp-options: -DHAS_AVX
+
+test-suite pure-noise-test
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  other-modules:
+      CellularSpec
+      FractalSpec
+      Golden.Util
+      Noise2Spec
+      Noise3Spec
+      OpenSimplexSpec
+      PerlinSpec
+      SuperSimplexSpec
+      TotalitySpec
+      ValueCubicSpec
+      ValueSpec
+      Paths_pure_noise
+  autogen-modules:
+      Paths_pure_noise
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -Wno-missing-export-lists -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      tasty-discover:tasty-discover
+  build-depends:
+      JuicyPixels ==3.3.*
+    , aeson >=2.0 && <2.3
+    , aeson-pretty
+    , base >=4.16 && <5
+    , bytestring
+    , directory
+    , filepath
+    , massiv >=1.0 && <2.0
+    , primitive >=0.8 && <0.10
+    , pure-noise
+    , tasty
+    , tasty-golden
+    , tasty-hunit
+    , tasty-quickcheck
+    , text
+    , typed-process
+  default-language: GHC2021
+
+benchmark pure-noise-bench
+  type: exitcode-stdio-1.0
+  main-is: Bench.hs
+  other-modules:
+      BenchLib
+      Paths_pure_noise
+  autogen-modules:
+      Paths_pure_noise
+  hs-source-dirs:
+      bench
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts "-with-rtsopts=-N -A32m -T" -O2 -fsimpl-tick-factor=1000
+  build-depends:
+      base >=4.16 && <5
+    , deepseq
+    , massiv >=1.0 && <2.0
+    , primitive >=0.8 && <0.10
+    , pure-noise
+    , random
+    , tasty
+    , tasty-bench
+    , vector >=0.12 && <0.14
+  default-language: GHC2021
+  if flag(llvm-bench)
+    ghc-options: -fllvm -pgmlo opt -pgmlc llc -pgmlas clang -mavx -mfma -optlc-fp-contract=fast
+
+benchmark pure-noise-fnl-bench
+  type: exitcode-stdio-1.0
+  main-is: FnlBench.hs
+  other-modules:
+      Paths_pure_noise
+  autogen-modules:
+      Paths_pure_noise
+  hs-source-dirs:
+      bench/fnl-compare
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts "-with-rtsopts=-A64m -T" -O2 -fsimpl-tick-factor=1000
+  cxx-options: -O3 -std=c++14 -ffp-contract=fast -fstrict-overflow
+  include-dirs:
+      bench/fnl-compare/cbits
+  cxx-sources:
+      bench/fnl-compare/fnl_bench_shim.cpp
+  build-depends:
+      base >=4.16 && <5
+    , mtl >=2.1 && <2.4
+    , primitive >=0.8 && <0.10
+    , pure-noise
+    , splitmix ==0.1.*
+    , tasty
+    , tasty-bench >=0.4 && <0.6
+    , vector >=0.12 && <0.14
+  default-language: GHC2021
+  if flag(llvm-bench)
+    ghc-options: -fllvm -pgmlo opt -pgmlc llc -pgmlas clang -mavx -mfma -optlc-fp-contract=fast
+  if arch(x86_64)
+    cxx-options: -march=x86-64-v3
+  if os(darwin)
+    extra-libraries:
+        c++
+  else
+    extra-libraries:
+        stdc++
