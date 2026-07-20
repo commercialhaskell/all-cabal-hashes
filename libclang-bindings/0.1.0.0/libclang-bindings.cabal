@@ -1,0 +1,210 @@
+cabal-version:      3.0
+name:               libclang-bindings
+version:            0.1.0.0
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Well-Typed LLP
+maintainer:         info@well-typed.com
+homepage:           https://github.com/well-typed/libclang-bindings
+bug-reports:        https://github.com/well-typed/libclang-bindings/issues
+category:           Development
+build-type:         Configure
+synopsis:           libclang bindings
+description:
+  Haskell bindings to the LLVM/Clang @libclang@ C API, providing low-level FFI
+  bindings and a higher-level API for parsing and traversing C code.
+
+tested-with:
+  GHC ==9.2.8
+   || ==9.4.8
+   || ==9.6.7
+   || ==9.8.4
+   || ==9.10.3
+   || ==9.12.2
+   || ==9.14.1
+
+extra-source-files:
+  autogen/clang_config.h.in
+  autogen/libclang_version.h.in
+  autogen/Version_libclang_bindings.hs.in
+  cbits/*.c
+  cbits/*.h
+  configure
+  configure.ac
+  libclang-bindings.buildinfo.in
+
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/well-typed/libclang-bindings
+  subdir:   libclang-bindings
+
+source-repository this
+  type:     git
+  location: https://github.com/well-typed/libclang-bindings
+  subdir:   libclang-bindings
+  tag:      release-0.1.0.0
+
+--------------------------------------------------------------------------------
+-- Configuration
+--
+-- See README.md for documentation about configuration.
+--------------------------------------------------------------------------------
+
+common lang
+  ghc-options:
+    -Wall -Widentities -Wprepositive-qualified-module
+    -Wredundant-constraints -Wunused-packages
+
+  build-depends:      base >=4.16 && <4.23
+  default-language:   GHC2021
+
+  -- We don't provide a shared list of default extension between the library
+  -- and the clang-tutorial example; this way we can ensure that mere
+  -- /usage/ of the library does not result in requirements for enabled
+  -- language extensions.
+  default-extensions:
+
+library
+  import:             lang
+  hs-source-dirs:     src
+  default-extensions:
+    CApiFFI
+    DataKinds
+    DeriveAnyClass
+    DerivingStrategies
+    DerivingVia
+    LambdaCase
+    MagicHash
+    TypeFamilies
+    UnboxedTuples
+    UndecidableInstances
+    UnliftedFFITypes
+    UnliftedNewtypes
+
+  other-extensions:   AllowAmbiguousTypes
+  exposed-modules:
+    Clang.Args
+    Clang.Backtrace
+    Clang.CStandard
+    Clang.Discover
+    Clang.Enum.Bitfield
+    Clang.Enum.Simple
+    Clang.HighLevel
+    Clang.HighLevel.Documentation
+    Clang.HighLevel.Types
+    Clang.Internal.ByValue
+    Clang.LowLevel.Core
+    Clang.LowLevel.Doxygen
+    Clang.Paths
+    Clang.Version
+
+  other-modules:
+    Clang.HighLevel.Declaration
+    Clang.HighLevel.Diagnostics
+    Clang.HighLevel.Evaluate
+    Clang.HighLevel.Fold
+    Clang.HighLevel.SourceLoc
+    Clang.HighLevel.Tokens
+    Clang.HighLevel.Wrappers
+    Clang.Internal.ConstPtr
+    Clang.Internal.CXString
+    Clang.Internal.Exception
+    Clang.Internal.FFI
+    Clang.Internal.Ptr
+    Clang.Internal.Results
+    Clang.LowLevel.Core.Enums
+    Clang.LowLevel.Core.Instances
+    Clang.LowLevel.Core.Pointers
+    Clang.LowLevel.Core.Structs
+    Clang.LowLevel.Doxygen.Enums
+    Clang.LowLevel.Doxygen.Instances
+    Clang.LowLevel.Doxygen.Structs
+    Clang.LowLevel.FFI
+    Clang.Version.Internal
+    Clang.Version.Internal.Check
+    Version_libclang_bindings
+
+  autogen-modules:    Version_libclang_bindings
+
+  -- External dependencies
+  build-depends:
+    , bytestring        >=0.11    && <0.13
+    , data-default      >=0.7     && <0.9
+    , directory         >=1.3.6.2 && <1.4
+    , exceptions        >=0.10    && <0.11
+    , filepath          >=1.4     && <1.6
+    , process           >=1.6     && <1.7
+    , template-haskell  >=2.18    && <2.25
+    , text              >=1.2     && <2.2
+    , transformers      >=0.5     && <0.7
+    , unliftio-core     >=0.2.1   && <0.3
+
+  -- C bindings
+  if impl(ghc <9.4)
+    build-depends: data-array-byte >=0.1.0.1 && <0.2
+
+  include-dirs:       cbits
+  cc-options:         -Wall
+  c-sources:          cbits/clang_wrappers.c
+  build-tool-depends: hsc2hs:hsc2hs
+
+test-suite clang-tutorial
+  import:         lang
+  type:           exitcode-stdio-1.0
+  main-is:        clang-tutorial.hs
+  hs-source-dirs: clang-tutorial
+
+  -- Internal dependencies
+  build-depends:  libclang-bindings
+
+  -- Inherited dependencies
+  build-depends:
+    , data-default
+    , text
+
+test-suite test-clang-bindings
+  import:             lang
+  type:               exitcode-stdio-1.0
+  main-is:            test-clang-bindings.hs
+  hs-source-dirs:     test
+  default-extensions:
+    DeriveAnyClass
+    DerivingStrategies
+    LambdaCase
+
+  other-modules:
+    Test.Discover
+    Test.Meta.IsConcrete
+    Test.Test.Exceptions
+    Test.Util.AST
+    Test.Util.Clang
+    Test.Util.FoldException
+    Test.Util.Input
+    Test.Util.Input.Examples
+    Test.Util.Input.StructForest
+    Test.Util.Shape
+    Test.Version
+
+  -- Internal dependencies
+  build-depends:      libclang-bindings
+
+  -- Inherited dependencies
+  build-depends:
+    , data-default
+    , mtl
+    , text
+
+  -- New dependencies
+  --
+  -- tasty <1.5.4: sequentialTestGroup was deprecated leading to a compilation error
+  build-depends:
+    , containers        >=0.6     && <0.9
+    , directory         >=1.3.6.2 && <1.4
+    , QuickCheck        >=2.14    && <2.18
+    , tasty             >=1.5     && <1.5.4
+    , tasty-hunit       >=0.10    && <0.11
+    , tasty-quickcheck  >=0.11    && <0.12
