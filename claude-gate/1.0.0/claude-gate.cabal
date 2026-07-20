@@ -1,0 +1,142 @@
+cabal-version:      3.0
+
+name:           claude-gate
+version:        1.0.0
+synopsis:       Hook gate that reviews and records edits from nested Claude Code sessions
+description:
+    A Claude Code hook-protocol gate. It intercepts edits made by nested Claude
+    sessions, renders their diffs, tracks per-turn state, and drives the
+    review, critique and dumbify passes that decide whether an edit is allowed
+    through.
+category:       Development
+homepage:       https://github.com/jappeace/vibes#readme
+bug-reports:    https://github.com/jappeace/vibes/issues
+author:         Jappie Klooster
+maintainer:     hi@jappie.me
+copyright:      2026 Jappie Klooster
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-doc-files:
+    Changelog.md
+
+source-repository head
+  type: git
+  location: https://github.com/jappeace/vibes
+
+-- Decision: -Werror lives behind a manual flag, default False. cabal check
+-- rejects an unconditional -Werror (future GHCs add warnings that would break
+-- the package), so the flag keeps `cabal check` green while CI and the nix
+-- build still compile warning-clean by turning it on (see nix/hpkgs.nix and
+-- cabal.project). Alternative considered: dropping -Werror entirely, rejected
+-- because it would let warnings rot in.
+flag werror
+  description: Turn warnings into errors. Off by default; CI and the nix build enable it.
+  default:     False
+  manual:      True
+
+common common-options
+  default-extensions:
+      EmptyCase
+      FlexibleContexts
+      FlexibleInstances
+      InstanceSigs
+      MultiParamTypeClasses
+      LambdaCase
+      MultiWayIf
+      NamedFieldPuns
+      TupleSections
+      DeriveFoldable
+      DeriveFunctor
+      DeriveGeneric
+      DeriveLift
+      DeriveTraversable
+      DerivingStrategies
+      GeneralizedNewtypeDeriving
+      StandaloneDeriving
+      OverloadedStrings
+      ScopedTypeVariables
+      TypeApplications
+      NumericUnderscores
+      ImportQualifiedPost
+
+  ghc-options:
+    -O2 -Wall -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Widentities -Wredundant-constraints
+    -Wcpp-undef -fwarn-tabs -Wpartial-fields
+    -fdefer-diagnostics -Wunused-packages
+    -fno-omit-yields
+
+  if flag(werror)
+    ghc-options: -Werror
+
+  build-depends:
+      base >=4.9.1.0 && <4.22
+
+  default-language: Haskell2010
+
+library
+  import: common-options
+  exposed-modules:
+      Claude.Gate.HookProtocol
+      Claude.Gate.Edit
+      Claude.Gate.TurnState
+      Claude.Gate.RecordEdit
+      Claude.Gate.DiffRender
+      Claude.Gate.Corpus
+      Claude.Gate.FileContext
+      Claude.Gate.Repo
+      Claude.Gate.SpawnAnnotation
+      Claude.Gate.GateConfig
+      Claude.Gate.EditStack
+      Claude.Gate.NestedClaude
+      Claude.Gate.Transcript
+      Claude.Gate.ReviewPrompt
+      Claude.Gate.Dumbify
+      Claude.Gate.Critique
+      Claude.Gate.RuleReview
+      Claude.Gate.StopGate
+  other-modules:
+      Paths_claude_gate
+  autogen-modules:
+      Paths_claude_gate
+  hs-source-dirs:
+      src
+  build-depends:
+      aeson               < 2.3,
+      annotated-exception < 0.4,
+      bytestring          < 0.13,
+      text                < 2.2,
+      directory           < 1.4,
+      filepath            < 1.6,
+      typed-process       < 0.3,
+      safe-exceptions     < 0.2
+
+executable claude-gate
+  import: common-options
+  main-is: Main.hs
+  hs-source-dirs:
+      app
+  build-depends:
+      claude-gate,
+      optparse-applicative < 0.19
+  ghc-options: -Wno-unused-packages -threaded -rtsopts "-with-rtsopts=-N"
+
+test-suite unit
+  import: common-options
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  ghc-options: -Wno-unused-packages -threaded -rtsopts "-with-rtsopts=-N"
+  hs-source-dirs:
+      test
+  build-depends:
+      tasty          < 1.6,
+      tasty-hunit    < 0.11,
+      tasty-hedgehog < 1.5,
+      hedgehog       < 1.6,
+      claude-gate,
+      aeson          < 2.3,
+      bytestring     < 0.13,
+      text           < 2.2,
+      directory      < 1.4,
+      filepath       < 1.6
