@@ -1,0 +1,99 @@
+cabal-version: 3.0
+name: hspec-effectful-discover
+version: 1.0.1
+category: Test
+synopsis: Automatic spec discovery for hspec-effectful
+description:
+  @hspec-effectful-discover@ is a GHC preprocessor that finds every
+  @*Spec.hs@ module beside your test driver and generates a @main@ that runs
+  them all using @<https://hackage.haskell.org/package/hspec-effectful Effectful.Hspec>@.
+  It is the @<https://hackage.haskell.org/package/effectful effectful>@
+  counterpart to @<https://hackage.haskell.org/package/hspec-discover hspec-discover>@.
+
+  = How to run your specs automatically
+
+  This guide walks you through wiring up automatic spec discovery for a test
+  suite. Once it is in place, creating a new @*Spec.hs@ file next to your test
+  driver is all it takes to have its tests picked up and run.
+
+  == Step 1: turn your test driver into a preprocessor stub
+
+  Your test suite's entry point, e.g. @test\/Main.hs@, should only contain the preprocessor pragma:
+
+  @
+  {-\# OPTIONS_GHC -F -pgmF hspec-effectful-discover \#-}
+  @
+
+  Before compiling this module, GHC hands it to @hspec-effectful-discover@, which replaces it with
+  a generated module that imports and runs every spec it finds.
+
+  == Step 2: make @hspec-effectful-discover@ available to your build
+
+  Declare the executable as a build tool of your test suite so that GHC can
+  locate it. In your @.cabal@ file:
+
+  @
+  test-suite spec
+    type: exitcode-stdio-1.0
+    hs-source-dirs: test
+    main-is: Main.hs
+    build-tool-depends: hspec-effectful-discover:hspec-effectful-discover
+    build-depends: base, effectful, hspec-effectful
+  @
+
+  == Step 3: write your specs
+
+  Put each spec in a module whose file name ends in @Spec.hs@ (for example
+  @test\/Account\/BalanceSpec.hs@) and expose a top-level @spec@ action:
+
+  @
+  module Account.BalanceSpec (spec) where
+
+  import Effectful
+  import Effectful.Hspec
+
+  spec :: (Hspec :> es) => Eff es ()
+  spec = it "starts empty" $ pure () \`shouldReturn\` ()
+  @
+
+  In addition to the 'Hspec' effect you also have access to 'IOE', allowing you to
+  run arbitrary other effects:
+
+  @
+  spec :: (IOE :> es, Hspec :> es) => Eff es ()
+  spec = runFailIO . it "can fail" $ do
+        Just () <- pure Nothing
+        pure ()
+  @
+
+  @hspec-effectful-discover@ derives the module name from the file's path relative to
+  the driver, so @Account\/BalanceSpec.hs@ becomes @Account.BalanceSpec@ and is
+  grouped under a @describe \"Balance\"@ block (the trailing @Spec@ is dropped).
+  Files named exactly @Spec.hs@ and hidden directories are ignored.
+
+  == Step 4: run the suite
+
+  Build and run as usual, for instance with @cabal test@.
+
+license: EUPL-1.2
+license-file: LICENCE
+author: IDA
+maintainer: IDA
+homepage: https://digital-autonomy.institute
+bug-reports: https://issues.digital-autonomy.institute
+build-type: Simple
+extra-doc-files:
+  CHANGELOG.md
+
+executable hspec-effectful-discover
+  default-language: Haskell2010
+  default-extensions:
+    BlockArguments
+    LambdaCase
+
+  hs-source-dirs: .
+  main-is: Main.hs
+  build-depends:
+    base >=4.16 && <5,
+    directory >=1.3 && <1.4,
+    filepath >=1.5 && <1.6,
