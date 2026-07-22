@@ -1,0 +1,136 @@
+cabal-version:   3.0
+name:            c-expr-runtime
+version:         0.1.0.0
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Well-Typed LLP
+maintainer:      info@well-typed.com
+category:        System
+build-type:      Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+synopsis:        Haskell DSL for simple C arithmetic expressions
+tested-with:
+  GHC ==9.2.8
+   || ==9.4.8
+   || ==9.6.7
+   || ==9.8.4
+   || ==9.10.3
+   || ==9.12.2
+   || ==9.14.1
+
+description:
+  This library provides a Haskell DSL for simple C arithmetic expressions,
+  implementing the arithmetic conversion and integral promotion rules of the
+  C standard.
+
+  For example, addition is defined with the following type class:
+
+  @
+
+  infixl 2 +
+  type Add :: Type -> Type -> Constraint
+  class Add a b where
+    type family AddRes a b :: Type
+    (+) :: a -> b -> AddRes a b
+
+  @
+
+  That is, we can add arguments of different types, e.g. an integer and a
+  floating-point number, in which case the integer will first get converted to
+  the floating-point format before performing the addition.
+
+source-repository head
+  type:     git
+  location: https://github.com/well-typed/c-expr.git
+  subdir:   c-expr-runtime
+
+source-repository this
+  type:     git
+  location: https://github.com/well-typed/c-expr.git
+  subdir:   c-expr-runtime
+  tag:      release-0.1.0.0
+
+common common
+  ghc-options:
+    -Wall -Wunused-packages -Wno-unticked-promoted-constructors
+
+  default-extensions:
+    DataKinds
+    DeriveGeneric
+    DeriveTraversable
+    DerivingStrategies
+    FlexibleInstances
+    GADTs
+    ImportQualifiedPost
+    LambdaCase
+    MagicHash
+    MultiParamTypeClasses
+    ParallelListComp
+    StandaloneKindSignatures
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+
+  build-depends:      base >=4.16 && <4.23
+  default-language:   Haskell2010
+
+-- C arithmetic DSL
+--
+-- Note: C.Operator.Classes is exposed only so its associated type families
+-- (e.g. AddRes) are usable in signatures. Its classes have no instances of
+-- their own; import C.Expr.HostPlatform (or a Posix32/Posix64/Win64 variant)
+-- to get a platform's instances.
+library
+  import:          common
+  hs-source-dirs:  core lib
+  exposed-modules:
+    C.Expr.HostPlatform
+    C.Operator.Classes
+    C.Operator.GenInstances
+    C.Operators
+    C.Type
+    C.Type.Internal.Universe
+
+  other-modules:
+    C.Expr.Posix32
+    C.Expr.Posix64
+    C.Expr.Win64
+    C.Operator.Internal
+    C.Operator.TH
+
+  -- External dependencies
+  build-depends:
+    , containers        >=0.5   && <0.9
+    , fin               >=0.3.2 && <0.4
+    , some              >=1.0.6 && <1.1
+    , template-haskell  >=2.18  && <2.25
+    , vec               >=0.5   && <0.6
+
+  if impl(ghc <9.4)
+    build-depends: data-array-byte >=0.1.0.1 && <0.2
+
+test-suite tests
+  import:         common
+  hs-source-dirs: test
+  main-is:        Main.hs
+  type:           exitcode-stdio-1.0
+  other-modules:  CallClang
+
+  -- Internal dependencies
+  build-depends:
+    , c-expr-runtime
+    , libclang-bindings
+
+  -- Inherited dependencies
+  build-depends:
+    , containers
+    , data-default
+    , fin
+    , vec
+
+  -- External dependencies
+  build-depends:  text >=1.2 && <2.2
