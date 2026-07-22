@@ -1,0 +1,432 @@
+cabal-version:       3.0
+name:                moonlight-delta
+version:             0.1.0.1
+synopsis:            Boundary-aware delta calculus for Moonlight.
+description:         Categorical and state-change delta vocabulary layered over moonlight-core.
+license:             MIT
+license-file:        LICENSE
+author:              Blue Rose
+maintainer:          rosaliafialkova@gmail.com
+copyright:           (c) 2026 Blue Rose
+category:            Math
+homepage:            https://github.com/PaleRoses/moonlight
+bug-reports:         https://github.com/PaleRoses/moonlight/issues
+build-type:          Simple
+tested-with:         GHC == 9.14.1
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/PaleRoses/moonlight.git
+  subdir:   moonlight-delta
+
+common shared-properties
+  default-language: GHC2024
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+    -Wpartial-fields
+    -Wno-missing-import-lists
+  default-extensions:
+    StrictData
+    NoImplicitPrelude
+    TypeFamilies
+    UndecidableInstances
+
+library core
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-core
+  exposed-modules:
+    Moonlight.Delta.Frontier
+    Moonlight.Delta.Monotone
+    Moonlight.Delta.Normalize
+    Moonlight.Delta.Operator
+    Moonlight.Delta.Scope
+    Moonlight.Delta.Signed
+    Moonlight.Delta.Support
+    Moonlight.Delta.Time
+  build-depends:
+    base >= 4.22 && < 5
+    , containers >= 0.8 && < 0.9
+    , moonlight-core >= 0.1 && < 0.2
+    , vector >= 0.13 && < 0.14
+
+library patch-internal
+  import: shared-properties
+  visibility: private
+  hs-source-dirs: src-patch
+  exposed-modules:
+    Moonlight.Delta.Patch.Internal.Apply
+    Moonlight.Delta.Patch.Internal.Builder
+    Moonlight.Delta.Patch.Internal.Cell
+    Moonlight.Delta.Patch.Internal.Compose.Core
+    Moonlight.Delta.Patch.Internal.Compose.Record
+    Moonlight.Delta.Patch.Internal.Construction
+    Moonlight.Delta.Patch.Internal.IncrementalDigest
+    Moonlight.Delta.Patch.Internal.MerkleDeltaHash
+    Moonlight.Delta.Patch.Internal.MultisetDeltaHash
+    Moonlight.Delta.Patch.Internal.NodeCommitment
+    Moonlight.Delta.Patch.Internal.Replay
+    Moonlight.Delta.Patch.Internal.Types
+  other-modules:
+    Moonlight.Delta.Patch.Internal.Compose.Aligned
+    Moonlight.Delta.Patch.Internal.Compose.Range
+    Moonlight.Delta.Patch.Internal.Compose.SameSupport
+    Moonlight.Delta.Patch.Internal.Cursor
+    Moonlight.Delta.Patch.Internal.Page
+  build-depends:
+    base >= 4.22 && < 5
+    , bytestring >= 0.11 && < 0.13
+    , cborg >= 0.2
+    , containers >= 0.8 && < 0.9
+    , moonlight-algebra:abstract >= 0.1 && < 0.2
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-delta:core
+    , primitive >= 0.9 && < 0.10
+    , vector >= 0.13 && < 0.14
+
+library patch
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-patch-public
+  exposed-modules:
+    Moonlight.Delta.Patch
+  build-depends:
+    base >= 4.22 && < 5
+    , bytestring >= 0.11 && < 0.13
+    , moonlight-delta:patch-internal
+
+library epoch
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-epoch
+  exposed-modules:
+    Moonlight.Delta.Epoch
+  other-modules:
+    Moonlight.Delta.Epoch.Internal.Compose
+    Moonlight.Delta.Epoch.Internal.Construction
+    Moonlight.Delta.Epoch.Internal.Projection
+    Moonlight.Delta.Epoch.Internal.Transport
+    Moonlight.Delta.Epoch.Internal.Types
+    Moonlight.Delta.Epoch.Internal.Version
+    Moonlight.Delta.Epoch.Internal.View
+  build-depends:
+    base >= 4.22 && < 5
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-delta:core
+
+library repair
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-repair
+  exposed-modules:
+    Moonlight.Delta.Repair
+  build-depends:
+    base >= 4.22 && < 5
+
+common moonlight-delta-test-properties
+  default-language: GHC2024
+  ghc-options: -Wall -Wcompat
+  default-extensions:
+    TypeFamilies
+  build-depends:
+    base >= 4.22 && < 5
+    , tasty >= 1.4
+
+test-suite moonlight-delta-core-test
+  import: moonlight-delta-test-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    test/core
+    test-support
+  main-is: Main.hs
+  other-modules:
+    CoreTests
+    DeltaLaws
+    LawManifest
+  build-depends:
+    containers >= 0.8 && < 0.9
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-delta:core
+    , tasty-hunit >= 0.10
+    , tasty-quickcheck >= 0.10
+    , QuickCheck >= 2.14
+
+test-suite moonlight-delta-patch-test
+  import: moonlight-delta-test-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    test/patch
+    test-support
+  main-is: Main.hs
+  other-modules:
+    CodecSpec
+    DeltaHashGoldenOracle
+    DeltaLaws
+    LawManifest
+    LawsSpec
+    PatchReference
+    PatchLaws
+    PatchSupport
+    PatchTests
+    ReferenceSpec
+    ReplaySpec
+    SemanticsSpec
+    DeltaHashSpec
+    DeltaHashTypeErrors
+  build-depends:
+    bytestring >= 0.11 && < 0.13
+    , containers >= 0.8 && < 0.9
+    , moonlight-algebra:abstract >= 0.1 && < 0.2
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-delta:core
+    , moonlight-delta:patch-internal
+    , moonlight-delta:patch
+    , vector >= 0.13 && < 0.14
+    , tasty-hunit >= 0.10
+    , tasty-quickcheck >= 0.10
+    , QuickCheck >= 2.14
+
+test-suite moonlight-delta-epoch-test
+  import: moonlight-delta-test-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    test/epoch
+    test-support
+  main-is: Main.hs
+  other-modules:
+    ComposeSpec
+    ConstructionSpec
+    EpochSupport.Expected
+    EpochSupport.Generators
+    EpochSupport.Mapping
+    EpochSupport.Reference
+    EpochSupport.Types
+    EpochTests
+    FiniteSpec
+    LawManifest
+    ProjectionSpec
+    TransportSpec
+    VersionSpec
+    ViewSpec
+  build-depends:
+    containers >= 0.8 && < 0.9
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-delta:core
+    , moonlight-delta:epoch
+    , tasty-hunit >= 0.10
+    , tasty-quickcheck >= 0.10
+    , QuickCheck >= 2.14
+
+test-suite moonlight-delta-repair-test
+  import: moonlight-delta-test-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/repair
+  main-is: Main.hs
+  other-modules:
+    RepairTests
+  build-depends:
+    moonlight-delta:repair
+    , tasty-hunit >= 0.10
+
+test-suite moonlight-delta-laws-test
+  import: moonlight-delta-test-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    test/laws
+    test/patch
+    test/epoch
+    test-support
+  main-is: Main.hs
+  other-modules:
+    CrossCarrierLaws
+    DeltaLaws
+    EpochSupport.Generators
+    EpochSupport.Types
+    LawManifest
+    PatchSupport
+    PatchLaws
+  build-depends:
+    containers >= 0.8 && < 0.9
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-delta:core
+    , moonlight-delta:epoch
+    , moonlight-delta:patch
+    , tasty-hunit >= 0.10
+    , tasty-quickcheck >= 0.10
+    , QuickCheck >= 2.14
+
+test-suite moonlight-delta-test
+  import: moonlight-delta-test-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    test/aggregate
+    test/core
+    test/patch
+    test/epoch
+    test/repair
+    test/laws
+    test-support
+  main-is: Main.hs
+  other-modules:
+    CodecSpec
+    ComposeSpec
+    ConstructionSpec
+    CoreTests
+    CrossCarrierLaws
+    DeltaLaws
+    EpochSupport.Expected
+    EpochSupport.Generators
+    EpochSupport.Mapping
+    EpochSupport.Reference
+    EpochSupport.Types
+    EpochTests
+    FiniteSpec
+    LawManifest
+    LawsSpec
+    PatchReference
+    PatchLaws
+    PatchSupport
+    PatchTests
+    ProjectionSpec
+    ReferenceSpec
+    RepairTests
+    ReplaySpec
+    SemanticsSpec
+    DeltaHashSpec
+    DeltaHashGoldenOracle
+    DeltaHashTypeErrors
+    TransportSpec
+    VersionSpec
+    ViewSpec
+  build-depends:
+    bytestring >= 0.11 && < 0.13
+    , containers >= 0.8 && < 0.9
+    , moonlight-algebra:abstract >= 0.1 && < 0.2
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-delta:core
+    , moonlight-delta:epoch
+    , moonlight-delta:patch-internal
+    , moonlight-delta:patch
+    , moonlight-delta:repair
+    , vector >= 0.13 && < 0.14
+    , tasty-hunit >= 0.10
+    , tasty-quickcheck >= 0.10
+    , QuickCheck >= 2.14
+
+common moonlight-delta-benchmark-properties
+  default-language: GHC2024
+  ghc-options: -Wall -Wcompat -O2 -rtsopts
+  default-extensions:
+    TypeFamilies
+  build-depends:
+    base >= 4.22 && < 5
+    , tasty-bench >= 0.3 && < 0.6
+
+benchmark moonlight-delta-core-bench
+  import: moonlight-delta-benchmark-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    bench/core
+    bench/support
+  main-is: Main.hs
+  other-modules:
+    BenchSupport
+    CoreBench
+  build-depends:
+    containers >= 0.8 && < 0.9
+    , deepseq >= 1.4
+    , moonlight-delta:core
+
+benchmark moonlight-delta-patch-bench
+  import: moonlight-delta-benchmark-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    bench/patch
+    bench/support
+    test-support
+  main-is: Main.hs
+  other-modules:
+    BenchSupport
+    Patch.Allocation
+    Patch.Fixtures
+    Patch.Hackage
+    Patch.Types
+    PatchBench
+    PatchReference
+  build-depends:
+    bytestring >= 0.11 && < 0.13
+    , containers >= 0.8 && < 0.9
+    , deepseq >= 1.4
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-delta:core
+    , moonlight-delta:patch
+
+benchmark moonlight-delta-epoch-bench
+  import: moonlight-delta-benchmark-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    bench/epoch
+    bench/support
+  main-is: Main.hs
+  other-modules:
+    BenchSupport
+    EpochBench
+  build-depends:
+    containers >= 0.8 && < 0.9
+    , deepseq >= 1.4
+    , moonlight-delta:epoch
+
+benchmark moonlight-delta-repair-bench
+  import: moonlight-delta-benchmark-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    bench/repair
+    bench/support
+  main-is: Main.hs
+  other-modules:
+    BenchSupport
+    RepairBench
+  build-depends:
+    containers >= 0.8 && < 0.9
+    , deepseq >= 1.4
+    , moonlight-delta:repair
+
+benchmark moonlight-delta-bench
+  import: moonlight-delta-benchmark-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    bench/aggregate
+    bench/core
+    bench/patch
+    bench/epoch
+    bench/repair
+    bench/support
+    test-support
+  main-is: Main.hs
+  other-modules:
+    BenchSupport
+    CoreBench
+    EpochBench
+    Patch.Allocation
+    Patch.Fixtures
+    Patch.Hackage
+    Patch.Types
+    PatchBench
+    PatchReference
+    RepairBench
+  build-depends:
+    bytestring >= 0.11 && < 0.13
+    , containers >= 0.8 && < 0.9
+    , deepseq >= 1.4
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-delta:core
+    , moonlight-delta:epoch
+    , moonlight-delta:patch
+    , moonlight-delta:repair
