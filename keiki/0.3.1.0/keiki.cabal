@@ -1,0 +1,163 @@
+cabal-version:   3.0
+name:            keiki
+version:         0.3.1.0
+synopsis:        Pure core for symbolic-register transducer event sourcing.
+description:
+  A Haskell library for the pure core of event sourcing, workflow
+  engines, and durable execution, built on the symbolic-register
+  finite-state transducer formalism (a hybrid of Symbolic Finite
+  Transducers and Streaming String Transducers).
+  .
+  Provides a typed register-file (@RegFile rs@), a deterministic
+  transducer DSL with eager builder validation and replay-safety
+  analyses, structured forward-decision and replay operations,
+  composition combinators (checked sequential, alternative,
+  single-step feedback), input- and output-side acceptors, generic
+  Mermaid renderers, and a GHC-upgrade-safe shape hash
+  (@Keiki.Shape@) for snapshot discrimination.
+  .
+  The library is intentionally codec-free: the pure layer talks
+  only typed Haskell values. JSON serialisation lives in the
+  sibling package @keiki-codec-json@; an opt-in test toolkit
+  lives in @keiki-codec-json-test@.
+
+license:         BSD-3-Clause
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+copyright:       2026 Nadeem Bitar
+category:        Control
+build-type:      Simple
+tested-with:     GHC >=9.12 && <9.13
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/shinzui/keiki.git
+
+common warnings
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+
+common shared-extensions
+  default-language:   GHC2024
+  default-extensions:
+    AllowAmbiguousTypes
+    DuplicateRecordFields
+    FunctionalDependencies
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+    UndecidableInstances
+
+-- The library's symbolic analyses (sat, isBot, isSingleValuedSym) are
+-- backed by SBV and require the z3 SMT solver to be available in PATH
+-- at runtime. Install via: brew install z3 (macOS) or apt install z3
+-- (Debian). The library will fail loudly if z3 is missing when those
+-- analyses run; pure evaluation (delta/omega/step/reconstitute) does
+-- not depend on z3.
+
+library
+  import:          warnings, shared-extensions
+  exposed-modules:
+    Keiki.Acceptor
+    Keiki.Builder
+    Keiki.Composition
+    Keiki.Core
+    Keiki.Generics
+    Keiki.Generics.TH
+    Keiki.Internal.Slots
+    Keiki.NoThunks
+    Keiki.Operators
+    Keiki.Profunctor
+    Keiki.Render.Inspector
+    Keiki.Render.Markdown
+    Keiki.Render.Mermaid
+    Keiki.Render.Pretty
+    Keiki.Render.Validate
+    Keiki.Shape
+    Keiki.Symbolic
+
+  hs-source-dirs:  src
+  build-depends:
+    , base               ^>=4.21
+    , bytestring         ^>=0.12
+    , containers         >=0.6   && <0.9
+    , cryptohash-sha256  ^>=0.11
+    , nothunks           >=0.3   && <0.4
+    , profunctors        >=5.6   && <6
+    , sbv                >=11.7  && <15
+    , template-haskell   ^>=2.23
+    , text               ^>=2.1
+    , time               ^>=1.14
+
+test-suite keiki-test
+  import:         warnings, shared-extensions
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Spec.hs
+  other-modules:
+    Keiki.AcceptorSpec
+    Keiki.ArrowSpec
+    Keiki.BuilderSpec
+    Keiki.BuilderSpike
+    Keiki.BuilderTypeErrorsSpec
+    Keiki.CategorySpec
+    Keiki.ChoiceSpec
+    Keiki.CollectionSpike
+    Keiki.CompositionAlignmentSpec
+    Keiki.CompositionAlternativeSpec
+    Keiki.CompositionFeedback1Spec
+    Keiki.CompositionHomomorphismSpec
+    Keiki.CompositionMultiEventSpec
+    Keiki.CompositionNarySpec
+    Keiki.CompositionSpec
+    Keiki.CompositionStatefulSpec
+    Keiki.CoreApplyEventsSpec
+    Keiki.CoreHiddenInputsGSMSpec
+    Keiki.CoreInFlightSpec
+    Keiki.CoreSpec
+    Keiki.Fixtures.BrokenTailCoverage
+    Keiki.Fixtures.ComposeStateful
+    Keiki.Fixtures.CounterPipeline
+    Keiki.Fixtures.EmailDelivery
+    Keiki.Fixtures.RegisterEmission
+    Keiki.Fixtures.SplitCoverage
+    Keiki.Fixtures.UserRegistration
+    Keiki.Generics.THSpec
+    Keiki.LawHelpers
+    Keiki.NoThunksSpec
+    Keiki.OperatorsQualifiedSpec
+    Keiki.OperatorsSpec
+    Keiki.ProfunctorSpec
+    Keiki.RecomputeVerifySpec
+    Keiki.Render.InspectorSpec
+    Keiki.Render.MarkdownSpec
+    Keiki.Render.MermaidSpec
+    Keiki.Render.PrettySpec
+    Keiki.Render.ValidateSpec
+    Keiki.ReplayEitherSpec
+    Keiki.ReplayOnlySpec
+    Keiki.RoundTrip
+    Keiki.RoundTripSpec
+    Keiki.ShapeSpec
+    Keiki.StepEitherSpec
+    Keiki.StrongSpec
+    Keiki.SymbolicSpec
+    Keiki.ValidationReplayAlignmentSpec
+    Keiki.ValidationSpec
+
+  build-depends:
+    , base         ^>=4.21
+    , containers   >=0.6   && <0.9
+    , deepseq      ^>=1.5
+    , hspec        ^>=2.11
+    , keiki
+    , nothunks     >=0.3   && <0.4
+    , profunctors  >=5.6   && <6
+    , QuickCheck   ^>=2.15
+    , sbv          >=11.7  && <15
+    , text         ^>=2.1
+    , time         ^>=1.14
