@@ -1,0 +1,107 @@
+cabal-version:   3.4
+name:            servant-health
+version:         0.1.0.0
+synopsis:
+  Kubernetes liveness and readiness probe endpoints for servant
+
+description:
+  Standard Kubernetes probe endpoints as a reusable servant surface: a fixed
+  probe wire type, typed 200/503 responses via MultiVerb, an injectable check
+  seam, and path constants. See the README for the fleet standard it encodes.
+
+license:         BSD-3-Clause
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+homepage:        https://github.com/shinzui/servant-health
+bug-reports:     https://github.com/shinzui/servant-health/issues
+category:        Web, Servant
+build-type:      Simple
+tested-with:     GHC ==9.12.4
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/shinzui/servant-health.git
+
+common common
+  default-language:   GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+  ghc-options:        -Wall -Werror=missing-fields -Werror=missing-methods
+
+library
+  import:          common
+  hs-source-dirs:  src
+  exposed-modules:
+    Servant.Health
+    Servant.Health.Check
+    Servant.Health.Paths
+
+  build-depends:
+    , aeson           >=2.2   && <2.4
+    , base            >=4.21  && <5
+    , bytestring      >=0.12  && <0.13
+    , openapi-hs      >=5.0   && <5.1
+    , servant         ^>=0.20
+    , servant-server  ^>=0.20
+    , sop-core        >=0.5   && <0.6
+    , text            >=2.1   && <2.2
+    , time            >=1.12  && <1.15
+
+-- The conformance kit consumers use to prove their own probe wiring. A public
+-- sublibrary rather than a separate package: one Hackage unit for a tiny
+-- surface, and consumers reference it only from test stanzas so production
+-- builds never acquire its tasty/warp dependencies.
+library testkit
+  import:          common
+  visibility:      public
+  hs-source-dirs:  testkit
+  exposed-modules: Servant.Health.TestKit
+  build-depends:
+    , aeson           >=2.2  && <2.4
+    , base            >=4.21 && <5
+    , bytestring      >=0.12 && <0.13
+    , http-client     >=0.7  && <0.8
+    , http-types      >=0.12 && <0.13
+    , servant-health
+    , tasty           >=1.4  && <1.6
+    , tasty-hunit     >=0.10 && <0.11
+    , text            >=2.1  && <2.2
+    , time            >=1.12 && <1.15
+    , wai             >=3.2  && <3.3
+    , warp            >=3.3  && <3.5
+
+test-suite servant-health-test
+  import:         common
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+
+  -- The round-trip tests run a real Warp server; Warp's timer manager
+  -- requires the threaded runtime.
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , aeson
+    , base
+    , bytestring
+    , http-client
+    , http-types
+    , openapi-hs
+    , servant
+    , servant-health
+    , servant-health:testkit
+    , servant-openapi-hs      >=5.1   && <5.2
+    , servant-server          ^>=0.20
+    , sop-core
+    , tasty
+    , tasty-hunit
+    , text
+    , time
+    , wai
+    , warp
