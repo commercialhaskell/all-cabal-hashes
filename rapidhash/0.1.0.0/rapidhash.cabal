@@ -1,0 +1,240 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.39.6.
+--
+-- see: https://github.com/sol/hpack
+
+name:           rapidhash
+version:        0.1.0.0
+synopsis:       rapidhash v3 - very fast, high-quality, non-cryptographic hashing
+description:    Zero-copy FFI bindings to rapidhash v3, a very fast, high-quality,
+                non-cryptographic hash. The upstream single-header C implementation is
+                vendored and ships with this package, so there is no system dependency.
+                .
+                The rapidhash algorithm itself is platform-independent. This package's
+                byte-oriented instances (Text, ByteString, ShortByteString, ByteArray)
+                produce stable, portable digests you can persist and compare across
+                machines; the element-typed Vector and PrimArray instances hash raw memory
+                as a fast path for large in-memory working sets and are not portable across
+                word width or endianness.
+                .
+                This is not a cryptographically secure hash. Use something else if you need cryptographic
+                security.
+                .
+                For more information, see the upstream repository: https://github.com/Nicoshev/rapidhash
+category:       Data
+homepage:       https://github.com/jtnuttall/lithon#readme
+bug-reports:    https://github.com/jtnuttall/lithon/issues
+author:         Jeremy Nuttall
+maintainer:     jeremy@jeremy-nuttall.com
+copyright:      (c) 2026 Jeremy Nuttall
+license:        BSD-3-Clause
+license-files:  LICENSE,
+                LICENSE_rapidhash
+build-type:     Simple
+tested-with:
+    GHC == 9.8.4
+  , GHC == 9.10.3
+  , GHC == 9.12.4
+extra-source-files:
+    cbits/rapidhash.h
+    cbits/rapidhash_ext.h
+    test/pin/pin.c
+    test/pin/rapidhash-v3-pin.txt
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/jtnuttall/lithon
+  subdir: rapidhash
+
+flag aeson
+  description: Include ToJSON/FromJSON and ToJSONKey/FromJSONKey instances.
+  manual: True
+  default: False
+
+flag llvm-bench
+  description: Builds the benchmarks with GHC's LLVM backend so its effect can be measured
+               on your hardware. Requires an LLVM toolchain matching your GHC's supported
+               window, and GHC >= 9.10 for -pgmlas.
+  manual: True
+  default: False
+
+flag optimize
+  description: Turns on optimizations. Right now, this means -O2 for GHC and -O3 for the C compiler.
+               .
+               Since the library is tiny, this shouldn't be too much trouble, but you can disable
+               this flag if it's slowing your builds too much.
+  manual: True
+  default: True
+
+library
+  exposed-modules:
+      Data.Hash.RapidHash
+      Data.Hash.RapidHash.Aeson
+      Data.Hash.RapidHash.Class
+      Data.Hash.RapidHash.FFI
+      Data.Hash.RapidHash.Types
+  other-modules:
+      Paths_rapidhash
+  autogen-modules:
+      Paths_rapidhash
+  hs-source-dirs:
+      src
+  default-extensions:
+      BlockArguments
+      DeriveAnyClass
+      DerivingStrategies
+      DerivingVia
+      DuplicateRecordFields
+      LambdaCase
+      NoFieldSelectors
+      OverloadedLabels
+      OverloadedRecordDot
+      RecordWildCards
+  ghc-options: -Wmissing-deriving-strategies -Wmissing-export-lists -Wredundant-constraints -Wall
+  include-dirs:
+      cbits
+  build-depends:
+      base >=4.19 && <4.22
+    , binary ==0.8.*
+    , bytestring ==0.12.*
+    , bytestring-lexing ==0.5.*
+    , hashable ==1.5.*
+    , primitive >=0.8 && <0.10
+    , text ==2.1.*
+    , text-builder-linear >=0.1.1 && <0.2
+    , vector ==0.13.*
+  default-language: GHC2021
+  if flag(optimize)
+    ghc-options: -O2
+    cc-options: -O3
+  if flag(aeson)
+    cpp-options: -DWANT_AESON
+    build-depends:
+        aeson >=2.2 && <2.4
+
+test-suite rapidhash-doctest
+  type: exitcode-stdio-1.0
+  main-is: Doctest.hs
+  other-modules:
+      Paths_rapidhash
+  autogen-modules:
+      Paths_rapidhash
+  hs-source-dirs:
+      doctest
+  default-extensions:
+      BlockArguments
+      DeriveAnyClass
+      DerivingStrategies
+      DerivingVia
+      DuplicateRecordFields
+      LambdaCase
+      NoFieldSelectors
+      OverloadedLabels
+      OverloadedRecordDot
+      RecordWildCards
+  ghc-options: -Wmissing-deriving-strategies -Wmissing-export-lists -Wredundant-constraints -Wall -threaded
+  include-dirs:
+      cbits
+  build-depends:
+      base >=4.19 && <4.22
+    , binary ==0.8.*
+    , bytestring ==0.12.*
+    , bytestring-lexing ==0.5.*
+    , doctest-parallel ==0.4.*
+    , hashable ==1.5.*
+    , primitive >=0.8 && <0.10
+    , rapidhash
+    , text ==2.1.*
+    , text-builder-linear >=0.1.1 && <0.2
+    , vector ==0.13.*
+  default-language: GHC2021
+
+test-suite rapidhash-test
+  type: exitcode-stdio-1.0
+  main-is: Driver.hs
+  other-modules:
+      RapidHashTest
+      Paths_rapidhash
+  autogen-modules:
+      Paths_rapidhash
+  hs-source-dirs:
+      test
+  default-extensions:
+      BlockArguments
+      DeriveAnyClass
+      DerivingStrategies
+      DerivingVia
+      DuplicateRecordFields
+      LambdaCase
+      NoFieldSelectors
+      OverloadedLabels
+      OverloadedRecordDot
+      RecordWildCards
+  ghc-options: -Wmissing-deriving-strategies -Wmissing-export-lists -Wredundant-constraints -Wall -Wno-missing-export-lists -threaded -rtsopts -with-rtsopts=-N
+  include-dirs:
+      cbits
+  build-tool-depends:
+      tasty-discover:tasty-discover ==5.2.*
+  build-depends:
+      base >=4.19 && <4.22
+    , binary ==0.8.*
+    , bytestring ==0.12.*
+    , bytestring-lexing ==0.5.*
+    , hashable ==1.5.*
+    , hedgehog ==1.7.*
+    , primitive >=0.8 && <0.10
+    , rapidhash
+    , tasty ==1.5.*
+    , tasty-hedgehog ==1.4.*
+    , tasty-hunit ==0.10.*
+    , text ==2.1.*
+    , text-builder-linear >=0.1.1 && <0.2
+    , vector ==0.13.*
+  default-language: GHC2021
+
+benchmark rapidhash-bench
+  type: exitcode-stdio-1.0
+  main-is: Bench.hs
+  other-modules:
+      Paths_rapidhash
+  autogen-modules:
+      Paths_rapidhash
+  hs-source-dirs:
+      bench
+  default-extensions:
+      BlockArguments
+      DeriveAnyClass
+      DerivingStrategies
+      DerivingVia
+      DuplicateRecordFields
+      LambdaCase
+      NoFieldSelectors
+      OverloadedLabels
+      OverloadedRecordDot
+      RecordWildCards
+  ghc-options: -Wmissing-deriving-strategies -Wmissing-export-lists -Wredundant-constraints -Wall -threaded -rtsopts "-with-rtsopts=-N -A32m -T" -O2
+  include-dirs:
+      cbits
+  build-depends:
+      base >=4.19 && <4.22
+    , binary ==0.8.*
+    , bytestring ==0.12.*
+    , bytestring-lexing ==0.5.*
+    , deepseq >=1.5 && <1.7
+    , hashable ==1.5.*
+    , murmur-hash ==0.1.*
+    , primitive >=0.8 && <0.10
+    , rapidhash
+    , tasty ==1.5.*
+    , tasty-bench ==0.5.*
+    , text ==2.1.*
+    , text-builder-linear >=0.1.1 && <0.2
+    , vector ==0.13.*
+    , xxhash-ffi ==0.3.*
+  default-language: GHC2021
+  if flag(llvm-bench)
+    ghc-options: -fllvm -pgmlo opt -pgmlc llc -pgmlas clang
