@@ -1,0 +1,108 @@
+cabal-version:      3.0
+name:               glean-hs
+version:            0.1.0
+synopsis:           Docker-free Haskell code indexing via Rust-native Glean substrate
+description:
+  glean-hs provides a native Rust reimplementation of Meta Glean's C++
+  dependency substrate (folly + RocksDB + fbthrift), enabling Haskell code
+  indexing without Docker on macOS, Linux, and Windows.
+
+homepage:           https://github.com/XF-Interchange/glean-hs
+bug-reports:        https://github.com/XF-Interchange/glean-hs/issues
+license:            MIT
+license-file:       LICENSE
+author:             XF-Interchange LLC
+maintainer:         dev@xf-interchange.ai
+copyright:          2026 XF-Interchange LLC
+category:           Development, Language
+build-type:         Simple
+extra-source-files: README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/XF-Interchange/glean-hs
+
+-- Common settings
+
+common common-options
+  default-language:   GHC2021
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wno-name-shadowing
+    -Wpartial-fields
+    -Wredundant-constraints
+
+-- Single library (avoids typeclass instance conflicts)
+
+library
+  import:           common-options
+  hs-source-dirs:   haskell/src
+  exposed-modules:
+    Glean.FFI
+    Glean.Storage
+    Glean.RocksDB
+    Glean.Indexer.HIE
+    Glean.Indexer.Types
+    Glean.Query
+
+  build-depends:
+    base                 >= 4.21.0 && < 4.22,
+    bytestring           >= 0.12.2 && < 0.13,
+    containers           >= 0.7    && < 0.8,
+    directory            >= 1.3.9  && < 1.4,
+    filepath             >= 1.5.4  && < 1.6,
+    ghc                  >= 9.12.2 && < 9.13,
+    hie-compat           >= 0.3.1  && < 0.4,
+    text                 >= 2.1.2  && < 2.2,
+    transformers         >= 0.6.1  && < 0.7,
+
+  -- Link against our Rust substrate
+  -- Run: cargo build --release  before  cabal build
+  -- Then create cabal.project.local with:
+  --   echo "package glean-hs" > cabal.project.local
+  --   echo "  extra-lib-dirs: $(pwd)/target/release" >> cabal.project.local
+  extra-libraries:  glean_hs
+
+-- Command-line tool
+
+executable glean-hs
+  import:           common-options
+  hs-source-dirs:   haskell/app
+  main-is:          Main.hs
+
+  build-depends:
+    base                 >= 4.21.0 && < 4.22,
+    optparse-applicative >= 0.19.0 && < 0.20,
+    text                 >= 2.1.2  && < 2.2,
+    glean-hs,
+
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+
+-- Tests
+
+test-suite glean-hs-test
+  import:           common-options
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   haskell/test
+  main-is:          Spec.hs
+  other-modules:
+    Test.FFI
+    Test.Storage
+    Test.Indexer
+
+  build-depends:
+    base                 >= 4.16 && < 5,
+    bytestring           >= 0.11,
+    text                 >= 2.0,
+    hspec                >= 2.10,
+    temporary            >= 1.3,
+    filepath             >= 1.4,
+    directory            >= 1.3,
+    glean-hs,
+
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
