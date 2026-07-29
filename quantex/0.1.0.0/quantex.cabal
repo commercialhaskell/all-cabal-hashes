@@ -1,0 +1,199 @@
+cabal-version:      3.4
+name:               quantex
+version:            0.1.0.0
+synopsis:           NIST post-quantum cryptography: ML-KEM, ML-DSA, SLH-DSA, X-Wing
+description:
+  Type-safe bindings to vendored C reference implementations (mlkem-native,
+  mldsa-native, slhdsa-c, Monocypher) of the NIST post-quantum standards:
+  ML-KEM (FIPS 203), ML-DSA (FIPS 204), SLH-DSA (FIPS 205), and the X-Wing
+  hybrid KEM.
+  Pure @Either@-based API, phantom-typed keys, deterministic seed-based
+  variants, zeroizing secret storage.
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             d3z
+maintainer:         d3z.the.dev@gmail.com
+copyright:          (c) 2026 d3z
+category:           Cryptography
+build-type:         Simple
+homepage:           https://github.com/d3z-the-dev/quantex
+bug-reports:        https://github.com/d3z-the-dev/quantex/issues
+extra-doc-files:
+  CHANGELOG.md
+  LICENSE.third-party
+  README.md
+
+extra-source-files:
+  cbits/README.md
+  cbits/mldsa-native/**/*.c
+  cbits/mldsa-native/**/*.h
+  cbits/mldsa-native/**/*.inc
+  cbits/mldsa-native/LICENSE
+  cbits/mlkem-native/**/*.c
+  cbits/mlkem-native/**/*.h
+  cbits/mlkem-native/**/*.inc
+  cbits/mlkem-native/LICENSE
+  cbits/monocypher/LICENCE.md
+  cbits/monocypher/monocypher.h
+  cbits/quantex_entropy.h
+  cbits/quantex_memory.h
+  cbits/quantex_prehash.h
+  cbits/quantex_xwing.h
+  cbits/slhdsa-c/*.h
+  cbits/slhdsa-c/LICENSE
+  test/vectors/README.md
+  test/vectors/acvp/*.json
+  test/vectors/xwing/*.json
+
+tested-with:
+  GHC ==9.10.3 || ==9.12.4 || ==9.14.1
+
+source-repository head
+  type:     git
+  location: https://github.com/d3z-the-dev/quantex
+
+common warnings
+  default-extensions: DerivingStrategies
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+    -Wunused-packages -Werror=missing-export-lists
+
+-- Unstable internals: raw constructors bypass length invariants the C side needs,
+-- so they are visible only to the in-package test-suite and benchmark.
+library quantex-internal
+  import:           warnings
+  visibility:       private
+  default-language: GHC2021
+  hs-source-dirs:   internal
+  exposed-modules:
+    Quantex.Error
+    Quantex.Internal.Bytes
+    Quantex.Internal.Impossible
+    Quantex.Internal.KEM
+    Quantex.Internal.MLDSA
+    Quantex.Internal.MLKEM
+    Quantex.Internal.Prehash
+    Quantex.Internal.SLHDSA
+    Quantex.Internal.Sign
+    Quantex.Internal.Validation
+    Quantex.Internal.XWing
+    Quantex.Random
+    Quantex.Scheme
+    Quantex.Scheme.MLDSA
+    Quantex.Scheme.MLKEM
+    Quantex.Scheme.SLHDSA
+    Quantex.Scheme.XWing
+
+  build-depends:
+    , base        >=4.20 && <4.23
+    , bytestring  >=0.12 && <0.13
+    , deepseq     >=1.4  && <1.7
+
+  include-dirs:
+    cbits
+    cbits/mldsa-native
+    cbits/mldsa-native/mldsa_native
+    cbits/mlkem-native
+    cbits/mlkem-native/mlkem_native
+    cbits/slhdsa-c
+
+  c-sources:
+    cbits/mldsa-native/mldsa_native_all.c
+    cbits/mlkem-native/mlkem_native_all.c
+    cbits/monocypher/monocypher.c
+    cbits/quantex_assert.c
+    cbits/quantex_entropy.c
+    cbits/quantex_memory.c
+    cbits/quantex_prehash.c
+    cbits/quantex_xwing.c
+    cbits/slhdsa-c/sha2_256.c
+    cbits/slhdsa-c/sha2_512.c
+    cbits/slhdsa-c/sha3_api.c
+    cbits/slhdsa-c/sha3_f1600.c
+    cbits/slhdsa-c/slh_dsa.c
+    cbits/slhdsa-c/slh_sha2.c
+    cbits/slhdsa-c/slh_shake.c
+
+  if os(windows)
+    extra-libraries: bcrypt
+
+library
+  import:           warnings
+  default-language: GHC2021
+  hs-source-dirs:   src
+  exposed-modules:
+    Quantex.Codec
+    Quantex.KEM
+    Quantex.KEM.MLKEM
+    Quantex.KEM.XWing
+    Quantex.Sign
+    Quantex.Sign.MLDSA
+    Quantex.Sign.Prehash
+    Quantex.Sign.SLHDSA
+
+  reexported-modules:
+    Quantex.Error,
+    Quantex.Random,
+    Quantex.Scheme,
+    Quantex.Scheme.MLDSA,
+    Quantex.Scheme.MLKEM,
+    Quantex.Scheme.SLHDSA,
+    Quantex.Scheme.XWing
+
+  build-depends:
+    , base                     >=4.20 && <4.23
+    , bytestring               >=0.12 && <0.13
+    , quantex:quantex-internal
+
+test-suite quantex-test
+  import:           warnings
+  default-language: GHC2021
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  other-modules:
+    ACVP
+    Codec
+    Errors
+    Hex
+    Keys
+    Labels
+    MLDSA
+    MLKEM
+    Prehash
+    SLHDSA
+    Scheme
+    Sizes
+    Smoke
+    Support
+    Values
+    Vectors
+    XWing
+
+  build-depends:
+    , aeson                    >=2.2
+    , base
+    , bytestring
+    , quantex
+    , quantex:quantex-internal
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+
+benchmark quantex-bench
+  import:           warnings
+  default-language: GHC2021
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          Main.hs
+  build-depends:
+    , base
+    , bytestring
+    , quantex
+    , quantex:quantex-internal
+    , tasty-bench
+
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N
