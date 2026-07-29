@@ -1,0 +1,742 @@
+cabal-version:   3.0
+name:            keiro-dsl
+version:         0.4.0.1
+synopsis:        Typed specification toolchain for keiro services
+description:
+  keiro-dsl is the toolchain over a typed `.keiro` specification of a keiro
+  service: a parser + checker + scaffolder + harness emitter. It emits the
+  symbol-free deterministic layer plus typed holes, never a keiki symbolic
+  operator (the firewall invariant).
+
+license:         BSD-3-Clause
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+copyright:       2026 Nadeem Bitar
+category:        Development
+build-type:      Simple
+tested-with:     GHC >=9.12 && <9.13
+extra-doc-files: CHANGELOG.md
+
+common warnings
+  ghc-options: -Wall -Werror=missing-fields
+
+common shared
+  default-language:   GHC2024
+  default-extensions:
+    DuplicateRecordFields
+    LambdaCase
+    OverloadedStrings
+
+library
+  import:          warnings, shared
+  hs-source-dirs:  src
+  exposed-modules:
+    Keiro.Dsl.CodecCompare
+    Keiro.Dsl.Coverage
+    Keiro.Dsl.Diff
+    Keiro.Dsl.DiffReport
+    Keiro.Dsl.ExplainBindings
+    Keiro.Dsl.FoldFingerprint
+    Keiro.Dsl.Goldens
+    Keiro.Dsl.Grammar
+    Keiro.Dsl.Harness
+    Keiro.Dsl.Manifest
+    Keiro.Dsl.MappedConsumer
+    Keiro.Dsl.MappedDiff
+    Keiro.Dsl.Parser
+    Keiro.Dsl.PrettyPrint
+    Keiro.Dsl.ReadModelShape
+    Keiro.Dsl.ReplayImpact
+    Keiro.Dsl.Scaffold
+    Keiro.Dsl.ScaffoldRecord
+    Keiro.Dsl.ScaffoldRun
+    Keiro.Dsl.Skeleton
+    Keiro.Dsl.TypeGraph
+    Keiro.Dsl.Validate
+
+  build-depends:
+    , aeson               >=2.2.1 && <2.3
+    , base                >=4.21  && <5
+    , bytestring          >=0.12  && <0.13
+    , containers          >=0.6   && <0.8
+    , directory           >=1.3   && <1.4
+    , filepath            >=1.4   && <1.6
+    , megaparsec          >=9.6   && <9.9
+    , parser-combinators  >=1.3   && <1.4
+    , prettyprinter       >=1.7   && <1.8
+    , text                >=2.1   && <2.2
+
+executable keiro-dsl
+  import:         warnings, shared
+  hs-source-dirs: app
+  main-is:        Main.hs
+  build-depends:
+    , aeson                 >=2.2  && <2.3
+    , base                  >=4.21 && <5
+    , directory             >=1.3  && <1.4
+    , filepath              >=1.4  && <1.6
+    , keiro-dsl
+    , optparse-applicative  >=0.18 && <0.20
+    , process               >=1.6  && <1.7
+    , text                  >=2.1  && <2.2
+
+test-suite keiro-dsl-test
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  build-depends:
+    , aeson       >=2.2  && <2.3
+    , base        >=4.21 && <5
+    , containers  >=0.6  && <0.8
+    , directory   >=1.3  && <1.4
+    , filepath    >=1.4  && <1.6
+    , hspec       >=2.11
+    , keiro-core
+    , keiro-dsl
+    , process     >=1.6  && <1.7
+    , QuickCheck  >=2.14
+    , text        >=2.1  && <2.2
+
+-- Conformance: proves the scaffolded Generated modules plus a hand-filled
+-- Holes.hs compile against keiki/keiro and that the filled transducer passes
+-- keiki's validator and the codec round-trips. The Generated.* modules under
+-- test/conformance/ are byte-identical to `keiro-dsl scaffold` output (pinned
+-- by the scaffold-conformance test in keiro-dsl-test).
+test-suite keiro-dsl-conformance
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance
+  main-is:        Main.hs
+  other-modules:
+    Generated.HospitalCapacity.ReplayAudit
+    Generated.HospitalCapacity.Reservation.Codec
+    Generated.HospitalCapacity.Reservation.Domain
+    Generated.HospitalCapacity.Reservation.EventStream
+    Generated.HospitalCapacity.Reservation.Harness
+    Generated.HospitalCapacity.Reservation.Projection
+    HospitalCapacity.Reservation.Holes
+
+  build-depends:
+    , aeson  >=2.2  && <2.3
+    , base   >=4.21 && <5
+    , keiki  >=0.4  && <0.5
+    , keiro
+    , text   >=2.1  && <2.2
+
+-- Plan 150 / IR-1: compiled structural consumer bindings, declared-wire
+-- codecs, generated projection witnesses, opaque boundaries, fixture branch
+-- coverage, current payload goldens, and mapped-register replay equality.
+test-suite keiro-dsl-conformance-structural
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-structural
+  main-is:        Main.hs
+  other-modules:
+    Conformance.Structural.Bindings
+    Conformance.Structural.Domain
+    Generated.StructuralConformance.ArtifactCatalog.Codec
+    Generated.StructuralConformance.ArtifactCatalog.Domain
+    Generated.StructuralConformance.ArtifactCatalog.EventStream
+    Generated.StructuralConformance.ArtifactCatalog.Harness
+    Generated.StructuralConformance.ArtifactCatalog.Projection
+    Generated.StructuralConformance.ReplayAudit
+    Generated.StructuralConformance.Structural.Shape.ArtifactInfo
+    Generated.StructuralConformance.Structural.Shape.ArtifactKind
+    Generated.StructuralConformance.Structural.Shape.ArtifactLocation
+    Generated.StructuralConformance.Structural.Shape.ArtifactMetadata
+    Generated.StructuralConformance.StructuralProjections
+    StructuralConformance.ArtifactCatalog.Holes
+
+  build-depends:
+    , aeson       >=2.2  && <2.3
+    , base        >=4.21 && <5
+    , bytestring  >=0.12 && <0.13
+    , containers  >=0.6  && <0.8
+    , deepseq     >=1.5  && <1.6
+    , keiki       >=0.4  && <0.5
+    , keiro
+    , text        >=2.1  && <2.2
+    , time        >=1.12 && <1.15
+
+-- Plan 152 / Experiment B: a consumer-owned historical codec and finite JSON
+-- corpus compared with the generated structural codec. The comparison module
+-- is opt-in tooling output and is not part of the production scaffold record.
+test-suite keiro-dsl-conformance-codec-compare
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs:
+    test/conformance-codec-compare test/conformance-structural
+
+  main-is:        Main.hs
+  other-modules:
+    Conformance.CodecCompare.Historical
+    Conformance.Structural.Bindings
+    Conformance.Structural.Domain
+    Generated.StructuralConformance.ArtifactCatalog.Codec
+    Generated.StructuralConformance.ArtifactCatalog.Domain
+    Generated.StructuralConformance.Structural.CodecCompare.ArtifactInfo
+    Generated.StructuralConformance.Structural.Shape.ArtifactInfo
+    Generated.StructuralConformance.Structural.Shape.ArtifactKind
+    Generated.StructuralConformance.Structural.Shape.ArtifactLocation
+    Generated.StructuralConformance.Structural.Shape.ArtifactMetadata
+
+  build-depends:
+    , aeson       >=2.2.1 && <2.3
+    , base        >=4.21  && <5
+    , containers  >=0.6   && <0.8
+    , deepseq     >=1.5   && <1.6
+    , directory   >=1.3   && <1.4
+    , filepath    >=1.4   && <1.6
+    , keiki       >=0.4   && <0.5
+    , keiro
+    , keiro-dsl
+    , text        >=2.1   && <2.2
+
+-- Plan 147 M2: a dedicated honest-wire baseline plus a dormant idempotent
+-- dishonest WireCtor used by replay-mutation-test.sh to prove that generated
+-- forward/replay register comparisons catch state divergence missed by the
+-- pre-existing validator, codec round-trip, and accept assertions.
+test-suite keiro-dsl-conformance-replay
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-replay
+  main-is:        Main.hs
+  other-modules:
+    Generated.ReplayDivergence.Note.Codec
+    Generated.ReplayDivergence.Note.Domain
+    Generated.ReplayDivergence.Note.EventStream
+    Generated.ReplayDivergence.Note.Harness
+    Generated.ReplayDivergence.Note.Projection
+    Generated.ReplayDivergence.ReplayAudit
+    ReplayDivergence.Note.Holes
+
+  build-depends:
+    , aeson  >=2.2  && <2.3
+    , base   >=4.21 && <5
+    , keiki  >=0.4  && <0.5
+    , keiro
+    , text   >=2.1  && <2.2
+
+benchmark keiro-dsl-codec-bench
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: bench/structural-codec test/conformance-structural
+  main-is:        Main.hs
+  other-modules:
+    Conformance.Structural.Bindings
+    Conformance.Structural.Domain
+    Generated.StructuralConformance.ArtifactCatalog.Codec
+    Generated.StructuralConformance.ArtifactCatalog.Domain
+    Generated.StructuralConformance.Structural.Shape.ArtifactInfo
+    Generated.StructuralConformance.Structural.Shape.ArtifactKind
+    Generated.StructuralConformance.Structural.Shape.ArtifactLocation
+    Generated.StructuralConformance.Structural.Shape.ArtifactMetadata
+
+  build-depends:
+    , aeson        >=2.2  && <2.3
+    , base         >=4.21 && <5
+    , containers   >=0.6  && <0.8
+    , deepseq      >=1.5  && <1.6
+    , keiki        >=0.4  && <0.5
+    , keiro
+    , tasty-bench  >=0.5  && <0.6
+    , text         >=2.1  && <2.2
+    , time         >=1.12 && <1.15
+
+-- EP-109 M2: snapshot-enabled aggregate scaffolding compiled against the live
+-- defaultStateCodec and stream-construction guards, with the captured codec
+-- identity checked against keiki's regFileShapeHash.
+test-suite keiro-dsl-conformance-snapshot
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-snapshot
+  main-is:        Main.hs
+  other-modules:
+    Generated.HospitalCapacity.ReplayAudit
+    Generated.HospitalCapacity.Reservation.Codec
+    Generated.HospitalCapacity.Reservation.Domain
+    Generated.HospitalCapacity.Reservation.EventStream
+    HospitalCapacity.Reservation.Holes
+
+  build-depends:
+    , aeson  >=2.2  && <2.3
+    , base   >=4.21 && <5
+    , keiki  >=0.4  && <0.5
+    , keiro
+    , text   >=2.1  && <2.2
+
+-- EP-106 M6: every distinct `new <kind>` skeleton is scaffolded into this
+-- committed tree. Compiling the union proves a starter that passes `check`
+-- cannot emit syntactically or type-invalid Haskell.
+test-suite keiro-dsl-conformance-skeletons
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-skeletons
+  main-is:        Main.hs
+  other-modules:
+    SkelAggregate.Generated.MyService.ReplayAudit
+    SkelAggregate.Generated.MyService.Thing.Codec
+    SkelAggregate.Generated.MyService.Thing.Domain
+    SkelAggregate.Generated.MyService.Thing.EventStream
+    SkelAggregate.Generated.MyService.Thing.Harness
+    SkelAggregate.Generated.MyService.Thing.Projection
+    SkelAggregate.MyService.Thing.Holes
+    SkelContract.Generated.MyService.MyContract.Contract
+    SkelEmit.Generated.MyService.MyContract.Contract
+    SkelEmit.Generated.MyService.ThingPublisher.Publisher
+    SkelIntake.Generated.MyService.MyContract.Contract
+    SkelIntake.Generated.MyService.ThingInbox.Inbox
+    SkelProcess.Generated.MyService.Hospital.Codec
+    SkelProcess.Generated.MyService.Hospital.Domain
+    SkelProcess.Generated.MyService.Hospital.EventStream
+    SkelProcess.Generated.MyService.Hospital.Harness
+    SkelProcess.Generated.MyService.Hospital.Projection
+    SkelProcess.Generated.MyService.HospitalSurge.Process
+    SkelProcess.Generated.MyService.HospitalSurge.ProcessHarness
+    SkelProcess.Generated.MyService.ReplayAudit
+    SkelProcess.Generated.MyService.Surge.Codec
+    SkelProcess.Generated.MyService.Surge.Domain
+    SkelProcess.Generated.MyService.Surge.EventStream
+    SkelProcess.Generated.MyService.Surge.Harness
+    SkelProcess.Generated.MyService.Surge.Projection
+    SkelProcess.MyService.Hospital.Holes
+    SkelProcess.MyService.HospitalSurge.ProcessHoles
+    SkelProcess.MyService.Surge.Holes
+    SkelQueue.Generated.MyService.Accepted_transfer_needs.ReadModel
+    SkelQueue.Generated.MyService.Accepted_transfer_needs.ReadModelHarness
+    SkelQueue.Generated.MyService.Accepted_transfer_needs.ReadModelTable
+    SkelQueue.Generated.MyService.Reservation_work.Queue
+    SkelQueue.Generated.MyService.Reservation_work.QueueCodec
+    SkelQueue.Generated.MyService.Reservation_work.QueuePolicy
+    SkelQueue.Generated.MyService.Transfer_decisions.ReadModel
+    SkelQueue.Generated.MyService.Transfer_decisions.ReadModelHarness
+    SkelQueue.Generated.MyService.Transfer_decisions.ReadModelTable
+    SkelQueue.MyService.Accepted_transfer_needs.ReadModelHoles
+    SkelQueue.MyService.Transfer_decisions.ReadModelHoles
+    SkelRouter.Generated.MyService.Page.Codec
+    SkelRouter.Generated.MyService.Page.Domain
+    SkelRouter.Generated.MyService.Page.EventStream
+    SkelRouter.Generated.MyService.Page.Harness
+    SkelRouter.Generated.MyService.Page.Projection
+    SkelRouter.Generated.MyService.PagingRouter.Router
+    SkelRouter.Generated.MyService.PagingRouter.RouterHarness
+    SkelRouter.Generated.MyService.ReplayAudit
+    SkelRouter.MyService.Page.Holes
+    SkelRouter.MyService.PagingRouter.RouterHoles
+    SkelWorkflow.Generated.MyService.HospitalTransferReservation.WorkflowFacts
+    SkelWorkflow.Generated.MyService.HospitalTransferReservation.WorkflowRuntime
+
+  build-depends:
+    , aeson              >=2.2  && <2.3
+    , base               >=4.21 && <5
+    , containers
+    , effectful-core
+    , hasql-transaction
+    , keiki              >=0.4  && <0.5
+    , keiro
+    , keiro-core
+    , keiro-pgmq
+    , kiroku-store
+    , shibuya-core
+    , text               >=2.1  && <2.2
+    , time
+    , uuid
+
+-- EP-7 cold-start: a fresh `subscription` aggregate authored from only the skill
+-- notation, scaffolded + hand-filled, compiling against keiki/keiro with a green
+-- spec-derived harness — proof the authoring loop closes on a non-corpus spec.
+test-suite keiro-dsl-conformance-coldstart
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-coldstart
+  main-is:        Main.hs
+  other-modules:
+    Billing.Subscription.Holes
+    Generated.Billing.ReplayAudit
+    Generated.Billing.Subscription.Codec
+    Generated.Billing.Subscription.Domain
+    Generated.Billing.Subscription.EventStream
+    Generated.Billing.Subscription.Harness
+    Generated.Billing.Subscription.Projection
+
+  build-depends:
+    , aeson  >=2.2  && <2.3
+    , base   >=4.21 && <5
+    , keiki  >=0.4  && <0.5
+    , keiro
+    , text   >=2.1  && <2.2
+
+-- Contract codec conformance (EP-4): the scaffolded self-contained contract
+-- payload ADT + codec, compiled + round-tripped per event type.
+test-suite keiro-dsl-conformance-contract
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-contract
+  main-is:        Main.hs
+  other-modules:  Generated.HospitalCapacity.Emergency.Contract
+  build-depends:
+    , aeson  >=2.2  && <2.3
+    , base   >=4.21 && <5
+    , text   >=2.1  && <2.2
+
+-- EP-4 intake runtime conformance: the scaffolded Inbox disposition + dedupe
+-- policy compiled against the LIVE Keiro.Inbox.Types (InboxResult / dedupe).
+test-suite keiro-dsl-conformance-intake-runtime
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-intake-runtime
+  main-is:        Main.hs
+  other-modules:  Generated.HospitalCapacity.IncidentInbox.Inbox
+  build-depends:
+    , base   >=4.21 && <5
+    , keiro
+
+-- EP-4 M5 full-service conformance: a complete integration service — scaffolded
+-- inbox dedupe + a filled inbox transaction runner and outbox IntegrationProducer
+-- — compiled against the live keiro runtime (Inbox / Outbox / Kiroku.Store).
+test-suite keiro-dsl-conformance-intake-full
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-intake-full
+  main-is:        Main.hs
+  other-modules:
+    Generated.HospitalCapacity.IncidentInbox.Inbox
+    HospitalCapacity.IncidentInbox.Integration
+
+  build-depends:
+    , base               >=4.21 && <5
+    , effectful-core
+    , hasql-transaction
+    , keiro
+    , kiroku-store       >=0.3  && <0.4
+
+-- EP-4 publisher runtime conformance: the scaffolded Publisher config compiled
+-- against the LIVE Keiro.Outbox.Types (OrderingPolicy / BackoffSchedule).
+test-suite keiro-dsl-conformance-publisher-runtime
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-publisher-runtime
+  main-is:        Main.hs
+  other-modules:  Generated.HospitalCapacity.HospitalPublisher.Publisher
+  build-depends:
+    , base   >=4.21 && <5
+    , keiro
+
+-- pgmq Job codec conformance (EP-5): the scaffolded self-contained Job payload
+-- record + field->wire codec, compiled + round-tripped.
+test-suite keiro-dsl-conformance-queue
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-queue
+  main-is:        Main.hs
+  other-modules:
+    Generated.HospitalCapacity.Reservation_work.Queue
+    Generated.HospitalCapacity.Reservation_work.QueueCodec
+
+  build-depends:
+    , aeson       >=2.2  && <2.3
+    , base        >=4.21 && <5
+    , keiro-core
+    , keiro-pgmq
+    , text        >=2.1  && <2.2
+
+-- EP-5 pgmq runtime conformance: the scaffolded QueuePolicy (RetryPolicy +
+-- JobOutcome disposition) compiled against the LIVE Keiro.PGMQ.Job runtime.
+test-suite keiro-dsl-conformance-queue-runtime
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-queue-runtime
+  main-is:        Main.hs
+  other-modules:
+    Generated.HospitalCapacity.Reservation_work.Queue
+    Generated.HospitalCapacity.Reservation_work.QueueCodec
+    Generated.HospitalCapacity.Reservation_work.QueuePolicy
+
+  build-depends:
+    , aeson        >=2.2  && <2.3
+    , base         >=4.21 && <5
+    , keiro-core
+    , keiro-dsl
+    , keiro-pgmq
+    , pgmq-config
+    , pgmq-core
+    , text         >=2.1  && <2.2
+
+-- EP-107 read-model runtime conformance: the scaffolded ReadModel record,
+-- registration/rebuild helpers, AsyncProjection, facts harness, and a filled
+-- qualified-table query compiled against the live Keiro.ReadModel API.
+test-suite keiro-dsl-conformance-readmodel-runtime
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-readmodel-runtime
+  main-is:        Main.hs
+  other-modules:
+    Generated.HospitalCapacity.Transfer_decisions.ReadModel
+    Generated.HospitalCapacity.Transfer_decisions.ReadModelHarness
+    Generated.HospitalCapacity.Transfer_decisions.ReadModelTable
+    HospitalCapacity.Transfer_decisions.ReadModelHoles
+
+  build-depends:
+    , base               >=4.21 && <5
+    , effectful-core
+    , hasql-transaction
+    , keiro
+    , kiroku-store
+    , text               >=2.1  && <2.2
+
+-- EP-5 M5 full-service conformance: a complete pgmq dispatch service — scaffolded
+-- Job codec + retry policy + a filled worker handler assembled into a live
+-- Keiro.PGMQ.Job.Job value — compiled against keiro-pgmq.
+test-suite keiro-dsl-conformance-dispatch-full
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-dispatch-full
+  main-is:        Main.hs
+  other-modules:
+    Generated.HospitalCapacity.Reservation_work.Queue
+    Generated.HospitalCapacity.Reservation_work.QueueCodec
+    Generated.HospitalCapacity.Reservation_work.QueuePolicy
+    HospitalCapacity.ReservationWork.WorkqueueJob
+
+  build-depends:
+    , aeson           >=2.2  && <2.3
+    , base            >=4.21 && <5
+    , effectful-core
+    , keiro-core
+    , keiro-pgmq
+    , text            >=2.1  && <2.2
+
+-- Workflow facts harness (EP-6): the scaffolded self-contained WorkflowFacts
+-- module asserted against a hand-written expectation (mutation-pinnable).
+test-suite keiro-dsl-conformance-workflow
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-workflow
+  main-is:        Main.hs
+  other-modules:
+    Generated.HospitalCapacity.HospitalTransferReservation.WorkflowFacts
+
+  build-depends:  base >=4.21 && <5
+
+-- EP-6 workflow runtime conformance: the scaffolded WorkflowRuntime
+-- (WorkflowName + awakeable-id derivation) compiled against the LIVE
+-- Keiro.Workflow; pins the await<->signal id match over deterministicAwakeableId.
+test-suite keiro-dsl-conformance-workflow-runtime
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-workflow-runtime
+  main-is:        Main.hs
+  other-modules:
+    Generated.HospitalCapacity.HospitalTransferReservation.WorkflowRuntime
+
+  build-depends:
+    , base        >=4.21 && <5
+    , containers
+    , keiro
+    , text        >=2.1  && <2.2
+
+-- EP-3 M5 full-service conformance: a complete process service — the scaffolded
+-- Surge (saga) + Hospital (target) aggregates with filled transducers, plus a
+-- filled ProcessManager handle — compiled against the live keiro/keiki runtime.
+test-suite keiro-dsl-conformance-process-full
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-process-full
+  main-is:        Main.hs
+  other-modules:
+    Generated.SurgeDemo.Hospital.Codec
+    Generated.SurgeDemo.Hospital.Domain
+    Generated.SurgeDemo.Hospital.EventStream
+    Generated.SurgeDemo.Hospital.Projection
+    Generated.SurgeDemo.ReplayAudit
+    Generated.SurgeDemo.Surge.Codec
+    Generated.SurgeDemo.Surge.Domain
+    Generated.SurgeDemo.Surge.EventStream
+    Generated.SurgeDemo.Surge.Projection
+    Generated.SurgeDemo.SurgeFlow.Process
+    SurgeDemo.Hospital.Holes
+    SurgeDemo.Surge.Holes
+    SurgeDemo.SurgeFlow.Manager
+
+  build-depends:
+    , aeson         >=2.2  && <2.3
+    , base          >=4.21 && <5
+    , keiki         >=0.4  && <0.5
+    , keiro
+    , shibuya-core
+    , text          >=2.1  && <2.2
+    , time          >=1.12 && <1.15
+    , uuid          >=1.3  && <1.4
+
+-- EP-6 M5 full-service conformance: a complete durable workflow — scaffolded
+-- WorkflowRuntime + a filled ordered step/await body — compiled against the
+-- live Keiro.Workflow effect.
+test-suite keiro-dsl-conformance-workflow-full
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-workflow-full
+  main-is:        Main.hs
+  other-modules:
+    Generated.HospitalCapacity.HospitalTransferReservation.WorkflowRuntime
+    HospitalCapacity.HospitalTransferReservation.WorkflowBody
+
+  build-depends:
+    , aeson           >=2.2  && <2.3
+    , base            >=4.21 && <5
+    , containers
+    , effectful-core
+    , keiro
+    , text            >=2.1  && <2.2
+
+-- EP-3 process runtime conformance: the scaffolded Process module's
+-- deterministic wiring (timer-request builder + fire disposition) compiled
+-- against the LIVE keiro runtime (Keiro.Timer / Keiro.Command), not just text.
+test-suite keiro-dsl-conformance-process-runtime
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-process-runtime
+  main-is:        Main.hs
+  other-modules:  Generated.HospitalCapacity.HospitalSurge.Process
+  build-depends:
+    , aeson         >=2.2  && <2.3
+    , base          >=4.21 && <5
+    , keiro
+    , keiro-dsl
+    , shibuya-core
+    , text          >=2.1  && <2.2
+    , time          >=1.12 && <1.15
+    , uuid          >=1.3  && <1.4
+
+-- EP-108 router runtime conformance: generated policy lowering and the live
+-- target-keyed deterministic id contract.
+test-suite keiro-dsl-conformance-router-runtime
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-router-runtime
+  main-is:        Main.hs
+  other-modules:
+    Generated.IncidentPaging.PagingRouter.Router
+    Generated.IncidentPaging.PagingRouter.RouterHarness
+
+  build-depends:
+    , base          >=4.21 && <5
+    , keiro
+    , kiroku-store
+    , shibuya-core
+    , text          >=2.1  && <2.2
+    , uuid          >=1.3  && <1.4
+
+-- EP-108 generated router-facts harness with hand-written expectations.
+test-suite keiro-dsl-conformance-router
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-router
+  main-is:        Main.hs
+  other-modules:  Generated.IncidentPaging.PagingRouter.RouterHarness
+  build-depends:  base >=4.21 && <5
+
+-- EP-108 filled-router conformance: scaffolded Page aggregate plus a filled
+-- resolver and Router value compiled against the live API.
+test-suite keiro-dsl-conformance-router-full
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-router-full
+  main-is:        Main.hs
+  other-modules:
+    Generated.IncidentPaging.Page.Codec
+    Generated.IncidentPaging.Page.Domain
+    Generated.IncidentPaging.Page.EventStream
+    Generated.IncidentPaging.PagingRouter.Router
+    Generated.IncidentPaging.PagingRouter.RouterHarness
+    Generated.IncidentPaging.ReplayAudit
+    IncidentPaging.Page.Holes
+    IncidentPaging.PagingRouter.RouterValue
+
+  build-depends:
+    , aeson           >=2.2  && <2.3
+    , base            >=4.21 && <5
+    , effectful-core
+    , keiki           >=0.4  && <0.5
+    , keiro
+    , shibuya-core
+    , text            >=2.1  && <2.2
+
+-- MP-15/EP-110 M6 cold-start: a fresh agent, given only the authoring skill
+-- and feature sentence, produced this aggregate + readmodel + router service.
+-- The component compiles generated output and hand-owned fills together and
+-- runs the aggregate, readmodel, router-policy, and live Router assertions.
+test-suite keiro-dsl-conformance-newsurface
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-newsurface
+  main-is:        Main.hs
+  other-modules:
+    Generated.TransferRouting.Hospital.Codec
+    Generated.TransferRouting.Hospital.Domain
+    Generated.TransferRouting.Hospital.EventStream
+    Generated.TransferRouting.Hospital.Harness
+    Generated.TransferRouting.Hospital.Projection
+    Generated.TransferRouting.Hospital_load.ReadModel
+    Generated.TransferRouting.Hospital_load.ReadModelHarness
+    Generated.TransferRouting.Hospital_load.ReadModelTable
+    Generated.TransferRouting.HospitalTransferRouter.Router
+    Generated.TransferRouting.HospitalTransferRouter.RouterHarness
+    Generated.TransferRouting.ReplayAudit
+    TransferRouting.Hospital.Holes
+    TransferRouting.Hospital_load.ReadModelHoles
+    TransferRouting.HospitalTransferRouter.RouterHoles
+    TransferRouting.HospitalTransferRouter.RouterValue
+
+  build-depends:
+    , aeson              >=2.2  && <2.3
+    , base               >=4.21 && <5
+    , effectful-core
+    , hasql-transaction
+    , keiki              >=0.4  && <0.5
+    , keiro
+    , kiroku-store
+    , shibuya-core
+    , text               >=2.1  && <2.2
+
+-- Process-manager facts harness (EP-3 M4): the self-contained, firewall-clean
+-- ProcessHarness module scaffolded from hospital-surge.keiro, compiled + run to
+-- prove the scaffolder lowered the spec's deterministic process/timer decisions
+-- faithfully. (The runtime-coupled Process/ProcessHoles modules are emitted to
+-- disk but not in this component; their live conformance is the M5 step.)
+test-suite keiro-dsl-conformance-process
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-process
+  main-is:        Main.hs
+  other-modules:  Generated.HospitalCapacity.HospitalSurge.ProcessHarness
+  build-depends:
+    , base  >=4.21 && <5
+    , text  >=2.1  && <2.2
+
+-- Conformance for the evolved (v2) Reservation aggregate: proves the scaffolded
+-- Codec schemaVersion=2 + upcasters wiring compiles and that the filled upcaster
+-- migrates a v1-tagged payload through the chain (the harness "upcaster wired"
+-- assertion). These sources are raw `keiro-dsl scaffold` output of
+-- reservation-v2.keiro plus a hand-filled Holes.hs.
+test-suite keiro-dsl-conformance-v2
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test/conformance-v2
+  main-is:        Main.hs
+  other-modules:
+    Generated.HospitalCapacity.ReplayAudit
+    Generated.HospitalCapacity.Reservation.Codec
+    Generated.HospitalCapacity.Reservation.Domain
+    Generated.HospitalCapacity.Reservation.EventStream
+    Generated.HospitalCapacity.Reservation.Harness
+    Generated.HospitalCapacity.Reservation.Projection
+    HospitalCapacity.Reservation.Holes
+
+  build-depends:
+    , aeson      >=2.2  && <2.3
+    , base       >=4.21 && <5
+    , directory  >=1.3  && <1.4
+    , keiki      >=0.4  && <0.5
+    , keiro
+    , text       >=2.1  && <2.2
