@@ -1,0 +1,132 @@
+cabal-version:      3.0
+name:               keiki-codec-json
+version:            0.6.0.0
+synopsis:           Optional JSON codec for keiki's RegFile.
+description:
+  Sibling package to keiki providing a JSON encoder, decoder, and
+  streaming encoder for @RegFile rs@. The keiki core remains
+  aeson-free; this package opts in. See keiki's @Keiki.Shape@
+  module for the GHC-upgrade-safe shape hash used to discriminate
+  snapshots — the two halves of the snapshot persistence story.
+  .
+  Three methods on @class RegFileToJSON rs@:
+  .
+  * @regFileToJSON :: RegFile rs -> Aeson.Value@ — strict
+  Value-path encoder.
+  .
+  * @regFileFromJSON :: Aeson.Value -> Either String (RegFile rs)@
+  — strict decoder with per-slot error messages on missing /
+  extra / type-mismatched fields.
+  .
+  * @regFileToEncoding :: RegFile rs -> Aeson.Encoding@ —
+  streaming encoder over @Aeson.Series@, avoiding the
+  O(output-size) intermediate @Aeson.Value@ allocation. Recommended
+  for RegFiles with multi-MB slot values.
+  .
+  Also ships a Template Haskell helper module
+  @Keiki.Codec.JSON.TH@ with @deriveRegFileCodec@ that emits the
+  three codec functions for a record type with @deriving Generic@.
+  .
+  The companion package @keiki-codec-json-test@ ships a property-
+  test toolkit for downstream consumers (case-#10 ToJSON-change
+  detector plus library-ised round-trip / sensitivity helpers).
+
+license:            BSD-3-Clause
+author:             Nadeem Bitar
+maintainer:         nadeem@gmail.com
+copyright:          2026 Nadeem Bitar
+category:           Codec
+build-type:         Simple
+tested-with:        GHC >=9.12 && <9.13
+extra-doc-files:
+  CHANGELOG.md
+  CONTRIBUTING.md
+  README.md
+
+extra-source-files:
+  bench/baseline.csv
+  test/golden/*.json
+  test/golden/event/*.json
+
+source-repository head
+  type:     git
+  location: https://github.com/shinzui/keiki.git
+  subdir:   keiki-codec-json
+
+common warnings
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+
+common shared-extensions
+  default-language:   GHC2024
+  default-extensions:
+    AllowAmbiguousTypes
+    DuplicateRecordFields
+    FunctionalDependencies
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+    UndecidableInstances
+
+library
+  import:          warnings, shared-extensions
+  exposed-modules:
+    Keiki.Codec.JSON
+    Keiki.Codec.JSON.Event
+    Keiki.Codec.JSON.TH
+
+  hs-source-dirs:  src
+  build-depends:
+    , aeson             ^>=2.2
+    , base              ^>=4.21
+    , containers        ^>=0.7
+    , keiki             ^>=0.6
+    , scientific        ^>=0.3
+    , template-haskell  ^>=2.23
+    , text              ^>=2.1
+
+benchmark keiki-codec-json-bench
+  import:         warnings, shared-extensions
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is:        Bench.hs
+  build-depends:
+    , aeson             ^>=2.2
+    , base              ^>=4.21
+    , bytestring        ^>=0.12
+    , deepseq           ^>=1.5
+    , keiki             ^>=0.6
+    , keiki-codec-json  ^>=0.6
+    , tasty-bench       ^>=0.4  || ^>=0.5
+    , text              ^>=2.1
+
+  ghc-options:    -fproc-alignment=64 "-with-rtsopts=-A32m -T"
+
+test-suite keiki-codec-json-test
+  import:         warnings, shared-extensions
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Spec.hs
+  other-modules:
+    Keiki.Codec.JSON.Fixtures
+    Keiki.Codec.JSON.GoldenFileSpec
+    Keiki.Codec.JSON.GoldenSpec
+    Keiki.Codec.JSON.PropSpec
+    Keiki.Codec.JSON.SensitivitySpec
+    Keiki.Codec.JSON.THEventEvolutionSpec
+    Keiki.Codec.JSON.THEventSpec
+    Keiki.Codec.JSON.THSpec
+
+  build-depends:
+    , aeson                 ^>=2.2
+    , base                  ^>=4.21
+    , bytestring            ^>=0.12
+    , containers            ^>=0.7
+    , hspec                 ^>=2.11
+    , keiki                 ^>=0.6
+    , keiki-codec-json      ^>=0.6
+    , QuickCheck            ^>=2.15
+    , quickcheck-instances  ^>=0.3
+    , text                  ^>=2.1
+    , time                  ^>=1.14
