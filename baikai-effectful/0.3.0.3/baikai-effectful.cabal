@@ -1,0 +1,84 @@
+cabal-version:   3.4
+name:            baikai-effectful
+version:         0.3.0.3
+synopsis:        effectful binding for the baikai AI-provider transport
+description:
+  A thin, policy-free effectful binding over baikai's transport. Provides the dynamic
+  `Baikai` effect (Complete / StreamCollect / StreamEach) and interpreters over a real or
+  isolated provider registry. Adds no retries, caching, budgets, or error remapping.
+
+category:        AI
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+copyright:       (c) 2026 Nadeem Bitar
+build-type:      Simple
+extra-doc-files: README.md
+
+common common-options
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+  -- Exhaustiveness is an error, not a warning. A non-exhaustive match
+  -- is a crash the compiler already found: it fails at runtime, on
+  -- whichever input reaches the missing branch, usually in front of a
+  -- user. This is not hypothetical here — adding a constructor to
+  -- AgentRunFailure left `failureExitCode` non-exhaustive and shipped a
+  -- pattern-match failure on `baikai agent run --require-evidence`,
+  -- because the warning scrolled past in a build log.
+  --
+  -- Promoted individually rather than through -Werror, which would also
+  -- fail the build on warnings that are stylistic or that a future GHC
+  -- invents, and would push people toward blanket suppression.
+  ghc-options:
+    -Werror=incomplete-patterns -Werror=incomplete-uni-patterns
+    -Werror=incomplete-record-updates
+
+  default-language:   GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+library
+  import:          common-options
+  hs-source-dirs:  src
+  exposed-modules: Baikai.Effectful
+  build-depends:
+    , baikai          ^>=0.5.0
+    , base            >=4.20   && <5
+    , effectful-core  ^>=2.6
+    , streamly        >=0.11   && <0.13
+    , streamly-core   >=0.3    && <0.5
+    , text            ^>=2.1
+    , vector          ^>=0.13
+
+test-suite baikai-effectful-test
+  import:         common-options
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  ghc-options:    -threaded -with-rtsopts=-N
+  other-modules:
+    CompleteSpec
+    LiveSpec
+    StreamSpec
+    StubProvider
+
+  build-depends:
+    , baikai
+    , baikai-effectful
+    , baikai-openai
+    , base              >=4.20 && <5
+    , effectful-core
+    , streamly
+    , streamly-core
+    , tasty
+    , tasty-hunit
+    , text
+    , vector
