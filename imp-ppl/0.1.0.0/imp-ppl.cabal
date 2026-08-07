@@ -1,0 +1,147 @@
+cabal-version: 3.0
+name:          imp-ppl
+version:       0.1.0.0
+synopsis:      Imprecise probabilistic programming via BDDs
+description:
+  A DSL for discrete probabilistic programs with Knightian uncertainty,
+  where some probabilities are not precisely known. Programs compile to
+  binary decision diagrams, and inference computes credal sets,
+  and lower and upper probabilities via semiring-parametric weighted
+  model counting.
+license:       MIT
+license-file:  LICENSE
+author:        Jack Liell-Cock <jackliellcock@gmail.com>
+maintainer:    Jack Liell-Cock <jackliellcock@gmail.com>
+copyright:     (c) 2026 Jack Liell-Cock
+category:      Statistics
+homepage:      https://github.com/jacklc3/imp
+bug-reports:   https://github.com/jacklc3/imp/issues
+build-type:    Simple
+tested-with:   GHC == 9.10.1
+             , GHC == 9.14.1
+
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/jacklc3/imp.git
+
+source-repository this
+  type:     git
+  location: https://github.com/jacklc3/imp.git
+  tag:      v0.1.0.0
+
+-- Development-only visualisation and benchmark executables.
+flag dev
+  description: Build the viz and benchmark executables.
+  default:     False
+  manual:      True
+
+library
+  hs-source-dirs: src
+  exposed-modules:
+    Imp
+    Imp.Prelude
+    Imp.BDD
+    Imp.BDD.Builder
+    Imp.BDD.Compile
+    Imp.BDD.WMC
+    Imp.Semiring
+    Imp.DSL
+    Imp.DSL.Combinators
+    Imp.DSL.Grade
+    Imp.Inference
+    Imp.Inference.Approx
+    Imp.Inference.Enumerate
+    Imp.Inference.Optimize
+    Imp.Inference.Symbolic
+    Imp.Examples.Basic
+    Imp.Examples.Ellsberg
+    Imp.Examples.IMDP
+    Imp.Examples.Iteration
+    Imp.Examples.Knightian
+    Imp.Examples.MontyHall
+    Imp.Examples.Polytope
+    Imp.Examples.TwoChild
+  build-depends:
+    base >= 4.20 && < 5,
+    containers >= 0.6 && < 0.9,
+    mtl >= 2.3 && < 2.4,
+    vector >= 0.13 && < 0.14
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+    DerivingStrategies
+    GADTs
+    TypeFamilies
+  ghc-options: -Wall -Wcompat -Wmissing-deriving-strategies
+
+-- Development aid: renders credal sets and BDDs to index.html.
+executable viz
+  if !flag(dev)
+    buildable: False
+  hs-source-dirs: viz
+  main-is: Main.hs
+  other-modules:
+    Viz
+    Viz.ConvexHull
+  build-depends:
+    base,
+    imp-ppl,
+    containers
+  default-language: GHC2021
+  ghc-options: -Wall
+
+-- Shared benchmark pipeline.
+common bench-common
+  if !flag(dev)
+    buildable: False
+  hs-source-dirs: bench
+  build-depends:
+    base,
+    imp-ppl,
+    time >= 1.12 && < 1.15
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+    TypeFamilies
+  ghc-options: -Wall
+  if flag(dev)
+    ghc-options: -O2
+
+executable bench-robot
+  import: bench-common
+  main-is: Robot.hs
+  other-modules: Bench
+
+executable bench-ellsberg
+  import: bench-common
+  main-is: Ellsberg.hs
+  other-modules: Bench
+
+test-suite test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  other-modules:
+    Test.BDD
+    Test.Combinators
+    Test.DSL
+    Test.Examples
+    Test.Inference
+    Test.Semiring
+    Test.Util
+  build-depends:
+    base,
+    imp-ppl,
+    containers,
+    mtl,
+    vector >= 0.13 && < 0.14,
+    tasty >= 1.4 && < 1.6,
+    tasty-hunit >= 0.10 && < 0.11
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+  ghc-options: -Wall -Wcompat -Wmissing-deriving-strategies
