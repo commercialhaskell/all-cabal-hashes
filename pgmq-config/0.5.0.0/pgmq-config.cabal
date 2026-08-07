@@ -1,0 +1,129 @@
+cabal-version:   3.4
+name:            pgmq-config
+version:         0.5.0.0
+synopsis:
+  Declarative queue configuration for PGMQ (PostgreSQL Message Queue)
+
+description:
+  A declarative DSL for configuring pgmq queues. Define your queue
+  topology as Haskell values and call a single function at startup
+  to create whatever is missing: standard, unlogged, and partitioned
+  queues, insert notifications, FIFO indexes, and topic bindings.
+  .
+  Reconciliation is additive and convergent. It never drops, converts,
+  or disables anything, and leaves queues that are absent from the
+  config untouched; a second run against an unchanged config issues no
+  mutations at all. The single exception is a declared notification
+  throttle interval that differs from the stored one, which is updated
+  in place. A queue whose observed type contradicts the declared one is
+  reported as drift rather than repaired, since converting a queue's
+  type would mean destroying its messages.
+
+homepage:        https://github.com/shinzui/pgmq-hs
+license:         MIT
+license-file:    LICENSE
+author:          Nadeem Bitar
+maintainer:      Nadeem Bitar
+category:        Database
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+flag effectful
+  description: Enable effectful integration
+  default:     True
+  manual:      False
+
+common warnings
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+library
+  import:             warnings
+  exposed-modules:
+    Pgmq.Config
+    Pgmq.Config.Types
+
+  other-modules:      Pgmq.Config.Reconcile
+  default-extensions:
+    DeriveGeneric
+    DuplicateRecordFields
+    GeneralisedNewtypeDeriving
+    ImportQualifiedPost
+    NamedFieldPuns
+    OverloadedLabels
+    OverloadedStrings
+
+  build-depends:
+    , base          >=4.18  && <5
+    , containers    >=0.6   && <0.8
+    , generic-lens  ^>=2.2  || ^>=2.3
+    , hasql         ^>=1.10
+    , hasql-pool    ^>=1.4
+    , lens          ^>=5.3
+    , pgmq-core     >=0.5   && <0.6
+    , pgmq-hasql    >=0.5   && <0.6
+    , text          ^>=2.1
+
+  if flag(effectful)
+    exposed-modules: Pgmq.Config.Effectful
+    build-depends:
+      , effectful-core  ^>=2.5 || ^>=2.6
+      , pgmq-effectful  >=0.5  && <0.6
+
+  hs-source-dirs:     src
+  default-language:   GHC2024
+
+test-suite pgmq-config-test
+  import:             warnings
+  default-language:   GHC2024
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Main.hs
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N
+  other-modules:
+    ConfigSpec
+    EphemeralDb
+    ForeignQueueSpec
+    NotifyCrashSpec
+
+  default-extensions:
+    DeriveGeneric
+    DuplicateRecordFields
+    GeneralisedNewtypeDeriving
+    ImportQualifiedPost
+    NamedFieldPuns
+    OverloadedLabels
+    OverloadedStrings
+
+  build-depends:
+    , aeson             ^>=2.2
+    , base              >=4.18   && <5
+    , bytestring        >=0.11   && <0.13
+    , ephemeral-pg      >=0.2.1
+    , generic-lens      ^>=2.2   || ^>=2.3
+    , hasql
+    , hasql-pool        ^>=1.4
+    , lens              ^>=5.3
+    , pg-migrate
+    , pgmq-config
+    , pgmq-core
+    , pgmq-hasql
+    , pgmq-migration
+    , postgresql-libpq  >=0.10.1 && <0.12
+    , random            ^>=1.2
+    , tasty             ^>=1.5
+    , tasty-hunit       ^>=0.10
+    , text
+    , time              ^>=1.14
+
+  -- ForeignQueueSpec asserts that both reconciler backends use the lenient
+  -- queue listing. The effect-backed half only exists when the library's
+  -- effectful flag is on, so it is compiled in behind the same flag.
+  if flag(effectful)
+    cpp-options:   -DPGMQ_EFFECTFUL
+    build-depends:
+      , effectful-core  ^>=2.5 || ^>=2.6
+      , pgmq-effectful  >=0.5  && <0.6
