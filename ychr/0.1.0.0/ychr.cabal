@@ -1,0 +1,287 @@
+cabal-version:      3.4
+name:               ychr
+version:            0.1.0.0
+synopsis:           A Constraint Handling Rules compiler with multiple backends
+description:
+    Constraint Handling Rules (CHR) is a declarative, rule-based language for
+    writing constraint solvers, type inferencers, and other rule-driven logic.
+    A program is a set of rules that rewrite a multiset of constraints until no
+    rule applies.
+
+    YCHR compiles standard CHR — Prolog-compatible syntax, extended with
+    Erlang-style user-defined functions and an optional gradual type system —
+    to a small abstract VM, which is either interpreted directly in Haskell or
+    translated to Scheme.
+
+    == Using YCHR as a Haskell library
+
+    The common compile-and-query path is available from a single import:
+
+    > {-# LANGUAGE OverloadedStrings #-}
+    > import YCHR
+    >
+    > main :: IO ()
+    > main = do
+    >   result <- compileFiles True ["Order.chr"]
+    >   case result of
+    >     Left err -> putStr (displayError err)
+    >     Right (cp, _warnings) -> do
+    >       r <- runQueryCompiled cp goal "R"
+    >       print (r :: Either ConvertError Int)
+    >   where goal = CompoundTerm (Unqualified "compute") [VarTerm "R"]
+
+    Compile a @.chr@ module once, then feed it Haskell values and decode its
+    answers back through the @ToTerm@ \/ @FromTerm@ bridge. Haskell functions
+    can be exposed to CHR programs as host calls, and programs can be built
+    in Haskell directly with the @YCHR.DSL@ combinators instead of parsed
+    from source.
+
+    For a worked example — a lambda-calculus type inferencer written in CHR
+    and driven from Haskell — see the embedding guide:
+    <https://github.com/lortabac/ychr/blob/master/docs/how-to/embed-a-chr-module.md>.
+
+    == Status
+
+    Early release. The Haskell interpreter and the Scheme backend work; the
+    JavaScript backend and most of the optimization catalogue are not yet
+    implemented. The @ychr@ command-line compiler and REPL ship with this
+    package. Compiling to Scheme additionally requires the runtime from a
+    source checkout. Full status in the roadmap:
+    <https://github.com/lortabac/ychr/blob/master/docs/roadmap.md>.
+
+    Modules under @YCHR.Internal@ are implementation details, exposed for
+    documentation purposes only, and are not covered by the package version
+    policy.
+
+    == AI disclosure
+
+    This project has been developed with the help of large language models.
+
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Lorenzo Tabacchini
+maintainer:         lortabac@gmx.com
+copyright:          (c) 2026 Lorenzo Tabacchini
+homepage:           https://github.com/lortabac/ychr
+bug-reports:        https://github.com/lortabac/ychr/issues
+category:           Language
+build-type:         Simple
+-- Only versions actually exercised are listed here. 9.6.6 and 9.12.x have
+-- been built and had the test suite run against them locally; 9.8.4 and
+-- 9.10.1 are built (compile-only) by the CI matrix.
+tested-with:        GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.1,
+                    GHC == 9.12.2, GHC == 9.12.4
+
+extra-doc-files:      README.md
+                    , CHANGELOG.md
+
+-- 'examples/stlc/*.hs' is listed explicitly: those modules belong to the
+-- 'stlc-typechecker' component, which is unbuildable unless '-fexamples' is
+-- set, and cabal does not collect the sources of an unbuildable component.
+-- Without this the tarball would only carry them when the release happened
+-- to be cut with the flag on.
+extra-source-files:   libraries/*.chr
+                    , typechecker/*.chr
+                    , examples/*.chr
+                    , examples/stlc/*.chr
+                    , examples/stlc/*.hs
+                    , test/golden/**/*.chr
+                    , test/golden/**/*.goal
+                    , test/golden/**/*.expected
+                    , test/golden/**/*.error
+                    , test/golden/**/*.md
+
+source-repository head
+    type:     git
+    location: https://github.com/lortabac/ychr.git
+
+-- The @stlc-typechecker@ example driver is not built by default, so that
+-- @cabal install ychr@ puts only the @ychr@ compiler on a user's PATH.
+flag examples
+    description: Build the example executables.
+    default:     False
+    manual:      True
+
+common warnings
+    ghc-options: -Wall
+    default-extensions:
+        DuplicateRecordFields
+        NoFieldSelectors
+        OverloadedRecordDot
+
+common deps
+    build-depends:    base >=4.18 && <4.22
+                    , containers >=0.6 && <0.9
+                    , filepath >=1.4 && <1.6
+                    , text >=2.0 && <2.2
+
+executable ychr
+    import:           warnings, deps
+    main-is:          Main.hs
+    build-depends:    ychr
+                    , directory >=1.3 && <1.4
+                    , optparse-applicative >=0.17 && <0.20
+    hs-source-dirs:   app
+    default-language: GHC2021
+
+-- End-to-end example: a Haskell program that embeds a CHR module.
+-- @examples/stlc/stlc.chr@ is a lambda-calculus type inferencer written in
+-- CHR; this driver embeds it and drives it through YCHR.Convert.
+executable stlc-typechecker
+    import:           warnings, deps
+    main-is:          Main.hs
+    if !flag(examples)
+        buildable:    False
+    other-modules:    Embed
+                    , Syntax
+                    , Parser
+    build-depends:    ychr
+                    , parsec >=3.1 && <3.2
+                    , template-haskell >=2.20 && <2.24
+    hs-source-dirs:   examples/stlc
+    default-language: GHC2021
+
+test-suite ychr-tests
+    import:           warnings, deps
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    other-modules:    YCHR.CollectTest
+                    , YCHR.CompileTest
+                    , YCHR.ConvertTest
+                    , YCHR.ErrorCodeTest
+                    , YCHR.RunTest
+                    , YCHR.DSLTest
+                    , YCHR.DesugarTest
+                    , YCHR.ExhaustivenessTest
+                    , YCHR.GoldenTest
+                    , YCHR.MetaTest
+                    , YCHR.ParserTest
+                    , YCHR.PExprRoundtripTest
+                    , YCHR.PExprTest
+                    , YCHR.PrettyTest
+                    , YCHR.RenameTest
+                    , YCHR.RoundtripTest
+                    , YCHR.Runtime.VarTest
+                    , YCHR.Runtime.StoreTest
+                    , YCHR.Runtime.HistoryTest
+                    , YCHR.Runtime.ReactivationTest
+                    , YCHR.Runtime.InterpreterTest
+                    , YCHR.VM.SExprTest
+    hs-source-dirs:   test
+    build-depends:    ychr
+                    , directory >=1.3 && <1.4
+                    , hedgehog >=1.5 && <2
+                    , parsec >=3.1 && <3.2
+                    , tasty >=1.4 && <1.6
+                    , tasty-hedgehog >=1.4 && <2
+                    , tasty-hunit >=0.10 && <0.11
+    default-language: GHC2021
+
+benchmark ychr-bench
+    import:           warnings, deps
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    hs-source-dirs:   bench
+    build-depends:    ychr
+                    , criterion >=1.6 && <1.7
+    ghc-options:      -O2
+    default-language: GHC2021
+
+library
+    import:           warnings, deps
+
+    -- Public API — the supported surface for embedding YCHR as a Haskell
+    -- library. 'YCHR' is the umbrella entry point (compile + query +
+    -- marshalling); 'YCHR.DSL' builds programs in Haskell; 'YCHR.Convert'
+    -- is the value bridge (with GHC-only generic derivation in
+    -- 'YCHR.Convert.Generic', added under 'if impl(ghc)' below); 'YCHR.Run'
+    -- exposes the lower-level session and multi-goal APIs. These are the
+    -- modules covered by the package version policy.
+    exposed-modules:  YCHR
+                    , YCHR.DSL
+                    , YCHR.Convert
+                    , YCHR.Run
+                    , YCHR.Types
+
+    -- Internal. These are implementation details: they carry no
+    -- compatibility guarantee and are not covered by the package version
+    -- policy. They stay exposed (rather than hidden) so their Haddocks are
+    -- browsable — the compiler's own documentation lives in them — and so
+    -- the CLI, tests, and benchmarks in this package can reach them. The
+    -- 'Internal' namespace is the contract; import at your own risk.
+    exposed-modules:  YCHR.Internal.Backend.Scheme
+                    , YCHR.Internal.Backend.SchemeDriver
+                    , YCHR.Internal.Collect
+                    , YCHR.Internal.Collected
+                    , YCHR.Internal.Constructors
+                    , YCHR.Internal.Compile
+                    , YCHR.Internal.Loc
+                    , YCHR.Internal.Compile.Pipeline
+                    , YCHR.Internal.Compile.Names
+                    , YCHR.Internal.Compile.Occurrences
+                    , YCHR.Internal.Compile.Passive
+                    , YCHR.Internal.Compile.Types
+                    , YCHR.Internal.Diagnostic
+                    , YCHR.Internal.Display
+                    , YCHR.Internal.Exhaustiveness
+                    , YCHR.Internal.Repl
+                    , YCHR.Internal.Meta
+                    , YCHR.Internal.Desugared
+                    , YCHR.Internal.Desugar
+                    , YCHR.Internal.Parser
+                    , YCHR.Internal.Parsed
+                    , YCHR.Internal.Parsing.Lexer
+                    , YCHR.Internal.PExpr
+                    , YCHR.Internal.Pretty
+                    , YCHR.Internal.Rename
+                    , YCHR.Internal.Rename.Types
+                    , YCHR.Internal.StdLib
+                    , YCHR.Internal.Types
+                    , YCHR.Internal.TypeCheck
+                    , YCHR.Internal.TypeCheck.Error
+                    , YCHR.Internal.TypeCheck.Compiled
+                    , YCHR.Internal.Resolve
+                    , YCHR.Internal.Resolved
+                    , YCHR.Internal.VM
+                    , YCHR.Internal.VM.Types
+                    , YCHR.Internal.VM.SExpr
+                    , YCHR.Internal.SExpr
+                    , YCHR.Internal.Runtime.Interpreter
+                    , YCHR.Internal.Runtime.Monad
+                    , YCHR.Internal.Runtime.Registry
+                    , YCHR.Internal.Runtime.Session
+                    , YCHR.Internal.Runtime.Types
+                    , YCHR.Internal.Runtime.Var
+                    , YCHR.Internal.Runtime.Store
+                    , YCHR.Internal.Runtime.History
+                    , YCHR.Internal.Runtime.Reactivation
+                    , YCHR.Internal.Runtime.Error
+                    , YCHR.Internal.Runtime.Trace
+
+    other-modules:    YCHR.Internal.LineInput
+                    , YCHR.Internal.StdLib.TH
+                    , YCHR.Internal.TypeCheck.TH
+
+    build-depends:    ansi-terminal >=0.11 && <1.2
+                    , directory >=1.3 && <1.4
+                    , parsec >=3.1 && <3.2
+                    , template-haskell >=2.20 && <2.24
+                    , transformers >=0.6 && <0.7
+
+    hs-source-dirs:   src
+
+    -- Per-compiler line-input backend. The 'YCHR.Internal.LineInput' module
+    -- lives in 'src/ghc/' under GHC (wraps 'haskeline') and in
+    -- 'src/mhs/' under MicroHs (bare 'getLine').
+    if impl(ghc)
+        hs-source-dirs:   src/ghc
+        build-depends:    haskeline >=0.8 && <0.9
+        -- GHC-only Generic-derivation helpers for "YCHR.Convert". Uses
+        -- 'GHC.Generics', which MicroHs cannot compile; the core
+        -- 'YCHR.Convert' stays Generics-free so it remains reachable there.
+        exposed-modules:  YCHR.Convert.Generic
+    if impl(mhs)
+        hs-source-dirs:   src/mhs
+
+    -- Base language which the package is written in.
+    default-language: GHC2021

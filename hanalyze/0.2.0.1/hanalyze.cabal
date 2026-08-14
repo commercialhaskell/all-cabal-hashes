@@ -1,0 +1,459 @@
+cabal-version: 3.0
+name:          hanalyze
+version:       0.2.0.1
+synopsis:      A general-purpose statistical analysis, optimization and visualization toolkit
+description:
+    @hanalyze@ is a self-contained Haskell toolkit for classical regression
+    (LM, GLM, GLMM, splines, kernels, GP, RFF), Bayesian modeling
+    (HBM DSL with MH, HMC, NUTS, Gibbs, ADVI), design of experiments
+    (full/fractional factorial, RSM, D-optimal, orthogonal arrays, Taguchi),
+    optimization (Nelder-Mead, L-BFGS, DE, CMA-ES, NSGA-II, Bayesian
+    optimization, augmented Lagrangian), and Vega-Lite-based visualization
+    with HTML / PNG / SVG output.
+    .
+    All algorithms are implemented natively in Haskell — no R / Stan / Python
+    bridges. Data interchange uses the @dataframe@ package as a first-class
+    citizen.
+    .
+    This is the umbrella package: it re-exports all 200 modules of the six
+    split layers (core, frame, bayes, models, design, viz) under their
+    original names, so depending on this one package is enough and downstream
+    imports never have to change. It also implements four modules of its own
+    that cut across the layers -- the quickstart front end
+    @Hanalyze@, the unified fit operator @(|->)@ in
+    @Hanalyze.Fit@, coefficient diagnostics in
+    @Hanalyze.Diagnostics@, and the plotting wrappers in
+    @Hanalyze.Model.Wrappers@.
+    .
+    The unified @hanalyze@ command-line interface (@regress@, @info@, @hist@,
+    @doe@, @taguchi@, @ridge@, @kernel@, @spline@, @multireg@, @clean@,
+    @melt@, @regrid@, ...) ships separately in the hanalyze-cli
+    package. See README.md for the layer map and a usage example.
+homepage:      https://github.com/frenzieddoll/hanalyze
+bug-reports:   https://github.com/frenzieddoll/hanalyze/issues
+license:       BSD-3-Clause
+license-file:  LICENSE
+author:        Toshiaki Honda
+maintainer:    frenzieddoll@gmail.com
+copyright:     2026 Aelysce Project (Toshiaki Honda)
+category:      Math, Statistics, Numeric, Machine Learning
+build-type:    Simple
+tested-with:   GHC == 9.6.7
+extra-doc-files:
+    CHANGELOG.md
+extra-source-files:
+    README.md
+    README.ja.md
+
+-- Phase 106.8: README / data/*.csv は repo root の workspace 資産に据え置き
+-- (package 外 path は cabal の extra-*-files に書けない)。 fork umbrella は
+-- Hackage 非公開のため sdist 完全性は upstream hanalyze (モノリス) 側で担保。
+-- Phase 109.2 (2026-07-24): demo/bench exe 112 stanza は hanalyze-demos へ
+-- 移行済 (106.8 妥協の解消)。 umbrella は library + test のみ。
+
+source-repository head
+  type:     git
+  location: https://github.com/frenzieddoll/hanalyze.git
+
+common warnings
+  ghc-options: -Wall -Wcompat -Widentities -Wredundant-constraints
+
+common opt
+  ghc-options: -O2 -funbox-strict-fields
+
+library
+  import:           warnings, opt
+  hs-source-dirs:   src
+  default-language: GHC2021
+  exposed-modules:
+    Hanalyze
+    Hanalyze.Diagnostics
+    Hanalyze.Fit
+    Hanalyze.Model.Wrappers
+  -- Phase 106: 分割 7 package (repo 直下 flat 配置) の全 module を現行名のまま再輸出。
+  -- 下流 (test / bench / demo / streaming bridge / canvas backend) の import は不変。
+  reexported-modules:
+      Hanalyze.Data.ColumnSource,
+      Hanalyze.Data.Factor,
+      Hanalyze.Data.Strings,
+      Hanalyze.Data.Transform,
+      Hanalyze.Data.Wrangle,
+      Hanalyze.DataIO.CSV,
+      Hanalyze.DataIO.Clean,
+      Hanalyze.DataIO.Convert,
+      Hanalyze.DataIO.External,
+      Hanalyze.DataIO.Health,
+      Hanalyze.DataIO.Log,
+      Hanalyze.DataIO.Preprocess,
+      Hanalyze.DataIO.Reshape,
+      Hanalyze.DataIO.Sniff,
+      Hanalyze.Design.Anova,
+      Hanalyze.Design.Block,
+      Hanalyze.Design.Constraint,
+      Hanalyze.Design.Custom.Augment,
+      Hanalyze.Design.Custom.Bayesian,
+      Hanalyze.Design.Custom.Compare,
+      Hanalyze.Design.Custom.Constraint,
+      Hanalyze.Design.Custom.Coordinate,
+      Hanalyze.Design.Custom.Factor,
+      Hanalyze.Design.Custom.Model,
+      Hanalyze.Design.Custom.Power,
+      Hanalyze.Design.Custom.RegionMoment,
+      Hanalyze.Design.Custom.SplitPlot,
+      Hanalyze.Design.Custom.Structured,
+      Hanalyze.Design.DSD,
+      Hanalyze.Design.Diagnostics,
+      Hanalyze.Design.Factorial,
+      Hanalyze.Design.GaugeRR,
+      Hanalyze.Design.Mixed,
+      Hanalyze.Design.Mixture,
+      Hanalyze.Design.MultiRSM,
+      Hanalyze.Design.Optimal,
+      Hanalyze.Design.Orthogonal,
+      Hanalyze.Design.Power,
+      Hanalyze.Design.Quality,
+      Hanalyze.Design.RSM,
+      Hanalyze.Design.Sequential,
+      Hanalyze.Design.SpaceFilling,
+      Hanalyze.Design.Taguchi,
+      Hanalyze.Design.Workflow,
+      Hanalyze.MCMC.BayesianTest,
+      Hanalyze.MCMC.Core,
+      Hanalyze.MCMC.Gibbs,
+      Hanalyze.MCMC.HMC,
+      Hanalyze.MCMC.MH,
+      Hanalyze.MCMC.NUTS,
+      Hanalyze.MCMC.Progress,
+      Hanalyze.MCMC.SMC,
+      Hanalyze.MCMC.Slice,
+      Hanalyze.Math.HSIC,
+      Hanalyze.Math.Hungarian,
+      Hanalyze.Math.ICA,
+      Hanalyze.Model.AFT,
+      Hanalyze.Model.Cluster,
+      Hanalyze.Model.CompetingRisks,
+      Hanalyze.Model.Core,
+      Hanalyze.Model.DAG,
+      Hanalyze.Model.DecisionTree,
+      Hanalyze.Model.Discriminant,
+      Hanalyze.Model.FDA,
+      Hanalyze.Model.FitYByX,
+      Hanalyze.Model.Formula,
+      Hanalyze.Model.Formula.Design,
+      Hanalyze.Model.Formula.Frame,
+      Hanalyze.Model.Formula.Mixed,
+      Hanalyze.Model.Formula.Nonlinear,
+      Hanalyze.Model.Formula.RFormula,
+      Hanalyze.Model.GAM,
+      Hanalyze.Model.GARCH,
+      Hanalyze.Model.GLM,
+      Hanalyze.Model.GLMM,
+      Hanalyze.Model.GP,
+      Hanalyze.Model.GPRobust,
+      Hanalyze.Model.GradientBoosting,
+      Hanalyze.Model.HBM,
+      Hanalyze.Model.HBM.Ast,
+      Hanalyze.Model.HBM.Distribution,
+      Hanalyze.Model.HBM.Eval,
+      Hanalyze.Model.HBM.Gradient,
+      Hanalyze.Model.HBM.IR,
+      Hanalyze.Model.HBM.Interp,
+      Hanalyze.Model.HBM.Model,
+      Hanalyze.Model.HBM.Sampling,
+      Hanalyze.Model.HBM.Track,
+      Hanalyze.Model.HBM.Util,
+      Hanalyze.Model.HBM.VecAD,
+      Hanalyze.Model.HierarchicalCluster,
+      Hanalyze.Model.KNN,
+      Hanalyze.Model.Kernel,
+      Hanalyze.Model.KernelRegression,
+      Hanalyze.Model.LM,
+      Hanalyze.Model.LM.Diagnostics,
+      Hanalyze.Model.LatentClassAnalysis,
+      Hanalyze.Model.LiNGAM.Bootstrap,
+      Hanalyze.Model.LiNGAM.Direct,
+      Hanalyze.Model.LiNGAM.ICA,
+      Hanalyze.Model.LiNGAM.MultiGroup,
+      Hanalyze.Model.LiNGAM.Pairwise,
+      Hanalyze.Model.LiNGAM.Parce,
+      Hanalyze.Model.LiNGAM.VAR,
+      Hanalyze.Model.MDS,
+      Hanalyze.Model.MultiGP,
+      Hanalyze.Model.MultiLM,
+      Hanalyze.Model.MultiOutput,
+      Hanalyze.Model.Multivariate,
+      Hanalyze.Model.NaiveBayes,
+      Hanalyze.Model.NeuralNetwork,
+      Hanalyze.Model.PCA,
+      Hanalyze.Model.PLS,
+      Hanalyze.Model.PartialDependence,
+      Hanalyze.Model.Quantile,
+      Hanalyze.Model.RFF,
+      Hanalyze.Model.RandomForest,
+      Hanalyze.Model.RandomForestClassifier,
+      Hanalyze.Model.Regularized,
+      Hanalyze.Model.RegularizedAdvanced,
+      Hanalyze.Model.Reliability,
+      Hanalyze.Model.ReliabilityBlockDiagram,
+      Hanalyze.Model.Robust,
+      Hanalyze.Model.SVM,
+      Hanalyze.Model.Spline,
+      Hanalyze.Model.StateSpace,
+      Hanalyze.Model.Survival,
+      Hanalyze.Model.TimeSeries,
+      Hanalyze.Model.VAR,
+      Hanalyze.Model.Weibull,
+      Hanalyze.Optim.Acquisition,
+      Hanalyze.Optim.Adam,
+      Hanalyze.Optim.BayesOpt,
+      Hanalyze.Optim.CMAES,
+      Hanalyze.Optim.CMAESFull,
+      Hanalyze.Optim.Common,
+      Hanalyze.Optim.Constrained,
+      Hanalyze.Optim.Desirability,
+      Hanalyze.Optim.DifferentialEvolution,
+      Hanalyze.Optim.GradAscent,
+      Hanalyze.Optim.LBFGS,
+      Hanalyze.Optim.LineSearch,
+      Hanalyze.Optim.NSGA,
+      Hanalyze.Optim.NelderMead,
+      Hanalyze.Optim.Numeric,
+      Hanalyze.Optim.Pareto,
+      Hanalyze.Optim.ParticleSwarm,
+      Hanalyze.Optim.SimulatedAnnealing,
+      Hanalyze.Stat.AD,
+      Hanalyze.Stat.AdaptiveGrid,
+      Hanalyze.Stat.BayesFactor,
+      Hanalyze.Stat.BayesianModelAveraging,
+      Hanalyze.Stat.Bootstrap,
+      Hanalyze.Stat.BridgeSampling,
+      Hanalyze.Stat.CV,
+      Hanalyze.Stat.Causal.CATE,
+      Hanalyze.Stat.Causal.DoublyRobust,
+      Hanalyze.Stat.Causal.IPW,
+      Hanalyze.Stat.Causal.PropensityScore,
+      Hanalyze.Stat.Cholesky,
+      Hanalyze.Stat.ClassMetrics,
+      Hanalyze.Stat.CorrelationNetwork,
+      Hanalyze.Stat.Descriptive,
+      Hanalyze.Stat.Distribution,
+      Hanalyze.Stat.Effect,
+      Hanalyze.Stat.GroupComparison,
+      Hanalyze.Stat.Interpolate,
+      Hanalyze.Stat.Interpret,
+      Hanalyze.Stat.KernelDist,
+      Hanalyze.Stat.MCMC,
+      Hanalyze.Stat.MDS,
+      Hanalyze.Stat.ModelSelect,
+      Hanalyze.Stat.MultipleTesting,
+      Hanalyze.Stat.NumberFormat,
+      Hanalyze.Stat.PosteriorPredictive,
+      Hanalyze.Stat.QuasiRandom,
+      Hanalyze.Stat.SPC,
+      Hanalyze.Stat.Standardize,
+      Hanalyze.Stat.Summary,
+      Hanalyze.Stat.Test,
+      Hanalyze.Stat.VI,
+      Hanalyze.Viz.AnalysisReport,
+      Hanalyze.Viz.Assets,
+      Hanalyze.Viz.Bar,
+      Hanalyze.Viz.Core,
+      Hanalyze.Viz.GP,
+      Hanalyze.Viz.GPReport,
+      Hanalyze.Viz.Histogram,
+      Hanalyze.Viz.MCMC,
+      Hanalyze.Viz.ModelGraph,
+      Hanalyze.Viz.ModelGraphDot,
+      Hanalyze.Viz.Pareto,
+      Hanalyze.Viz.PlotConfig,
+      Hanalyze.Viz.PlotData,
+      Hanalyze.Viz.PlotData.DataFrame,
+      Hanalyze.Viz.Report,
+      Hanalyze.Viz.ReportBuilder,
+      Hanalyze.Viz.ReportInstances,
+      Hanalyze.Viz.Scatter,
+      Hanalyze.Viz.Taguchi
+  build-depends:
+      base                 >= 4.14 && < 5
+    , containers           >= 0.6  && < 0.8
+    , hmatrix              >= 0.20 && < 0.22
+    , mwc-random           >= 0.15 && < 0.16
+    , statistics           >= 0.16 && < 0.17
+    , text                 >= 1.2  && < 2.2
+    , vector               >= 0.12 && < 0.14
+    , dataframe-core        ^>= 1.1
+    -- Phase 106: 分割 package (層構成 = specification/phases/phase-106-package-split.md)
+    , hanalyze-core   == 0.2.0.1
+    , hanalyze-frame  == 0.2.0.1
+    , hanalyze-bayes  == 0.2.0.1
+    , hanalyze-models == 0.2.0.1
+    , hanalyze-design == 0.2.0.1
+    , hanalyze-viz    == 0.2.0.1
+
+test-suite hanalyze-test
+  import:           warnings, opt
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  hs-source-dirs:   test
+  default-language: GHC2021
+  -- WorkflowSpec の plot 連携診断テスト (tracesOf / MultiVarModel 事後予測帯) は
+  -- Phase 106.4 で hanalyze-plot-test (hanalyze-plot) へ移行済。
+  build-depends:
+      base       >= 4.14 && < 5
+    , hanalyze
+    , hspec      >= 2.10 && < 2.12
+    , QuickCheck >= 2.14 && < 2.16
+    , vector     >= 0.12 && < 0.14
+    , mwc-random >= 0.15 && < 0.16
+    , text       >= 1.2  && < 2.2
+    , dataframe-core        ^>= 1.1
+    , dataframe-operations  >= 1.1.1 && < 1.2
+    , temporary  >= 1.3  && < 1.4
+    , bytestring >= 0.11 && < 0.13
+    , hmatrix    >= 0.20 && < 0.22
+    , containers >= 0.6  && < 0.8
+    , ad         >= 4.4  && < 4.6
+  build-tool-depends:
+    hspec-discover:hspec-discover >= 2.10 && < 2.12
+  -- per-module Spec 群 (hspec-discover が Spec.hs から自動収集)。
+  -- SpecHelper は共通 helper / orphan Arbitrary instance。
+  other-modules:
+      Hanalyze.Data.FactorSpec
+    , Hanalyze.Data.StringsSpec
+    , Hanalyze.Data.TransformSpec
+    , Hanalyze.Data.WrangleSpec
+    , Hanalyze.DataIO.CSVSpec
+    , Hanalyze.DataIO.ConvertSpec
+    , Hanalyze.DataIO.HealthSpec
+    , Hanalyze.DataIO.LogSpec
+    , Hanalyze.DataIO.PreprocessSpec
+    , Hanalyze.DataIO.ReshapeSpec
+    , Hanalyze.Design.ConstraintSpec
+    , Hanalyze.Design.Custom.AugmentSpec
+    , Hanalyze.Design.Custom.BayesianSpec
+    , Hanalyze.Design.Custom.CompareSpec
+    , Hanalyze.Design.Custom.CoordinateSpec
+    , Hanalyze.Design.Custom.FactorSpec
+    , Hanalyze.Design.Custom.GoldenSpec
+    , Hanalyze.Design.Custom.PowerSpec
+    , Hanalyze.Design.Custom.SplitPlotSpec
+    , Hanalyze.Design.DSDSpec
+    , Hanalyze.Design.DiagnosticsSpec
+    , Hanalyze.Design.GaugeRRSpec
+    , Hanalyze.Design.MixtureSpec
+    , Hanalyze.Design.OptimalSpec
+    , Hanalyze.Design.OrthogonalSpec
+    , Hanalyze.Design.QualitySpec
+    , Hanalyze.Design.SequentialSpec
+    , Hanalyze.Design.SpaceFillingSpec
+    , Hanalyze.Design.TaguchiSpec
+    , Hanalyze.Design.WorkflowSpec
+    , Hanalyze.MCMC.BayesianTestSpec
+    , Hanalyze.MCMC.NUTSSpec
+    , Hanalyze.MCMC.ProgressSpec
+    , Hanalyze.MCMC.SMCSpec
+    , Hanalyze.MCMC.SamplersPureSpec
+    , Hanalyze.Math.HSICSpec
+    , Hanalyze.Math.HungarianSpec
+    , Hanalyze.Model.AFTSpec
+    , Hanalyze.Model.ClusterSpec
+    , Hanalyze.Model.CompetingRisksSpec
+    , Hanalyze.Model.DAGSpec
+    , Hanalyze.Model.DecisionTreeSpec
+    , Hanalyze.Model.PartialDependenceSpec
+    , Hanalyze.Model.DiscriminantSpec
+    , Hanalyze.Model.FDASpec
+    , Hanalyze.Model.FitYByXSpec
+    , Hanalyze.Model.Formula.ContrastSpec
+    , Hanalyze.Model.Formula.DesignSpec
+    , Hanalyze.Model.Formula.FrameSpec
+    , Hanalyze.Model.Formula.MixedSpec
+    , Hanalyze.Model.Formula.NonlinearSpec
+    , Hanalyze.Model.Formula.RFormulaSpec
+    , Hanalyze.Model.Formula.WLSSpec
+    , Hanalyze.Model.FormulaSpec
+    , Hanalyze.Model.GARCHSpec
+    , Hanalyze.Model.GLMMSpec
+    , Hanalyze.Model.GLMSpec
+    , Hanalyze.Model.GPRobustSpec
+    , Hanalyze.Model.GradientBoostingSpec
+    , Hanalyze.Model.HBM.InterpSpec
+    , Hanalyze.Model.HBM.LogpSpec
+    , Hanalyze.Model.HBMSpec
+    , Hanalyze.Model.HBMSummarySpec
+    , Hanalyze.Model.HierarchicalClusterSpec
+    , Hanalyze.Model.KNNSpec
+    , Hanalyze.Model.KernelSpec
+    , Hanalyze.Model.SVMSpec
+    , Hanalyze.Model.LM.DiagnosticsSpec
+    , Hanalyze.Model.LatentClassAnalysisSpec
+    , Hanalyze.Model.LiNGAM.BootstrapSpec
+    , Hanalyze.Model.LiNGAM.DirectSpec
+    , Hanalyze.Model.LiNGAM.ICASpec
+    , Hanalyze.Model.LiNGAM.MultiGroupSpec
+    , Hanalyze.Model.LiNGAM.PairwiseSpec
+    , Hanalyze.Model.LiNGAM.ParceSpec
+    , Hanalyze.Model.LiNGAM.VARSpec
+    , Hanalyze.Model.MultiOutputSpec
+    , Hanalyze.Model.NaiveBayesSpec
+    , Hanalyze.Model.NeuralNetworkSpec
+    , Hanalyze.Model.PCASpec
+    , Hanalyze.Model.PLSSpec
+    , Hanalyze.Model.RFFSpec
+    , Hanalyze.Model.RandomForestClassifierSpec
+    , Hanalyze.Model.RegularizedAdvanced.AdaptiveLassoSpec
+    , Hanalyze.Model.RegularizedAdvanced.GroupLassoSpec
+    , Hanalyze.Model.RegularizedAdvanced.MCPSpec
+    , Hanalyze.Model.RegularizedAdvanced.SCADSpec
+    , Hanalyze.Model.RegularizedSpec
+    , Hanalyze.Model.ReliabilityBlockDiagramSpec
+    , Hanalyze.Model.ReliabilitySpec
+    , Hanalyze.Model.RobustSpec
+    , Hanalyze.Model.StateSpaceSpec
+    , Hanalyze.Model.SurvivalSpec
+    , Hanalyze.Model.TimeSeriesSpec
+    , Hanalyze.Model.VARSpec
+    , Hanalyze.Model.WeibullSpec
+    , Hanalyze.Optim.BayesOptSpec
+    , Hanalyze.Optim.CMAESSpec
+    , Hanalyze.Optim.CommonSpec
+    , Hanalyze.Optim.ConstrainedSpec
+    , Hanalyze.Optim.DifferentialEvolutionSpec
+    , Hanalyze.Optim.LBFGSSpec
+    , Hanalyze.Optim.LineSearchSpec
+    , Hanalyze.Optim.NSGASpec
+    , Hanalyze.Optim.NelderMeadSpec
+    , Hanalyze.Optim.ParticleSwarmSpec
+    , Hanalyze.Optim.SimulatedAnnealingSpec
+    , Hanalyze.Stat.AdaptiveGridSpec
+    , Hanalyze.Stat.BayesFactorSpec
+    , Hanalyze.Stat.BayesianModelAveragingSpec
+    , Hanalyze.Stat.BootstrapSpec
+    , Hanalyze.Stat.BridgeSamplingSpec
+    , Hanalyze.Stat.CVSpec
+    , Hanalyze.Stat.Causal.CATESpec
+    , Hanalyze.Stat.Causal.DoublyRobustSpec
+    , Hanalyze.Stat.Causal.IPWSpec
+    , Hanalyze.Stat.Causal.PropensityScoreSpec
+    , Hanalyze.Stat.CholeskySpec
+    , Hanalyze.Stat.ClassMetricsSpec
+    , Hanalyze.Stat.CorrelationNetworkSpec
+    , Hanalyze.Stat.DescriptiveSpec
+    , Hanalyze.Stat.EffectSpec
+    , Hanalyze.Stat.GroupComparisonSpec
+    , Hanalyze.Stat.InterpolateSpec
+    , Hanalyze.Stat.InterpretSpec
+    , Hanalyze.Stat.KernelDistSpec
+    , Hanalyze.Stat.MCMCSpec
+    , Hanalyze.Stat.MDSSpec
+    , Hanalyze.Stat.MultipleTestingSpec
+    , Hanalyze.Stat.NumberFormatSpec
+    , Hanalyze.Stat.QuasiRandomSpec
+    , Hanalyze.Stat.SPCSpec
+    , Hanalyze.Stat.StandardizeSpec
+    , Hanalyze.Stat.SummarySpec
+    , Hanalyze.Stat.TestSpec
+    , Hanalyze.Stat.VISpec
+    , Hanalyze.Viz.ModelGraphSpec
+    , Hanalyze.Viz.ReportBuilderSpec
+    , SpecHelper

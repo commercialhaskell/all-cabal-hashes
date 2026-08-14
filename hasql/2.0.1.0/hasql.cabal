@@ -1,0 +1,401 @@
+cabal-version: 3.0
+name: hasql
+version: 2.0.1.0
+category: Hasql, Database, PostgreSQL
+synopsis: Fast PostgreSQL driver with a flexible mapping API
+description:
+  Root of the \"hasql\" ecosystem.
+  This library provides connection management, execution of queries and mapping of parameters and results.
+  Extended functionality such as pooling, transactions and compile-time checking of SQL is provided by extension libraries.
+  For more details and tutorials see <https://github.com/nikita-volkov/hasql the readme>.
+
+  All error-reporting is explicit:
+  database, protocol and connection failures are reported via the 'Either' type
+  instead of being thrown as exceptions.
+
+  The transport layer is pluggable via <https://hackage.haskell.org/package/pqi pqi>,
+  so \"hasql\" itself carries no C dependency.
+  To compile an application you need to depend on \"hasql\" together with one adapter package
+  and pass that adapter to @Hasql.Connection.acquire@ as its first argument.
+  Two adapters are available:
+
+  * <https://hackage.haskell.org/package/pqi-ffi pqi-ffi> -
+    the stable, production-proven adapter, backed by the C \"libpq\" library.
+    It requires \"libpq\" of at least version 14 to be installed to compile.
+    \"libpq\" comes distributed with PostgreSQL,
+    so typically all you need is just to install the latest PostgreSQL distro.
+    Via this adapter \"hasql\" is thoroughly tested to be compatible
+    with a wide range of PostgreSQL servers starting from version 9.
+
+  * <https://hackage.haskell.org/package/pqi-native pqi-native> -
+    a pure-Haskell adapter, which speaks the PostgreSQL wire protocol directly
+    and thus requires no C dependency at all.
+    It is thoroughly tested:
+    <https://github.com/nikita-volkov/pqi-conformance pqi-conformance> runs it
+    side by side with \"libpq\" on the same inputs and checks that the results agree,
+    and the test-suites of \"hasql\", \"hasql-pool\" and \"hasql-transaction\"
+    run against both adapters.
+    It is still labelled __alpha__, but is fully interchangeable with \"pqi-ffi\":
+    switching between the two is a one-line change.
+
+homepage: https://github.com/nikita-volkov/hasql
+bug-reports: https://github.com/nikita-volkov/hasql/issues
+author: Nikita Volkov <nikita.y.volkov@mail.ru>
+maintainer: Nikita Volkov <nikita.y.volkov@mail.ru>
+copyright: (c) 2014, Nikita Volkov
+license: MIT
+license-file: LICENSE
+extra-source-files:
+  README.md
+
+extra-doc-files:
+  CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/nikita-volkov/hasql
+
+common base
+  default-language: Haskell2010
+  default-extensions:
+    ApplicativeDo
+    Arrows
+    BangPatterns
+    BlockArguments
+    ConstraintKinds
+    DataKinds
+    DefaultSignatures
+    DeriveAnyClass
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveTraversable
+    DerivingVia
+    DuplicateRecordFields
+    EmptyDataDecls
+    FlexibleContexts
+    FlexibleInstances
+    FunctionalDependencies
+    GADTs
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    LambdaCase
+    LiberalTypeSynonyms
+    MultiParamTypeClasses
+    MultiWayIf
+    NamedFieldPuns
+    NoImplicitPrelude
+    NoMonomorphismRestriction
+    NumericUnderscores
+    OverloadedStrings
+    PatternGuards
+    QuasiQuotes
+    RankNTypes
+    RecordWildCards
+    RoleAnnotations
+    ScopedTypeVariables
+    StandaloneDeriving
+    StrictData
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    ViewPatterns
+
+common executable
+  import: base
+  ghc-options:
+    -O2
+    -threaded
+    -with-rtsopts=-N
+    -rtsopts
+    -funbox-strict-fields
+
+common test
+  import: base
+  ghc-options:
+    -threaded
+    -with-rtsopts=-N
+
+library
+  import: base
+  hs-source-dirs: src/library
+  exposed-modules:
+    Hasql.Connection
+    Hasql.Connection.Settings
+    Hasql.Decoders
+    Hasql.Encoders
+    Hasql.Errors
+    Hasql.Pipeline
+    Hasql.Session
+    Hasql.Statement
+
+  other-modules:
+    Hasql.Codecs.Decoders
+    Hasql.Codecs.Decoders.Array
+    Hasql.Codecs.Decoders.Composite
+    Hasql.Codecs.Decoders.NullableOrNot
+    Hasql.Codecs.Decoders.Value
+    Hasql.Codecs.Encoders
+    Hasql.Codecs.Encoders.Array
+    Hasql.Codecs.Encoders.Composite
+    Hasql.Codecs.Encoders.NullableOrNot
+    Hasql.Codecs.Encoders.Params
+    Hasql.Codecs.Encoders.Value
+    Hasql.Connection.Config
+    Hasql.Connection.ServerVersion
+    Hasql.Engine.Contexts.Pipeline
+    Hasql.Engine.Contexts.Session
+    Hasql.Engine.Decoders.Result
+    Hasql.Engine.Decoders.Row
+    Hasql.Engine.Errors
+    Hasql.Engine.PqProcedures.SelectTypeInfo
+    Hasql.Engine.Statement
+
+  build-depends:
+    aeson >=2 && <3,
+    bytestring >=0.10 && <0.13,
+    bytestring-strict-builder >=0.4.5.4 && <0.5,
+    hasql:codecs-vocab,
+    hasql:comms,
+    hasql:connection-state,
+    hasql:platform,
+    hasql:to-be-resolved,
+    iproute >=1.7 && <1.8,
+    postgresql-binary ^>=0.15,
+    postgresql-connection-string ^>=0.1,
+    pqi >=1.0 && <1.2,
+    text >=1 && <3,
+    text-builder >=1 && <1.1,
+    unordered-containers >=0.2 && <0.3,
+    vector >=0.10 && <0.14,
+
+library platform
+  import: base
+  hs-source-dirs: src/platform
+  exposed-modules:
+    Hasql.Platform.Prelude
+
+  other-modules:
+    Hasql.Platform.Prelude.Text
+
+  build-depends:
+    base >=4.14 && <5,
+    bytestring >=0.10 && <0.13,
+    comonad ^>=5,
+    contravariant >=1.3 && <2,
+    dlist >=0.8 && <0.9 || >=1 && <2,
+    hashable >=1.2 && <2,
+    mtl >=2 && <3,
+    profunctors >=5.1 && <6,
+    scientific >=0.3 && <0.4,
+    text >=1 && <3,
+    text-builder >=1 && <1.1,
+    time >=1.9 && <2,
+    transformers >=0.5 && <0.7,
+    unordered-containers >=0.2 && <0.3,
+    uuid >=1.3 && <2,
+    vector >=0.10 && <0.14,
+    witherable >=0.5 && <0.6,
+
+library to-be-resolved
+  import: base
+  hs-source-dirs: src/to-be-resolved
+  exposed-modules:
+    Hasql.ToBeResolved
+
+  build-depends:
+    base >=4.14 && <5
+
+library codecs-vocab
+  import: base
+  hs-source-dirs: src/codecs-vocab
+  exposed-modules:
+    Hasql.CodecsVocab
+    Hasql.CodecsVocab.QualifiedTypeName
+    Hasql.CodecsVocab.TypeInfo
+    Hasql.CodecsVocab.TypeRef
+    Hasql.CodecsVocab.TypeShape
+
+  build-depends:
+    hasql:platform
+
+library connection-state
+  import: base
+  hs-source-dirs: src/connection-state
+  exposed-modules:
+    Hasql.ConnectionState
+    Hasql.ConnectionState.OidCache
+    Hasql.ConnectionState.StatementCache
+
+  build-depends:
+    hasql:codecs-vocab,
+    hasql:platform,
+    pqi >=1.0 && <1.2,
+    unordered-containers >=0.2 && <0.3,
+
+library comms
+  import: base
+  hs-source-dirs: src/comms
+  exposed-modules:
+    Hasql.Comms.Recv
+    Hasql.Comms.ResultDecoder
+    Hasql.Comms.Roundtrip
+    Hasql.Comms.RowDecoder
+    Hasql.Comms.RowReader
+    Hasql.Comms.Send
+    Hasql.Comms.Session
+
+  build-depends:
+    attoparsec >=0.10 && <0.15,
+    bytestring >=0.10 && <0.13,
+    hasql:platform,
+    pqi >=1.0 && <1.2,
+    vector >=0.10 && <0.14,
+
+benchmark benchmarks
+  import: executable
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src/benchmarks
+  main-is: Main.hs
+  build-depends:
+    criterion >=1.6 && <2,
+    hasql,
+    pqi-ffi ^>=1.0,
+    pqi-native ^>=1.0,
+    rerebase <2,
+
+test-suite profiling
+  import: base
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src/profiling
+  main-is: Main.hs
+  ghc-options:
+    -O2
+    -threaded
+    -rtsopts
+
+  build-depends:
+    hasql,
+    pqi-ffi ^>=1.0,
+    rerebase >=1 && <2,
+    testcontainers-postgresql ^>=0.2,
+
+test-suite comms-tests
+  import: test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src/comms-tests
+  main-is: Main.hs
+  other-modules:
+    Hasql.Comms.Session.CleanUpAfterInterruptionSpec
+    Hasql.Comms.SpecHook
+
+  build-tool-depends:
+    hspec-discover:hspec-discover ^>=2.11.12
+
+  build-depends:
+    hasql:comms,
+    hasql:platform,
+    hspec ^>=2.11.12,
+    pqi >=1.0 && <1.2,
+    pqi-ffi ^>=1.0,
+    testcontainers-postgresql ^>=0.2,
+    text-builder >=1 && <1.1,
+
+test-suite connection-state-tests
+  import: test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src/connection-state-tests
+  main-is: Main.hs
+  other-modules:
+    Hasql.ConnectionState.OidCacheSpec
+    Hasql.ConnectionState.StatementCacheSpec
+
+  build-tool-depends:
+    hspec-discover:hspec-discover ^>=2.11.12
+
+  build-depends:
+    base >=4.14 && <5,
+    hasql:codecs-vocab,
+    hasql:connection-state,
+    hspec ^>=2.11.12,
+    unordered-containers >=0.2 && <0.3,
+
+test-suite library-tests
+  import: test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src/library-tests
+  main-is: Main.hs
+  other-modules:
+    Helpers.Adapters
+    Helpers.Dsls.Execution
+    Helpers.Dsls.Statement
+    Helpers.Scripts
+    Helpers.Statements
+    Helpers.Statements.BrokenSyntax
+    Helpers.Statements.CountPreparedStatements
+    Helpers.Statements.CurrentSetting
+    Helpers.Statements.GenerateSeries
+    Helpers.Statements.SelectOne
+    Helpers.Statements.SelectProvidedInt8
+    Helpers.Statements.SetConfig
+    Helpers.Statements.Sleep
+    Helpers.Statements.WrongDecoder
+    Integration.Isolated.Connection.AcquireSpec
+    Integration.Sharing.Connection.Use.PipelineAbortedInterruptionCleanupSpec
+    Integration.Sharing.Connection.UseSpec
+    Integration.Sharing.Decoders.CitextSpec
+    Integration.Sharing.Decoders.Composite.OidMismatchSpec
+    Integration.Sharing.Decoders.CompositeSpec
+    Integration.Sharing.Decoders.CustomSpec
+    Integration.Sharing.Decoders.DomainSpec
+    Integration.Sharing.Decoders.EnumSpec
+    Integration.Sharing.Decoders.Float8Spec
+    Integration.Sharing.Decoders.HstoreSpec
+    Integration.Sharing.Decoders.InetSpec
+    Integration.Sharing.Decoders.IntervalSpec
+    Integration.Sharing.Decoders.JsonSpec
+    Integration.Sharing.Decoders.RecordSpec
+    Integration.Sharing.Decoders.UuidSpec
+    Integration.Sharing.Encoders.ArraySpec
+    Integration.Sharing.Encoders.CitextSpec
+    Integration.Sharing.Encoders.Composite.OidMismatchSpec
+    Integration.Sharing.Encoders.CompositeSpec
+    Integration.Sharing.Encoders.CustomSpec
+    Integration.Sharing.Encoders.DomainSpec
+    Integration.Sharing.Encoders.EnumSpec
+    Integration.Sharing.Encoders.HstoreSpec
+    Integration.Sharing.Encoders.InetSpec
+    Integration.Sharing.Encoders.IntervalSpec
+    Integration.Sharing.Encoders.JsonSpec
+    Integration.Sharing.Encoders.UnknownSpec
+    Integration.Sharing.Encoders.UuidSpec
+    Integration.Sharing.ErrorsSpec
+    Integration.Sharing.PipelineSpec
+    Integration.Sharing.Session.CatchErrorSpec
+    Integration.Sharing.Session.ScriptSpec
+    Integration.Sharing.Session.StatementSpec
+    Integration.Sharing.SessionSpec
+    Integration.Sharing.SpecHook
+    Integration.Sharing.StatementSpec
+    Integration.SpecHook
+    Pure.ErrorsSpec
+
+  build-tool-depends:
+    hspec-discover:hspec-discover ^>=2.11.12
+
+  build-depends:
+    aeson,
+    hasql,
+    hspec ^>=2.11.12,
+    iproute,
+    pqi >=1.0 && <1.2,
+    pqi-ffi ^>=1.0,
+    pqi-native ^>=1.0,
+    QuickCheck,
+    quickcheck-instances >=0.3.11 && <0.4,
+    random >=1.3 && <1.4,
+    random ^>=1.3.1,
+    rerebase >=1 && <2,
+    testcontainers-postgresql ^>=0.2,
+    text-builder >=1 && <1.1,
