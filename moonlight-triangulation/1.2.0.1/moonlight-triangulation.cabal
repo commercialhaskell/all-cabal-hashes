@@ -1,0 +1,681 @@
+cabal-version:       3.4
+name:                moonlight-triangulation
+version:             1.2.0.1
+synopsis:            Delaunay meshes and exact planar-region algebra.
+description:         Delaunay and constrained Delaunay triangulation as a lawful
+                     finite-set algebra, together with exact rational planar
+                     regions, labelled common refinement, intrinsic valuations,
+                     and polygonal Minkowski morphology. A mesh is a value of
+                     its site set, so
+                     union, intersection and difference return triangulations
+                     and refinement composes after them rather than replacing
+                     them. One structure-of-arrays half-edge mesh carries the
+                     constrained and unconstrained layers, split into public
+                     sublibraries by role: exact binary64 predicates and paged
+                     storage; the finite DCEL with its handle,
+                     iterator, location and validation surface; circle-sweep bulk
+                     load, incremental insertion, removal, conflict-strip
+                     constraint recovery and Ruppert refinement; the Voronoi dual
+                     with natural-neighbour interpolation and Delaunay hierarchy
+                     hints; a bounded-concurrency interpreter for the join
+                     tournament; and a versioned binary serialization surface.
+                     Failure is values: every refusal names its witness.
+license:             MIT
+license-file:        LICENSE
+author:              Fable, Blue Rose
+maintainer:          rosaliafialkova@gmail.com
+copyright:           (c) 2026 Fable, Blue Rose
+category:            Geometry, Math
+homepage:            https://github.com/PaleRoses/moonlight
+bug-reports:         https://github.com/PaleRoses/moonlight/issues
+build-type:          Simple
+tested-with:         GHC == 9.8.4
+                     GHC == 9.10.3
+                     GHC == 9.12.4
+                     GHC == 9.14.1
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+extra-source-files:
+  weeder.toml
+  include/moonlight_triangulation.h
+  bindings/README.md
+  bindings/python/pyproject.toml
+  bindings/python/src/moonlight_triangulation/__init__.py
+  bindings/python/tests/test_binding.py
+  bindings/rust/Cargo.toml
+  bindings/rust/build.rs
+  bindings/rust/src/lib.rs
+  bindings/rust/tests/binding.rs
+  bindings/typescript/package.json
+  bindings/typescript/pnpm-workspace.yaml
+  bindings/typescript/tsconfig.json
+  bindings/typescript/src/index.ts
+  bindings/typescript/test/binding.test.ts
+
+source-repository head
+  type:     git
+  location: https://github.com/PaleRoses/moonlight.git
+  subdir:   moonlight-triangulation
+
+flag warnings-as-errors
+  description: Treat compiler warnings as errors in package validation.
+  default: False
+  manual: True
+
+common shared-properties
+  default-language: GHC2021
+  default-extensions:
+    DerivingStrategies
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+    -Wpartial-fields
+    -Wno-missing-import-lists
+  if flag(warnings-as-errors)
+    ghc-options: -Werror
+
+-- ── the tower ────────────────────────────────────────────────────────────────
+-- The main tower is core <- dcel <- build <- dual <- facade.  Serialize branches
+-- from dcel and parallel branches from build, keeping their effect dependencies
+-- out of the tower.  The graph is acyclic and uses no @.hs-boot@ files.
+
+library core
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-core
+  exposed-modules:
+    Moonlight.Triangulation.Scalar
+    Moonlight.Triangulation.LineSideInfo
+    Moonlight.Triangulation.Internal.Dyadic
+    Moonlight.Triangulation.Internal.ExactRational
+    Moonlight.Triangulation.Internal.PageDirectory
+    Moonlight.Triangulation.Internal.Paged
+    Moonlight.Triangulation.Internal.BoxedPaged
+    Moonlight.Triangulation.Internal.Growable
+    Moonlight.Triangulation.Internal.PackedIndex
+    Moonlight.Triangulation.Internal.FaceQueue
+  build-depends:
+    base >= 4.19 && < 5
+    , containers >= 0.8 && < 0.9
+    , deepseq >= 1.5 && < 1.6
+    , vector >= 0.13 && < 0.14
+  ghc-options: -fexpose-all-unfoldings
+
+library dcel
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-dcel
+  exposed-modules:
+    Moonlight.Triangulation.Types
+    Moonlight.Triangulation.Math
+    Moonlight.Triangulation.Exact
+    Moonlight.Triangulation.CellSet
+    Moonlight.Triangulation.Region
+    Moonlight.Triangulation.Valuation
+    Moonlight.Triangulation.Interop
+    Moonlight.Triangulation.Dcel
+    Moonlight.Triangulation.Payload
+    Moonlight.Triangulation.JoinSemilattice
+    Moonlight.Triangulation.Handles
+    Moonlight.Triangulation.Handles.HandleDefs
+    Moonlight.Triangulation.Handles.Dynamic
+    Moonlight.Triangulation.Handles.Iterators
+    Moonlight.Triangulation.Handles.Iterators.CircularIterator
+    Moonlight.Triangulation.Handles.Iterators.DynamicIterators
+    Moonlight.Triangulation.Handles.Iterators.FixedIterators
+    Moonlight.Triangulation.Handles.Iterators.HullIterator
+    Moonlight.Triangulation.PointLocation
+    Moonlight.Triangulation.Validation
+    Moonlight.Triangulation.FloodFillIterator
+    Moonlight.Triangulation.IntersectionIterator
+    Moonlight.Triangulation.Internal.FaceProbe
+    Moonlight.Triangulation.Internal.CellSet
+    Moonlight.Triangulation.Internal.BoundaryCycle
+    Moonlight.Triangulation.Internal.ExactSegmentEvents
+    Moonlight.Triangulation.Internal.Region.Publication
+    Moonlight.Triangulation.Internal.Region.Types
+    Moonlight.Triangulation.Internal.SegmentRelation
+    Moonlight.Triangulation.Internal.Types
+    Moonlight.Triangulation.Internal.Representation
+    Moonlight.Triangulation.Internal.PointIndex
+    Moonlight.Triangulation.Internal.Mutable
+    Moonlight.Triangulation.Internal.OperationState
+    Moonlight.Triangulation.Internal.Probe
+    Moonlight.Triangulation.Internal.DcelOperations
+    Moonlight.Triangulation.Internal.DcelOperations.CandidateArena
+    Moonlight.Triangulation.Internal.DcelOperations.Chain
+    Moonlight.Triangulation.Internal.DcelOperations.FlipRewrite
+    Moonlight.Triangulation.Internal.DcelOperations.FlipRule
+    Moonlight.Triangulation.Internal.DcelOperations.Hull
+    Moonlight.Triangulation.Internal.DcelOperations.Legalize
+    Moonlight.Triangulation.Internal.DcelOperations.Normalize
+    Moonlight.Triangulation.Internal.DcelOperations.Subdivide
+    Moonlight.Triangulation.Internal.DcelOperations.Twin
+    Moonlight.Triangulation.Internal.Canonical
+  other-modules:
+    Moonlight.Triangulation.Internal.Region.Bounds
+  build-depends:
+    base >= 4.19 && < 5
+    , containers >= 0.8 && < 0.9
+    , deepseq >= 1.5 && < 1.6
+    , primitive >= 0.9 && < 0.10
+    , vector >= 0.13 && < 0.14
+    , vector-algorithms >= 0.9 && < 0.10
+    , moonlight-triangulation:core
+  ghc-options: -fexpose-all-unfoldings
+
+library build
+  import: shared-properties
+  visibility: public
+  hs-source-dirs:
+    src-build
+    src-embedding
+  exposed-modules:
+    Moonlight.Triangulation.BulkLoad
+    Moonlight.Triangulation.Removal
+    Moonlight.Triangulation.Session
+    Moonlight.Triangulation.Cdt
+    Moonlight.Triangulation.Minkowski
+    Moonlight.Triangulation.Overlay
+    Moonlight.Triangulation.Refinement
+    Moonlight.Triangulation.SetAlgebra
+    Moonlight.Triangulation.Internal.Cdt.Build
+    Moonlight.Triangulation.Internal.Cdt.Query
+    Moonlight.Triangulation.Internal.Cdt.Types
+    Moonlight.Triangulation.Internal.Cdt.Union
+    Moonlight.Triangulation.Internal.Overlay.Arrangement
+    Moonlight.Triangulation.Internal.Overlay.Resident
+    Moonlight.Triangulation.Internal.Join
+    Moonlight.Triangulation.Internal.Join.Seam
+  other-modules:
+    Moonlight.Triangulation.Insertion
+    Moonlight.Triangulation.Internal.Capacity
+    Moonlight.Triangulation.Internal.Cdt.Admission
+    Moonlight.Triangulation.Internal.Cdt.Batch
+    Moonlight.Triangulation.Internal.Cdt.Combinators
+    Moonlight.Triangulation.Internal.Cdt.Corridor
+    Moonlight.Triangulation.Internal.Cdt.Corridor.Trace
+    Moonlight.Triangulation.Internal.Cdt.Recovery
+    Moonlight.Triangulation.Internal.Cdt.Region
+    Moonlight.Triangulation.Internal.Cdt.Segment
+    Moonlight.Triangulation.Internal.Cdt.Site
+    Moonlight.Triangulation.Internal.Cdt.Split
+    Moonlight.Triangulation.Internal.Excision
+    Moonlight.Triangulation.Internal.Location
+    Moonlight.Triangulation.Internal.CircleSweep
+    Moonlight.Triangulation.Internal.Refinement
+    Moonlight.Triangulation.Internal.Transaction
+    Moonlight.Triangulation.Internal.Join.Plan
+    Moonlight.Triangulation.Internal.Join.Rebuild
+    Moonlight.Triangulation.Internal.Join.SiteSet
+    Moonlight.Triangulation.Internal.Overlay.Embedding
+    Moonlight.Triangulation.Internal.Overlay.Types
+    Moonlight.Triangulation.Internal.Minkowski.Convex
+    Moonlight.Triangulation.Internal.Minkowski.Types
+  build-depends:
+    base >= 4.19 && < 5
+    , containers >= 0.8 && < 0.9
+    , deepseq >= 1.5 && < 1.6
+    , primitive >= 0.9 && < 0.10
+    , vector >= 0.13 && < 0.14
+    , vector-algorithms >= 0.9 && < 0.10
+    , moonlight-triangulation:core
+    , moonlight-triangulation:dcel
+  ghc-options: -fexpose-all-unfoldings
+
+-- Concurrency is an effect boundary over the pure build planner. Keeping it in
+-- its own sublibrary prevents @async@ from infecting the geometry core.
+library parallel
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-parallel
+  exposed-modules:
+    Moonlight.Triangulation.Parallel
+  build-depends:
+    base >= 4.19 && < 5
+    , async >= 2.2 && < 2.3
+    , deepseq >= 1.5 && < 1.6
+    , moonlight-triangulation:core
+    , moonlight-triangulation:build
+    , moonlight-triangulation:dcel
+  ghc-options: -fexpose-all-unfoldings
+
+-- Its own sublibrary so that @binary@ and @bytestring@ stay out of the minimal
+-- geometry core.  This is a dependency boundary, not a size split; it replaces
+-- the former @serialization@ flag, which could not be checked by a single build.
+library serialize
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-serialize
+  exposed-modules:
+    Moonlight.Triangulation.Serialization
+  build-depends:
+    base >= 4.19 && < 5
+    , binary >= 0.8 && < 0.9
+    , bytestring >= 0.12 && < 0.13
+    , containers >= 0.8 && < 0.9
+    , transformers >= 0.6 && < 0.7
+    , vector >= 0.13 && < 0.14
+    , moonlight-triangulation:core
+    , moonlight-triangulation:dcel
+  -- The @Binary@ instances for the identifier and point types are orphans by
+  -- construction: the types belong to @dcel@ and the class to @binary@, and the
+  -- whole purpose of this component is that neither one has to know about the
+  -- other.  Rehoming them would pull @binary@ into the core and defeat the split.
+  ghc-options: -fexpose-all-unfoldings -Wno-orphans
+
+library dual
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-dual
+  exposed-modules:
+    Moonlight.Triangulation.Voronoi
+    Moonlight.Triangulation.Voronoi.Handles
+    Moonlight.Triangulation.Interpolation
+    Moonlight.Triangulation.HintGenerator
+  other-modules:
+    Moonlight.Triangulation.Internal.InterpolationWorkspace
+  build-depends:
+    base >= 4.19 && < 5
+    , deepseq >= 1.5 && < 1.6
+    , primitive >= 0.9 && < 0.10
+    , vector >= 0.13 && < 0.14
+    , moonlight-triangulation:core
+    , moonlight-triangulation:dcel
+    , moonlight-triangulation:build
+  ghc-options: -fexpose-all-unfoldings
+
+library
+  import: shared-properties
+  hs-source-dirs: src-public
+  exposed-modules:
+    Moonlight.Triangulation
+  build-depends:
+    base >= 4.19 && < 5
+    , moonlight-triangulation:core
+    , moonlight-triangulation:dcel
+    , moonlight-triangulation:build
+    , moonlight-triangulation:dual
+  ghc-options: -fexpose-all-unfoldings
+
+library ffi
+  import: shared-properties
+  visibility: private
+  hs-source-dirs: src-ffi
+  exposed-modules:
+    Moonlight.Triangulation.Foreign.ABI
+  build-depends:
+    base >= 4.19 && < 5
+    , vector >= 0.13 && < 0.14
+    , moonlight-triangulation
+    , moonlight-triangulation:build
+    , moonlight-triangulation:dcel
+
+foreign-library moonlight-triangulation-c
+  import: shared-properties
+  type: native-shared
+  hs-source-dirs: src-capi
+  other-modules:
+    Moonlight.Triangulation.Foreign.Exports
+  c-sources:
+    cbits/moonlight_runtime.c
+  include-dirs:
+    include
+  install-includes:
+    moonlight_triangulation.h
+  build-depends:
+    base >= 4.19 && < 5
+    , moonlight-triangulation:ffi >= 1.2 && < 1.3
+  ghc-options: -threaded
+  if os(windows)
+    options: standalone
+    mod-def-file: cbits/moonlight-triangulation.def
+  else
+    extra-libraries: pthread
+  if os(linux)
+    lib-version-info: 1:0:0
+
+-- ── test slices ──────────────────────────────────────────────────────────────
+
+-- Each slice is an ATOM: a @common@ stanza binding a spec module to the
+-- dependencies and RTS options that module requires.  A suite is then a choice
+-- of atoms and nothing more.  The coherence component below imports every atom
+-- and therefore checks their combined module, instance, and dependency surface
+-- without running every behavioral suite a second time.
+
+common triangulation-test-properties
+  import: shared-properties
+  build-depends:
+    base >= 4.19 && < 5
+    , deepseq >= 1.5 && < 1.6
+    , vector >= 0.13 && < 0.14
+    , primitive >= 0.9 && < 0.10
+    , moonlight-triangulation
+
+common triangulation-test-support-slice
+  other-modules: Support
+
+common triangulation-native-test-slice
+  -- The focused milestone spec reaches into the dedicated @src-embedding@
+  -- root for exactly this one hidden certifier. Keeping that source root
+  -- singular prevents package modules from becoming duplicate test home modules.
+  hs-source-dirs: src-embedding
+  other-modules:
+    Moonlight.Triangulation.NativeSpec
+    Moonlight.Triangulation.FilteredPredicateOptimizationSpec
+    Moonlight.Triangulation.ExactEmbeddingSpec
+    Moonlight.Triangulation.OverlaySpec
+    Moonlight.Triangulation.RegionSpec
+    Moonlight.Triangulation.Internal.Overlay.Embedding
+  -- The RTS options this module needs are named on the SUITES rather than
+  -- here, which is the one place the slice-owns-its-requirements rule cannot
+  -- hold.  @-with-rtsopts@ is CONCATENATED by GHC across repetitions, so a
+  -- suite importing two slices that both name it links a binary whose RTS
+  -- string is the two spliced together — @-N4 -T-N4 -T@ — which the RTS
+  -- discards whole, silently disarming both.  It must appear exactly once per
+  -- suite, so @triangulation-suite-rtsopts@ below carries it.
+  ghc-options: -threaded -rtsopts
+  build-depends:
+    containers >= 0.8 && < 0.9
+    , moonlight-triangulation:core
+    , moonlight-triangulation:dcel
+    , moonlight-triangulation:build
+    , moonlight-triangulation:dual
+
+common triangulation-serialization-test-slice
+  other-modules: Moonlight.Triangulation.SerializationSpec
+  build-depends:
+    binary >= 0.8 && < 0.9
+    , bytestring >= 0.12 && < 0.13
+    , moonlight-triangulation:dcel
+    , moonlight-triangulation:serialize
+
+-- The operand meshes both algebra slices are stated over.  It sits at the
+-- surface tier with them, so the fixtures cannot quietly acquire a
+-- machine-room dependency that the law slice would then inherit.
+common triangulation-algebra-fixture-slice
+  other-modules: Moonlight.Triangulation.AlgebraFixtures
+  build-depends: containers >= 0.8 && < 0.9
+
+-- The finite-set laws, stated against the facade a caller has.
+common triangulation-algebra-law-slice
+  other-modules: Moonlight.Triangulation.AlgebraSpec
+  build-depends: containers >= 0.8 && < 0.9
+
+-- Exact planar Boolean laws, stated exclusively through the public facade.
+common triangulation-region-algebra-law-slice
+  other-modules: Moonlight.Triangulation.RegionAlgebraSpec
+  build-depends: containers >= 0.8 && < 0.9
+
+-- Exact intrinsic-volume laws over the resident cell carrier and published
+-- region view.
+common triangulation-valuation-law-slice
+  other-modules: Moonlight.Triangulation.ValuationSpec
+  build-depends:
+    containers >= 0.8 && < 0.9
+    , moonlight-triangulation:core
+    , moonlight-triangulation:dcel
+    , moonlight-triangulation:build
+
+common triangulation-minkowski-law-slice
+  other-modules: Moonlight.Triangulation.MinkowskiSpec
+  build-depends:
+    moonlight-triangulation:core
+    , moonlight-triangulation:dcel
+    , moonlight-triangulation:build
+
+-- The agreement between the seam schedule and the reference rebuild.  It names
+-- an internal schedule, so it reaches below the wall and travels with the
+-- schedule it names: a replacement kernel carries its own copy of this.
+common triangulation-algebra-schedule-slice
+  other-modules: Moonlight.Triangulation.ScheduleAgreementSpec
+  build-depends: moonlight-triangulation:build
+
+common triangulation-parallel-test-slice
+  other-modules: Moonlight.Triangulation.ParallelSpec
+  ghc-options: -threaded -rtsopts
+  build-depends: moonlight-triangulation:parallel
+
+-- The single statement of the RTS environment every suite runs under: -N so
+-- that the concurrent tournament has more than one capability to be scheduled
+-- onto, -T so that the filtered-predicate test can read allocation counters.
+-- It is one stanza rather than a line on each slice because @-with-rtsopts@
+-- concatenates rather than replaces, so naming it twice in one suite produces
+-- a spliced string the RTS rejects entirely.  Every behavioral suite that
+-- needs those capabilities imports this exactly once; the compile-only
+-- coherence suite deliberately installs no runtime defaults.
+common triangulation-suite-rtsopts
+  ghc-options: -threaded -rtsopts "-with-rtsopts=-N4 -T"
+
+test-suite moonlight-triangulation-native-test
+  import:
+    triangulation-suite-rtsopts,
+    triangulation-test-properties,
+    triangulation-test-support-slice,
+    triangulation-native-test-slice
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    test/native
+    test/support
+
+test-suite moonlight-triangulation-serialization-test
+  import:
+    triangulation-test-properties,
+    triangulation-test-support-slice,
+    triangulation-serialization-test-slice
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    test/serialization
+    test/support
+
+test-suite moonlight-triangulation-algebra-test
+  import:
+    triangulation-test-properties,
+    triangulation-test-support-slice,
+    triangulation-algebra-fixture-slice,
+    triangulation-algebra-law-slice,
+    triangulation-region-algebra-law-slice,
+    triangulation-valuation-law-slice,
+    triangulation-minkowski-law-slice,
+    triangulation-algebra-schedule-slice
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    test/algebra
+    test/support
+
+test-suite moonlight-triangulation-parallel-test
+  import:
+    triangulation-suite-rtsopts,
+    triangulation-test-properties,
+    triangulation-test-support-slice,
+    triangulation-algebra-fixture-slice,
+    triangulation-parallel-test-slice
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    test/parallel
+    test/algebra
+    test/support
+
+test-suite moonlight-triangulation-ffi-test
+  import: shared-properties
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test/ffi
+  build-depends:
+    base >= 4.19 && < 5
+    , moonlight-triangulation:ffi
+
+-- This component owns only cross-slice compile coherence.  Behavioral ownership
+-- remains in the four focused suites.  The shared test-properties stanza keeps
+-- every test body at @-O0@, so the union retains type/module/instance collision
+-- detection without paying to optimize a second copy of every test body.
+test-suite moonlight-triangulation-coherence-test
+  import:
+    triangulation-test-properties,
+    triangulation-test-support-slice,
+    triangulation-native-test-slice,
+    triangulation-serialization-test-slice,
+    triangulation-algebra-fixture-slice,
+    triangulation-algebra-law-slice,
+    triangulation-region-algebra-law-slice,
+    triangulation-valuation-law-slice,
+    triangulation-minkowski-law-slice,
+    triangulation-algebra-schedule-slice,
+    triangulation-parallel-test-slice
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    test/coherence
+    test/native
+    test/serialization
+    test/algebra
+    test/parallel
+    test/support
+
+-- ── benchmark slices ─────────────────────────────────────────────────────────
+-- Deliberately not @tasty-bench@: these report allocated bytes and the work
+-- counters the library keeps about itself — hierarchy walk steps, refinement
+-- queue pops, bytes per interpolation query — and a wall-clock harness cannot
+-- express any of them.  @core@ and @serialize@ carry no benchmark today; that is
+-- stated rather than filled with an invented one.
+
+common triangulation-benchmark-properties
+  import: shared-properties
+  -- The allocation arms read GHC.Stats, which is dark without -T.  As with the
+  -- test suites, @-with-rtsopts@ is CONCATENATED by GHC across repetitions, so
+  -- it must appear exactly once per benchmark: this stanza is that one place,
+  -- and no benchmark slice may name it again.
+  ghc-options: -threaded -rtsopts "-with-rtsopts=-T"
+  build-depends:
+    base >= 4.19 && < 5
+    , deepseq >= 1.5 && < 1.6
+    , vector >= 0.13 && < 0.14
+    , moonlight-triangulation
+
+common triangulation-benchmark-support-slice
+  other-modules: BenchSupport
+
+common triangulation-build-benchmark-slice
+  other-modules: Moonlight.Triangulation.BuildBench
+  build-depends:
+    primitive >= 0.9 && < 0.10
+    , moonlight-triangulation:dcel
+    , moonlight-triangulation:build
+
+common triangulation-dcel-benchmark-slice
+  other-modules: Moonlight.Triangulation.DcelBench
+  build-depends: moonlight-triangulation:dcel
+
+common triangulation-dual-benchmark-slice
+  other-modules: Moonlight.Triangulation.DualBench
+  build-depends: moonlight-triangulation:dual
+
+common triangulation-join-benchmark-slice
+  other-modules: Moonlight.Triangulation.JoinBench
+  build-depends:
+    moonlight-triangulation:dcel
+    , moonlight-triangulation:build
+
+common triangulation-region-benchmark-slice
+  other-modules: Moonlight.Triangulation.RegionBench
+  build-depends:
+    containers >= 0.8 && < 0.9
+    , moonlight-triangulation:core
+    , moonlight-triangulation:dcel
+    , moonlight-triangulation:build
+
+benchmark moonlight-triangulation-build-bench
+  import:
+    triangulation-benchmark-properties,
+    triangulation-benchmark-support-slice,
+    triangulation-build-benchmark-slice
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    bench/build
+    bench/support
+
+benchmark moonlight-triangulation-dcel-bench
+  import:
+    triangulation-benchmark-properties,
+    triangulation-benchmark-support-slice,
+    triangulation-dcel-benchmark-slice
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    bench/dcel
+    bench/support
+
+benchmark moonlight-triangulation-dual-bench
+  import:
+    triangulation-benchmark-properties,
+    triangulation-benchmark-support-slice,
+    triangulation-dual-benchmark-slice
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    bench/dual
+    bench/support
+
+benchmark moonlight-triangulation-join-bench
+  import:
+    triangulation-benchmark-properties,
+    triangulation-benchmark-support-slice,
+    triangulation-join-benchmark-slice
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    bench/join
+    bench/support
+
+benchmark moonlight-triangulation-publication-bench
+  import:
+    triangulation-benchmark-properties,
+    triangulation-benchmark-support-slice,
+    triangulation-join-benchmark-slice
+  type: exitcode-stdio-1.0
+  main-is: PublicationMain.hs
+  hs-source-dirs:
+    bench/publication
+    bench/join
+    bench/support
+
+benchmark moonlight-triangulation-region-bench
+  import:
+    triangulation-benchmark-properties,
+    triangulation-benchmark-support-slice,
+    triangulation-region-benchmark-slice
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    bench/region
+    bench/support
+
+benchmark moonlight-triangulation-bench
+  import:
+    triangulation-benchmark-properties,
+    triangulation-benchmark-support-slice,
+    triangulation-build-benchmark-slice,
+    triangulation-dcel-benchmark-slice,
+    triangulation-dual-benchmark-slice,
+    triangulation-join-benchmark-slice,
+    triangulation-region-benchmark-slice
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    bench/aggregate
+    bench/build
+    bench/dcel
+    bench/dual
+    bench/join
+    bench/region
+    bench/support
