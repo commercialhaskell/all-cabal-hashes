@@ -1,0 +1,207 @@
+cabal-version:   3.0
+name:            kioku-core
+version:         0.4.0.0
+synopsis:        Reusable agent memory runtime
+description:
+  Core runtime for kioku. M1 establishes the application effect stack; later
+  milestones add the memory and session aggregates.
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+copyright:       2026 Nadeem Bitar
+category:        Data
+build-type:      Simple
+tested-with:     GHC >=9.12 && <9.13
+homepage:        https://github.com/shinzui/kioku
+bug-reports:     https://github.com/shinzui/kioku/issues
+extra-doc-files: CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/shinzui/kioku.git
+  subdir:   kioku-core
+
+common warnings
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+    -Werror=incomplete-patterns
+
+common shared
+  default-language:   GHC2024
+  default-extensions:
+    BlockArguments
+    DeriveAnyClass
+    DuplicateRecordFields
+    MultilineStrings
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+    QualifiedDo
+    TemplateHaskell
+
+library
+  import:           warnings, shared
+  hs-source-dirs:   src
+  exposed-modules:
+    Kioku.App
+    Kioku.Distill.Consolidate
+    Kioku.Distill.Extract
+    Kioku.Distill.L1
+    Kioku.Distill.L2
+    Kioku.Distill.L3
+    Kioku.Distill.Persona
+    Kioku.Distill.Runtime
+    Kioku.Distill.Scene
+    Kioku.Distill.ScopeIdentity
+    Kioku.Distill.Timer
+    Kioku.Distill.Timer.Outcome
+    Kioku.Distill.Timer.Worker
+    Kioku.Memory
+    Kioku.Memory.Domain
+    Kioku.Memory.Embedding
+    Kioku.Memory.Embedding.Worker
+    Kioku.Memory.EventStream
+    Kioku.Memory.ReadModel
+    Kioku.Partition
+    Kioku.ReadModel
+    Kioku.Recall
+    Kioku.Recall.Capability
+    Kioku.Session
+    Kioku.Session.Domain
+    Kioku.Session.EventStream
+    Kioku.Session.ReadModel
+    Kioku.Worker.Failure
+    Kioku.Workspace
+
+  -- Where Kioku's projections physically live is Kioku's business, so the
+  -- qualified relation names stay internal rather than becoming a public API a
+  -- consumer could pin its own SQL to.
+  other-modules:    Kioku.Database.Schema
+
+  -- Works around a GHC 9.12.4 coercion-optimiser bug that makes the *profiled*
+  -- build of Kioku.Distill.L1 panic:
+  --
+  --     panic! (the 'impossible' happened) / coercionKind / ConsSymbolDef
+  --     pprPanic, called at compiler/GHC/Core/Coercion.hs:2550:17
+  --
+  -- `ConsSymbolDef` is the built-in rewrite axiom behind the type-level Symbol
+  -- machinery that mmzk-typeid's `Data.KindID.V7` prefix validation produces.
+  -- With -prof, optCoercion builds an AxiomRuleCo whose argument coercions no
+  -- longer let the built-in rule re-prove itself, and coercionKind crashes.
+  --
+  -- This lives in ghc-prof-options, not ghc-options, so ordinary builds keep the
+  -- coercion optimiser; only the profiled way pays for the workaround. Profiling
+  -- detail is NOT the trigger -- `profiling-detail: none` and `late-toplevel`
+  -- both still panic -- so do not "simplify" this to a -fprof-auto tweak.
+  -- Retest and drop once the toolchain moves off GHC 9.12.4. Full write-up:
+  -- mori://MMZK1526/mmzk-typeid/upstream-issues/mmzk-typeid-kindid-ghc-9-12-4-profiling-coercionkind-panic
+  ghc-prof-options: -fno-opt-coercion
+
+  -- Two bounds below look wrong but are not. baikai-effectful has no 0.4
+  -- release; 0.3.0.2 is its newest and is itself built against baikai ^>=0.4.0,
+  -- so its version lags the rest of the Baikai cohort by design. And shikumi is
+  -- pinned at ^>=0.3.0.1 rather than ^>=0.3.0.0 because only that patch carries
+  -- the baikai 0.4 bounds -- 0.3.0.0 is tied to baikai 0.3 and would give the
+  -- solver a way to silently fall off this cohort.
+  build-depends:
+    , aeson                   >=2.2       && <2.3
+    , baikai                  ^>=0.4.1.0
+    , baikai-claude           ^>=0.4.0.1
+    , baikai-effectful        ^>=0.3.0.2
+    , base                    >=4.21      && <5
+    , bytestring              >=0.11      && <0.13
+    , containers              >=0.6       && <0.8
+    , contravariant           >=1.5       && <1.6
+    , contravariant-extras    >=0.3       && <0.4
+    , crypton                 ^>=1.1.4
+    , directory               >=1.3       && <1.4
+    , effectful               >=2.5       && <2.7
+    , effectful-core          >=2.5       && <2.7
+    , filepath                >=1.4       && <1.6
+    , generic-lens            >=2.2       && <2.4
+    , hasql                   >=1.6       && <1.11
+    , hasql-pool              >=1.2       && <1.5
+    , hasql-transaction       >=1.0       && <1.3
+    , hs-opentelemetry-api    >=1.0       && <1.1
+    , keiki                   ^>=0.9.0.0
+    , keiro                   ^>=0.13.0.0
+    , keiro-core              ^>=0.13.0.0
+    , kioku-api               ^>=0.4.0.0
+    , kiroku-store            ^>=0.8.0.0
+    , lens                    >=5.2       && <5.4
+    , mmzk-typeid             >=0.7       && <0.8
+    , shibuya-core            ^>=0.9.0.0
+    , shibuya-kiroku-adapter  ^>=0.5.1.1
+    , shikumi                 ^>=0.3.0.1
+    , shikumi-trace           ^>=0.2.0.1
+    , text                    >=2.1       && <2.2
+    , time                    >=1.12      && <1.15
+    , unordered-containers    >=0.2       && <0.3
+    , uuid                    >=1.3       && <1.4
+    , vector                  ^>=0.13.2.0
+
+test-suite kioku-test
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  main-is:        Main.hs
+  other-modules:
+    Kioku.AwaitingSpec
+    Kioku.CodecCompatSpec
+    Kioku.DistillSpec
+    Kioku.EmbeddingWorkerSpec
+    Kioku.IdempotencySpec
+    Kioku.MemorySpaceSpec
+    Kioku.PortfolioAccessSpec
+    Kioku.ReadModelReconcileSpec
+    Kioku.RecallCompatSpec
+    Kioku.RecallHarness
+    Kioku.RecallSpec
+    Kioku.RecallSqlSpec
+    Kioku.RecallTargetSpec
+    Kioku.ReiCompatSpec
+    Kioku.SchemaSpec
+    Kioku.ScopeIdentitySpec
+    Kioku.SessionInvariantsSpec
+    Kioku.SessionLineageSpec
+    Kioku.SpaceFixtures
+    Kioku.SpaceIsolationSpec
+    Kioku.TimerWorkerSpec
+    Kioku.WorkspaceSpec
+
+  hs-source-dirs: test
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , aeson                          >=2.2
+    , baikai                         ^>=0.4.1.0
+    , base                           >=4.21      && <5
+    , bytestring                     >=0.11
+    , containers                     >=0.6
+    , contravariant                  >=1.5
+    , directory                      >=1.3
+    , effectful                      >=2.5
+    , effectful-core                 >=2.5
+    , filepath                       >=1.4
+    , hasql                          >=1.6
+    , hasql-transaction              >=1.0
+    , keiro                          ^>=0.13.0.0
+    , keiro-core                     ^>=0.13.0.0
+    , kioku-api                      ^>=0.4.0.0
+    , kioku-core                     ^>=0.4.0.0
+    , kioku-migrations:test-support  ^>=0.4.0.0
+    , kiroku-store                   ^>=0.8.0.0
+    , lens                           >=5.2
+    , shibuya-core                   ^>=0.9.0.0
+    , shikumi                        ^>=0.3.0.1
+    , shikumi-trace                  ^>=0.2.0.1
+    , tasty                          >=1.5
+    , tasty-expected-failure         >=0.12
+    , tasty-hunit                    >=0.10
+    , temporary                      >=1.3
+    , text                           >=2.1
+    , time                           >=1.12
+    , unordered-containers           >=0.2
+    , uuid                           >=1.3
+    , vector
