@@ -1,0 +1,162 @@
+cabal-version: 3.0
+name: pqi-native
+version: 1.0.1.8
+category: Database, PostgreSQL
+synopsis: Native (pure-Haskell) adapter for pqi
+description:
+  A @pqi@ adapter that speaks the PostgreSQL frontend\/backend wire
+  protocol directly, with no dependency on the C @libpq@ library. The transport
+  layer (framing, message serialization\/deserialization, socket I\/O) is
+  isolated in an internal @transport@ sub-library built on @ptr-poker@ and
+  @ptr-peeker@; the public library is an abstraction over it that builds the
+  @pqi@ @Adapter@.
+
+  __Status: Alpha.__ Verified byte-for-byte against @postgresql-libpq@ via a
+  differential conformance suite, but not yet proven in production. It
+  implements the same @pqi@ interface as
+  [@pqi-ffi@](https://hackage.haskell.org/package/pqi-ffi), the stable
+  C-backed adapter, so the two are fully interchangeable - swapping
+  between them is a one-line @Adapter@ change.
+
+homepage: https://github.com/nikita-volkov/pqi-native
+bug-reports: https://github.com/nikita-volkov/pqi-native/issues
+author: Nikita Volkov <nikita.y.volkov@mail.ru>
+maintainer: Nikita Volkov <nikita.y.volkov@mail.ru>
+copyright: (c) 2026, Nikita Volkov
+license: MIT
+license-file: LICENSE
+extra-doc-files:
+  CHANGELOG.md
+  LICENSE
+  README.md
+
+source-repository head
+  type: git
+  location: https://github.com/nikita-volkov/pqi-native
+
+common base
+  default-language: Haskell2010
+  default-extensions:
+    BangPatterns
+    BinaryLiterals
+    BlockArguments
+    ConstraintKinds
+    DataKinds
+    DefaultSignatures
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveTraversable
+    DerivingStrategies
+    DerivingVia
+    EmptyDataDecls
+    ExistentialQuantification
+    FlexibleContexts
+    FlexibleInstances
+    FunctionalDependencies
+    GADTs
+    GeneralizedNewtypeDeriving
+    LambdaCase
+    LiberalTypeSynonyms
+    MagicHash
+    MultiParamTypeClasses
+    MultiWayIf
+    NamedFieldPuns
+    NoImplicitPrelude
+    NoMonomorphismRestriction
+    NumericUnderscores
+    OverloadedStrings
+    ParallelListComp
+    PatternGuards
+    QuasiQuotes
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    StandaloneDeriving
+    StrictData
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    UnboxedTuples
+    ViewPatterns
+
+common test
+  import: base
+  ghc-options:
+    -threaded
+    -with-rtsopts=-N
+
+library comms
+  import: base
+  hs-source-dirs: src/comms
+  exposed-modules:
+    Pqi.Native.Comms
+
+  build-depends:
+    base >=4.11 && <5,
+    bytestring >=0.10 && <0.13,
+    ptr-peeker ^>=0.2,
+    ptr-poker ^>=0.1.3,
+    transformers >=0.5 && <0.7,
+
+library transport
+  import: base
+  hs-source-dirs: src/transport
+  exposed-modules:
+    Pqi.Native.Transport
+    Pqi.Native.Transport.Message
+
+  other-modules:
+    Pqi.Native.Transport.Prelude
+
+  build-depends:
+    base >=4.11 && <5,
+    bytestring >=0.10 && <0.13,
+    network >=3.1 && <3.3,
+    pqi-native:comms,
+    ptr-poker ^>=0.1.3,
+    transformers >=0.5 && <0.7,
+
+library
+  import: base
+  hs-source-dirs: src/library
+  exposed-modules:
+    Pqi.Native
+
+  other-modules:
+    Pqi.Native.Auth
+    Pqi.Native.Connection
+    Pqi.Native.LargeObject
+    Pqi.Native.Prelude
+    Pqi.Native.Query
+    Pqi.Native.Types
+    Pqi.Native.UnescapeBytea
+
+  build-depends:
+    base >=4.11 && <5,
+    base64-bytestring >=1.2 && <1.3,
+    bytestring >=0.10 && <0.13,
+    containers >=0.6 && <0.9,
+    crypton >=0.34 && <2,
+    pqi ^>=1.1,
+    pqi-native:transport,
+    ptr-peeker ^>=0.2,
+    ptr-poker ^>=0.1.3,
+
+  if !os(windows)
+    build-depends: unix >=2.7 && <2.9
+
+  if os(windows)
+    build-depends: Win32 >=2.6 && <2.15
+
+test-suite native-test
+  import: test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src/test
+  main-is: Spec.hs
+  build-depends:
+    base >=4.11 && <5,
+    hspec >=2.11 && <2.12,
+    pqi-conformance ^>=1.0.8,
+    pqi-native,
