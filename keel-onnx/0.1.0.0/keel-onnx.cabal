@@ -1,0 +1,80 @@
+cabal-version:      3.0
+name:               keel-onnx
+version:            0.1.0.0
+synopsis:           ONNX Runtime inference over a runtime-loaded library
+description:
+    Inference-only bindings to ONNX Runtime's C API, resolved entirely
+    at run time: keel-dyn loads the (MIT-licensed, official) shared
+    library, @OrtGetApiBase()@ hands back the versioned function-pointer
+    table, and every call goes through it. No build-time native
+    dependency, no cbits in the shipped library.
+    .
+    The OrtApi function-pointer slot indices are pinned against the
+    vendored @onnxruntime_c_api.h@ (v1.24.4) by a /test-suite-only/ C
+    gate — the ABI contract is that slots are append-only, so any
+    runtime >= the pinned API version serves them at the same indices.
+    .
+    The vendored headers are Microsoft's, MIT-licensed; their license
+    text ships alongside as @LICENSE.onnxruntime@.
+license:            MIT
+license-file:       LICENSE
+author:             Zhe Zhang
+maintainer:         Zhe Zhang
+category:           Machine Learning, Foreign
+build-type:         Simple
+homepage:           https://github.com/skymanbp/keel
+bug-reports:        https://github.com/skymanbp/keel/issues
+extra-doc-files:
+    CHANGELOG.md
+    README.md
+extra-source-files:
+    LICENSE.onnxruntime
+    test/cbits/vendor/onnxruntime_c_api.h
+    test/cbits/vendor/onnxruntime_ep_c_api.h
+tested-with:        GHC ==9.10.3 || ==9.12.4 || ==9.14.1
+
+source-repository head
+    type:     git
+    location: https://github.com/skymanbp/keel
+
+common warnings
+    ghc-options:      -Wall
+    default-language: GHC2021
+
+library
+    import:           warnings
+    exposed-modules:
+        Keel.Onnx
+        Keel.Onnx.Raw
+    hs-source-dirs:   src
+    build-depends:
+        base >=4.20 && <4.23,
+        bytestring >=0.11 && <0.13,
+        keel-dyn >=0.1 && <0.2,
+        vector >=0.13 && <0.14
+
+test-suite keel-onnx-slots
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Slots.hs
+    hs-source-dirs:   test
+    c-sources:        test/cbits/slot_gate.c
+    include-dirs:     test/cbits/vendor
+    cc-options:       -std=c11
+    build-depends:
+        base,
+        keel-onnx
+
+test-suite keel-onnx-demo
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Demo.hs
+    hs-source-dirs:   test
+    ghc-options:      -threaded "-with-rtsopts=-T"
+    build-depends:
+        base,
+        bytestring,
+        filepath,
+        keel-onnx >=0.1 && <0.2,
+        process >=1.6 && <1.7,
+        vector

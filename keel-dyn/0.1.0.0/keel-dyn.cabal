@@ -1,0 +1,60 @@
+cabal-version:      3.0
+name:               keel-dyn
+version:            0.1.0.0
+synopsis:           Load native shared libraries at run time, cross-platform
+description:
+    Cross-platform runtime loading and symbol resolution for native shared
+    libraries: LoadLibraryExW/GetProcAddress on Windows,
+    dlopen/dlsym elsewhere.
+    .
+    This package is the keystone of the keel project: every native
+    capability (OpenBLAS, ONNX Runtime, ...) is resolved at run time
+    through it, so no keel package ever carries a build-time C dependency
+    and @cabal install@ can never fail on a missing native library.
+license:            MIT
+license-file:       LICENSE
+author:             Zhe Zhang
+maintainer:         Zhe Zhang
+category:           System, Foreign
+build-type:         Simple
+homepage:           https://github.com/skymanbp/keel
+bug-reports:        https://github.com/skymanbp/keel/issues
+extra-doc-files:
+    CHANGELOG.md
+    README.md
+tested-with:        GHC ==9.10.3 || ==9.12.4 || ==9.14.1
+
+source-repository head
+    type:     git
+    location: https://github.com/skymanbp/keel
+
+common warnings
+    ghc-options:      -Wall
+    default-language: GHC2021
+
+library
+    import:           warnings
+    exposed-modules:
+        Keel.Dyn
+        Keel.Dyn.Locate
+    other-modules:    Keel.Dyn.Platform
+    hs-source-dirs:   src
+    build-depends:
+        base >=4.20 && <4.23,
+        directory >=1.3 && <1.4,
+        filepath >=1.4 && <1.6
+    if os(windows)
+        hs-source-dirs: src-windows
+    else
+        hs-source-dirs: src-posix
+        build-depends:  unix >=2.8 && <2.9
+
+test-suite keel-dyn-test
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    hs-source-dirs:   test
+    build-depends:
+        base,
+        filepath,
+        keel-dyn

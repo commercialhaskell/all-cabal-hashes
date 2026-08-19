@@ -1,0 +1,97 @@
+cabal-version:      3.0
+name:               keel-abi
+version:            0.1.0.0
+synopsis:           Arrow C Data/Stream Interface and DLPack, no cbits
+description:
+    Hand-written @Storable@ bindings for the two frozen C ABIs of the
+    data-science world: the Apache Arrow C Data \/ C Stream Interface and
+    DLPack's @DLManagedTensorVersioned@ — import and export directions.
+    .
+    The shipped library contains no C sources and needs no C toolchain
+    beyond what GHC itself bundles: the structs are frozen ABIs, so their
+    layouts are written out by hand for 64-bit pointers — the library
+    refuses to build on any other architecture — and a /test-suite-only/
+    C file of @_Static_assert(offsetof(...))@ checks fails CI if the
+    hand layouts ever disagree with a real C compiler.
+license:            MIT
+license-file:       LICENSE
+author:             Zhe Zhang
+maintainer:         Zhe Zhang
+category:           Foreign, Data
+build-type:         Simple
+homepage:           https://github.com/skymanbp/keel
+bug-reports:        https://github.com/skymanbp/keel/issues
+extra-doc-files:
+    CHANGELOG.md
+    README.md
+tested-with:        GHC ==9.10.3 || ==9.12.4 || ==9.14.1
+
+source-repository head
+    type:     git
+    location: https://github.com/skymanbp/keel
+
+common warnings
+    ghc-options:      -Wall
+    default-language: GHC2021
+
+library
+    import:           warnings
+    -- the hand-written struct offsets assume sizeof(void*) == 8; on a
+    -- 32-bit target they would compile silently and corrupt memory, so
+    -- refuse to build there instead
+    if !(arch(x86_64) || arch(aarch64))
+        buildable: False
+    exposed-modules:
+        Keel.Abi.Arrow
+        Keel.Abi.Arrow.Raw
+        Keel.Abi.DLPack
+        Keel.Abi.DLPack.Raw
+    hs-source-dirs:   src
+    build-depends:    base >=4.20 && <4.23
+
+test-suite keel-abi-layout
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Layout.hs
+    hs-source-dirs:   test
+    c-sources:        test/cbits/layout_gate.c
+    cc-options:       -std=c11
+    build-depends:
+        base,
+        keel-abi
+
+test-suite keel-abi-managed
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Managed.hs
+    hs-source-dirs:   test
+    ghc-options:      -with-rtsopts=-T
+    build-depends:
+        base,
+        keel-abi
+
+test-suite keel-abi-pyarrow
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          PyArrow.hs
+    other-modules:    PyEmbed
+    hs-source-dirs:   test
+    ghc-options:      -threaded
+    build-depends:
+        base,
+        keel-abi >=0.1 && <0.2,
+        keel-dyn >=0.1 && <0.2,
+        process >=1.6 && <1.7
+
+test-suite keel-abi-dlpack
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          DLPackNumpy.hs
+    other-modules:    PyEmbed
+    hs-source-dirs:   test
+    ghc-options:      -threaded
+    build-depends:
+        base,
+        keel-abi >=0.1 && <0.2,
+        keel-dyn >=0.1 && <0.2,
+        process >=1.6 && <1.7
