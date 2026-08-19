@@ -1,0 +1,171 @@
+cabal-version: 3.6
+
+--------------------------------------------------------------------------------
+--
+-- quickcheck-silent,
+-- (c) 2026 SPISE MISU ApS, https://spdx.org/licenses/LGPL-3.0-only
+--
+--------------------------------------------------------------------------------
+
+build-type: Simple
+                                              
+name: quickcheck-silent
+version: 0.11.0.14
+
+synopsis: Testing with QuickCheck in silence
+description: Testing with QuickCheck in silence. For more info see README.md
+
+license: LGPL-3.0-only
+license-file: LICENSE.txt
+              
+author: SPISE MISU
+maintainer: SPISE MISU <mail+hackage@spisemisu.com>
+copyright: (c) 2026 SPISE MISU ApS
+           
+stability: experimental
+           
+category: Testing
+          
+extra-doc-files: README.md, CHANGELOG.md
+
+tested-with:
+  -- NOTE: Only support versions that are recommended for use:
+  --
+  -- https://gitlab.haskell.org/ghc/ghc/-/wikis/GHC%20Status#most-recent-ghc-major-versions
+  -- https://github.com/NixOS/nixpkgs/tree/haskell-updates/pkgs/development/compilers/ghc
+  GHC == 9.6.7
+  GHC == 9.8.4
+  GHC == 9.10.3
+  GHC == 9.12.4
+  GHC == 9.14.1
+                 
+source-repository head
+  type:
+      git
+  location:
+      https://gitlab.com/spisemisu/quickcheck-silent
+                
+--------------------------------------------------------------------------------
+-- COMMON
+--------------------------------------------------------------------------------
+
+common base
+  default-extensions:
+      Safe
+  default-language:
+      Haskell2010
+  build-depends:
+      -- Prelude
+      base       >= 4        && < 5
+      -- Test
+    , QuickCheck >= 2.18     && < 3
+      -- JSON
+    , containers >= 0.6      && < 1
+    , mtl        >= 2.3.1    && < 3
+  ghc-options:
+      --------------------------------------------------------------------------
+      -- GHC 9.10.3 Users Guide
+      -- 9. Using GHC > 9.2. Warnings and sanity-checking
+      -- * Base: https://downloads.haskell.org/~ghc/9.10.3/docs/users_guide/
+      -- * File: using-warnings.html
+      -- Warnings that are not enabled by -Wall:
+      --------------------------------------------------------------------------
+      -Wall
+      -Wincomplete-record-updates
+      -- -Wmonomorphism-restriction
+      -- -Wimplicit-prelude
+      -- -Wmissing-local-signatures
+      -Wmissing-exported-signatures
+      -- -Wmissing-export-lists
+      -- -Wmissing-import-lists
+      -Wmissing-home-modules
+      -Widentities
+      -- -Wredundant-constraints
+      -- Added since GHC 8.4
+      -Wpartial-fields 
+      -- -Wmissed-specialisations
+      -- -Wall-missed-specialisations
+      --------------------------------------------------------------------------
+      -- Added to allow instance definition in other files, in order to keep the 
+      -- Effect module SAFE so it can be imported by the Process
+      --------------------------------------------------------------------------
+      -Wno-orphans
+      -- Makes any warning into a fatal error.
+      --
+      -- -Werror
+      --
+      -- NOTE: The following errors will cause portability problems on other
+      -- environments: Error: [werror] 'ghc-options: -Werror' makes the package
+      -- easy to break with future GHC versions because new GHC versions often
+      -- add new warnings.  Alternatively, if you want to use this, make it
+      -- conditional based on a Cabal configuration flag (with 'manual: True'
+      -- and 'default: False') and enable that flag during development.
+      --
+      -- Error: Hackage would reject this package.
+      --------------------------------------------------------------------------
+      -- Deterministic builds (Uniques):
+      -- * https://gitlab.haskell.org/ghc/ghc/wikis/deterministic-builds#progress
+      -- * https://www.youtube.com/watch?v=FNzTk4P4fL4 (08 GHC Determinism ICFP)
+      --------------------------------------------------------------------------
+      -- -dinitial-unique=0
+      -- -dunique-increment=1
+      --------------------------------------------------------------------------
+      -- GHC 9.10.3 Users Guide
+      -- 19. Known bugs and infelicities >
+      -- 19.1. Haskell standards vs. Glasgow Haskell: language non-compliance >
+      -- 19.1.1.3. Expressions and pointers
+      -- * Base: https://downloads.haskell.org/~ghc/9.10.3/docs/users_guide/
+      -- * File: bugs.html
+      --------------------------------------------------------------------------
+      -fpedantic-bottoms
+      -- To use when GHC uses to many ticks:
+      -- -ddump-simpl-stats
+      -- -fsimpl-tick-factor=100
+      --------------------------------------------------------------------------
+      -- GHC 9.10.3 Users Guide
+      -- 12.40. Safe Haskell > ... > 12.40.1.1. Strict type-safety (good style)
+      -- * Enforce good style, similar to the function of -Wall.
+      -- Only Trustworthy packages can be trusted
+      -- * Base: https://downloads.haskell.org/~ghc/9.10.3/docs/users_guide/
+      -- * File: safe_haskell.html
+      --------------------------------------------------------------------------
+      -fpackage-trust
+      -- Base
+      -trust=base
+      -- Test
+      -trust=QuickCheck
+      -trust=array
+      -trust=containers
+      -trust=deepseq
+      -trust=ghc-prim
+      -trust=random
+      -trust=splitmix
+      -- JSON
+      -trust=containers
+      -trust=mtl
+  if impl(ghc >= 9.10 && < 9.15)
+    ghc-options:
+      -- Base
+      -- NOTE: Issue with Hackage that builds with 9.8.4. 9.10.x and greater,
+      -- requies this:
+      -trust=ghc-internal
+
+library
+  import:
+      base
+  hs-source-dirs:
+      src
+  other-modules:
+      -- 
+      Internal.GaloisInc.Text.JSON
+      Internal.GaloisInc.Text.JSON.Generic
+      Internal.GaloisInc.Text.JSON.String
+      Internal.GaloisInc.Text.JSON.Types
+      --
+      Internal.GlasgowUniversity.Data.Generics.Aliases
+  exposed-modules:
+      Test.QuickCheck.Silent
+
+-- Reference
+--
+-- - https://cabal.readthedocs.io/en/latest/cabal-package-description-file.html#pkg-field-tested-with
