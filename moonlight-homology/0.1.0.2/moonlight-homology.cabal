@@ -1,0 +1,321 @@
+cabal-version:       3.0
+name:                moonlight-homology
+version:             0.1.0.2
+homepage:            https://github.com/PaleRoses/moonlight
+bug-reports:         https://github.com/PaleRoses/moonlight/issues
+synopsis:            Chain complexes, phase-gated homology interfaces, and spectral scaffolding.
+description:         Finite chain complexes, validated boundary matrices, field and Smith-normal-form rank backends, phase-gated Betti numbers and spectral sequences, discrete Morse reductions, and persistence helpers.
+license:             MIT
+license-file:        LICENSE
+copyright:           (c) 2026 Blue Rose
+author:              Blue Rose
+maintainer:          rosaliafialkova@gmail.com
+category:            Math
+build-type:          Simple
+tested-with:         GHC == 9.14.1
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+  THIRD_PARTY_NOTICES.md
+  docs/BENCHMARKS-m4-pro.md
+
+-- The compile-fixture test suite reads these at test time; without them the
+-- sdist tarball ships a test suite that cannot run.
+extra-source-files:
+  test/fixtures/CompileFail/*.hs
+  test/fixtures/CompilePass/*.hs
+  test/fixtures/Snapshots/*.json
+
+common shared-properties
+  default-language: GHC2024
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+    -Wpartial-fields
+    -Wno-missing-import-lists
+    -Wmissing-deriving-strategies
+    -Wmissing-local-signatures
+  default-extensions:
+    FunctionalDependencies
+    TypeFamilies
+
+library moonlight-homology-chain
+  import: shared-properties
+  visibility: private
+  hs-source-dirs: src-chain
+  exposed-modules:
+    Moonlight.Homology.Pure.Carrier
+    Moonlight.Homology.Pure.Chain
+    Moonlight.Homology.Pure.Constraint.Core
+    Moonlight.Homology.Pure.Degree
+    Moonlight.Homology.Pure.Failure
+    Moonlight.Homology.Pure.Filtration
+    Moonlight.Homology.Pure.FiniteAbelian
+    Moonlight.Homology.Pure.Graded.Query
+    Moonlight.Homology.Pure.GradedTorsion
+    Moonlight.Homology.Pure.Group
+    Moonlight.Homology.Pure.LinearCombination
+    Moonlight.Homology.Pure.Phase
+    Moonlight.Homology.Pure.Reductions
+    Moonlight.Homology.Pure.Reductions.Core
+    Moonlight.Homology.Pure.Skeleton
+  build-depends:
+    base >= 4.22 && < 5
+    , containers >= 0.6 && < 0.9
+    , moonlight-algebra:abstract >= 0.1 && < 0.2
+    , moonlight-core >= 0.1 && < 0.2
+
+library moonlight-homology-matrix
+  import: shared-properties
+  visibility: private
+  hs-source-dirs: src-matrix
+  exposed-modules:
+    Moonlight.Homology.Boundary.Finite
+    Moonlight.Homology.Boundary.LinAlg
+    Moonlight.Homology.Boundary.SNF
+    Moonlight.Homology.Pure.Effective
+    Moonlight.Homology.Pure.Matrix.Reducer
+    Moonlight.Homology.Pure.Matrix.Shape
+    Moonlight.Homology.Pure.Matrix.SparseLinAlg
+    Moonlight.Homology.Pure.Matrix.Validated
+    Moonlight.Homology.Pure.Rank.Field
+    Moonlight.Homology.Pure.Rank.GF2
+  build-depends:
+    base >= 4.22 && < 5
+    , containers >= 0.6 && < 0.9
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-linalg:moonlight-linalg-dense >= 0.1 && < 0.2
+    , moonlight-pale:diagnostic >= 0.1 && < 0.2
+    , moonlight-homology:moonlight-homology-chain
+    , vector >= 0.13 && < 0.14
+
+-- The incidence interface is independently useful to mesh and visualization
+-- consumers. Keep it outside the matrix/diagnostic topology closure.
+library cell-complex
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-cell-complex
+  exposed-modules:
+    Moonlight.Homology.Pure.Topology.CellComplex
+  build-depends:
+    base >= 4.22 && < 5
+    , moonlight-algebra:abstract >= 0.1 && < 0.2
+
+-- The finite incidence category is a generic derived view of CellComplex2D.
+-- Keeping it beside the cell-complex owner prevents an engine package from
+-- becoming the authority for foundation mathematics.
+library cell-category
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-cell-category
+  default-extensions:
+    UndecidableInstances
+  exposed-modules:
+    Moonlight.Homology.Pure.Topology.CellCategory
+  build-depends:
+    base >= 4.22 && < 5
+    , containers >= 0.6 && < 0.9
+    , moonlight-algebra:abstract >= 0.1 && < 0.2
+    , moonlight-category:abstract >= 1.1.0.0 && < 1.2
+    , moonlight-homology:cell-complex
+
+library moonlight-homology-topology
+  import: shared-properties
+  visibility: private
+  hs-source-dirs: src-topology
+  exposed-modules:
+    Moonlight.Homology.Pure.Backend
+    Moonlight.Homology.Pure.Constraint
+    Moonlight.Homology.Pure.Constraint.Algebra
+    Moonlight.Homology.Pure.Topology
+    Moonlight.Homology.Pure.Topology.Algebra
+    Moonlight.Homology.Pure.Topology.BlockSchur
+    Moonlight.Homology.Pure.Topology.Core
+    Moonlight.Homology.Pure.Topology.Graph
+    Moonlight.Homology.Pure.Topology.Graph.Algebra
+    Moonlight.Homology.Pure.Topology.Graph.Critical
+    Moonlight.Homology.Pure.Topology.Graph.Reeb
+    Moonlight.Homology.Pure.Topology.Graph.Skeleton
+    Moonlight.Homology.Pure.Topology.Graph.Witness
+    Moonlight.Homology.Pure.Topology.Harmonic
+    Moonlight.Homology.Pure.Topology.Integral
+    Moonlight.Homology.Pure.Topology.MacroScaffold
+    Moonlight.Homology.Pure.Topology.MacroScaffold.Compose
+    Moonlight.Homology.Pure.Topology.MacroScaffold.Compose.Core
+    Moonlight.Homology.Pure.Topology.MacroScaffold.Compose.Merge
+    Moonlight.Homology.Pure.Topology.MacroScaffold.Compose.Reindex
+    Moonlight.Homology.Pure.Topology.MacroScaffold.Compose.Stitch
+    Moonlight.Homology.Pure.Topology.MacroScaffold.Direction
+    Moonlight.Homology.Pure.Topology.MacroScaffold.HarmonicLoop
+    Moonlight.Homology.Pure.Topology.MacroScaffold.Potential
+    Moonlight.Homology.Pure.Topology.MacroScaffold.Reeb
+    Moonlight.Homology.Pure.Topology.MacroScaffold.Singularity
+    Moonlight.Homology.Pure.Topology.Morse
+    Moonlight.Homology.Pure.Topology.Morse.Digraph
+    Moonlight.Homology.Pure.Topology.Observation
+    Moonlight.Homology.Pure.Topology.Persistence
+    Moonlight.Homology.Pure.Topology.Realize
+    Moonlight.Homology.Pure.Topology.ScaffoldSummary
+    Moonlight.Homology.Pure.Topology.SparseAlgebra
+    Moonlight.Homology.Pure.Topology.Spectral
+    Moonlight.Homology.Pure.Topology.Target
+    Moonlight.Homology.Pure.TopologyObserver
+    Moonlight.Homology.Pure.TopologyView
+  build-depends:
+    algebraic-graphs >= 0.8 && < 0.9
+    , base >= 4.22 && < 5
+    , containers >= 0.6 && < 0.9
+    , moonlight-algebra:abstract >= 0.1 && < 0.2
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-linalg:moonlight-linalg-carrier >= 0.1 && < 0.2
+    , moonlight-linalg:moonlight-linalg-dense >= 0.1 && < 0.2
+    , moonlight-linalg:moonlight-linalg-domain >= 0.1 && < 0.2
+    , moonlight-linalg:moonlight-linalg-sparse >= 0.1 && < 0.2
+    , moonlight-linalg:moonlight-linalg-spectral >= 0.1 && < 0.2
+    , vector >= 0.13 && < 0.14
+    , moonlight-homology:cell-complex
+    , moonlight-homology:moonlight-homology-chain
+    , moonlight-homology:moonlight-homology-matrix
+
+library moonlight-homology-sequence
+  import: shared-properties
+  visibility: private
+  hs-source-dirs: src-sequence
+  exposed-modules:
+    Moonlight.Homology.Pure.Sequence.Exact
+    Moonlight.Homology.Pure.Sequence.Spectral
+    Moonlight.Homology.Pure.Sequence.Spectral.Bidegree
+    Moonlight.Homology.Pure.Sequence.Spectral.Build
+    Moonlight.Homology.Pure.Sequence.Spectral.Linear
+    Moonlight.Homology.Pure.Sequence.Spectral.Support
+    Moonlight.Homology.Pure.Sequence.Spectral.Types
+  build-depends:
+    base >= 4.22 && < 5
+    , containers >= 0.6 && < 0.9
+    , moonlight-core >= 0.1 && < 0.2
+    , vector >= 0.13 && < 0.14
+    , moonlight-homology:moonlight-homology-chain
+    , moonlight-homology:moonlight-homology-matrix
+    , moonlight-homology:moonlight-homology-topology
+
+library
+  import: shared-properties
+  hs-source-dirs: src-public
+  exposed-modules:
+    Moonlight.Homology.Backend
+    Moonlight.Homology.Boundary.GraphGF2
+    Moonlight.Homology.Boundary
+    Moonlight.Homology.Chain
+    Moonlight.Homology.Matrix
+    Moonlight.Homology.Persistence
+    Moonlight.Homology.Presentation
+    Moonlight.Homology.Rank.Field
+    Moonlight.Homology.Rank.GF2
+    Moonlight.Homology.Rank
+    Moonlight.Homology.Sequence
+    Moonlight.Homology.Topology
+    Moonlight.Homology
+  build-depends:
+    base >= 4.22 && < 5
+    , containers >= 0.6 && < 0.9
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-homology:moonlight-homology-chain
+    , moonlight-homology:moonlight-homology-matrix
+    , moonlight-homology:moonlight-homology-topology
+    , moonlight-homology:moonlight-homology-sequence
+    , moonlight-linalg:moonlight-linalg-dense >= 0.1 && < 0.2
+
+library moonlight-homology-laws
+  import: shared-properties
+  visibility: public
+  hs-source-dirs: src-laws
+  exposed-modules:
+    Moonlight.Homology.Effect.Determinism
+    Moonlight.Homology.Effect.Laws
+  build-depends:
+    base >= 4.22 && < 5
+    , bytestring >= 0.11 && < 0.13
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-homology:moonlight-homology-chain
+    , moonlight-homology:moonlight-homology-matrix
+    , moonlight-homology:moonlight-homology-topology
+
+test-suite moonlight-homology-cell-category-test
+  import: shared-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test-cell-category
+  main-is: Main.hs
+  build-depends:
+    base >= 4.22 && < 5
+    , moonlight-algebra:abstract >= 0.1 && < 0.2
+    , moonlight-category:abstract >= 1.1.0.0 && < 1.2
+    , moonlight-category:simplicial >= 1.1.0.0 && < 1.2
+    , moonlight-homology:cell-category
+    , moonlight-homology:cell-complex
+    , tasty >= 1.4 && < 1.6
+    , tasty-hunit >= 0.10 && < 0.11
+
+test-suite moonlight-homology-test
+  import: shared-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test test/matrix test/topology test/sequence test/facade test/support
+  main-is: Main.hs
+  other-modules:
+    BlockSchurSpec
+    CompileFailSpec
+    FieldBettiSpec
+    GF2GraphSpec
+    MorseSpec
+    PresentationSpec
+    SpectralSpec
+    TestFixtures
+    TopologySpec
+  build-depends:
+    base >= 4.22 && < 5
+    , containers >= 0.6 && < 0.9
+    , filepath >= 1.4 && < 1.6
+    , moonlight-core >= 0.1 && < 0.2
+    , moonlight-pale:diagnostic-ghc >= 0.1 && < 0.2
+    , moonlight-homology
+    , moonlight-homology:moonlight-homology-matrix
+    , moonlight-homology:moonlight-homology-topology
+    , moonlight-homology:moonlight-homology-sequence
+    , moonlight-homology:moonlight-homology-laws
+    , moonlight-linalg:moonlight-linalg-dense >= 0.1 && < 0.2
+    , moonlight-pale:test >= 0.1 && < 0.2
+    , tasty >= 1.4 && < 1.6
+    , tasty-hunit >= 0.10 && < 0.11
+    , tasty-quickcheck >= 0.10 && < 0.12
+    , text >= 2.0 && < 2.2
+    , vector >= 0.13 && < 0.14
+
+benchmark moonlight-homology-bench
+  import: shared-properties
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench bench/topology bench/sequence
+  main-is: Main.hs
+  other-modules:
+    MorseSpectral
+    SparseSpectral
+  ghc-options: -O2 -rtsopts
+  ghc-prof-options: -fprof-auto-top
+  build-depends:
+    base >= 4.22 && < 5
+    , containers >= 0.6 && < 0.9
+    , moonlight-homology
+    , moonlight-homology:moonlight-homology-matrix
+    , tasty-bench >= 0.3 && < 0.6
+
+source-repository head
+  type:     git
+  location: https://github.com/PaleRoses/moonlight.git
+  subdir:   moonlight-homology
+
+source-repository this
+  type:     git
+  location: https://github.com/PaleRoses/moonlight.git
+  tag:      moonlight-homology-0.1.0.2
+  subdir:   moonlight-homology
