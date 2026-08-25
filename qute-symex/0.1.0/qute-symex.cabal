@@ -1,0 +1,116 @@
+cabal-version:      3.4
+name:               qute-symex
+version:            0.1.0
+synopsis:           A symbolic execution engine for the QBE intermediate language.
+description:
+  Based on the formal semantics of the [Qute](https://hackage.haskell.org/package/qute) package,
+  this library provides a [symbolic execution](https://en.wikipedia.org/wiki/Symbolic_execution)
+  engine for the QBE intermediate language. Thereby, it enables formal reasoning about a software
+  under test using [SMT solvers](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories).
+
+  The underlying vision behind Qute's symbolic execution engine is further described in a
+  [separate paper](https://www.ibr.cs.tu-bs.de/vss/Publications/2026/tempel_26_qute.pdf).
+license:            GPL-3.0-only AND MIT
+-- license-file:
+author:             Sören Tempel
+maintainer:         soeren+hackage@soeren-tempel.net
+-- copyright:
+category:           Language
+build-type:         Simple
+homepage:           https://git.8pit.net/qute
+bug-reports:        https://github.com/nmeum/qute/issues
+
+source-repository head
+    type: git
+    location: https://git.8pit.net/qute.git
+
+common warnings
+    -- -Wall-missed-specializations can be useful too
+    ghc-options: -Wall
+
+common opts
+    ghc-options: -fspecialise-aggressively
+
+library
+    import:           warnings, opts
+    -- other-modules:
+    hs-source-dirs:   src
+    default-language: GHC2021
+
+    build-depends:
+      base >= 4.16.4.0 && < 4.23,
+      deepseq >= 1.4.6.1 && < 1.6,
+      mtl >= 2.2.2 && < 2.4,
+      directory >= 1.3.6.2 && < 1.4,
+      containers >= 0.6.5.1 && < 0.9,
+      exceptions >= 0.10.4 && < 0.11,
+      random >= 1.2.1.1 && < 1.4,
+      qute == 0.1.*,
+      qute-syntax == 0.1.*,
+      simple-smt >= 0.9.8 && < 0.10
+
+    exposed-modules:
+      SimpleBV,
+      Language.QBE.Backend,
+      Language.QBE.Backend.Model,
+      Language.QBE.Backend.Store,
+      Language.QBE.Backend.ExecTree,
+      Language.QBE.Backend.DFS,
+      Language.QBE.Backend.Tracer,
+      Language.QBE.Simulator.Explorer,
+      Language.QBE.Simulator.Symbolic.Expression,
+      Language.QBE.Simulator.Concolic.State,
+      Language.QBE.Simulator.Concolic.Expression
+
+benchmark qute-symex
+    import:           warnings, opts
+    default-language: GHC2021
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   bench
+    main-is:          Main.hs
+
+    other-modules:
+      SMTUnwind,
+      SMT,
+      Exec
+
+    build-depends:
+      base,
+      criterion ^>= 1.6.4.0,
+      mtl,
+      simple-smt,
+      process,
+      filepath,
+      qute,
+      qute-syntax,
+      qute-symex
+
+test-suite qute-symex-test
+    import:           warnings
+    default-language: GHC2021
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+
+    other-modules:
+      Util,
+      Golden,
+      Backend,
+      Explorer,
+      Symbolic,
+      Concolic,
+      BV
+
+    build-depends:
+        base,
+        filepath,
+        containers,
+        random,
+        qute,
+        qute-syntax,
+        qute-symex,
+        simple-smt,
+        tasty            >=1.4.3,
+        tasty-hunit      >=0.10,
+        tasty-golden     >=2.3.5,
+        tasty-quickcheck >=0.10.2

@@ -1,0 +1,125 @@
+cabal-version:      3.4
+name:               qute
+version:            0.1.0
+synopsis:           A software analysis framework built around the QBE intermediate language.
+description:
+  This library provides formal semantics for the [QBE intermediate language](https://c9x.me/compile/)
+  by providing [modular monadic semantics](https://doi.org/10.1007/3-540-61055-3_39) implemented using
+  an [abstract monad](https://doi.org/10.1145/3607833). The package refers to this abstract monad as
+  the 'Language.QBE.Simulator.State.Simulator' monad. It provides several primitives that are used by
+  the "Language.QBE.Simulator" to /abstractly/ describe the semantics of QBE instructions. The
+  'Language.QBE.Simulator.State.Simulator' can then be instantiated with /concrete/ semantics. For
+  example, the "Language.QBE.Simulator.Default.State" module provides an instantiation using a
+  'Control.Monad.State' monad. This instantiation, and the 'Language.QBE.Simulator.State.Simulator'
+  itself, are parameterized over the representation of QBE instruction operand values.
+
+  To abstractly describe operations on values passed to QBE instructions, this library additionally
+  provides an expression language abstraction in the "Language.QBE.Simulator.Expression" module.
+  Further, an implementation of this expression language based on fixed-width integer values is
+  available in the "Language.QBE.Simulator.Default.Expression" module.
+
+  A separate [qute-symex](https://hackage.haskell.org/package/qute-symex) package provides an
+  implementation of the expression abstraction and the 'Language.QBE.Simulator.State.Simulator'
+  monad for formal reasoning about a software under test using
+  [symbolic execution](https://en.wikipedia.org/wiki/Symbolic_execution).
+  Similar dynamic software testing techniques can be implemented using this library. Additionally,
+  there is some preliminary support for static analysis as well through the
+  "Language.QBE.Analysis.CFG" module.
+
+  More information on the underlying idea and vision behind Qute is available in a
+  [separate paper](https://www.ibr.cs.tu-bs.de/vss/Publications/2026/tempel_26_qute.pdf).
+license:            GPL-3.0-only AND MIT AND BSD-3-Clause
+-- license-file:
+author:             Sören Tempel
+maintainer:         soeren+hackage@soeren-tempel.net
+-- copyright:
+category:           Language
+build-type:         Simple
+homepage:           https://git.8pit.net/qute
+bug-reports:        https://github.com/nmeum/qute/issues
+
+source-repository head
+    type: git
+    location: https://git.8pit.net/qute.git
+
+common warnings
+    -- -Wall-missed-specializations can be useful too
+    ghc-options: -Wall
+
+common opts
+    ghc-options: -fspecialise-aggressively
+
+library
+    import:           warnings, opts
+    -- other-modules:
+    hs-source-dirs:   src
+    default-language: GHC2021
+
+    build-depends:
+      base >= 4.16.4.0 && < 4.23,
+      array >= 0.5.4.0 && < 0.6,
+      deepseq >= 1.4.6.1 && < 1.6,
+      template-haskell >= 2.18.0.0 && <  2.25,
+      qute-syntax == 0.1.*,
+      containers >= 0.6.5.1 && < 0.9,
+      exceptions >= 0.10.4 && < 0.11,
+      parsec >= 3.1.15 && < 3.19,
+      mtl >= 2.2.2 && < 2.4
+
+    other-modules:
+      Language.QBE.Simulator.Default.Generator
+
+    exposed-modules:
+      Language.QBE.Analysis.CFG,
+      Language.QBE.Analysis.CDG,
+      Language.QBE.Analysis.Graph,
+      Language.QBE.Simulator,
+      Language.QBE.Simulator.State,
+      Language.QBE.Simulator.Error,
+      Language.QBE.Simulator.Memory,
+      Language.QBE.Simulator.Expression,
+      Language.QBE.Simulator.Default.State,
+      Language.QBE.Simulator.Default.Funcs,
+      Language.QBE.Simulator.Default.Expression
+
+benchmark qute
+    import:           warnings, opts
+    default-language: GHC2021
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   bench
+    main-is:          Main.hs
+
+    build-depends:
+      base,
+      criterion ^>= 1.6.4.0,
+      qute,
+      qute-syntax
+
+test-suite qute-test
+    import:           warnings
+    default-language: GHC2021
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    -- Prevent GHGC from optimizing float2Double calls.
+    ghc-options:      -O0
+
+    other-modules:
+      Analysis,
+      Simulator,
+      Expression,
+      Memory,
+      State
+
+    build-depends:
+        base,
+        array,
+        parsec,
+        filepath,
+        qute,
+        qute-syntax,
+        containers,
+        exceptions,
+        mtl,
+        tasty        >=1.4.3,
+        tasty-hunit  >=0.10
