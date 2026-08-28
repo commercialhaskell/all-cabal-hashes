@@ -1,0 +1,207 @@
+cabal-version:   3.0
+name:            shomei-servant
+version:         0.2.0.0
+synopsis:        Servant API, handlers, and auth combinators for Shōmei
+description:
+  The HTTP layer of the Shōmei authentication toolkit. Exposes ShomeiAPI as a
+  NamedRoutes record covering signup, login, refresh, logout, email
+  verification, password reset, MFA, passkeys, OAuth 2.0 and OpenID Connect,
+  audit, and admin routes, together with the request/response DTOs, the
+  handlers, and the Authenticated, RequireRole, RequireScope, and
+  RequirePermission combinators for guarding your own routes. Mount it inside
+  an existing Servant application, or serve it standalone with shomei-server.
+  An OpenAPI 3.1 document can be generated from the same types.
+
+homepage:        https://github.com/shinzui/shomei
+bug-reports:     https://github.com/shinzui/shomei/issues
+license:         MIT
+license-file:    LICENSE
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+copyright:       2026 Nadeem Bitar
+category:        Web, Security
+tested-with:     GHC ==9.12.4
+extra-doc-files: CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/shinzui/shomei.git
+
+common warnings
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+
+common shared
+  default-language:   GHC2024
+  default-extensions:
+    BlockArguments
+    DataKinds
+    DeriveAnyClass
+    DuplicateRecordFields
+    LambdaCase
+    MultilineStrings
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+    QualifiedDo
+    TemplateHaskell
+    TypeFamilies
+    TypeOperators
+
+library
+  import:          warnings, shared
+  hs-source-dirs:  src
+  exposed-modules:
+    Shomei.Account.Admin.Api
+    Shomei.Account.Api
+    Shomei.Account.Dto
+    Shomei.Account.Handler
+    Shomei.Account.Result
+    Shomei.Account.User.Dto
+    Shomei.Audit.Api
+    Shomei.Audit.Dto
+    Shomei.Audit.Handler
+    Shomei.Audit.Result
+    Shomei.Authorization.Api
+    Shomei.Authorization.Handler
+    Shomei.Authorization.Result
+    Shomei.Delegation.Handler
+    Shomei.Mfa.Api
+    Shomei.Mfa.Dto
+    Shomei.Mfa.Handler
+    Shomei.Mfa.Result
+    Shomei.OAuth.Api
+    Shomei.OAuth.Handler
+    Shomei.OAuth.Result
+    Shomei.Passkey.Api
+    Shomei.Passkey.Dto
+    Shomei.Passkey.Handler
+    Shomei.Passkey.Result
+    Shomei.Servant.Api
+    Shomei.Servant.Application
+    Shomei.Servant.Auth
+    Shomei.Servant.Authz
+    Shomei.Servant.ClientIp
+    Shomei.Servant.Cookie
+    Shomei.Servant.Error
+    Shomei.Servant.Middleware
+    Shomei.Servant.OAuth
+    Shomei.Servant.Oidc
+    Shomei.Servant.OpenApi
+    Shomei.Servant.PreHandler
+    Shomei.Servant.RemoteHost
+    Shomei.Servant.Result
+    Shomei.Servant.Seam
+    Shomei.Servant.Server
+    Shomei.Servant.Throttle
+    Shomei.Session.Admin.Api
+    Shomei.Session.Api
+    Shomei.Session.Dto
+    Shomei.Session.Handler
+    Shomei.Session.Result
+    Shomei.SigningKey.Api
+    Shomei.SigningKey.Handler
+
+  build-depends:
+    , aeson               >=2.1      && <2.3
+    , base                >=4.18     && <5
+    , base64              >=1.0      && <1.1
+    , bytestring          >=0.11     && <0.13
+    , containers          >=0.6      && <0.9
+    , cookie              >=0.4      && <0.6
+    , effectful           >=2.5      && <2.8
+    , effectful-core      >=2.5      && <2.8
+    , http-api-data       >=0.6      && <0.8
+    , http-media          >=0.8      && <0.9
+    , http-types          >=0.12     && <0.13
+    , lens                >=5.2      && <5.4
+    , mtl                 >=2.3      && <2.4
+    , network             >=3.1      && <3.3
+    , openapi-hs          >=5.0      && <5.1
+    , servant             >=0.20.3   && <0.21
+    , servant-health      >=0.1      && <0.2
+    , servant-openapi-hs  >=5.1      && <5.2
+    , servant-server      >=0.20.3   && <0.21
+    , shomei-core         ^>=0.2.0.0
+    , sop-core            >=0.5      && <0.6
+    , text                >=2.0      && <2.2
+    , time                >=1.12     && <1.15
+    , transformers        >=0.6      && <0.7
+    , uuid                >=1.3      && <1.4
+    , wai                 >=3.2      && <3.3
+
+executable shomei-openapi
+  import:         warnings, shared
+  hs-source-dirs: app/openapi
+  main-is:        Main.hs
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , aeson-pretty    >=0.8      && <0.9
+    , base            >=4.18     && <5
+    , bytestring      >=0.11     && <0.13
+    , shomei-servant  ^>=0.2.0.0
+
+-- | OpenAPI 3.1 conformance (EP-27 M4): property-checks that every JSON body
+-- type's actual 'ToJSON' encoding validates against its generated 'ToSchema',
+-- plus smoke assertions on the assembled document. Kept separate from the
+-- end-to-end HTTP suite because it is hspec/QuickCheck-based.
+test-suite shomei-servant-openapi-test
+  import:             warnings, shared
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test-openapi
+  main-is:            Main.hs
+  default-extensions:
+    DerivingStrategies
+    FlexibleInstances
+    ScopedTypeVariables
+    StandaloneDeriving
+    TypeApplications
+    UndecidableInstances
+
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N -freduction-depth=0
+  build-depends:
+    , aeson                 >=2.1      && <2.3
+    , base                  >=4.18     && <5
+    , directory             >=1.3      && <1.4
+    , hspec                 >=2.11     && <2.12
+    , openapi-hs            >=5.0      && <6
+    , QuickCheck            >=2.14     && <2.17
+    , quickcheck-instances  >=0.3      && <0.4
+    , servant               >=0.20.3   && <0.21
+    , servant-health        >=0.1      && <0.2
+    , servant-openapi-hs    >=5.0      && <6
+    , servant-server        >=0.20.3   && <0.21
+    , shomei-servant        ^>=0.2.0.0
+    , text                  >=2.0      && <2.2
+
+test-suite shomei-servant-test
+  import:         warnings, shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Main.hs
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , aeson             >=2.1      && <2.3
+    , base              >=4.18     && <5
+    , bytestring        >=0.11     && <0.13
+    , case-insensitive  >=1.2      && <1.3
+    , containers        >=0.6      && <0.9
+    , effectful         >=2.5      && <2.8
+    , generic-lens      >=2.2      && <2.4
+    , http-client       >=0.7      && <0.8
+    , http-types        >=0.12     && <0.13
+    , jose              >=0.13     && <0.14
+    , servant           >=0.20.3   && <0.21
+    , servant-health    >=0.1      && <0.2
+    , servant-server    >=0.20.3   && <0.21
+    , shomei-core       ^>=0.2.0.0
+    , shomei-jwt        ^>=0.2.0.0
+    , shomei-servant    ^>=0.2.0.0
+    , tasty             >=1.4      && <1.6
+    , tasty-hunit       >=0.10     && <0.11
+    , text              >=2.0      && <2.2
+    , time              >=1.12     && <1.15
+    , uuid              >=1.3      && <1.4
+    , wai               >=3.2      && <3.3
+    , warp              >=3.3      && <3.5
