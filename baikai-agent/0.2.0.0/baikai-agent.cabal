@@ -1,0 +1,157 @@
+cabal-version:   3.4
+name:            baikai-agent
+version:         0.2.0.0
+synopsis:        Unattended coding-agent runs for the Baikai abstraction
+description:
+  Runs a local coding-agent command-line tool with no terminal and no
+  human present: delivers the prompt on standard input, drains both
+  output streams concurrently within a byte limit, and on timeout
+  terminates the child's whole process group. The provider-neutral
+  vocabulary lives in @Baikai.Agent@ in the core package, and vendor
+  packages own the translation into each tool's argument vector.
+
+category:        AI
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+copyright:       (c) 2026 Nadeem Bitar
+build-type:      Simple
+tested-with:     GHC ==9.12.4
+extra-doc-files: CHANGELOG.md
+
+common common-options
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -fhide-source-paths -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+  -- Exhaustiveness is an error, not a warning. A non-exhaustive match
+  -- is a crash the compiler already found: it fails at runtime, on
+  -- whichever input reaches the missing branch, usually in front of a
+  -- user. This is not hypothetical here — adding a constructor to
+  -- AgentRunFailure left `failureExitCode` non-exhaustive and shipped a
+  -- pattern-match failure on `baikai agent run --require-evidence`,
+  -- because the warning scrolled past in a build log.
+  --
+  -- Promoted individually rather than through -Werror, which would also
+  -- fail the build on warnings that are stylistic or that a future GHC
+  -- invents, and would push people toward blanket suppression.
+  ghc-options:
+    -Werror=incomplete-patterns -Werror=incomplete-uni-patterns
+    -Werror=incomplete-record-updates
+
+  default-language:   GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+library
+  import:          common-options
+  hs-source-dirs:  src
+  exposed-modules:
+    Baikai.Agent.Cli
+    Baikai.Agent.Config
+    Baikai.Agent.Run
+
+  build-depends:
+    , aeson                        ^>=2.2
+    , baikai                       ^>=0.6.0
+    , baikai-claude                ^>=0.6
+    , baikai-openai                ^>=0.6
+    , base                         >=4.20   && <5
+    , bytestring                   ^>=0.12
+    , containers                   ^>=0.7
+    , directory                    ^>=1.3
+    , filepath                     ^>=1.5
+    , generic-lens                 ^>=2.3
+    , lens                         ^>=5.3
+    , optparse-applicative         ^>=0.19
+    , process                      ^>=1.6
+    , settei                       ^>=0.2
+    , settei-env                   ^>=0.2
+    , settei-kdl                   ^>=0.2
+    , settei-optparse-applicative  ^>=0.2
+    , streamly-core                >=0.3    && <0.5
+    , text                         ^>=2.1
+    , time                         ^>=1.14
+
+  -- The process package offers a group-wide interrupt but no group-wide
+  -- terminate, which a timeout needs to reach a coding agent's own
+  -- children. Where POSIX signals exist, use them.
+  if !os(windows)
+    build-depends: unix ^>=2.8
+    cpp-options:   -DBAIKAI_POSIX_SIGNALS
+
+executable baikai
+  import:         common-options
+  hs-source-dirs: app
+  main-is:        Main.hs
+
+  -- The runner waits on the child with waitForProcess under
+  -- System.Timeout and drains the child's pipes on forked threads.
+  -- Without the threaded runtime that wait blocks every Haskell thread,
+  -- so the configured timeout can never fire and a chatty child
+  -- deadlocks the run on a full pipe. BinaryTests proves it against this
+  -- executable rather than against the suite's own runtime.
+  ghc-options:    -threaded
+
+  -- Deliberately thin: everything real lives in Baikai.Agent.Cli so the
+  -- whole command-line surface is reachable from the test suite without
+  -- spawning the built binary.
+  build-depends:
+    , baikai-agent
+    , base                  >=4.20  && <5
+    , bytestring            ^>=0.12
+    , generic-lens          ^>=2.3
+    , lens                  ^>=5.3
+    , optparse-applicative  ^>=0.19
+    , settei-env            ^>=0.2
+    , text                  ^>=2.1
+
+test-suite baikai-agent-test
+  import:             common-options
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Main.hs
+  other-modules:
+    BinaryTests
+    CliTests
+    ConfigTests
+    EvidenceTests
+    PublicSurfaceSpec
+
+  -- -threaded is not optional here: the runner forks threads to drain
+  -- pipes and relies on System.Timeout interrupting a blocking wait.
+  ghc-options:        -threaded -with-rtsopts=-N
+
+  -- BinaryTests spawns the shipped executable rather than exercising the
+  -- library in this process. Naming it here makes cabal build it before
+  -- this suite and put it on the PATH the suite inherits, so the case
+  -- runs the binary a user installs instead of this suite's own runtime.
+  build-tool-depends: baikai-agent:baikai
+  build-depends:
+    , aeson
+    , baikai
+    , baikai-agent
+    , base
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , generic-lens
+    , lens
+    , optparse-applicative
+    , process
+    , settei
+    , settei-env
+    , settei-kdl
+    , settei-optparse-applicative
+    , tasty
+    , tasty-hunit
+    , temporary
+    , text
+    , time
