@@ -1,0 +1,344 @@
+cabal-version:       2.2
+name:                miso
+version:             1.13.0.0
+category:            Web, Miso, Data Structures
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              David M. Johnson <code@dmj.io>
+maintainer:          David M. Johnson <code@dmj.io>
+homepage:            https://haskell-miso.org/
+copyright:           Copyright (c) 2016-2026 David M. Johnson
+bug-reports:         https://github.com/haskell-miso/miso/issues
+build-type:          Simple
+extra-source-files:  README.md
+synopsis:            A tasty Haskell front-end web framework
+description:
+            Miso is a small, production-ready, component-oriented, isomorphic Haskell front-end web and mobile framework featuring a virtual-dom, recursive diffing / patching algorithm, event delegation, event batching, SVG, Server-sent events, Websockets, type-safe servant-style routing and an extensible Subscription-based subsystem. Inspired by Elm and React. Miso is pure by default, but side effects can be introduced into the system via the Effect data type. Miso makes heavy use of the GHC FFI and therefore has minimal dependencies.
+
+extra-source-files:
+  README.md
+
+extra-doc-files:
+  CHANGELOG.md
+
+source-repository head
+   type: git
+   location: https://github.com/haskell-miso/miso.git
+
+common cpp
+  if impl(ghcjs) || arch(javascript)
+    cpp-options:
+      -DGHCJS_BOTH
+  if flag(native)
+    cpp-options:
+      -DNATIVE
+  if impl(ghcjs)
+    cpp-options:
+      -DGHCJS_OLD
+  elif arch(javascript)
+    cpp-options:
+      -DGHCJS_NEW
+  elif arch(wasm32)
+    cpp-options:
+      -DWASM
+  else
+    cpp-options:
+      -DVANILLA
+
+  if flag(production)
+    cpp-options:
+      -DPRODUCTION
+
+  if flag(ssr)
+    cpp-options:
+      -DSSR
+
+  if flag(benchmark)
+    cpp-options:
+      -DBENCH
+
+  if flag(aeson)
+    cpp-options:
+      -DAESON
+
+  if flag(text)
+    cpp-options:
+      -DMISO_TEXT
+
+common client
+  if impl(ghcjs) || arch(javascript) || arch(wasm32)
+    if flag(native) && flag(production)
+      js-sources:
+        js/miso-native.prod.js
+    elif flag(production)
+      js-sources:
+        js/miso.prod.js
+    elif flag(native)
+      js-sources:
+        js/miso-native.js
+    else
+      js-sources:
+        js/miso.js
+
+flag native
+  manual:
+    True
+  default:
+    False
+  description:
+    When enabled this provides the dual-thread arch. LynxJS.org requires.
+
+flag benchmark
+  manual:
+    True
+  default:
+    False
+  description:
+    When enabled this outputs (in milliseconds) the time it
+    takes to build the virtual DOM on page load.
+
+flag production
+  manual:
+    True
+  default:
+    False
+  description:
+    Uses miso's production quality JS (miso.prod.js).
+    This is built from calling "bun build --production"
+
+flag ssr
+  manual:
+    True
+  default:
+    False
+  description:
+    Used to indicate if SSR (server-side rendering) is being used. Defaults to false.
+    Enable when performing hydration / server rendering of Html using ToHtml.
+
+flag template-haskell
+  manual:
+    True
+  default:
+    False
+  description:
+    Checks if template-haskell is enabled. If so, allows Miso.Lens.TH
+
+flag aeson
+  manual:
+    True
+  default:
+    False
+  description:
+    When enabled, the functions exposed by Miso.JSON are defined in terms
+    of aeson (Data.Aeson), and its types (Value, Object, Parser) become
+    aeson's. Miso's own Generic deriving machinery is not exported in this
+    mode; aeson provides its own.
+
+flag text
+  manual:
+    True
+  default:
+    False
+  description:
+    When enabled, this force MisoString to be Text.
+
+library
+  import:
+    client,
+    cpp
+  default-language:
+    Haskell2010
+  other-modules:
+    Miso.Delegate
+    Miso.Diff
+    Miso.DSL.FFI
+    Miso.Hydrate
+    Miso.FFI.Internal
+    Miso.Runtime
+  exposed-modules:
+    Miso
+    Miso.Canvas
+    Miso.Cookie
+    Miso.Concurrent
+    Miso.Date
+    Miso.Data.Map
+    Miso.Data.Set
+    Miso.Data.Array
+    Miso.DSL
+    Miso.Effect
+    Miso.Event
+    Miso.Event.Decoder
+    Miso.Event.Types
+    Miso.EventSource
+    Miso.Fetch
+    Miso.FFI
+    Miso.Html
+    Miso.Html.Element
+    Miso.Html.Event
+    Miso.Html.Property
+    Miso.Html.Render
+    Miso.JSON
+    Miso.JSON.Lexer
+    Miso.JSON.Parser
+    Miso.JSON.Types
+    Miso.Lens
+    Miso.Lens.Generic
+    Miso.Mathml
+    Miso.Mathml.Element
+    Miso.Mathml.Property
+    Miso.Media
+    Miso.Navigator
+    Miso.Prelude
+    Miso.Property
+    Miso.PubSub
+    Miso.Random
+    Miso.Router
+    Miso.Reload
+    Miso.Runtime.Internal
+    Miso.State
+    Miso.Subscription
+    Miso.Subscription.Canvas
+    Miso.Subscription.Cookie
+    Miso.Subscription.History
+    Miso.Subscription.Keyboard
+    Miso.Subscription.Mouse
+    Miso.Subscription.OnLine
+    Miso.Subscription.RAF
+    Miso.Subscription.Util
+    Miso.Subscription.Window
+    Miso.Svg
+    Miso.Svg.Property
+    Miso.Svg.Element
+    Miso.Svg.Event
+    Miso.Storage
+    Miso.String
+    Miso.CSS
+    Miso.CSS.Color
+    Miso.CSS.Types
+    Miso.Trace
+    Miso.Types
+    Miso.Util
+    Miso.Util.Lexer
+    Miso.Util.Parser
+    Miso.WebSocket
+
+  if flag(native)
+    exposed-modules:
+      Miso.Native
+      Miso.Native.MainThread
+      Miso.Native.Element
+      Miso.Native.Element.Frame
+      Miso.Native.Element.Frame.Event
+      Miso.Native.Element.Frame.Property
+      Miso.Native.Element.Image
+      Miso.Native.Element.Image.Event
+      Miso.Native.Element.Image.Method
+      Miso.Native.Element.Image.Property
+      Miso.Native.Element.List
+      Miso.Native.Element.List.Event
+      Miso.Native.Element.List.Method
+      Miso.Native.Element.List.Property
+      Miso.Native.Element.ScrollView
+      Miso.Native.Element.ScrollView.Event
+      Miso.Native.Element.ScrollView.Method
+      Miso.Native.Element.ScrollView.Property
+      Miso.Native.Element.Text
+      Miso.Native.Element.Text.Event
+      Miso.Native.Element.Text.Method
+      Miso.Native.Element.Text.Property
+      Miso.Native.Element.View
+      Miso.Native.Element.View.Event
+      Miso.Native.Element.View.Method
+      Miso.Native.Element.View.Property
+      Miso.Native.Event
+      Miso.Native.FFI
+      Miso.Native.Module
+      Miso.Native.X.Element
+      Miso.Native.X.Element.BlurView
+      Miso.Native.X.Element.BlurView.Property
+      Miso.Native.X.Element.Input
+      Miso.Native.X.Element.Input.Event
+      Miso.Native.X.Element.Input.Method
+      Miso.Native.X.Element.Input.Property
+      Miso.Native.X.Element.Overlay
+      Miso.Native.X.Element.Overlay.Event
+      Miso.Native.X.Element.Overlay.Property
+      Miso.Native.X.Element.Refresh
+      Miso.Native.X.Element.Refresh.Event
+      Miso.Native.X.Element.Refresh.Method
+      Miso.Native.X.Element.Refresh.Property
+      Miso.Native.X.Element.ScrollCoordinator
+      Miso.Native.X.Element.ScrollCoordinator.Event
+      Miso.Native.X.Element.ScrollCoordinator.Method
+      Miso.Native.X.Element.ScrollCoordinator.Property
+      Miso.Native.X.Element.Svg
+      Miso.Native.X.Element.Svg.Event
+      Miso.Native.X.Element.Svg.Property
+      Miso.Native.X.Element.Textarea
+      Miso.Native.X.Element.Textarea.Event
+      Miso.Native.X.Element.Textarea.Method
+      Miso.Native.X.Element.Textarea.Property
+      Miso.Native.X.Element.TitleBarView
+      Miso.Native.X.Element.TitleBarView.Property
+      Miso.Native.X.Element.Viewpager
+      Miso.Native.X.Element.Viewpager.Event
+      Miso.Native.X.Element.Viewpager.Method
+      Miso.Native.X.Element.Viewpager.Property
+      Miso.Native.X.Element.Webview
+      Miso.Native.X.Element.Webview.Event
+      Miso.Native.X.Element.Webview.Method
+      Miso.Native.X.Element.Webview.Property
+
+  -- Live reload (meant for WASM or Vanilla)
+  c-sources:
+    cbits/foreign.c
+
+  -- FFI declarations
+  if arch(javascript) || impl(ghcjs)
+    hs-source-dirs:
+      ffi/js
+    build-depends:
+      ghcjs-base -any
+
+    if impl(ghcjs)
+      build-depends:
+        ghcjs-prim
+
+  elif arch(wasm32)
+    hs-source-dirs:
+      ffi/wasm
+    build-depends:
+      ghc-experimental,
+      template-haskell >= 2.21 && < 2.25
+    exposed-modules:
+      Miso.DSL.TH
+      Miso.DSL.TH.File
+    other-modules:
+      Data.JSString
+  else
+    hs-source-dirs:
+      ffi/ghc
+
+  if flag(template-haskell)
+    exposed-modules:
+      Miso.Lens.TH
+      Miso.FFI.QQ
+    build-depends:
+      template-haskell >= 2.21 && < 2.25
+
+  if flag(aeson)
+    build-depends:
+      aeson      >= 2.0 && < 3,
+      scientific < 0.4
+
+  ghc-options:
+    -Wall
+  hs-source-dirs:
+    src
+  build-depends:
+    base          < 5,
+    bytestring    < 0.13,
+    containers    < 0.9,
+    transformers  < 0.7,
+    mtl           < 2.4,
+    text          < 2.2
