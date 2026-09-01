@@ -1,0 +1,233 @@
+Cabal-version: 2.4
+Name:          what4-domains
+Version:       0.1
+Author:        Galois Inc.
+Maintainer:    rscott@galois.com, kquick@galois.com, langston@galois.com
+Copyright:     (c) Galois, Inc 2014-2026
+License:       BSD-3-Clause
+License-file:  LICENSE
+Build-type:    Simple
+Category:      Formal Methods, Theorem Provers, Symbolic Computation, SMT
+Synopsis:      Abstract domains for What4 term simplification
+Description:
+  Abstract domains used by What4 for term simplification, including
+  interval domains on numeric types and bitvector domains.
+
+Extra-doc-files:
+  doc/bvdomain.cry
+  doc/arithdomain.cry
+  doc/bitsdomain.cry
+  doc/xordomain.cry
+  doc/README.md
+  CHANGES.md
+
+source-repository head
+  type: git
+  location: https://github.com/GaloisInc/what4
+  subdir: what4-domains
+
+common bldflags
+  default-language: Haskell2010
+
+  -- Specifying -Wall and -Werror can cause the project to fail to build on
+  -- newer versions of GHC simply due to new warnings being added to -Wall. To
+  -- prevent this from happening we manually list which warnings should be
+  -- considered errors. We also list some warnings that are not in -Wall, though
+  -- try to avoid "opinionated" warnings (though this judgement is clearly
+  -- subjective).
+  --
+  -- Warnings are grouped by the GHC version that introduced them, and then
+  -- alphabetically.
+  --
+  -- A list of warnings and the GHC version in which they were introduced is
+  -- available here:
+  -- https://ghc.gitlab.haskell.org/ghc/doc/users_guide/using-warnings.html
+
+  -- Since GHC 9.6 or earlier:
+  ghc-options:
+    -Wall
+    -Werror=ambiguous-fields
+    -Werror=deferred-type-errors
+    -Werror=deprecated-flags
+    -Werror=deprecations
+    -Werror=deriving-defaults
+    -Werror=deriving-typeable
+    -Werror=dodgy-foreign-imports
+    -Werror=duplicate-exports
+    -Werror=empty-enumerations
+    -Werror=gadt-mono-local-binds
+    -Werror=identities
+    -Werror=inaccessible-code
+    -Werror=incomplete-patterns
+    -Werror=incomplete-record-updates
+    -Werror=incomplete-uni-patterns
+    -Werror=inline-rule-shadowing
+    -Werror=misplaced-pragmas
+    -Werror=missed-extra-shared-lib
+    -Werror=missing-exported-signatures
+    -Werror=missing-fields
+    -Werror=missing-home-modules
+    -Werror=missing-methods
+    -Werror=missing-pattern-synonym-signatures
+    -Werror=missing-signatures
+    -Werror=name-shadowing
+    -Werror=noncanonical-monad-instances
+    -Werror=noncanonical-monoid-instances
+    -Werror=operator-whitespace
+    -Werror=operator-whitespace-ext-conflict
+    -Werror=orphans
+    -Werror=overflowed-literals
+    -Werror=overlapping-patterns
+    -Werror=partial-fields
+    -Werror=partial-type-signatures
+    -Werror=redundant-bang-patterns
+    -Werror=redundant-record-wildcards
+    -Werror=redundant-strictness-flags
+    -Werror=simplifiable-class-constraints
+    -Werror=star-binder
+    -Werror=star-is-type
+    -Werror=tabs
+    -Werror=type-defaults
+    -Werror=typed-holes
+    -Werror=type-equality-out-of-scope
+    -Werror=type-equality-requires-operators
+    -Werror=unicode-bidirectional-format-characters
+    -Werror=unrecognised-pragmas
+    -Werror=unrecognised-warning-flags
+    -Werror=unsupported-calling-conventions
+    -Werror=unsupported-llvm-version
+    -Werror=unused-do-bind
+    -Werror=unused-imports
+    -Werror=unused-record-wildcards
+    -Werror=warnings-deprecations
+    -Werror=wrong-do-bind
+
+  if impl(ghc < 9.8)
+    ghc-options:
+      -Werror=forall-identifier
+
+  if impl(ghc >= 9.8)
+    ghc-options:
+      -Werror=incomplete-export-warnings
+
+  if impl(ghc >= 9.10)
+    ghc-options:
+      -Werror=badly-staged-types
+      -Werror=data-kinds-tc
+      -Werror=deprecated-type-abstractions
+      -Werror=incomplete-record-selectors
+      -Werror=inconsistent-flags
+
+  if impl(ghc < 9.12)
+    ghc-options:
+      -Werror=compat-unqualified-imports
+
+  if impl(ghc >= 8.6)
+    default-extensions: NoStarIsType
+
+common testdefs-quickcheck
+  hs-source-dirs: test test/QC
+  build-depends: base
+               , parameterized-utils
+               , tasty >= 0.10
+               , tasty-hunit >= 0.9
+               , tasty-quickcheck >= 0.10
+               , QuickCheck >= 2.12
+               , transformers
+               , what4-domains
+
+common testdefs-hedgehog
+  hs-source-dirs: test test/HH test/hedgehog
+  build-depends: base
+               , parameterized-utils
+               , tasty >= 0.10
+               , tasty-hunit >= 0.9
+               , hedgehog >= 1.0.2
+               , tasty-hedgehog >= 1.2
+               , transformers
+               , what4-domains
+  other-modules: Test.Tasty.Hedgehog.Alt
+
+library
+  import: bldflags
+  build-depends:
+    base >= 4.10 && < 5,
+    parameterized-utils >= 2.3 && < 2.4,
+    mtl >= 2.2.1,
+    transformers >= 0.4,
+
+  -- ghc-bignum is wired-in starting with GHC 9.0 (base-4.15); used by
+  -- What4.Domains.Arithmetic for a fast primop-backed integerLog2.
+  if impl(ghc >= 9.0)
+    build-depends: ghc-bignum >= 1.0 && < 2
+
+  hs-source-dirs: src
+
+  exposed-modules:
+    What4.Domains.BV
+    What4.Domains.BV.Arith
+    What4.Domains.BV.Bitwise
+    What4.Domains.BV.XOR
+    What4.Domains.Internal
+    What4.Domains.Verification
+    What4.Domains.Arithmetic.Internal
+
+  other-modules:
+    What4.Domains.Arithmetic
+    What4.Domains.BV.Bitwise.Tnum
+
+  default-extensions:
+    NondecreasingIndentation
+
+
+test-suite bvdomain_tests
+  import: bldflags, testdefs-quickcheck
+  type: exitcode-stdio-1.0
+  ghc-options: -threaded -rtsopts "-with-rtsopts=-N"
+
+  main-is: BVDomTests.hs
+
+  other-modules: VerifyBindings
+
+
+test-suite bvdomain_tests_hh
+  import: bldflags, testdefs-hedgehog
+  type: exitcode-stdio-1.0
+  ghc-options: -threaded -rtsopts "-with-rtsopts=-N"
+
+  main-is: BVDomTests.hs
+
+  other-modules: VerifyBindings
+
+
+test-suite bvdomain_coverage
+  import: bldflags
+  type: exitcode-stdio-1.0
+  ghc-options: -threaded -rtsopts "-with-rtsopts=-N"
+  hs-source-dirs: test
+  main-is: TestCoverage.hs
+  build-depends: base >= 4.10 && < 5
+               , containers
+               , tasty >= 0.10
+               , tasty-hunit >= 0.9
+               , text
+
+
+test-suite precision_regression
+  import: bldflags
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: PrecisionRegression.hs
+  ghc-options: -threaded -rtsopts "-with-rtsopts=-N"
+  other-modules:
+    PrecisionRegression.Common
+    PrecisionRegression.Arith
+    PrecisionRegression.Bitwise
+  build-depends: base >= 4.10 && < 5
+               , containers
+               , parameterized-utils
+               , tasty >= 1.2
+               , tasty-hunit >= 0.9
+               , text
+               , what4-domains
+
