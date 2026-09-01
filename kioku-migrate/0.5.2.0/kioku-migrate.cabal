@@ -1,0 +1,59 @@
+cabal-version:   3.0
+name:            kioku-migrate
+version:         0.5.2.0
+synopsis:        The kioku schema migration entry point
+description:
+  Applies kioku's migration chain and then reconciles keiro's read-model
+  registry to the identity the compiled read models declare.
+  .
+  This lives in its own package rather than as an executable of
+  kioku-migrations because it depends on kioku-core (for the read-model
+  schemas), and kioku-core's test suite depends on
+  kioku-migrations:test-support. Cabal's solver detects dependency cycles at
+  package granularity, so an executable stanza inside kioku-migrations would
+  close that cycle and make the whole project unsolvable -- even though the
+  component graph itself is acyclic.
+
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Nadeem Bitar
+maintainer:      nadeem@gmail.com
+copyright:       2026 Nadeem Bitar
+category:        Database
+build-type:      Simple
+homepage:        https://github.com/shinzui/kioku
+bug-reports:     https://github.com/shinzui/kioku/issues
+extra-doc-files: CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/shinzui/kioku.git
+  subdir:   kioku-migrate
+
+executable kioku-migrate
+  main-is:            Main.hs
+  hs-source-dirs:     app
+  default-language:   GHC2024
+  default-extensions:
+    BlockArguments
+    DuplicateRecordFields
+    OverloadedRecordDot
+    OverloadedStrings
+
+  -- This executable *implements* the deprecated codd import bridge, so its own
+  -- use of Kioku.Migrations.History.Codd is deliberate. The deprecation exists
+  -- to warn downstream consumers, not us; silence it only here.
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N -Wno-deprecations
+  build-depends:
+    , aeson                   >=2.2      && <2.3
+    , base                    >=4.21     && <5
+    , bytestring              >=0.12     && <0.13
+    , hasql                   >=1.10     && <1.11
+    , kioku-core              ^>=0.5.2.0
+    , kioku-migrations        ^>=0.5.2.0
+    , kiroku-store            ^>=0.8.0.0
+    , optparse-applicative    >=0.17     && <0.20
+    , pg-migrate              ^>=1.1.0.0
+    , pg-migrate-cli          ^>=1.1.0.0
+    , pg-migrate-import-codd  ^>=1.1.0.0
+    , text                    >=2.0      && <2.2
