@@ -1,0 +1,101 @@
+cabal-version:   3.0
+name:            libheif-hs
+version:         0.1.0.0
+synopsis:        Haskell FFI bindings to libheif
+license:         MIT
+build-type:      Simple
+category:        Codec, Bindings
+maintainer:      Dragos Ionita
+description:
+  Decodes media in the HEIF format exposing a subset of available operations and
+  data from the underyling C [libheif](https://github.com/strukturag/libheif) library.
+
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://codeberg.org/fusion5/libheif-hs
+
+common shared-properties
+  default-language:   GHC2024
+  default-extensions:
+    CPP
+    DataKinds
+    DeriveFunctor
+    DeriveGeneric
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    LambdaCase
+    OverloadedStrings
+    QuasiQuotes
+    RecordWildCards
+    ScopedTypeVariables
+    StrictData
+    TemplateHaskell
+    TypeApplications
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wmissing-export-lists
+    -Wmissing-home-modules -Wno-orphans -Wpartial-fields
+    -Wredundant-constraints -Wunused-packages
+    -Wno-pattern-namespace-specifier -Wno-unrecognised-warning-flags
+
+library
+  import:            shared-properties
+  exposed-modules:
+    Codec.HEIF
+    Codec.HEIF.Error
+
+  other-modules:
+    Codec.HEIF.Bindings
+    Codec.HEIF.Bindings.Generated
+    Codec.HEIF.Bindings.Generated.FunPtr
+    Codec.HEIF.Bindings.Generated.Global
+    Codec.HEIF.Bindings.Generated.Safe
+    Codec.HEIF.Bindings.Generated.Unsafe
+    Codec.HEIF.Error.Internal
+
+  hs-source-dirs:    src
+  build-depends:
+    , base                >=4.7  && <5
+    , bytestring          >=0.11 && <0.13
+    , c-expr-runtime      >=0.1  && <0.2
+    , containers          >=0.5  && <1
+    , hs-bindgen-runtime  >=0.1  && <0.2
+
+  pkgconfig-depends: libheif, libde265, kvazaar
+  c-sources:         cbits/heif_context_write_shim.c
+
+  if arch(wasm32)
+    hs-source-dirs: src-wasm
+    c-sources:
+      cbits/wasi_exception_stubs.c
+      cbits/wasi_posix_stubs.c
+
+    -- fix kvazaar (encoder) stack overflow:
+    ld-options:     "-Wl,-z,stack-size=4194304"
+    ghc-options:    -optl-lwasi-emulated-signal
+
+  else
+    hs-source-dirs: src-native
+
+test-suite libheif-hs-test
+  import:            shared-properties
+  type:              exitcode-stdio-1.0
+  main-is:           Main.hs
+  other-modules:     SampleImage
+  hs-source-dirs:    test
+  build-depends:
+    , base
+    , bytestring
+    , containers
+    , directory   >=1.3.9   && <2
+    , hspec       >=2.11.17 && <2.12
+    , libheif-hs
+    , temporary   >=1.3     && <2
+
+  default-language:  GHC2024 
+  pkgconfig-depends: libheif, libde265, kvazaar
