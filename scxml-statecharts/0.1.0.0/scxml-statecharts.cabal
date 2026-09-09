@@ -1,0 +1,90 @@
+cabal-version:      3.0
+name:               scxml-statecharts
+version:            0.1.0.0
+synopsis:           Typed statecharts from SCXML, via Template Haskell
+description:
+    Define a statechart (<https://statecharts.dev/>) in SCXML inside a Haskell
+    module and get typed states, events and a step function out of it.
+    .
+    > [scxml|
+    > <scxml initial="Draft">
+    >   <state id="Draft"><transition event="Submit" target="Review"/></state>
+    >   <state id="Review">
+    >     <onentry><script>notifyReviewers</script></onentry>
+    >     <transition event="Approve" target="Done"/>
+    >   </state>
+    >   <final id="Done"/>
+    > </scxml>
+    > |]
+    .
+    generates @FsmState@, @FsmEvent@ and the functions
+    @initiateStateMachine :: m FsmState@ and
+    @notifyStateMachine :: FsmState -> FsmEvent -> m FsmState@, which call the
+    callbacks named in the @\<script\>@ elements. Compound states become sum
+    types and parallel states become products, so a value of @FsmState@ is
+    exactly one legal configuration: illegal states are unrepresentable and
+    @case@ is exhaustive. Names in the XML are used verbatim as Haskell
+    constructor names.
+    .
+    Hierarchy, parallel regions, entry and exit callbacks and SCXML's
+    @done.state@ completion events are supported. @cond@ guards and eventless
+    transitions are deliberately not: a decision becomes a state whose entry
+    callback raises one of the events leading out of it, which keeps the
+    branching visible in the chart. See the README for the full mapping and
+    the list of unsupported SCXML features.
+
+homepage:           https://github.com/AxelUlmestig/scxml-statecharts
+bug-reports:        https://github.com/AxelUlmestig/scxml-statecharts/issues
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Axel Ulmestig
+maintainer:         axel.ulmestig@gmail.com
+copyright:          (c) 2026 Axel Ulmestig
+category:           Control, Language
+build-type:         Simple
+tested-with:        GHC == 9.10.3 || == 9.12.4
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+    type:     git
+    location: https://github.com/AxelUlmestig/scxml-statecharts
+
+common shared
+    default-language: GHC2021
+    ghc-options:      -Wall
+
+library
+    import:           shared
+    hs-source-dirs:   src
+    exposed-modules:
+        Scxml.Statechart
+    -- Reachable from generated code, which refers to them by names Template
+    -- Haskell resolved at compile time, so they need not be exposed.
+    other-modules:
+        Scxml.Statechart.Def
+        Scxml.Statechart.Interpret
+        Scxml.Statechart.Model
+        Scxml.Statechart.Parse
+        Scxml.Statechart.Run
+        Scxml.Statechart.TH
+    build-depends:
+        base             >=4.18   && <5,
+        containers       >=0.6.6  && <0.9,
+        template-haskell >=2.20   && <2.24,
+        text             >=2.0    && <2.2,
+        xml-conduit      >=1.9    && <1.11
+
+test-suite spec
+    import:           shared
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    other-modules:    Reordered
+                      Overrides
+    build-depends:
+        base              >=4.18  && <5,
+        scxml-statecharts,
+        text              >=2.0   && <2.2,
+        transformers      >=0.6   && <0.7
