@@ -1,0 +1,296 @@
+Cabal-version: 2.2
+Name:          crucible
+Version:       0.10
+Author:        Galois Inc.
+Maintainer:    rscott@galois.com, kquick@galois.com, langston@galois.com
+Copyright:     (c) Galois, Inc 2014-2022
+License:       BSD-3-Clause
+License-file:  LICENSE
+Build-type:    Simple
+Category:      Language
+Synopsis:      Crucible is a library for language-agnostic symbolic simulation
+Description:
+  Crucible provides a program representation format based on single-static assignment
+  (SSA) form control flow graphs, and a symbolic simulation engine for executing
+  programs expressed in this format.  It also provides support for communicating with
+  a variety of SAT and SMT solvers, including Z3, CVC4, Yices, STP, and dReal.
+  .
+  For an overview of Crucible please have a look at "Lang.Crucible.README"
+  
+extra-doc-files: CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/GaloisInc/crucible
+  subdir:   crucible
+
+-- Many (but not all, sadly) uses of unsafe operations are
+-- controlled by this compile flag.  When this flag is set
+-- to False, alternate implementations are used to avoid
+-- Unsafe.Coerce and Data.Coerce.  These alternate implementations
+-- impose a significant performance hit.
+flag unsafe-operations
+  Description: Use unsafe operations to improve performance
+  Default: True
+
+common bldflags
+  -- Note [Export lists]
+  -- -------------------
+  --
+  -- We don't allow modules without export lists.
+  --
+  -- From the GHC docs:
+  --
+  --     Declaring an explicit export list [...] enables GHC dead code analysis,
+  --     prevents accidental export of names and can ease optimizations like
+  --     inlining.
+  --
+  -- It also makes it easier to organize the Haddocks using section headers, and
+  -- allows for internal/hidden definitions and constructors.
+  --
+  -- We can't use -Werror=missing-export-lists here because it interferes with
+  -- ghcid. However, we enable it in CI, see ../cabal.project.ci.
+  ghc-options:
+    -Wmissing-export-lists
+
+  -- Specifying -Wall and -Werror can cause the project to fail to build on
+  -- newer versions of GHC simply due to new warnings being added to -Wall. To
+  -- prevent this from happening we manually list which warnings should be
+  -- considered errors. We also list some warnings that are not in -Wall, though
+  -- try to avoid "opinionated" warnings (though this judgement is clearly
+  -- subjective).
+  --
+  -- Warnings are grouped by the GHC version that introduced them, and then
+  -- alphabetically.
+  --
+  -- A list of warnings and the GHC version in which they were introduced is
+  -- available here:
+  -- https://ghc.gitlab.haskell.org/ghc/doc/users_guide/using-warnings.html
+
+  -- Since GHC 9.6 or earlier:
+  ghc-options:
+    -Wall
+    -Werror=ambiguous-fields
+    -Werror=deferred-type-errors
+    -Werror=deprecated-flags
+    -Werror=deprecations
+    -Werror=deriving-defaults
+    -Werror=deriving-typeable
+    -Werror=dodgy-foreign-imports
+    -Werror=duplicate-exports
+    -Werror=empty-enumerations
+    -Werror=gadt-mono-local-binds
+    -Werror=identities
+    -Werror=inaccessible-code
+    -Werror=incomplete-patterns
+    -Werror=incomplete-record-updates
+    -Werror=incomplete-uni-patterns
+    -Werror=inline-rule-shadowing
+    -Werror=misplaced-pragmas
+    -Werror=missed-extra-shared-lib
+    -Werror=missing-exported-signatures
+    -Werror=missing-fields
+    -Werror=missing-home-modules
+    -Werror=missing-methods
+    -Werror=missing-pattern-synonym-signatures
+    -Werror=missing-signatures
+    -Werror=name-shadowing
+    -Werror=noncanonical-monad-instances
+    -Werror=noncanonical-monoid-instances
+    -Werror=operator-whitespace
+    -Werror=operator-whitespace-ext-conflict
+    -Werror=orphans
+    -Werror=overflowed-literals
+    -Werror=overlapping-patterns
+    -Werror=partial-fields
+    -Werror=partial-type-signatures
+    -Werror=redundant-bang-patterns
+    -Werror=redundant-record-wildcards
+    -Werror=redundant-strictness-flags
+    -Werror=simplifiable-class-constraints
+    -Werror=star-binder
+    -Werror=star-is-type
+    -Werror=tabs
+    -Werror=type-defaults
+    -Werror=typed-holes
+    -Werror=type-equality-out-of-scope
+    -Werror=type-equality-requires-operators
+    -Werror=unicode-bidirectional-format-characters
+    -Werror=unrecognised-pragmas
+    -Werror=unrecognised-warning-flags
+    -Werror=unsupported-calling-conventions
+    -Werror=unsupported-llvm-version
+    -Werror=unused-do-bind
+    -Werror=unused-imports
+    -Werror=unused-record-wildcards
+    -Werror=warnings-deprecations
+    -Werror=wrong-do-bind
+
+  if impl(ghc < 9.8)
+    ghc-options:
+      -Werror=forall-identifier
+
+  if impl(ghc >= 9.8)
+    ghc-options:
+      -Werror=incomplete-export-warnings
+      -Werror=inconsistent-flags
+
+  if impl(ghc >= 9.10)
+    ghc-options:
+      -Werror=badly-staged-types
+      -Werror=data-kinds-tc
+      -Werror=incomplete-record-selectors
+              
+  if impl(ghc < 9.12)
+    ghc-options:
+      -Werror=compat-unqualified-imports
+
+  -- TODO(#1308): Enable and fix this warning when GHC 9.6 is dropped from CI
+  -- -Werror=deprecated-type-abstractions
+
+  ghc-prof-options: -O2 -fprof-auto-exported
+  default-language: Haskell2010
+
+
+library
+  import: bldflags
+  build-depends:
+    async,
+    base >= 4.13 && < 4.22,
+    bimap,
+    bv-sized >= 1.0.0 && < 1.1,
+    containers >= 0.5.9.0,
+    exceptions,
+    fgl,
+    hashable,
+    json >= 0.9 && < 1.0,
+    microlens >= 0.5,
+    microlens-mtl,
+    microlens-th,
+    mtl,
+    panic >= 0.3,
+    parameterized-utils >= 2.3 && < 2.4,
+    prettyprinter >= 1.7.0,
+    template-haskell,
+    text,
+    time >= 1.8 && < 2.0,
+    th-abstraction >=0.1 && <0.8,
+    transformers,
+    unordered-containers,
+    vector,
+    what4 >= 1.6.1
+
+  default-extensions:
+     NondecreasingIndentation
+     NoStarIsType
+
+  hs-source-dirs: src
+
+  other-modules:
+    Lang.Crucible.Backend.Assumptions
+
+  exposed-modules:
+    Lang.Crucible.Analysis.DFS
+    Lang.Crucible.Analysis.Fixpoint
+    Lang.Crucible.Analysis.Fixpoint.Components
+    Lang.Crucible.Analysis.Postdom
+    Lang.Crucible.Analysis.Reachable
+    Lang.Crucible.Backend
+    Lang.Crucible.Backend.AssumptionStack
+    Lang.Crucible.Backend.Goals
+    Lang.Crucible.Backend.ProofGoals
+    Lang.Crucible.Backend.Online
+    Lang.Crucible.Backend.Prove
+    Lang.Crucible.Backend.Simple
+    Lang.Crucible.Concretize
+    Lang.Crucible.CFG.Common
+    Lang.Crucible.CFG.Core
+    Lang.Crucible.CFG.Expr
+    Lang.Crucible.CFG.Extension
+    Lang.Crucible.CFG.ExtractSubgraph
+    Lang.Crucible.CFG.Generator
+    Lang.Crucible.CFG.Reg
+    Lang.Crucible.CFG.SSAConversion
+    Lang.Crucible.CFG.EarlyMergeLoops
+    Lang.Crucible.FunctionHandle
+    Lang.Crucible.README
+    Lang.Crucible.Simulator
+    Lang.Crucible.Simulator.BoundedExec
+    Lang.Crucible.Simulator.BoundedRecursion
+    Lang.Crucible.Simulator.CallFrame
+    Lang.Crucible.Simulator.Cut
+    Lang.Crucible.Simulator.Evaluation
+    Lang.Crucible.Simulator.EvalStmt
+    Lang.Crucible.Simulator.ExecutionTree
+    Lang.Crucible.Simulator.Intrinsics
+    Lang.Crucible.Simulator.GlobalState
+    Lang.Crucible.Simulator.Operations
+    Lang.Crucible.Simulator.OverrideSim
+    Lang.Crucible.Simulator.PathSatisfiability
+    Lang.Crucible.Simulator.PathSplitting
+    Lang.Crucible.Simulator.PositionTracking
+    Lang.Crucible.Simulator.Profiling
+    Lang.Crucible.Simulator.RecordAndReplay
+    Lang.Crucible.Simulator.RegMap
+    Lang.Crucible.Simulator.RegValue
+    Lang.Crucible.Simulator.SimError
+    Lang.Crucible.Simulator.SymSequence
+    Lang.Crucible.Syntax
+    Lang.Crucible.Types
+    Lang.Crucible.Vector
+    Lang.Crucible.Panic
+    Lang.Crucible.Utils.BitSet
+    Lang.Crucible.Utils.CoreRewrite
+    Lang.Crucible.Utils.MonadVerbosity
+    Lang.Crucible.Utils.MuxTree
+    Lang.Crucible.Utils.PrettyPrint
+    Lang.Crucible.Utils.RegRewrite
+    Lang.Crucible.Utils.Seconds
+    Lang.Crucible.Utils.Timeout
+    Lang.Crucible.Utils.StateContT
+    Lang.Crucible.Utils.Structural
+
+  if flag(unsafe-operations)
+    cpp-options: -DUNSAFE_OPS
+
+test-suite absint-tests
+  import: bldflags
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/absint
+  other-modules: AI,
+                 EvenOdd,
+                 Max,
+                 WTO
+  main-is: Main.hs
+  build-depends: base,
+                 containers,
+                 mtl,
+                 crucible,
+                 what4,
+                 parameterized-utils,
+                 tasty >= 0.10,
+                 tasty-hunit >= 0.9,
+                 tasty-quickcheck >= 0.8,
+                 QuickCheck
+
+test-suite helper-tests
+  import: bldflags
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/helpers
+  other-modules:
+    SymSequence
+    SymSequence.Properties
+    SymSequence.Reverse
+  main-is: Main.hs
+  build-depends: base,
+                 hspec >= 2.5,
+                 crucible,
+                 hedgehog,
+                 microlens,
+                 panic >= 0.3,
+                 parameterized-utils,
+                 tasty >= 0.10,
+                 tasty-hspec >= 1.1,
+                 tasty-hedgehog >= 1.2,
+                 tasty-hunit,
+                 what4
