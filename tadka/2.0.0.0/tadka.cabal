@@ -1,0 +1,228 @@
+cabal-version:      3.0
+name:               tadka
+version:            2.0.0.0
+synopsis:           Structured error diagnostics & source-span reporting 
+ like Rust's miette
+description:
+  Tadka is a Haskell library for structured error diagnostics and source-span
+  reporting. It turns ordinary error values into diagnostic reports with
+  source locations, labeled spans, error codes, severity, help text,
+  documentation URLs, related diagnostics, and underlying causes. It provides
+  graphical terminal, accessible prose, and JSON renderers, with support for
+  diagnostics spanning multiple source files. Tadka also provides integrations
+  for GHC SrcSpan, Megaparsec, and Attoparsec, plus Template Haskell derivation
+  support for reducing diagnostic boilerplate. It is inspired by Rust's miette
+  but is designed around Haskell's types and conventions.
+category:           Development, Error Handling
+license: MPL-2.0
+license-file:       LICENSE
+author:             Sabrinathan Nair
+maintainer:         259497327+Bombay-Boyz@users.noreply.github.com
+copyright:          (c) 2026 Bombay-Boyz
+homepage:           https://github.com/Bombay-Boyz/tadka
+bug-reports:        https://github.com/Bombay-Boyz/tadka/issues
+build-type:         Simple
+tested-with:        GHC ==9.6.7, GHC ==9.8.4, GHC ==9.10.3, GHC ==9.12.4, GHC ==9.14.1
+extra-doc-files:    CHANGELOG.md
+                    README.md
+                    assets/tadka-diagnostic.png
+extra-source-files: test/golden/fixtures/*.txt
+
+-- Treat warnings as errors during development and CI, but not in released
+-- builds: new GHC versions add warnings that would otherwise break downstream
+-- installs (cabal check rejects an unconditional -Werror). Enabled via
+-- cabal.project for our own builds.
+flag werror
+  description: Treat warnings as errors (enable in dev/CI, off for releases).
+  default:     False
+  manual:      True
+
+-- Shared build settings. Warnings-as-errors are honoured under the `werror`
+
+common warnings
+  default-language: GHC2021
+  ghc-options:      -Wall
+                    -Wcompat
+                    -Wredundant-constraints
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wpartial-fields
+  if flag(werror)
+    ghc-options:    -Werror
+
+-- The public library. Exposes exactly one supported module, @Tadka@; everything
+-- under @Tadka.Internal.*@ is exposed for the derive-macro/manual-instance
+-- shared-function discipline but carries NO compatibility guarantee.
+library
+  import:           warnings
+  hs-source-dirs:   src
+  exposed-modules:  Tadka
+                    -- Internal surface (no compatibility guarantee):
+                    Tadka.Internal
+                    Tadka.Internal.Types
+                    Tadka.Internal.Ann
+                    Tadka.Internal.Span
+                    Tadka.Internal.Width
+                    Tadka.Internal.Context
+                    Tadka.Internal.Diagnostic
+                    Tadka.Internal.Related
+                    Tadka.Internal.Config
+                    Tadka.Internal.Render
+                    Tadka.Internal.SourceCode
+                    Tadka.Internal.Terminal
+                    Tadka.Internal.Renderer.Graphical
+                    Tadka.Internal.Renderer.Narratable
+                    Tadka.Internal.Renderer.Json
+                    Tadka.Internal.Renderer.LinePlan
+                    Tadka.Internal.Renderer.Layout
+                    Tadka.Internal.TH
+                    Tadka.Internal.Generics
+                    
+  -- Generated, checked-in Unicode table (regenerate via tools/gen-width-table.hs):
+  other-modules:    Tadka.Internal.Width.Table
+  -- Dependency pins widened for multi-GHC support: GHC 9.6.7 through 9.14.1
+  -- (vision Infrastructure). `array` backs the width table's binary-searched
+  -- ranges; `network-uri` validates absolute URLs.
+  --
+  -- `base` and `template-haskell` are the two bounds tied directly to GHC's
+  -- own release cadence (each GHC major ships an exact base/TH pair), so
+  -- their floors/ceilings below are chosen from that mapping, not guessed:
+  
+  --   GHC 9.6.x  -> base-4.18.x,   template-haskell-2.20
+  --   GHC 9.8.x  -> base-4.19.x,   template-haskell-2.21
+  --   GHC 9.10.x -> base-4.20.x,   template-haskell-2.22
+  --   GHC 9.12.x -> base-4.21.x,   template-haskell-2.23
+  --   GHC 9.14.1 -> base-4.22.0.0, template-haskell-2.24
+  
+  -- The remaining bounds (text/array/bytestring/containers/network-uri/
+  -- prettyprinter*/ansi-terminal/aeson) are not GHC-version-locked the same
+  -- way; the ranges below are a reasoned starting point, not a substitute for
+  -- letting `cabal build` actually solve against each GHC version in CI and
+  -- narrowing/widening from real solver failures.
+  build-depends:    base                          >=4.18   && <4.23
+                  , text                          >=2.0    && <2.3
+                  , array                          >=0.5    && <0.6
+                  , bytestring                     >=0.11   && <0.13
+                  , containers                     >=0.6    && <0.9
+                  , network-uri                    >=2.6    && <2.7
+                  , prettyprinter                  >=1.7    && <1.8
+                  , prettyprinter-ansi-terminal    >=1.1    && <1.2
+                  , ansi-terminal                  >=1.0    && <1.2
+                  , template-haskell               >=2.20   && <2.25
+                  , aeson                          >=2.1    && <2.4
+
+-- Golden test suite: independently runnable (`cabal test golden`).
+test-suite golden
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test/golden
+  main-is:          Main.hs
+  other-modules:    Fixtures
+  build-depends:    base                  >=4.18 && <4.23
+                  , tadka
+                  , text                  >=2.0  && <2.3
+                  , aeson                 >=2.1  && <2.4
+                  , prettyprinter         >=1.7  && <1.8
+                  , template-haskell      >=2.20 && <2.25
+
+-- Property (Hedgehog) test suite: independently runnable (`cabal test props`).
+test-suite props
+  import:           warnings
+  if impl(ghc >= 9.10)
+      ghc-options:    -Wno-incomplete-record-selectors
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test/props
+  main-is:          Main.hs
+  other-modules:    Phase1
+                    Phase2
+                    Phase3
+                    Phase4
+                    Phase5
+                    Phase6
+                    Phase7
+                    Phase8
+                    Phase9
+                    Phase11
+                    Phase12
+                    Phase13
+                    Tabs
+                    TermColor
+                    Hyperlink
+                    LabelCollection
+                    Labels
+                    Cause
+                    Source
+                    LinePlanSpec
+                    LayoutSpec
+                    MultiLine
+                    EdgeCases
+                    GenDiag
+  build-depends:    base                          >=4.18 && <4.23
+                  , tadka
+                  , text                          >=2.0  && <2.3
+                  , aeson                         >=2.1  && <2.4
+                  , prettyprinter                 >=1.7  && <1.8
+                  , prettyprinter-ansi-terminal   >=1.1  && <1.2
+                  , template-haskell              >=2.20 && <2.25
+                  , hedgehog                      >=1.7  && <1.8
+
+-- One-directional interop adapters. Each is a separate sub-library so the core
+-- library never depends on a parser package; core modules cannot import these.
+library interop-ghc
+  import:           warnings
+  visibility:       public
+  hs-source-dirs:   interop/ghc
+  exposed-modules:  Tadka.Interop.GHC
+  -- Unlike every other bound in this file, `ghc`'s version is always exactly
+  -- the compiler's own version (there is no independently-versioned `ghc`
+  -- library to solve against on Hackage in the usual sense) — so this bound
+  -- exists only to state the supported compiler range, not to be solved
+  -- against multiple candidate versions the way `aeson` or `text` are.
+  -- `Tadka.Interop.GHC` uses only `GHC.Types.SrcLoc`'s `SrcSpan`/`RealSrcSpan`
+  -- accessors, which have been stable public GHC API since long before 9.4;
+  -- no CPP has been needed for the range below, but that should be confirmed
+  -- by an actual per-version build in CI, not assumed from the bound alone.
+  build-depends:    base       >=4.18 && <4.23
+                  , tadka
+                  , text       >=2.0  && <2.3
+                  , ghc        >=9.6  && <9.15
+
+library interop-megaparsec
+  import:           warnings
+  visibility:       public
+  hs-source-dirs:   interop/megaparsec
+  exposed-modules:  Tadka.Interop.Megaparsec
+  build-depends:    base        >=4.18 && <4.23
+                  , tadka
+                  , text        >=2.0  && <2.3
+                  , megaparsec  >=9.0  && <9.9
+
+library interop-attoparsec
+  import:           warnings
+  visibility:       public
+  hs-source-dirs:   interop/attoparsec
+  exposed-modules:  Tadka.Interop.Attoparsec
+  build-depends:    base        >=4.18 && <4.23
+                  , tadka
+                  , text        >=2.0  && <2.3
+                  , attoparsec  >=0.14 && <0.15
+
+test-suite interop
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test/interop
+  main-is:          Main.hs
+  build-depends:    base                       >=4.18 && <4.23
+                  , tadka
+                  , tadka:interop-ghc
+                  , tadka:interop-megaparsec
+                  , tadka:interop-attoparsec
+                  , text                       >=2.0  && <2.3
+                  , containers                 >=0.6  && <0.9
+                  , megaparsec                 >=9.0  && <9.9
+                  , attoparsec                 >=0.14 && <0.15
+                  , ghc                        >=9.6  && <9.15
+
+source-repository head
+  type:     git
+  location: https://github.com/Bombay-Boyz/tadka.git
