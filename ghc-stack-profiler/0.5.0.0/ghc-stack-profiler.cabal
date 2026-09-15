@@ -1,0 +1,138 @@
+cabal-version: 3.8
+name: ghc-stack-profiler
+version: 0.5.0.0
+license: BSD-3-Clause
+author: Hannes Siebenhandl, Wen Kokke, Matthew Pickering
+maintainer: hannes@well-typed.com
+build-type: Simple
+synopsis: A light-weight call-stack profiler for GHC
+description: A light-weight call-stack profiler for GHC!
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+category: Profiling, Benchmarking, Development
+tested-with:
+  ghc ==10.1 || ==9.14.1 || ==9.12.2 || ==9.10.3
+
+common warnings
+  ghc-options:
+    -Wall
+    -Wunused-packages
+
+common exts
+  default-extensions:
+    DeriveGeneric
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    NamedFieldPuns
+    NoImportQualifiedPost
+    PatternSynonyms
+    TypeFamilies
+    ViewPatterns
+
+  default-language: GHC2021
+
+flag use-ghc-trace-events
+  description:
+    Use the package 'ghc-trace-events'. Disabling this flag makes it much easier to use @ghc-stack-profiler@ on the @ghc@ codebase, as
+    we don't have to package 'ghc-trace-events' for hadrian. Always enabled on GHC <9.12.
+
+  manual: True
+  default: True
+
+flag control
+  description:
+    Enable @eventlog-socket@ control commands.
+
+  manual: True
+  default: False
+
+library
+  import:
+    warnings, exts
+
+  exposed-modules:
+    GHC.Stack.Profiler
+
+  other-modules:
+    Debug.Trace.Binary.Compat
+    GHC.Internal.ClosureTypes.Compat
+    GHC.Internal.Heap.Closures.Compat
+    GHC.Internal.InfoProv.Types.Compat
+    GHC.Internal.Stack.Constants.Compat
+    GHC.Internal.Stack.Decode.Compat
+    GHC.Stack.Annotation.Experimental.Compat
+    GHC.Stack.Profiler.Internal.Decode
+    GHC.Stack.Profiler.Internal.Eventlog.Socket
+    GHC.Stack.Profiler.Internal.Manager
+    GHC.Stack.Profiler.Internal.Sampler
+    GHC.Stack.Profiler.Internal.Stack.Compat
+    GHC.Stack.Profiler.Internal.Stack.Decode
+    GHC.Stack.Profiler.Internal.SymbolTable
+    GHC.Stack.Profiler.Internal.Util
+
+  build-depends:
+    async >=2.2 && <2.2.6,
+    base >=4.20 && <5,
+    binary >=0.8.9.3 && <0.11,
+    bytestring >=0.11 && <0.13,
+    containers >=0.6.8 && <0.9,
+    ghc-heap >=9.10.1 && <10.2,
+    ghc-internal >=9.1001 && <10.200,
+    ghc-stack-profiler-core ==0.5.0.0,
+    stm ^>=2.5.3.0 || ^>=2.5.0.0,
+    text >=2 && <2.2,
+
+  hs-source-dirs:
+    src
+
+  if impl(ghc >=9.14)
+    build-depends: ghc-experimental >=9.1400 && <10.200
+
+  if flag(use-ghc-trace-events) || impl(ghc <9.12)
+    cpp-options:
+      -DUSE_GHC_TRACE_EVENTS
+
+    build-depends:
+      ghc-trace-events ^>=0.1.2.10
+  else
+    build-depends:
+      ghc-prim >=0.6.0 && <1
+
+  -- Custom stack decoding for GHC <9.14.2
+  -- Fixes https://github.com/well-typed/ghc-stack-profiler/issues/14
+  -- See https://gitlab.haskell.org/ghc/ghc/-/issues/27009 for the fix.
+  if impl(ghc <9.14.2)
+    cmm-sources:
+      cbits/Stack.cmm
+
+    c-sources:
+      cbits/Stack_c.c
+
+  -- eventlog-socket custom command support
+  if flag(control) && !os(windows)
+    cpp-options:
+      -DEVENTLOG_SOCKET_SUPPORT
+
+    build-depends:
+      eventlog-socket ^>=0.1.3
+
+test-suite ghc-stack-profiler-tests
+  import: warnings, exts
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends:
+    base,
+    ghc-stack-profiler,
+    tasty >=1.5.4 && <1.6,
+    tasty-hunit,
+
+  default-language: GHC2021
+
+source-repository head
+  type: git
+  location: https://github.com/well-typed/ghc-stack-profiler.git
+  subdir: ghc-stack-profiler
