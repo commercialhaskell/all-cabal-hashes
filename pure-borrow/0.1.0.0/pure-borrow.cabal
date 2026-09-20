@@ -1,0 +1,470 @@
+cabal-version: 3.4
+name: pure-borrow
+version: 0.1.0.0
+synopsis: Rust-style borrowing in Linear Haskell with purity
+description:
+  This package realizes rust-style borrowing in Linear Haskell with purity and concurrency support.
+  See "Control.Monad.Borrow.Pure" for the main API documentation, and see our paper [/Pure Borrowing: Linear Haskell Meets Rust-Style Borrowing/](https://arxiv.org/abs/2604.15290) by Y. Matsushita and H. Ishii for the details.
+
+license: BSD-3-Clause
+license-file: LICENSE
+author: Yusuke Matsushita and Hiromi Ishii
+maintainer:
+  ysk.m24t@gmail.com
+  konn.jinro@gmail.com
+
+copyright: Copyright (c) 2025-present, Yusuke Matsushita and Hiromi Ishii
+category: Linear Haskell
+build-type: Simple
+homepage: https://github.com/SoftwareFoundationGroupAtKyotoU/pure-borrow
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+data-files: scripts/genplot.gnuplot
+tested-with: ghc ==9.10.3 || ==9.12.4 || ==9.14.1
+
+source-repository head
+  type: git
+  location: https://github.com/SoftwareFoundationGroupAtKyotoU/pure-borrow
+
+flag examples
+  description: Build the example executable, which runs some examples of the library.
+  default: False
+  manual: True
+
+flag slow
+  description:
+    Restore the previous, sublifetime-allocating implementations of the
+    scalar borrow scopes (`sharing`, `sharing'`, `sharing_`, `reborrowing`,
+    `reborrowing'`, `reborrowing_`), of their plural counterparts
+    (`reborrowings`, `reborrowings'`, `reborrowings_`), of `srunBO`/`srunBO_`
+    and of `copyAtMut`. These build the sublifetime at runtime, with a token
+    and a lender, where the default implementations delimit exactly the same
+    sublifetime statically. Enable to A/B the two against each other, or to
+    check whether a suspected miscompilation or unsoundness is attributable
+    to the erased scopes.
+
+  default: False
+  manual: True
+
+-- Settings shared by every component, minus @linear-base@.
+-- A component that does not use linear types at all imports this instead of
+-- @defaults@, so that @-Wunused-packages@ stays clean for it.
+common base-defaults
+  default-language: GHC2021
+  default-extensions: LinearTypes
+  autogen-modules: Paths_pure_borrow
+  other-modules: Paths_pure_borrow
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+    -Wunused-packages
+
+  build-depends: base >=4.17 && <5
+
+common defaults
+  import: base-defaults
+  build-depends: linear-base >=0.7
+
+common examples
+  import: defaults
+
+  if flag(examples)
+    buildable: True
+  else
+    buildable: False
+
+  ghc-options:
+    -threaded
+    -rtsopts
+    -O2
+    "-with-rtsopts=-N -s"
+
+  default-language: GHC2021
+
+library
+  import: defaults
+
+  if flag(slow)
+    cpp-options: -DPURE_BORROW_SLOW_SCOPES
+  build-depends:
+    array,
+    atomic-primops,
+    containers,
+    deepseq,
+    hashable,
+    hybrid-vectors,
+    integer-logarithms,
+    linear-generics,
+    primitive,
+    random,
+    stm,
+    stm-chans,
+    vector,
+    vector-algorithms,
+
+  hs-source-dirs: src
+  -- cabal-gild: discover src --exclude src/**/Utils.hs --exclude src/**/Utils/**/*.hs
+  exposed-modules:
+    Control.Concurrent.DivideConquer.Linear
+    Control.Concurrent.DivideConquer.Linear.Internal
+    Control.Concurrent.Queue.ChaseLev
+    Control.Monad.Borrow.Pure
+    Control.Monad.Borrow.Pure.Affine
+    Control.Monad.Borrow.Pure.Affine.Internal
+    Control.Monad.Borrow.Pure.Affine.Unsafe
+    Control.Monad.Borrow.Pure.BO
+    Control.Monad.Borrow.Pure.BO.Internal
+    Control.Monad.Borrow.Pure.BO.Unsafe
+    Control.Monad.Borrow.Pure.Clone
+    Control.Monad.Borrow.Pure.Copyable
+    Control.Monad.Borrow.Pure.Experimental.Borrows
+    Control.Monad.Borrow.Pure.Experimental.Loop
+    Control.Monad.Borrow.Pure.Experimental.Reborrowable
+    Control.Monad.Borrow.Pure.Lifetime
+    Control.Monad.Borrow.Pure.Lifetime.Internal
+    Control.Monad.Borrow.Pure.Lifetime.Token
+    Control.Monad.Borrow.Pure.Lifetime.Token.Internal
+    Control.Monad.Borrow.Pure.Lifetime.Token.Unsafe
+    Control.Syntax.DataFlow
+    Data.Coerce.Directed
+    Data.Coerce.Directed.Internal
+    Data.Coerce.Directed.Unsafe
+    Data.Comonad.Linear
+    Data.HashMap.RobinHood.Mutable.Linear
+    Data.HashMap.RobinHood.Mutable.Linear.Borrow
+    Data.HashMap.RobinHood.Mutable.Linear.Borrow.Internal
+    Data.HashMap.RobinHood.Mutable.Linear.Internal
+    Data.Record.Linear.Borrow.Experimental.PatternMatch
+    Data.Record.Linear.Borrow.Experimental.Split
+    Data.Ref.Linear
+    Data.Ref.Linear.Borrow
+    Data.Ref.Linear.Unlifted
+    Data.Unique.Linear
+    Data.Vector.Generic.Mutable.Growable.Linear.Borrow.Unrestricted
+    Data.Vector.Generic.Mutable.Growable.Linear.Borrow.Unrestricted.Internal
+    Data.Vector.Generic.Mutable.Linear.Borrow.Experimental.Multiplicity
+    Data.Vector.Generic.Mutable.Linear.Borrow.Experimental.Multiplicity.Internal
+    Data.Vector.Generic.Mutable.Linear.Borrow.Unrestricted
+    Data.Vector.Generic.Mutable.Linear.Borrow.Unrestricted.Internal
+    Data.Vector.Mutable.Growable.Linear.Borrow
+    Data.Vector.Mutable.Growable.Linear.Borrow.Internal
+    Data.Vector.Mutable.Linear.Borrow
+    Data.Vector.Mutable.Linear.Borrow.Internal
+    Data.Vector.Unboxed.Mutable.Growable.Linear.Borrow
+    Data.Vector.Unboxed.Mutable.Growable.Linear.Borrow.Internal
+    Data.Vector.Unboxed.Mutable.Linear.Borrow
+    Data.Vector.Unboxed.Mutable.Linear.Borrow.Internal
+
+  -- cabal-gild: discover src --include src/**/Utils.hs --include src/**/Utils/**/*.hs
+  other-modules:
+    Control.Concurrent.DivideConquer.Utils.OnceChan.Linear
+    Control.Concurrent.DivideConquer.Utils.OnceChan.Linear.Unlifted
+    Control.Concurrent.DivideConquer.Utils.QueuePool
+    Control.Concurrent.DivideConquer.Utils.Semaphore
+    Control.Monad.Borrow.Pure.Utils
+
+  build-tool-depends: cabal-gild:cabal-gild >=1.6.0.0
+  build-depends:
+
+test-suite pure-borrow-test
+  import: defaults
+  default-language: GHC2021
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  -- cabal-gild: discover test --exclude=test/Main.hs --exclude=test/typing-fail/**
+  other-modules:
+    Control.Concurrent.DivideConquer.LinearSpec
+    Control.Monad.Borrow.Pure.BOSpec
+    Control.Monad.Borrow.Pure.CopyableSpec
+    Control.Monad.Borrow.Pure.Experimental.Borrows.TypingCases
+    Control.Monad.Borrow.Pure.Experimental.BorrowsSpec
+    Control.Monad.Borrow.Pure.Lifetime.TypingCases
+    Control.Monad.Borrow.Pure.LifetimeSpec
+    Data.HashMap.RobinHood.Mutable.Linear.BorrowSpec
+    Data.HashMap.RobinHood.Mutable.LinearSpec
+    Data.HashMap.RobinHood.Mutable.LinearSpec.Cases
+    Data.Vector.Generic.Mutable.Growable.Linear.Borrow.Unrestricted.TypingCases
+    Data.Vector.Generic.Mutable.Growable.Linear.Borrow.UnrestrictedSpec
+    Data.Vector.Generic.Mutable.Linear.Borrow.Experimental.Multiplicity.TypingCases
+    Data.Vector.Generic.Mutable.Linear.Borrow.Experimental.MultiplicitySpec
+    Data.Vector.Generic.Mutable.Linear.Borrow.Unrestricted.TypingCases
+    Data.Vector.Generic.Mutable.Linear.Borrow.UnrestrictedSpec
+    Data.Vector.Mutable.Growable.Linear.BorrowSpec
+    Data.Vector.Mutable.Growable.Linear.TypingCases
+    Data.Vector.Mutable.Linear.BorrowSpec
+    Data.Vector.Unboxed.Mutable.Growable.Linear.BorrowSpec
+    Data.Vector.Unboxed.Mutable.Growable.Linear.TypingCases
+    Data.Vector.Unboxed.Mutable.Linear.BorrowSpec
+    Data.Vector.Unboxed.Mutable.Linear.TypingCases
+    PureBorrow.Internal.Bench.MultiStoreScanSpec
+    PureBorrow.Internal.Bench.Worklist.ResumeSpec
+
+  ghc-options:
+    -O2
+    -threaded
+    -with-rtsopts=-N
+
+  build-tool-depends:
+    tasty-discover:tasty-discover >=5.0.1
+
+  build-depends:
+    containers,
+    deepseq,
+    falsify,
+    hashable,
+    pure-borrow,
+    pure-borrow:test-bench-common,
+    random,
+    tasty,
+    tasty-expected-failure,
+    tasty-hunit,
+    unordered-containers,
+    vector,
+
+-- Keep Core inspections in a separate component: in the larger main test
+-- component GHC leaves concrete generic-vector dictionaries unspecialized.
+test-suite pure-borrow-inspection
+  import: defaults
+
+  -- PureBorrow.Inspection.Sublifetime asserts the Core shape of the statically
+  -- erased sublifetime delimiters, which is exactly what @+slow@ swaps out.
+  -- PureBorrow.Inspection.Flags reads this define to invert those obligations
+  -- there; it is the only module in the component that uses CPP.
+  if flag(slow)
+    cpp-options: -DPURE_BORROW_SLOW_SCOPES
+  default-language: GHC2021
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test-inspection
+  main-is: Main.hs
+  -- cabal-gild: discover test-inspection --exclude=test-inspection/Main.hs
+  other-modules:
+    PureBorrow.Inspection.Fft
+    PureBorrow.Inspection.Flags
+    PureBorrow.Inspection.GenericGrowableUnrestricted
+    PureBorrow.Inspection.MultiStoreScan
+    PureBorrow.Inspection.QSort
+    PureBorrow.Inspection.Sublifetime
+    PureBorrow.Inspection.Worklist.Resume
+
+  -- The -dsuppress-* set that makes a failing obligation readable belongs in
+  -- OPTIONS_GHC on the module that states the obligation, not here: `cabal
+  -- check` rejects `ghc-options: -d*` in a distributed package.
+  ghc-options:
+    -O2
+    -fplugin=Test.Tasty.Inspection.Plugin
+
+  build-depends:
+    pure-borrow,
+    pure-borrow:test-bench-common,
+    tasty,
+    tasty-expected-failure,
+    tasty-inspection-testing,
+    vector,
+
+test-suite pure-borrow-doctests
+  import: defaults
+
+  -- NOTE: the older GHC has a bug where REPL segfaults with LinearTypes.
+  -- See: https://gitlab.haskell.org/ghc/ghc/-/issues/26565#note_645783
+  if impl(ghc <9.12.3)
+    buildable: False
+  default-language: GHC2021
+  type: exitcode-stdio-1.0
+  hs-source-dirs: doctests
+  main-is: doctests.hs
+  -- cabal-gild: discover doctests --exclude=test/doctests.hs
+  other-modules:
+  ghc-options:
+    -O2
+    -threaded
+    -with-rtsopts=-N
+
+  build-depends:
+    doctest-parallel >=0.4.1,
+    pure-borrow,
+
+-- Hosts the common cases used in both benchmarks and tests.
+library test-bench-common
+  import: defaults
+  hs-source-dirs: internal-src/test-bench-common
+  -- cabal-gild: discover internal-src/test-bench-common
+  exposed-modules:
+    PureBorrow.Internal.Bench.MultiStoreScan
+    PureBorrow.Internal.Bench.Unboxed
+    PureBorrow.Internal.Bench.Worklist.Resume
+
+  build-depends:
+    base >=4.7 && <5,
+    deepseq,
+    pure-borrow,
+    tasty-bench,
+    vector,
+
+  ghc-options: -O2
+  default-language: GHC2021
+
+benchmark qsort-bench
+  import: defaults
+  type: exitcode-stdio-1.0
+  main-is: qsort.hs
+  hs-source-dirs: bench
+  ghc-options:
+    -threaded
+    -rtsopts
+    -O2
+    "-with-rtsopts=-N -s"
+
+  build-depends:
+    base >=4.7 && <5,
+    pure-borrow,
+    random,
+    tasty,
+    tasty-bench,
+    vector,
+    vector-algorithms,
+
+  default-language: GHC2021
+
+-- Every single-threaded micro-benchmark lives here, discovered by
+-- tasty-discover from bench/suite. Kernels shared with pure-borrow-test or
+-- pure-borrow-inspection stay in lib:test-bench-common and are re-exported by a
+-- thin module under PureBorrow.Bench; kernels used only by this benchmark live
+-- in bench/suite directly.
+benchmark pure-borrow-bench
+  import: defaults
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: bench/suite
+  -- cabal-gild: discover bench/suite --exclude=bench/suite/Main.hs
+  other-modules:
+    PureBorrow.Bench.CopyAt
+    PureBorrow.Bench.Growable
+    PureBorrow.Bench.HashMap
+    PureBorrow.Bench.Ingredients
+    PureBorrow.Bench.MultiStoreScan
+    PureBorrow.Bench.ScopeDensity
+    PureBorrow.Bench.Unboxed
+    PureBorrow.Bench.Worklist.Resume
+
+  ghc-options:
+    -threaded
+    -rtsopts
+    -O2
+    "-with-rtsopts=-N1 -T"
+
+  build-tool-depends:
+    tasty-discover:tasty-discover >=5.0.1
+
+  build-depends:
+    base >=4.7 && <5,
+    deepseq,
+    hashable,
+    pure-borrow,
+    pure-borrow:test-bench-common,
+    tasty,
+    tasty-bench,
+    unordered-containers,
+    vector,
+
+  default-language: GHC2021
+
+benchmark fft-bench
+  import: defaults
+  type: exitcode-stdio-1.0
+  main-is: fft.hs
+  hs-source-dirs: bench
+  ghc-options:
+    -threaded
+    -rtsopts
+    -O2
+    "-with-rtsopts=-N -s"
+
+  build-depends:
+    base >=4.7 && <5,
+    pure-borrow,
+    random,
+    tasty,
+    tasty-bench,
+    vector,
+
+  default-language: GHC2021
+
+library demo-impl
+  import: defaults
+
+  if flag(examples)
+    buildable: True
+  else
+    buildable: False
+
+  hs-source-dirs: internal-src/demo-impl
+  -- cabal-gild: discover internal-src/demo-impl
+  exposed-modules:
+    PureBorrow.Demo.Fft
+    PureBorrow.Demo.QSort
+
+  build-depends:
+    base >=4.7 && <5,
+    deepseq,
+    directory,
+    filepath,
+    fmlist,
+    optparse-applicative,
+    pure-borrow,
+    random,
+    vector,
+    vector-algorithms,
+
+  default-language: GHC2021
+
+executable qsort
+  import: examples
+  main-is: qsort.hs
+  hs-source-dirs: app
+  build-depends:
+    base >=4.7 && <5,
+    pure-borrow:demo-impl,
+
+executable fft
+  import: examples
+  main-is: fft.hs
+  hs-source-dirs: app
+  build-depends:
+    base >=4.7 && <5,
+    pure-borrow:demo-impl,
+
+executable convert-qsort-bench-csv
+  import: base-defaults
+  main-is: convert-qsort-bench-csv.hs
+  hs-source-dirs: app
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  if flag(examples)
+    buildable: True
+  else
+    buildable: False
+
+  build-depends:
+    base >=4.7 && <5,
+    bytestring,
+    cassava,
+    monoidal-containers,
+    optparse-applicative,
+    text,
+    unordered-containers,
+    vector,
+
+  default-language: GHC2021
