@@ -1,0 +1,175 @@
+cabal-version:      3.0
+name:               nano-rope
+version:            0.1.0.0
+synopsis:
+    B-tree text rope with flat chunks, multi-unit indexing and custom measures
+
+description:
+    A persistent text rope for editors, language servers and parsers.
+
+    * UTF-8 chunks of at most 512 bytes keep local edits small, even in
+      documents with very long lines.
+
+    * A B-tree with up to 16 children per node shares unchanged text between
+      versions, making snapshots and undo inexpensive.
+
+    * Consecutive insertions can use a bounded keystroke buffer to reduce
+      tree updates.
+
+    * Cached byte, code point, UTF-16 and newline counts support
+      logarithmic-time indexing and conversion between units.
+
+    * Chunk scans use SSE2 or AVX2 on supported x86-64 systems, with portable
+      C elsewhere. Build with @-f -simd@ for Haskell-only scans.
+
+    * Chunk views and buffered UTF-8 output avoid flattening the document.
+
+    * Custom monoidal measures support application-specific summaries
+      and prefix searches.
+
+license:            MIT
+license-file:       LICENSE
+author:             goolord
+maintainer:         zacharyachurchill@gmail.com
+category:           Text
+build-type:         Simple
+tested-with:        GHC ==9.14.1
+extra-doc-files:
+    CHANGELOG.md
+    README.md
+
+flag simd
+    description:
+        Enable C chunk scans, with runtime-selected SSE2 or AVX2 on supported
+        x86-64 systems and portable C elsewhere. Disable for Haskell-only
+        scans that process up to 8 bytes at a time.
+    default:     True
+    manual:      True
+
+flag compare-text-rope
+    description: Run the benchmarks on text-rope as well, for comparison.
+    default:     False
+    manual:      True
+
+flag compare-yi-rope
+    description: Run the benchmarks on yi-rope as well, for comparison.
+    default:     False
+    manual:      True
+
+flag compare-core-text
+    description: Run the benchmarks on core-text as well, for comparison.
+    default:     False
+    manual:      True
+
+common extensions
+    default-language: GHC2021
+
+common ghc-options
+    ghc-options: -Wall -Widentities
+
+common rts-options
+    ghc-options: -rtsopts -threaded "-with-rtsopts=-N"
+
+common library-depends
+    build-depends:
+        base      >=4.17 && <4.23,
+        deepseq   >=1.4  && <1.6,
+        primitive >=0.9  && <0.10,
+        text      >=2.0  && <2.2
+
+-- Compile the C scans and enable their Haskell bindings together.
+common simd
+    if flag(simd)
+        c-sources:   cbits/scan.c
+        cc-options:  -O2
+        cpp-options: -DNANO_ROPE_SIMD
+
+common test-depends
+    build-depends:
+        base,
+        bytestring              >=0.11  && <0.13,
+        directory               >=1.3   && <1.4,
+        primitive,
+        QuickCheck              >=2.14  && <2.19,
+        quickcheck-classes-base >=0.6.2 && <0.7,
+        tasty                   >=1.4   && <1.6,
+        tasty-quickcheck        >=0.10  && <0.12,
+        text
+
+library
+    import:           extensions
+    import:           ghc-options
+    import:           library-depends
+    import:           simd
+    exposed-modules:
+        Data.Text.NanoRope
+        Data.Text.NanoRope.Internal
+        Data.Text.NanoRope.Measured
+
+    hs-source-dirs:   src
+
+    -- Optimise the scan and tree traversal hot paths.
+    ghc-options:      -O2
+
+-- Test the library with its default chunk and node sizes.
+test-suite nano-rope-test
+    import:           extensions
+    import:           ghc-options
+    import:           rts-options
+    import:           test-depends
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:    nano-rope
+
+-- Run the same properties with small chunks and nodes, so short inputs
+-- exercise deep trees and frequent splits and merges.
+test-suite nano-rope-test-small
+    import:           extensions
+    import:           ghc-options
+    import:           rts-options
+    import:           library-depends
+    import:           test-depends
+    import:           simd
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test src
+    main-is:          Main.hs
+    other-modules:
+        Data.Text.NanoRope
+        Data.Text.NanoRope.Internal
+        Data.Text.NanoRope.Measured
+
+    cpp-options:      -DNANO_ROPE_SMALL
+
+benchmark nano-rope-bench
+    import:           extensions
+    import:           ghc-options
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   bench
+    main-is:          Main.hs
+    other-modules:
+        Chart
+        Lsp
+        Memory
+        Rand
+
+    -- Enable RTS statistics for allocation and live-heap measurements.
+    ghc-options:      -O2 -rtsopts "-with-rtsopts=-A32m -T"
+    build-depends:
+        base,
+        nano-rope,
+        deepseq,
+        tasty-bench >=0.3 && <0.6,
+        text
+
+    if flag(compare-text-rope)
+        build-depends: text-rope >=0.3 && <0.4
+        cpp-options:   -DCOMPARE_TEXT_ROPE
+
+    if flag(compare-yi-rope)
+        build-depends: yi-rope >=0.11 && <0.12
+        cpp-options:   -DCOMPARE_YI_ROPE
+
+    if flag(compare-core-text)
+        build-depends: core-text >=0.3.8 && <0.4
+        cpp-options:   -DCOMPARE_CORE_TEXT
