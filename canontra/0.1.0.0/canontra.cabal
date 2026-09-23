@@ -1,0 +1,230 @@
+cabal-version:      3.0
+name:               canontra
+version:            0.1.0.0
+synopsis:           Deterministic polyglot program identity & semantic graph engine
+description:
+    Canontra is a deterministic polyglot program identity and semantic graph engine
+    written in pure Haskell. It computes multi-tier cryptographic fingerprints and
+    semantic graphs (AST, Call Graph, CFG, DFG, and Merkle DAGs) across Python,
+    JavaScript, TypeScript, Go, and Rust. Designed for build caching, change impact
+    analysis, and semantic code comparison, Canontra eliminates cache busts caused
+    by formatting, comments, and non-semantic code refactorings.
+category:           Development, Static Analysis, Code Quality
+author:             Jash Thakkar
+maintainer:         Jash Thakkar
+copyright:          (c) 2026 Jash Thakkar
+license:            Apache-2.0
+license-file:       LICENSE
+homepage:           https://github.com/symtrace/canontra
+bug-reports:        https://github.com/symtrace/canontra/issues
+build-type:         Simple
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+    CONTRIBUTING.md
+    technicalSpecs.md
+    BENCHMARKS.md
+    SECURITY.md
+    REAL_WORLD_BENCHMARKS.md
+    benchmarkReport.md
+    LICENSE
+extra-source-files:
+    test/fixtures/**/*.py
+    test/fixtures/**/*.yaml
+
+source-repository head
+    type:     git
+    location: https://github.com/symtrace/canontra
+
+
+common common-options
+    default-language:   Haskell2010
+    default-extensions:
+        OverloadedStrings
+        RecordWildCards
+        DeriveGeneric
+        DeriveAnyClass
+        DerivingStrategies
+        GeneralizedNewtypeDeriving
+        StrictData
+        TupleSections
+        LambdaCase
+    ghc-options:
+        -Wall
+        -Wcompat
+        -Widentities
+        -Wincomplete-record-updates
+        -Wincomplete-uni-patterns
+        -Wmissing-export-lists
+        -Wpartial-fields
+        -Wredundant-constraints
+
+library
+    import:             common-options
+    hs-source-dirs:     src
+    exposed-modules:
+        Canontra.Types
+        Canontra.IR.Program
+        Canontra.IR.Declaration
+        Canontra.IR.Expression
+        Canontra.IR.Dependency
+        Canontra.IR.Arena
+        Canontra.Canonical.Float
+        Canontra.Canonical.Unicode
+        Canontra.Canonical.FastScan
+        Canontra.Canonical.StreamingHash
+        Canontra.Canonical.FusedStream
+        Canontra.Parser.SymbolTable
+        Canontra.Parser.SwissTable
+        Canontra.Parser.Python
+        Canontra.Parser.FastPython
+        Canontra.Parser.JS
+        Canontra.Parser.Go
+        Canontra.Parser.Rust
+        Canontra.Parser.Polyglot
+        Canontra.Parser.Outline
+        Canontra.Parser.Ingest
+        Canontra.Analysis.Scope
+        Canontra.Analysis.Symbol
+        Canontra.Analysis.CallGraph
+        Canontra.Analysis.CFG
+        Canontra.Analysis.DFG
+        Canontra.Analysis.CompactGraph
+        Canontra.Analysis.WholeRepoGraph
+        Canontra.Analysis.Impact
+        Canontra.Analysis.TypeContract
+        Canontra.Normalize.Normalize
+        Canontra.Normalize.Fused
+        Canontra.Normalize.Rules
+        Canontra.Canonical.Serialize
+        Canontra.Cache.Inode
+        Canontra.Cache.Common
+        Canontra.Cache.MerkleCache
+        Canontra.Cache.PagedCache
+        Canontra.Fingerprint.Source
+        Canontra.Fingerprint.Structural
+        Canontra.Fingerprint.Declaration
+        Canontra.Fingerprint.Dependency
+        Canontra.Fingerprint.CallGraph
+        Canontra.Fingerprint.ControlFlow
+        Canontra.Fingerprint.DataFlow
+        Canontra.Fingerprint.WholeRepoCallGraph
+        Canontra.Fingerprint.WholeRepoDataFlow
+        Canontra.Fingerprint.TypeContract
+        Canontra.Fingerprint.Composite
+        Canontra.Fingerprint.Bundle
+        Canontra.Repository.Parallel
+        Canontra.Repository.Repository
+        Canontra.Repository.MerkleDAG
+        Canontra.Repository.Watcher
+        Canontra.Repository.Git
+        Canontra.Verification.Determinism
+        Canontra.Verification.Metamorphic
+        Canontra.Comparison.Compare
+        Canontra.Comparison.Diff
+        Canontra.Security.Path
+        Canontra.Export.SARIF
+        Canontra.Export.Graph
+        Canontra.CLI.Completions
+        Canontra.CLI.Cache
+        Canontra.CLI.Commands
+    build-depends:
+        base >= 4.14 && < 5,
+        bytestring >= 0.10 && < 0.13,
+        text >= 1.2 && < 2.2,
+        containers >= 0.6 && < 0.8,
+        vector >= 0.12 && < 0.14,
+        deepseq >= 1.4 && < 1.6,
+        async >= 2.2 && < 2.3,
+        binary >= 0.8 && < 0.10,
+        cryptohash-sha256 >= 0.11 && < 0.12,
+        aeson >= 2.0 && < 2.3,
+        aeson-pretty >= 0.8 && < 0.9,
+        optparse-applicative >= 0.17 && < 0.19,
+        directory >= 1.3 && < 1.4,
+        filepath >= 1.4 && < 1.6,
+        process >= 1.6 && < 1.7,
+        flatparse >= 0.5.0 && < 0.6,
+        yaml >= 0.11 && < 0.12,
+        time >= 1.9 && < 1.15
+
+executable canontra
+    import:             common-options
+    main-is:            Main.hs
+    hs-source-dirs:     app
+    ghc-options:        -threaded -rtsopts -with-rtsopts=-N
+    build-depends:
+        base,
+        canontra
+
+test-suite canontra-test
+    import:             common-options
+    type:               exitcode-stdio-1.0
+    main-is:            Spec.hs
+    hs-source-dirs:     test
+    other-modules:
+        Canontra.ParserSpec
+        Canontra.SymbolTableSpec
+        Canontra.PropertySpec
+        Canontra.FixtureSpec
+        Canontra.ScopeSpec
+        Canontra.CallGraphSpec
+        Canontra.DiffSpec
+        Canontra.PolyglotSpec
+        Canontra.OutlineSpec
+        Canontra.CFGSpec
+        Canontra.DFGSpec
+        Canontra.BugfixSpec
+        Canontra.OptimSpec
+        Canontra.FastScanSpec
+        Canontra.MerkleCacheV3Spec
+        Canontra.NormalizeSpec
+        Canontra.ConformanceSpec
+        Canontra.GraphSoundnessSpec
+        Canontra.WholeRepoGraphSpec
+        Canontra.ImpactAnalysisSpec
+        Canontra.TypeContractSpec
+        Canontra.PagedCacheSpec
+        Canontra.WatcherSpec
+        Canontra.SecuritySpec
+        Canontra.ExportSpec
+        Canontra.CLISpec
+        Canontra.MetamorphicSpec
+    build-depends:
+        base,
+        canontra,
+        bytestring,
+        text,
+        containers,
+        vector,
+        deepseq,
+        async,
+        binary,
+        aeson,
+        directory,
+        filepath,
+        process,
+        yaml,
+        QuickCheck >= 2.14 && < 2.16,
+        hspec >= 2.9 && < 2.12
+
+benchmark canontra-bench
+    import:             common-options
+    type:               exitcode-stdio-1.0
+    main-is:            Bench.hs
+    hs-source-dirs:     bench
+    ghc-options:        -threaded -rtsopts -with-rtsopts=-N
+    build-depends:
+        base,
+        canontra,
+        bytestring,
+        text,
+        vector,
+        deepseq,
+        async,
+        binary,
+        aeson,
+        directory,
+        filepath,
+        time,
+        tasty-bench >= 0.3 && < 0.5
