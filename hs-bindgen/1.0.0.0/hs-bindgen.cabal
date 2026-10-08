@@ -1,0 +1,681 @@
+cabal-version:      3.0
+name:               hs-bindgen
+version:            1.0.0.0
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Well-Typed LLP
+maintainer:         info@well-typed.com
+category:           Development
+build-type:         Simple
+synopsis:           Generate Haskell bindings from C headers
+description:        Automatically generate Haskell bindings from C headers
+tested-with:
+  GHC ==9.4.8
+   || ==9.6.7
+   || ==9.8.4
+   || ==9.10.3
+   || ==9.12.2
+   || ==9.14.1
+
+extra-source-files:
+  bootstrap/*.h
+  musl-include/**/*.h
+  musl-include/COPYRIGHT
+  musl-include/VERSION
+  test-artefacts/fixtures/**/*.hs
+  test-artefacts/fixtures/**/*.txt
+  test-artefacts/fixtures/**/*.yaml
+  test-artefacts/headers/**/*.h
+  test-artefacts/headers/**/*.yaml
+
+extra-doc-files:
+  CHANGELOG.md
+  known-issues.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/well-typed/hs-bindgen
+  subdir:   hs-bindgen
+
+source-repository this
+  type:     git
+  location: https://github.com/well-typed/hs-bindgen
+  subdir:   hs-bindgen
+  tag:      release-1.0.0.0
+
+flag dev
+  description: Build debugging utilities for developing hs-bindgen itself
+  default:     False
+  manual:      True
+
+common lang
+  ghc-options:
+    -Wall -Widentities -Wprepositive-qualified-module
+    -Wredundant-constraints -Wunused-packages
+    -Wno-unticked-promoted-constructors
+
+  build-depends:      base >=4.17 && <4.23
+  default-language:   GHC2021
+  default-extensions:
+    DataKinds
+    DefaultSignatures
+    DeriveAnyClass
+    DerivingStrategies
+    DerivingVia
+    DisambiguateRecordFields
+    DuplicateRecordFields
+    FunctionalDependencies
+    LambdaCase
+    MultiWayIf
+    NoFieldSelectors
+    NoNamedFieldPuns
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+    PatternSynonyms
+    QuantifiedConstraints
+    TypeApplications
+    TypeFamilies
+    UndecidableInstances
+    ViewPatterns
+
+  if impl(ghc >=9.8)
+    default-extensions: TypeAbstractions
+
+library internal
+  import:           lang
+  hs-source-dirs:   src-internal
+  ghc-options:      -Wmissing-export-lists
+
+  -- Modules containing public API.
+  exposed-modules:  HsBindgen.Config
+
+  -- Internal modules
+  --
+  -- Rules:
+  --
+  -- * HsBindgen.IR.* modules must not (transitively) import from Frontend or
+  --   Backend
+  exposed-modules:
+    Data.Digraph
+    HsBindgen
+    HsBindgen.Artefact
+    HsBindgen.ArtefactM
+    HsBindgen.Backend
+    HsBindgen.Backend.Category
+    HsBindgen.Backend.Category.ApplyChoice
+    HsBindgen.Backend.Extensions
+    HsBindgen.Backend.Global
+    HsBindgen.Backend.Hs.AST
+    HsBindgen.Backend.Hs.AST.CompletePragma
+    HsBindgen.Backend.Hs.AST.Strategy
+    HsBindgen.Backend.Hs.CallConv
+    HsBindgen.Backend.Hs.Haddock.Documentation
+    HsBindgen.Backend.Hs.Haddock.Translation
+    HsBindgen.Backend.Hs.Name
+    HsBindgen.Backend.Hs.Origin
+    HsBindgen.Backend.Hs.Translation
+    HsBindgen.Backend.Hs.Translation.Field
+    HsBindgen.Backend.Hs.Translation.ForeignImport
+    HsBindgen.Backend.Hs.Translation.Function
+    HsBindgen.Backend.Hs.Translation.Instances
+    HsBindgen.Backend.Hs.Translation.Monad
+    HsBindgen.Backend.Hs.Translation.Newtype
+    HsBindgen.Backend.Hs.Translation.Structure
+    HsBindgen.Backend.Hs.Translation.ToFromFunPtr
+    HsBindgen.Backend.Hs.Translation.Union
+    HsBindgen.Backend.HsModule.Names
+    HsBindgen.Backend.HsModule.Pretty
+    HsBindgen.Backend.HsModule.Pretty.CAPI
+    HsBindgen.Backend.HsModule.Pretty.Comment
+    HsBindgen.Backend.HsModule.Pretty.Common
+    HsBindgen.Backend.HsModule.Pretty.Decl
+    HsBindgen.Backend.HsModule.Pretty.Expr
+    HsBindgen.Backend.HsModule.Pretty.Type
+    HsBindgen.Backend.HsModule.Render
+    HsBindgen.Backend.HsModule.Translation
+    HsBindgen.Backend.HsModule.Translation.Doxygen
+    HsBindgen.Backend.Level
+    HsBindgen.Backend.Runtime
+    HsBindgen.Backend.SHs.AST
+    HsBindgen.Backend.SHs.AST.Expr
+    HsBindgen.Backend.SHs.AST.Type
+    HsBindgen.Backend.SHs.Simplify
+    HsBindgen.Backend.SHs.Translation
+    HsBindgen.Backend.SHs.Translation.Common
+    HsBindgen.Backend.SHs.Translation.MapFunction
+    HsBindgen.Backend.TH.Translation
+    HsBindgen.Backend.UniqueSymbol
+    HsBindgen.BindingSpec
+    HsBindgen.BindingSpec.Gen
+    HsBindgen.BindingSpec.Private.Common
+    HsBindgen.BindingSpec.Private.Stdlib
+    HsBindgen.BindingSpec.Private.V1
+    HsBindgen.BindingSpec.Private.Version
+    HsBindgen.Boot
+    HsBindgen.Cache
+    HsBindgen.Clang
+    HsBindgen.Clang.CompareVersions
+    HsBindgen.Clang.Discover
+    HsBindgen.Clang.ExtraClangArgs
+    HsBindgen.Clang.Macos
+    HsBindgen.Clang.Tokens
+    HsBindgen.Config.ClangArgs
+    HsBindgen.Config.Internal
+    HsBindgen.Config.MangleCandidate
+    HsBindgen.Config.MangleCandidate.ReservedNames
+    HsBindgen.Config.Prelims
+    HsBindgen.Doxygen
+    HsBindgen.Eff
+    HsBindgen.Errors
+    HsBindgen.Frontend
+    HsBindgen.Frontend.Analysis
+    HsBindgen.Frontend.Analysis.DeclIndex
+    HsBindgen.Frontend.Analysis.DeclIndex.ResolveMacro
+    HsBindgen.Frontend.Analysis.DeclUseGraph
+    HsBindgen.Frontend.Analysis.DeclUseGraph.Construction
+    HsBindgen.Frontend.Analysis.DeclUseGraph.Definition
+    HsBindgen.Frontend.Analysis.DeclUseGraph.Query
+    HsBindgen.Frontend.Analysis.Deps
+    HsBindgen.Frontend.Analysis.IncludeGraph
+    HsBindgen.Frontend.Analysis.Typedefs
+    HsBindgen.Frontend.Analysis.UnnamedIdUsage
+    HsBindgen.Frontend.Analysis.UseDeclGraph
+    HsBindgen.Frontend.DeclMeta
+    HsBindgen.Frontend.LanguageC
+    HsBindgen.Frontend.LanguageC.Error
+    HsBindgen.Frontend.LanguageC.Monad
+    HsBindgen.Frontend.LanguageC.PartialAST
+    HsBindgen.Frontend.LanguageC.PartialAST.FromLanC
+    HsBindgen.Frontend.LanguageC.PartialAST.ToBindgen
+    HsBindgen.Frontend.Pass.AdjustTypes
+    HsBindgen.Frontend.Pass.AdjustTypes.IsPass
+    HsBindgen.Frontend.Pass.ConstructTranslationUnit
+    HsBindgen.Frontend.Pass.ConstructTranslationUnit.IsPass
+    HsBindgen.Frontend.Pass.EnrichComments
+    HsBindgen.Frontend.Pass.EnrichComments.IsPass
+    HsBindgen.Frontend.Pass.FillUnnamedIds
+    HsBindgen.Frontend.Pass.FillUnnamedIds.ChooseNames
+    HsBindgen.Frontend.Pass.FillUnnamedIds.IsPass
+    HsBindgen.Frontend.Pass.Final
+    HsBindgen.Frontend.Pass.MangleNames
+    HsBindgen.Frontend.Pass.MangleNames.CreateNames
+    HsBindgen.Frontend.Pass.MangleNames.DetectClashes
+    HsBindgen.Frontend.Pass.MangleNames.Error
+    HsBindgen.Frontend.Pass.MangleNames.IsPass
+    HsBindgen.Frontend.Pass.MangleNames.Names
+    HsBindgen.Frontend.Pass.MangleNames.ResolveNames
+    HsBindgen.Frontend.Pass.Parse
+    HsBindgen.Frontend.Pass.Parse.Builtin
+    HsBindgen.Frontend.Pass.Parse.Context
+    HsBindgen.Frontend.Pass.Parse.Decl
+    HsBindgen.Frontend.Pass.Parse.Decl.Field
+    HsBindgen.Frontend.Pass.Parse.Decl.ImplicitFields
+    HsBindgen.Frontend.Pass.Parse.Decl.Macro
+    HsBindgen.Frontend.Pass.Parse.Decl.Members
+    HsBindgen.Frontend.Pass.Parse.IsPass
+    HsBindgen.Frontend.Pass.Parse.Monad.Decl
+    HsBindgen.Frontend.Pass.Parse.Monad.SourceRangeMap
+    HsBindgen.Frontend.Pass.Parse.Monad.Type
+    HsBindgen.Frontend.Pass.Parse.Msg
+    HsBindgen.Frontend.Pass.Parse.Result
+    HsBindgen.Frontend.Pass.Parse.Type
+    HsBindgen.Frontend.Pass.PrepareReparse
+    HsBindgen.Frontend.Pass.PrepareReparse.AST
+    HsBindgen.Frontend.Pass.PrepareReparse.Flatten
+    HsBindgen.Frontend.Pass.PrepareReparse.IsPass
+    HsBindgen.Frontend.Pass.PrepareReparse.IsPass.Msg
+    HsBindgen.Frontend.Pass.PrepareReparse.Lexer
+    HsBindgen.Frontend.Pass.PrepareReparse.Parser
+    HsBindgen.Frontend.Pass.PrepareReparse.Preprocessor
+    HsBindgen.Frontend.Pass.PrepareReparse.Printer
+    HsBindgen.Frontend.Pass.PrepareReparse.Printer.Util
+    HsBindgen.Frontend.Pass.PrepareReparse.Simplifier
+    HsBindgen.Frontend.Pass.PrepareReparse.Tracer
+    HsBindgen.Frontend.Pass.PrepareReparse.Update
+    HsBindgen.Frontend.Pass.ReparseMacroExpansions
+    HsBindgen.Frontend.Pass.ReparseMacroExpansions.ForgetAnn
+    HsBindgen.Frontend.Pass.ReparseMacroExpansions.IsPass
+    HsBindgen.Frontend.Pass.ReparseMacroExpansions.IsPass.Msg
+    HsBindgen.Frontend.Pass.ReparseMacroExpansions.LanC
+    HsBindgen.Frontend.Pass.ReparseMacroExpansions.Zip
+    HsBindgen.Frontend.Pass.ReparseMacroExpansions.Zip.Error
+    HsBindgen.Frontend.Pass.ResolveBindingSpecs
+    HsBindgen.Frontend.Pass.ResolveBindingSpecs.IsPass
+    HsBindgen.Frontend.Pass.Select
+    HsBindgen.Frontend.Pass.Select.IsPass
+    HsBindgen.Frontend.Pass.SimplifyAST
+    HsBindgen.Frontend.Pass.SimplifyAST.IsPass
+    HsBindgen.Frontend.Pass.TranslateTypes
+    HsBindgen.Frontend.Pass.TranslateTypes.IsPass
+    HsBindgen.Frontend.Pass.TranslateTypes.IsPass.Msg
+    HsBindgen.Frontend.Pass.TranslateTypes.Translation
+    HsBindgen.Frontend.Pass.TypecheckMacros
+    HsBindgen.Frontend.Pass.TypecheckMacros.IsPass
+    HsBindgen.Frontend.Pass.TypecheckMacros.KnownTypes
+    HsBindgen.Frontend.Pass.TypecheckMacros.Typecheck
+    HsBindgen.Frontend.Predicate
+    HsBindgen.Frontend.PrettyC
+    HsBindgen.Frontend.ProcessIncludes
+    HsBindgen.Frontend.RootHeader
+    HsBindgen.Frontend.TranslationUnit
+    HsBindgen.Guasi
+    HsBindgen.Imports
+    HsBindgen.Instances
+    HsBindgen.IR.C
+    HsBindgen.IR.C.Conflict
+    HsBindgen.IR.C.Decl
+    HsBindgen.IR.C.DeclPath
+    HsBindgen.IR.C.HashDefine
+    HsBindgen.IR.C.HashIncludeArg
+    HsBindgen.IR.C.LocationInfo
+    HsBindgen.IR.C.Naming
+    HsBindgen.IR.C.PrettyPrinter
+    HsBindgen.IR.C.RootDirective
+    HsBindgen.IR.C.Type
+    HsBindgen.IR.Hs
+    HsBindgen.IR.Hs.Type
+    HsBindgen.IR.Pass
+    HsBindgen.IR.Pass.Ann
+    HsBindgen.IR.Pass.CommentDecl
+    HsBindgen.IR.Pass.Definition
+    HsBindgen.IR.Pass.ExtBinding
+    HsBindgen.IR.Pass.Id
+    HsBindgen.IR.Pass.Macro
+    HsBindgen.IR.Pass.Msg
+    HsBindgen.IR.Pass.ScopedName
+    HsBindgen.IR.Pass.Types
+    HsBindgen.IR.Translation
+    HsBindgen.Language.C
+    HsBindgen.Language.Haskell
+    HsBindgen.Macro.Empty
+    HsBindgen.Macro.Error
+    HsBindgen.Macro.Flip
+    HsBindgen.Macro.Interface
+    HsBindgen.Macro.Parse
+    HsBindgen.Macro.Raw
+    HsBindgen.Macro.Raw.Lang
+    HsBindgen.Macro.Raw.Parse
+    HsBindgen.Macro.Syntax
+    HsBindgen.Macro.Type
+    HsBindgen.Macro.UniqueExpansion
+    HsBindgen.Macro.UniqueExpansion.Parse
+    HsBindgen.Macro.UniqueExpansion.Types
+    HsBindgen.NameHint
+    HsBindgen.Orphans
+    HsBindgen.Resolve
+    HsBindgen.Test
+    HsBindgen.Test.C
+    HsBindgen.Test.Hs
+    HsBindgen.Test.Internal
+    HsBindgen.Test.Readme
+    HsBindgen.TH.Internal
+    HsBindgen.TraceMsg
+    HsBindgen.Util.Monad
+    HsBindgen.Util.Process
+    HsBindgen.Util.Rational
+    HsBindgen.Util.Tracer
+    Text.SimplePrettyPrint
+
+  other-modules:    Paths_hs_bindgen
+  autogen-modules:  Paths_hs_bindgen
+  other-extensions: TemplateHaskellQuotes
+
+  -- Internal dependencies
+  build-depends:    hs-bindgen-runtime >=1.0.0.0 && <1.1
+
+  -- External dependencies
+  build-depends:
+    , aeson               >=2.2.1.0    && <2.3
+    , ansi-terminal       >=1.0.0      && <1.2
+    , array               >=0.5.4.0    && <0.6
+    , base-compat         >=0.13.1     && <0.16
+    , base16-bytestring   >=1.0.2.0    && <1.1
+    , bytestring          >=0.11.4.0   && <0.13
+    , containers          >=0.6.5.1    && <0.9
+    , contra-tracer       >=0.2        && <0.3
+    , cryptohash-sha256   >=0.11.102.1 && <0.12
+    , data-default        >=0.7        && <0.9
+    , debruijn            ^>=0.3.1
+    , directory           >=1.3.6.2    && <1.4
+    , doxygen-parser      >=0.1        && <0.2
+    , exceptions          >=0.10       && <0.11
+    , filepath            >=1.4        && <1.6
+    , fin                 >=0.3.2      && <0.4
+    , language-c          >=0.9        && <0.11
+    , libclang-bindings   >=0.2        && <0.3
+    , mtl                 >=2.2        && <2.4
+    , optics-core         >=0.4        && <0.5
+    , parsec              >=3.1        && <3.2
+    , pretty              >=1.1.3.6    && <1.2
+    , process             >=1.6        && <1.7
+    , regex-pcre-builtin  >=0.95       && <0.96
+    , some                >=1.0.6      && <1.1
+    , template-haskell    >=2.19       && <2.25
+    , temporary           >=1.3        && <1.4
+    , text                >=1.2        && <2.2
+    , transformers        >=0.5        && <0.7
+    , unliftio-core       >=0.2.1      && <0.3
+    , vec                 >=0.5        && <0.6
+    , yaml                >=0.11.11.1  && <0.12
+
+library
+  import:             lang
+  hs-source-dirs:     src
+  exposed-modules:
+    HsBindgen.Macro
+    HsBindgen.TH
+
+  other-modules:
+    HsBindgen.Internal.Macro.CExpr
+    HsBindgen.Internal.Macro.CExpr.Global
+    HsBindgen.Internal.Macro.CExpr.Parse
+    HsBindgen.Internal.Macro.CExpr.Resolution
+    HsBindgen.Internal.Macro.CExpr.Translation.Type
+    HsBindgen.Internal.Macro.CExpr.Translation.Value
+    HsBindgen.Internal.Macro.CExpr.Type
+    HsBindgen.Internal.Macro.CExpr.Typecheck
+
+  reexported-modules:
+  other-extensions:   TemplateHaskellQuotes
+
+  -- Internal dependencies
+  build-depends:
+    , hs-bindgen-runtime
+    , hs-bindgen:internal
+
+  -- External dependencies
+  build-depends:
+    , c-expr-dsl      >=0.2 && <0.3
+    , c-expr-runtime  >=0.1 && <0.2
+
+  -- Inherited dependencies
+  build-depends:
+    , containers
+    , data-default
+    , debruijn
+    , fin
+    , libclang-bindings
+    , template-haskell
+    , text
+    , vec
+
+executable hs-bindgen-cli
+  import:             lang
+  default-extensions: NoFieldSelectors
+  main-is:            hs-bindgen-cli.hs
+  hs-source-dirs:     app
+  other-modules:
+    HsBindgen.App
+    HsBindgen.App.Output
+    HsBindgen.Cli
+    HsBindgen.Cli.BindingSpec
+    HsBindgen.Cli.BindingSpec.StdLib
+    HsBindgen.Cli.GenTests
+    HsBindgen.Cli.Info
+    HsBindgen.Cli.Info.BuiltinMacros
+    HsBindgen.Cli.Info.Doxygen
+    HsBindgen.Cli.Info.IncludeGraph
+    HsBindgen.Cli.Info.Instances
+    HsBindgen.Cli.Info.Libclang
+    HsBindgen.Cli.Info.ResolveHeader
+    HsBindgen.Cli.Info.UseDeclGraph
+    HsBindgen.Cli.Internal
+    HsBindgen.Cli.Internal.Frontend
+    HsBindgen.Cli.Preprocess
+    HsBindgen.Cli.ToolSupport
+    HsBindgen.Cli.ToolSupport.Literate
+    Paths_hs_bindgen
+
+  autogen-modules:    Paths_hs_bindgen
+
+  -- Internal dependencies
+  build-depends:
+    , hs-bindgen
+    , hs-bindgen:internal
+
+  -- Inherited dependencies
+  build-depends:
+    , containers
+    , data-default
+    , libclang-bindings
+
+  -- External dependencies
+  build-depends:
+    , bytestring            >=0.11.4.0 && <0.13
+    , optparse-applicative  >=0.18     && <0.20
+    , prettyprinter         >=1.7.1    && <1.8
+    , text                  >=1.2      && <2.2
+
+executable clang-ast-dump
+  import:         lang
+  main-is:        Main.hs
+  hs-source-dirs: clang-ast-dump
+
+  if flag(dev)
+    buildable: True
+
+  else
+    buildable: False
+
+  -- Internal dependencies
+  build-depends:  hs-bindgen:internal
+
+  -- Inherited dependencies
+  build-depends:
+    , containers
+    , data-default
+    , libclang-bindings
+    , text
+
+  -- External dependencies
+  build-depends:  optparse-applicative >=0.18 && <0.20
+
+library test-common
+  import:          lang
+  hs-source-dirs:  test/common
+  exposed-modules:
+    Test.Common.HsBindgen.Trace
+    Test.Common.HsBindgen.Trace.Patterns
+    Test.Common.HsBindgen.Trace.Predicate
+    Test.Common.Util.AnsiDiff
+    Test.Common.Util.Cabal
+    Test.Common.Util.Tasty
+    Test.Common.Util.Tasty.Golden
+
+  -- Internal dependencies
+  build-depends:   hs-bindgen:internal
+
+  -- Inherited dependencies
+  build-depends:
+    , ansi-terminal
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , mtl
+    , text
+    , transformers
+
+  -- External dependencies
+  build-depends:
+    , deepseq        >=1.4     && <1.6
+    , Diff           >=1.0     && <1.1
+    , edit-distance  >=0.2.2.1 && <0.3
+    , primitive      >=0.9     && <0.10
+    , tasty          >=1.5     && <1.6
+    , tasty-hunit    >=0.10.2  && <0.11
+    , utf8-string    >=1.0.2   && <1.1
+
+test-suite test-hs-bindgen
+  import:             lang
+  type:               exitcode-stdio-1.0
+  main-is:            test-hs-bindgen.hs
+  hs-source-dirs:     test/hs-bindgen
+
+  -- -threaded is needed for parallel fixture compilation via direct GHC
+  -- invocations.
+  -- Suppress warning about hs-bindgen being unused in test code
+  -- (it's only used when compiling generated TH modules)
+  ghc-options:        -threaded -Wno-unused-packages
+  other-modules:
+    Test.HsBindgen.Clang
+    Test.HsBindgen.Fixtures.Haddock
+    Test.HsBindgen.Fixtures.TestCases
+    Test.HsBindgen.Fixtures.Utils
+    Test.HsBindgen.Frontend.LanguageC
+    Test.HsBindgen.Frontend.Pass.PrepareReparse
+    Test.HsBindgen.Golden
+    Test.HsBindgen.Golden.Arrays
+    Test.HsBindgen.Golden.Attributes
+    Test.HsBindgen.Golden.BindingSpecs
+    Test.HsBindgen.Golden.Comprehensive
+    Test.HsBindgen.Golden.Declarations
+    Test.HsBindgen.Golden.Documentation
+    Test.HsBindgen.Golden.EdgeCases
+    Test.HsBindgen.Golden.Functions
+    Test.HsBindgen.Golden.Globals
+    Test.HsBindgen.Golden.Infra.Check.BindingSpec
+    Test.HsBindgen.Golden.Infra.Check.FailureBindgen
+    Test.HsBindgen.Golden.Infra.Check.FailureLibclang
+    Test.HsBindgen.Golden.Infra.Check.PP
+    Test.HsBindgen.Golden.Infra.Check.TH
+    Test.HsBindgen.Golden.Infra.TestCase
+    Test.HsBindgen.Golden.Infra.TestCaseTree
+    Test.HsBindgen.Golden.Macros
+    Test.HsBindgen.Golden.Macros.Lang
+    Test.HsBindgen.Golden.Macros.Redeclaration
+    Test.HsBindgen.Golden.Macros.Reparse
+    Test.HsBindgen.Golden.ProgramAnalysis
+    Test.HsBindgen.Golden.Types
+    Test.HsBindgen.Integration.ExitCode
+    Test.HsBindgen.Integration.OverwritePolicy
+    Test.HsBindgen.Macro.CExpr
+    Test.HsBindgen.Macro.Infra
+    Test.HsBindgen.Macro.Syntax
+    Test.HsBindgen.Macro.Syntax.Clang
+    Test.HsBindgen.Macro.UniqueExpansion
+    Test.HsBindgen.PPFixtures
+    Test.HsBindgen.PPFixtures.Compile
+    Test.HsBindgen.PPFixtures.TestCases
+    Test.HsBindgen.Prop.Selection
+    Test.HsBindgen.Resources
+    Test.HsBindgen.THFixtures
+    Test.HsBindgen.THFixtures.Compile
+    Test.HsBindgen.THFixtures.Generate
+    Test.HsBindgen.THFixtures.TestCases
+    Test.HsBindgen.Unit.ClangArgs
+    Test.HsBindgen.Unit.Digraph
+    Test.HsBindgen.Unit.Frontend
+    Test.HsBindgen.Unit.Pretty
+    Test.HsBindgen.Unit.RootDirective
+    Test.HsBindgen.Unit.Runtime
+    Test.HsBindgen.Unit.Tracer
+
+  -- Internal dependencies
+  build-depends:
+    , hs-bindgen
+    , hs-bindgen-runtime
+    , hs-bindgen:internal
+    , test-common
+
+  -- Inherited dependencies
+  build-depends:
+    , c-expr-dsl
+    , containers
+    , data-default
+    , debruijn
+    , directory
+    , filepath
+    , libclang-bindings
+    , mtl
+    , optics-core
+    , parsec
+    , process
+    , tasty
+    , tasty-hunit
+    , template-haskell
+    , temporary
+    , text
+    , utf8-string
+
+  -- External dependencies
+  build-depends:
+    , async             >=2.2     && <2.3
+    , syb               >=0.7.2.4 && <0.8
+    , tasty-quickcheck  >=0.11    && <0.12
+
+  -- Build tools needed for integration tests
+  build-tool-depends: hs-bindgen:hs-bindgen-cli
+
+-- Test TH mode
+--
+-- We're intentionally /not/ importing the common @lang@ section here: this
+-- forces us to explicitly declare whatever language extensions are needed
+-- when using hs-bindgen's TH mode.
+test-suite test-th
+  type:             exitcode-stdio-1.0
+  main-is:          test-th.hs
+  hs-source-dirs:   test/th
+  include-dirs:     test-artefacts/headers
+  default-language: GHC2021
+  ghc-options:
+    -Wall -Widentities -Wprepositive-qualified-module
+    -Wredundant-constraints -Wunused-packages
+    -Wno-unticked-promoted-constructors
+
+  other-modules:
+    Test.TH.RecordDot
+    Test.TH.StaticCounterA
+    Test.TH.StaticCounterB
+    Test.TH.Test01
+    Test.TH.Test02
+
+  -- Internal dependencies
+  build-depends:
+    , hs-bindgen
+    , hs-bindgen-runtime
+    , test-common
+
+  -- Inherited dependencies
+  build-depends:
+    , base
+    , filepath
+    , optics
+    , tasty
+    , tasty-hunit
+
+  -- External dependencies
+  build-depends:    vector ^>=0.13.2.0
+
+test-suite test-literate
+  type:               exitcode-stdio-1.0
+  main-is:            test-literate.hs
+  hs-source-dirs:     test/literate
+  include-dirs:       test-artefacts/headers
+  default-language:   GHC2021
+  build-depends:      base >=4.17 && <4.23
+  ghc-options:
+    -Wall -Widentities -Wredundant-constraints -Wunused-packages
+    -Wno-unticked-promoted-constructors
+
+  other-modules:
+    Test.Literate.Test01
+    Test.Literate.Test02
+    Test.Literate.TestPointer
+    Test.Literate.TestSafe
+    Test.Literate.TestSafeAndUnsafe
+    Test.Literate.TestUnsafe
+
+  -- Here we use literate haskell "hook" to avoid setting up true preprocessors
+  -- (which would require either build-type: Custom or Hooks - both not a great options, at least yet).
+  --
+  -- The source files contains the actual options and arguments to be used with hs-bindgen
+  ghc-options:        -pgmL hs-bindgen-cli -optL tool-support -optL literate
+  build-tool-depends: hs-bindgen:hs-bindgen-cli
+
+  -- Internal dependencies
+  build-depends:
+    , c-expr-runtime
+    , hs-bindgen-runtime
