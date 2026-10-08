@@ -1,0 +1,213 @@
+cabal-version:      3.0
+name:               nova-nix
+version:            0.8.0.0
+synopsis:           Windows-native Nix implementation in Haskell and C99
+description:
+  An implementation of Nix for Windows, written in Haskell with a C99
+  data layer that keeps evaluation data off the GHC heap.  It also runs
+  on macOS and Linux.  It has its own parser, lazy evaluator,
+  content-addressed store, derivation builder and binary-cache
+  substituter, and does not need an existing Nix installation.
+
+  On the pinned nixpkgs revision its CI checks, the derivation paths it
+  computes match upstream Nix 2.24.9.  On Windows it builds packages from
+  source through a stage-1 stdenv over a store-pinned MinGW-w64
+  toolchain.  The project is experimental; see the README for what is
+  not implemented yet.
+
+  Evaluation needs the C data layer, so library code must run it between
+  @Nix.Eval.Arena.arenaInit@ and @Nix.Eval.Arena.arenaDestroy@.
+
+  Built on @nova-cache@ for NAR serialization, narinfo handling, and
+  Ed25519-signed binary substitution.
+
+license:            Apache-2.0
+license-file:       LICENSE
+copyright:          2026 Novavero AI Inc.
+author:             Devon Tomlin
+maintainer:         devon.tomlin@novavero.ai
+homepage:           https://github.com/Novavero-AI/nova-nix
+bug-reports:        https://github.com/Novavero-AI/nova-nix/issues
+category:           Nix, Distribution, System
+stability:          experimental
+build-type:         Simple
+tested-with:        GHC == 9.14.1
+extra-doc-files:
+    CHANGELOG.md
+    NOTICE
+    README.md
+-- C data-layer headers.  These are #included by the cbits/*.c sources
+-- (via include-dirs: cbits) but are not auto-added to the sdist by the
+-- c-sources field, so they must be listed here or the Hackage build
+-- fails with "nn_*.h: No such file or directory".
+extra-source-files:
+    cbits/*.h
+data-files:
+    nix/fetchurl.nix
+data-dir: data
+
+-- ---------------------------------------------------------------------------
+-- Library: core modules (parser, evaluator, store, builder, substituter)
+-- ---------------------------------------------------------------------------
+library
+  exposed-modules:
+    Nix.Expr
+    Nix.Expr.ClosureTrim
+    Nix.Expr.Resolve
+    Nix.Expr.Types
+    Nix.Parser
+    Nix.Parser.Expr
+    Nix.Parser.Internal
+    Nix.Parser.Lexer
+    Nix.Parser.ParseError
+    Nix.Eval
+    Nix.Eval.CanonPath
+    Nix.Eval.Context
+    Nix.Eval.Types
+    Nix.Eval.IO
+    Nix.Eval.Operator
+    Nix.Eval.StringInterp
+    Nix.Eval.Symbol
+    Nix.Eval.CAttrSet
+    Nix.Eval.CThunk
+    Nix.Eval.CEnv
+    Nix.Eval.CLambda
+    Nix.Eval.CList
+    Nix.Eval.CCtxStr
+    Nix.Eval.CBytecode
+    Nix.Eval.Compile
+    Nix.Eval.EvalFormals
+    Nix.Eval.Arena
+    Nix.Eval.AttrPath
+    Nix.Store
+    Nix.Store.Path
+    Nix.Store.Path.Internal
+    Nix.Store.DB
+    Nix.Store.Lock
+    Nix.Store.CaseSensitive
+    Nix.Store.ExecBit
+    Nix.DependencyGraph
+    Nix.Derivation
+    Nix.Builder
+    Nix.Builder.Unpack
+    Nix.Compression
+    Nix.Config
+    Nix.Push
+    Nix.Substituter
+    Nix.Builtins
+    Nix.Hash
+
+  build-depends:
+      base                >= 4.22 && < 5
+    , array               >= 0.5 && < 0.6
+    , bytestring          >= 0.11 && < 0.13
+    , containers          >= 0.6 && < 0.9
+    , crypton             >= 1.1 && < 2
+    , directory           >= 1.3 && < 1.4
+    , filepath            >= 1.4 && < 1.6
+    , http-client         >= 0.7 && < 0.8
+    , http-client-tls     >= 0.3 && < 0.5
+    , http-types          >= 0.12 && < 0.13
+    , ram                 >= 0.20 && < 1
+    , filelock            >= 0.1.1 && < 0.2
+    , mtl                 >= 2.2 && < 2.4
+    , nova-cache:{nova-cache, xz, zstandard, bzip2} >= 0.11.1.1 && < 0.12
+    , process             >= 1.6 && < 1.7
+    , regex-tdfa          >= 1.3 && < 1.4
+    , sqlite-simple       >= 0.4 && < 0.5
+    , tar                 >= 0.7.1 && < 0.8
+    , text                >= 2.0 && < 2.2
+    , time                >= 1.9 && < 1.17
+    , zstd                >= 0.1 && < 0.2
+
+  c-sources:
+    cbits/nn_symbol.c
+    cbits/nn_attrset.c
+    cbits/nn_thunk.c
+    cbits/nn_env.c
+    cbits/nn_list.c
+    cbits/nn_ctxstr.c
+    cbits/nn_arena.c
+    cbits/nn_bytecode.c
+    cbits/nn_lambda.c
+    cbits/nn_winfs.c
+  include-dirs:     cbits
+  -- -Werror deliberately NOT baked in: a future gcc/clang adding a new
+  -- -Wall diagnostic must not retroactively break installing published
+  -- releases.  CI enforces warnings-as-errors via its C99-strict job.
+  cc-options:       -std=c99 -Wall -Wextra -pedantic
+  hs-source-dirs:   src
+  default-language:  Haskell2010
+  default-extensions:
+    BangPatterns
+    OverloadedStrings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -- GHC 9.14 deprecates the pattern namespace specifier in import and
+    -- export lists in favour of data, but hlint (through 3.10) cannot
+    -- parse the replacement.  The old spelling stays, warning muted,
+    -- until hlint learns it (then: pattern -> data, drop these flags).
+    -Wno-pattern-namespace-specifier
+
+-- ---------------------------------------------------------------------------
+-- CLI executable
+-- ---------------------------------------------------------------------------
+executable nova-nix
+  main-is:          Main.hs
+  hs-source-dirs:   app
+  autogen-modules:  Paths_nova_nix
+  other-modules:    Paths_nova_nix
+  default-language:  Haskell2010
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -Wall -Wcompat -threaded -rtsopts
+
+  build-depends:
+      base                >= 4.22 && < 5
+    , bytestring          >= 0.11 && < 0.13
+    , containers          >= 0.6 && < 0.9
+    , directory           >= 1.3 && < 1.4
+    , filepath            >= 1.4 && < 1.6
+    , nova-nix
+    , text                >= 2.0 && < 2.2
+
+-- ---------------------------------------------------------------------------
+-- Tests
+-- ---------------------------------------------------------------------------
+test-suite nova-nix-test
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  hs-source-dirs:   test
+  other-modules:    FetchurlFixture
+  default-language: Haskell2010
+  default-extensions:
+    OverloadedStrings
+  -- -threaded: the path-lock race tests hold a blocking OS file lock in
+  -- one thread while another waits on it, which needs real concurrency
+  -- under blocking foreign calls.
+  ghc-options:      -Wall -Wcompat -Wno-pattern-namespace-specifier -threaded
+
+  build-depends:
+      base                >= 4.22 && < 5
+    , async               >= 2.2 && < 2.3
+    , bytestring          >= 0.11 && < 0.13
+    , containers          >= 0.6 && < 0.9
+    , directory           >= 1.3 && < 1.4
+    , filepath            >= 1.4 && < 1.6
+    , http-client         >= 0.7 && < 0.8
+    , network             >= 3.2 && < 3.3
+    , nova-cache:{nova-cache, zstandard} >= 0.11.1.1 && < 0.12
+    , nova-nix
+    , process             >= 1.6 && < 1.7
+    , sqlite-simple       >= 0.4 && < 0.5
+    , tar                 >= 0.7.1 && < 0.8
+    , text                >= 2.0 && < 2.2
+    , zstd                >= 0.1 && < 0.2
+
+source-repository head
+  type:     git
+  location: https://github.com/Novavero-AI/nova-nix
+  branch:   main
