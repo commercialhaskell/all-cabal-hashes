@@ -1,0 +1,189 @@
+cabal-version:      3.0
+name:               ppad-censor
+version:            0.5.1
+synopsis:           Anytime-valid sequential constant-time testing.
+license:            MIT
+license-file:       LICENSE
+author:             Jared Tobin
+maintainer:         jared@ppad.tech
+category:           Testing
+build-type:         Simple
+tested-with:        GHC == { 9.10.3 }
+extra-doc-files:    CHANGELOG
+description:
+  A pure Haskell framework for sequential constant-time testing via
+  anytime-valid e-processes.
+
+  Declare a constant-time hypothesis (an @IO@ action plus two input
+  samplers); the driver times the action on paired inputs from the two
+  classes, in random order, and tests them with a hedged mixture of
+  ppad-eproc e-processes, halting as soon as the evidence suffices.
+
+  Provides dudect-style fix-vs-random hypotheses, A/A and B/B negative
+  controls, wall-clock and Linux hardware-counter meters, foreign
+  targets via FFI or a dlopen CLI, and anytime-valid p-values and
+  effect-size intervals.
+
+flag llvm
+  description: Use GHC's LLVM backend.
+  default:     False
+  manual:      True
+
+flag validate
+  description: Build the censor-validate executable, which runs the
+               empirical calibration battery (synthetic-meter false-
+               positive sweep + power table) and the host power-gain
+               probe.
+  default:     False
+  manual:      True
+
+flag run
+  description: Build the `censor` executable, a dlopen-based runner
+               that drives a constant-time hypothesis against a
+               foreign target resolved from a shared library.
+  default:     False
+  manual:      True
+
+flag integration
+  description: Build the censor-integration test suite, which drives
+               a compiled C shim through 'Censor.Runner.DL' end-to-end.
+               Requires a working C compiler on PATH; not available on
+               Windows.
+  default:     False
+  manual:      True
+
+source-repository head
+  type:     git
+  location: git.ppad.tech/censor.git
+
+library
+  default-language: Haskell2010
+  hs-source-dirs:   lib
+  ghc-options:
+      -Wall
+  c-sources: cbits/censor_env.c
+  if flag(llvm)
+    ghc-options: -fllvm -O2
+  if !os(windows)
+    c-sources: cbits/censor_dl.c
+  if os(linux)
+    c-sources: cbits/censor_perf.c
+    extra-libraries: dl
+  if os(osx)
+    c-sources: cbits/censor_clock.c
+  exposed-modules:
+      Censor
+      Censor.FFI
+      Censor.Meter
+      Censor.Rng
+      Censor.Runner
+      Censor.Runner.DL
+      Censor.Runner.Env
+      Censor.Runner.Manifest
+      Censor.Runner.Report
+  other-modules:
+      Paths_ppad_censor
+  autogen-modules:
+      Paths_ppad_censor
+  build-depends:
+      base >= 4.9 && < 5
+    , bytestring >= 0.9 && < 0.13
+    , ppad-eproc >= 0.5 && < 0.6
+    , primitive >= 0.8 && < 0.10
+
+test-suite censor-tests
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      test
+  main-is:             Main.hs
+
+  ghc-options:
+    -rtsopts -Wall -O2
+
+  build-depends:
+      base
+    , bytestring
+    , ppad-censor
+    , tasty
+    , tasty-hunit
+
+benchmark censor-bench
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      bench
+  main-is:             Main.hs
+
+  ghc-options:
+    -rtsopts -O2 -Wall -fno-warn-orphans
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  build-depends:
+      base
+    , criterion
+    , deepseq
+    , ppad-censor
+
+benchmark censor-weigh
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      bench
+  main-is:             Weight.hs
+
+  ghc-options:
+    -rtsopts -O2 -Wall -fno-warn-orphans
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  build-depends:
+      base
+    , deepseq
+    , ppad-censor
+    , weigh
+
+executable censor-validate
+  default-language: Haskell2010
+  hs-source-dirs:   validate
+  main-is:          Main.hs
+  ghc-options:
+    -O2 -rtsopts -Wall
+
+  if !flag(validate)
+    buildable: False
+  else
+    build-depends:
+        base
+      , ppad-censor
+
+executable censor
+  default-language: Haskell2010
+  hs-source-dirs:   run
+  main-is:          Main.hs
+  ghc-options:
+    -O2 -rtsopts -Wall
+
+  if !flag(run)
+    buildable: False
+  else
+    build-depends:
+        base
+      , ppad-censor
+
+test-suite censor-integration
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      test-integration
+  main-is:             Main.hs
+
+  ghc-options:
+    -rtsopts -Wall -O2
+
+  if !flag(integration) || os(windows)
+    buildable: False
+  else
+    build-depends:
+        base
+      , ppad-censor
+      , process
+      , tasty
+      , tasty-hunit
