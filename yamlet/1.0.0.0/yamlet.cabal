@@ -1,0 +1,240 @@
+cabal-version:      3.8
+build-type:         Simple
+name:               yamlet
+version:            1.0.0.0
+license:            BSD-3-Clause
+license-file:       LICENSE
+category:           Text, Data
+maintainer:         andrzej@rybczak.net
+author:             Andrzej Rybczak
+synopsis:           A pure, fast and conforming YAML 1.2 library.
+
+description:
+  A YAML 1.2.2 library written in Haskell. Main features:
+
+  * Conformance: the parser passes all cases of the
+    <https://github.com/yaml/yaml-test-suite YAML test suite>.
+
+  * Performance: decoding and encoding are very fast, see the
+    <https://github.com/arybczak/yamlet#performance benchmarks>.
+
+  * Decoding and encoding with the classes @FromYaml@ and @ToYaml@, with
+    instances for common types.
+
+  * Instances for your own data types, derived via @GenericYaml@.
+    Inspection tests check that the generic representation optimizes away
+    for common shapes of data types.
+
+  * Errors with the line, the column and the path of the problem, e.g.
+    @jobs[1].name@. The decoder reports the errors of independent parts
+    together, e.g. every bad field of a record.
+
+  * A syntax tree that keeps the comments and the empty lines. A program can
+    change a file and write it back with its comments, and a decoded value
+    can keep a part of the document as it was written.
+
+  * Output that YAML 1.1 parsers read the same way, e.g. PyYAML and go-yaml
+    v2, which Kubernetes uses.
+
+  * Safe for untrusted input. The time of a decode is close to linear in the
+    size of the input, and the memory is linear.
+
+  See also <https://hackage.haskell.org/package/yamlet-aeson yamlet-aeson>,
+  which decodes and encodes YAML with the @FromJSON@ and @ToJSON@ instances of
+  aeson, e.g. in a program that moves from the yaml package to yamlet.
+
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+  docs/coming-from-yaml.md
+
+extra-source-files:
+  tests/fixtures/error-messages.txt
+  tests/fixtures/yaml-test-suite/**/*.event
+  tests/fixtures/yaml-test-suite/**/*.json
+  tests/fixtures/yaml-test-suite/**/*.token
+  tests/fixtures/yaml-test-suite/**/*.yaml
+  tests/fixtures/yaml-test-suite/**/===
+  tests/fixtures/yaml-test-suite/**/error
+
+tested-with: GHC ^>= { 9.2, 9.4, 9.6, 9.8, 9.10, 9.12, 9.14, 10.0 }
+
+bug-reports: https://github.com/arybczak/yamlet/issues
+source-repository head
+    type:     git
+    location: https://github.com/arybczak/yamlet.git
+
+common language
+    ghc-options:        -Wall
+                        -Werror=missing-deriving-strategies
+                        -Werror=name-shadowing
+                        -Werror=prepositive-qualified-module
+                        -Wno-unticked-promoted-constructors
+
+    default-language:   GHC2021
+
+    default-extensions: DataKinds
+                        DeriveAnyClass
+                        DerivingStrategies
+                        DerivingVia
+                        DuplicateRecordFields
+                        LambdaCase
+                        MultiWayIf
+                        NoFieldSelectors
+                        OverloadedRecordDot
+                        OverloadedStrings
+                        TypeFamilies
+                        UndecidableInstances
+
+library
+    import:         language
+
+    ghc-options:    -O2
+
+    build-depends:    base       >= 4.16 && < 5
+                    , bytestring >= 0.11
+                    , containers >= 0.6.3.1
+                    , deepseq    >= 1.4
+                    , integer-logarithms >= 1.0.3.1
+                    , scientific >= 0.3.9
+                    , text       >= 2.0.2 && < 3
+                    , text-builder-linear >= 0.1.3 && < 0.2
+                    , text-iso8601 >= 0.2
+                    , time       >= 1.11
+                    , uuid-types >= 1.0.6
+
+    hs-source-dirs:  src
+
+    exposed-modules: Yamlet
+                     Yamlet.Decode
+                     Yamlet.Encode
+                     Yamlet.Error
+                     Yamlet.Generic
+                     Yamlet.Internal.Chars
+                     Yamlet.Internal.Comments
+                     Yamlet.Internal.Compose
+                     Yamlet.Internal.Emit
+                     Yamlet.Internal.Encoder
+                     Yamlet.Internal.FromYaml
+                     Yamlet.Internal.Input
+                     Yamlet.Internal.Parser
+                     Yamlet.Internal.Parser.Hints
+                     Yamlet.Internal.Parser.Monad
+                     Yamlet.Internal.Parser.Scan
+                     Yamlet.Internal.Render
+                     Yamlet.Internal.Schema
+                     Yamlet.Internal.Syntax
+                     Yamlet.Internal.ToYaml
+                     Yamlet.Internal.Utils
+                     Yamlet.Internal.View
+                     Yamlet.Schema
+                     Yamlet.Syntax
+                     Yamlet.Value
+
+test-suite test
+    import:         language
+
+    ghc-options:    -threaded -rtsopts
+
+    build-depends:    base
+                    , aeson
+                    , attoparsec
+                    , attoparsec-aeson
+                    , bytestring
+                    , containers
+                    , directory
+                    , filepath
+                    , ghc-heap
+                    , inspection-testing
+                    , yamlet
+                    , scientific
+                    , tasty
+                    , tasty-hunit >= 0.10
+                    , tasty-quickcheck >= 0.8.1
+                    , template-haskell
+                    , text
+                    , time
+                    , uuid-types
+                    , vector
+
+    hs-source-dirs: tests
+
+    type:           exitcode-stdio-1.0
+    main-is:        Main.hs
+
+    other-modules:  Yamlet.Test.Decode
+                    Yamlet.Test.Decode.Errors
+                    Yamlet.Test.Decode.Helpers
+                    Yamlet.Test.Decode.Input
+                    Yamlet.Test.Decode.Limits
+                    Yamlet.Test.Decode.Scalars
+                    Yamlet.Test.Decode.SyntaxErrors
+                    Yamlet.Test.Decode.Values
+                    Yamlet.Test.Encode
+                    Yamlet.Test.Encode.Comments
+                    Yamlet.Test.Encode.Properties
+                    Yamlet.Test.Encode.Values
+                    Yamlet.Test.Generic
+                    Yamlet.Test.Helpers
+                    Yamlet.Test.Helpers.Thunks
+                    Yamlet.Test.Inspection
+                    Yamlet.Test.Inspection.Obligations
+                    Yamlet.Test.Render
+                    Yamlet.Test.Render.Attachment
+                    Yamlet.Test.Render.Comments
+                    Yamlet.Test.Render.Documents
+                    Yamlet.Test.Render.Helpers
+                    Yamlet.Test.Render.Properties
+                    Yamlet.Test.Render.Styles
+                    Yamlet.Test.TypeError
+                    Yamlet.Test.YamlTestSuite
+                    Yamlet.Test.YamlTestSuite.Events
+
+test-suite retention
+    import:         language
+
+    ghc-options:    -threaded -rtsopts
+
+    build-depends:    base
+                    , containers
+                    , ghc-heap
+                    , yamlet
+                    , text
+                    , time
+
+    hs-source-dirs: tests
+
+    type:           exitcode-stdio-1.0
+    main-is:        Retention.hs
+
+    other-modules:  Yamlet.Test.Helpers.Thunks
+
+benchmark bench
+    import:         language
+
+    ghc-options:    -rtsopts
+
+    build-depends:    base
+                    , aeson
+                    , bytestring
+                    , containers
+                    , deepseq
+                    , yamlet
+                    , HsYAML
+                    , scientific
+                    , tasty-bench
+                    , text
+                    , yaml
+
+    hs-source-dirs: bench
+
+    type:           exitcode-stdio-1.0
+    main-is:        Main.hs
+
+    other-modules:  Yamlet.Bench.Derive
+                    Yamlet.Bench.Derive.Fields
+                    Yamlet.Bench.Derive.Generic
+                    Yamlet.Bench.Derive.Manual
+                    Yamlet.Bench.Inputs
+                    Yamlet.Bench.Libraries
+                    Yamlet.Bench.Types
