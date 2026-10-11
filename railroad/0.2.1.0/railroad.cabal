@@ -1,0 +1,98 @@
+cabal-version:      3.0
+name:               railroad
+version:            0.2.1.0
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Frederik Kallstrup Mastratisi
+maintainer:         mastratisi@proton.me
+category:           Control, Error Handling
+build-type:         Simple
+tested-with:        GHC == 9.4.8, GHC == 9.6.7, GHC == 9.8.4, GHC == 9.10.3, GHC == 9.12.4, GHC == 9.14.1
+extra-doc-files:    CHANGELOG.md, readme.md
+synopsis:           Railway-oriented error handling: unwrap or throw in one short operator.
+description:
+    Railway-oriented error handling for Haskell: one short operator per
+    step, and the failure paths stop taking up lines.
+
+    Each operator unwraps one layer of a result (@Maybe@, @Either@, @Bool@,
+    @Validation@, or a collection of them) and says what to throw if it
+    failed. Where you would write
+
+    > rows <- runQuery (userById uid) >>= either (const (throwError err503)) pure
+    > user <- case rows of
+    >   []  -> throwError err404
+    >   [u] -> pure u
+    >   _   -> throwError err500
+
+    you write
+
+    > user <- runQuery (userById uid) ? err503 ?! cardinalityErr err404 (const err500)
+
+    Layers are unwrapped left to right: @? err503@ unwraps the database
+    @Either@, then @?!@ demands exactly one row (none is a 404, several a 500).
+
+    * Works in any @MonadError@ ("Railroad.MonadError": @mtl@, @ExceptT@,
+      servant's @Handler@) and in @effectful@ with the @Error@ effect
+      ("Railroad").
+
+    * Unwrap or throw: @?@ (constant error) and @??@ (error computed from
+      the failure). Recover instead of throwing: @?~@ and @??~@.
+
+    * Tag by a predicate with @?>@, or fall back to another source with @?|@
+      and @?|<>@.
+
+    * Log a failure before a constant error discards it, with @?\<*@:
+      @runQuery q ?\<* logDbError ? err503@.
+
+    * @Validation@ failures accumulate: validate a whole request and report
+      every problem at once.
+
+    * All operators are @infixl 1@ like @>>=@ and @\<&\>@, so they chain without
+      parentheses.
+
+    Collections are checked with quantifiers: @?@ is ∀ ("every element
+    succeeds", so an empty collection passes), @?+@ is ∃ ("at least one"),
+    @?!@ is ∃! ("exactly one") and @?∅@ is ¬∃ ("none"). They chain:
+    @xs ?+ e1 ? e2@ means "at least one, and all succeed". The readme has the
+    details and a longer servant example.
+homepage:     https://github.com/mastratisi/railroad
+bug-reports:  https://github.com/mastratisi/railroad/issues
+source-repository head
+  type:     git
+  location: https://github.com/mastratisi/railroad
+
+common stuff
+    ghc-options: -Wall
+    build-depends:
+      base >=4.17 && < 4.23,
+      effectful >= 2.5 && < 2.8,
+      mtl >= 2.2 && < 2.4,
+      validation (>= 1.1 && < 1.3) || (>= 1.3.1 && < 1.4)
+
+library
+    import:           stuff
+    exposed-modules:  Railroad
+                      Railroad.Bifurcate
+                      Railroad.Cardinality
+                      Railroad.MonadError
+    hs-source-dirs:   src
+    default-language: GHC2021
+    
+
+test-suite railroad-test
+    import:           stuff
+    default-language: GHC2021
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    other-modules:    Model
+                      RailroadSpec
+                      Railroad.BifurcateSpec
+                      Railroad.MonadErrorSpec
+    build-tool-depends:
+                  hspec-discover:hspec-discover >= 2.11.14 && < 2.12
+    build-depends:
+                  base  >=4.17 && < 4.23,
+                  hspec  >= 2.11.14 && < 2.12,
+                  QuickCheck >= 2.14 && < 2.16,
+                  railroad
