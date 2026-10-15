@@ -1,0 +1,148 @@
+cabal-version:      3.4
+name:               KpqC
+version:            0.1.0
+synopsis:           Haskell bindings for KpqC post-quantum algorithms
+description:
+  Synchronous Haskell APIs for the AIMer and HAETAE signature schemes and the
+  NTRU+ and SMAUG-T key encapsulation mechanisms (KEMs). The package bundles
+  the native algorithm sources and does not download code during installation.
+homepage:            https://github.com/KpqC/kpqc-haskell
+bug-reports:         https://github.com/KpqC/kpqc-haskell/issues
+license:             MIT
+license-file:        LICENSE
+author:              O. Suolfou
+maintainer:          osuolfou@gmail.com
+category:            Cryptography
+build-type:          Simple
+tested-with:
+  GHC ==8.10.7 || ==9.10.3 || ==9.14.1
+extra-doc-files:
+  CHANGELOG.md
+extra-source-files:
+  README.md
+  THIRD_PARTY_NOTICES.md
+  cbits/**/*.c
+  cbits/**/*.h
+  cbits/third_party/AIMer/LICENSE
+  cbits/third_party/HAETAE/LICENSE
+  cbits/third_party/NTRUplus/LICENSE
+  cbits/third_party/SMAUG-T/LICENSE
+
+flag kat
+  description: Build deterministic entropy hooks and known-answer tests
+  default:     False
+  manual:      True
+
+common native
+  default-language: Haskell2010
+  ghc-options:      -Wall
+  build-depends:    base >=4.14 && <5
+  hs-source-dirs:   native
+  cc-options:       -std=c11
+  extra-libraries:  m
+  if flag(kat)
+    cpp-options: -DKPQC_TEST_ENTROPY
+    cc-options:  -DKPQC_TEST_ENTROPY
+
+library native-aimer
+  import:          native
+  exposed-modules: Crypto.KpqC.Internal.Native.AIMer
+  c-sources:
+    cbits/core_aimer128f.c
+    cbits/core_aimer128s.c
+    cbits/core_aimer192f.c
+    cbits/core_aimer192s.c
+    cbits/core_aimer256f.c
+    cbits/core_aimer256s.c
+
+library native-haetae
+  import:          native
+  exposed-modules: Crypto.KpqC.Internal.Native.HAETAE
+  include-dirs:    cbits/third_party/HAETAE/include
+  c-sources:
+    cbits/core_haetae2.c
+    cbits/core_haetae3.c
+    cbits/core_haetae5.c
+
+library native-ntruplus
+  import:          native
+  exposed-modules: Crypto.KpqC.Internal.Native.NTRUPlus
+  include-dirs:
+    cbits/third_party/NTRUplus/NTRU+768
+    cbits/third_party/NTRUplus/NTRU+864
+    cbits/third_party/NTRUplus/NTRU+1152
+  c-sources:
+    cbits/core_ntruplus768.c
+    cbits/core_ntruplus864.c
+    cbits/core_ntruplus1152.c
+
+library native-smaugt
+  import:          native
+  exposed-modules: Crypto.KpqC.Internal.Native.SMAUGT
+  include-dirs:    cbits/third_party/SMAUG-T/include
+  c-sources:
+    cbits/core_smaugt128.c
+    cbits/core_smaugt192.c
+    cbits/core_smaugt256.c
+    cbits/core_timer.c
+
+library
+  exposed-modules:  Crypto.KpqC
+  hs-source-dirs:    src
+  default-language: Haskell2010
+  ghc-options:       -Wall
+  build-depends:
+    base >=4.14 && <5,
+    bytestring >=0.10.12 && <0.13,
+    memory >=0.16 && <0.19,
+    KpqC:native-aimer,
+    KpqC:native-haetae,
+    KpqC:native-ntruplus,
+    KpqC:native-smaugt
+
+test-suite spec
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
+  hs-source-dirs:   test
+  default-language: Haskell2010
+  ghc-options:      -Wall -threaded
+  build-depends:
+    base >=4.14 && <5,
+    bytestring >=0.10.12 && <0.13,
+    memory >=0.16 && <0.19,
+    KpqC
+
+test-suite kat
+  type:             exitcode-stdio-1.0
+  main-is:          KAT.hs
+  hs-source-dirs:   test
+  default-language: Haskell2010
+  ghc-options:      -Wall -threaded
+  if flag(kat)
+    buildable: True
+    build-depends:
+      base >=4.14 && <5,
+      bytestring >=0.10.12 && <0.13,
+      containers >=0.6 && <0.9,
+      filepath >=1.4 && <1.6,
+      memory >=0.16 && <0.19,
+      KpqC,
+      KpqC:native-aimer,
+      KpqC:native-haetae,
+      KpqC:native-ntruplus,
+      KpqC:native-smaugt
+    c-sources:
+      cbits/test/aes.c
+      cbits/test/aes_bridge.c
+    include-dirs: cbits/test
+  else
+    buildable: False
+
+source-repository head
+  type:     git
+  location: https://github.com/KpqC/kpqc-haskell.git
+
+source-repository this
+  type:     git
+  location: https://github.com/KpqC/kpqc-haskell.git
+  tag:      v0.1.0
