@@ -1,0 +1,178 @@
+Cabal-Version:  3.0
+Build-Type:     Custom
+                
+Name:           inline-python
+Version:        0.3.0.0
+Synopsis:       Python interpreter embedded into haskell.
+Description:
+  This package embeds python interpreter into haskell program and
+  allows to write python snippets as quasiquotes. Values could be
+  easily transferred between python and haskell. It's possible to
+  call haskell from python as well.
+
+License:        BSD-3-Clause
+License-File:   LICENSE
+Author:         Aleksey Khudyakov <alexey.skladnoy@gmail.com>
+Maintainer:     Aleksey Khudyakov <alexey.skladnoy@gmail.com>
+Homepage:       https://github.com/Shimuuar/inline-python
+Bug-reports:    https://github.com/Shimuuar/inline-python/issues
+Category:       FFI
+extra-doc-files:
+  ChangeLog.md
+extra-source-files:
+  include/inline-python.h
+  py/bound-vars.py
+
+Tested-With:
+  GHC == 9.4.8
+  GHC == 9.6.7
+  GHC == 9.8.4
+  GHC == 9.10.2
+  GHC == 9.12.2
+  GHC == 9.14.1
+
+
+custom-setup
+  setup-depends: base          >=4.15 && <5
+               , Cabal         >=3.0  && <4
+               , Cabal-syntax  >=3.6  && <4
+               , process       >=1.6  && <2
+
+flag python3-config
+    Description: Use python3-config instead of pkg-config
+    Manual:  True
+    Default: False
+
+source-repository head
+  type:     git
+  location: http://github.com/Shimuuar/inline-python
+
+common language
+  Ghc-options:          -Wall
+  Default-Language:     GHC2021
+  Default-Extensions:
+    NoPolyKinds
+    --
+    DeriveAnyClass
+    DerivingVia
+    PatternSynonyms
+    ViewPatterns
+    LambdaCase
+    MultiWayIf
+    --
+    NoFieldSelectors
+    DuplicateRecordFields
+    OverloadedRecordDot
+
+----------------------------------------------------------------
+Library
+  import:            language
+  Build-Depends:     base             >=4.15 && <5
+                   , primitive        >=0.6.2
+                   , deepseq          >=1.4
+                   , vector           >=0.13.2
+                   , containers       >=0.5
+                   , process
+                   , transformers     >=0.4
+                   , inline-c         >=0.9.1
+                   , stm              >=2.4
+                   , template-haskell -any
+                   , text             >=2
+                   , bytestring       >=0.11.2
+                   , exceptions       >=0.10
+                   , vector           >=0.13.2
+  hs-source-dirs:    src
+  include-dirs:      include
+  c-sources:         cbits/python.c
+  cc-options:        -g -Wall
+  -- Else we use python3-config in Setup.hs
+  if !flag(python3-config)
+    pkgconfig-depends: python3-embed >= 3.10
+  --
+  Exposed-modules:
+    Python.Inline
+    Python.Inline.Async
+    Python.Inline.Eval
+    Python.Inline.Literal
+    Python.Inline.Monad
+    Python.Inline.Monad.QQ
+    Python.Inline.QQ
+    Python.Inline.Types
+  Other-modules:
+    Python.Internal.CAPI
+    Python.Internal.Eval
+    Python.Internal.EvalQQ
+    Python.Internal.Program
+    Python.Internal.Types
+    Python.Internal.Util
+
+common tests
+  Default-Extensions:
+    QuasiQuotes
+  hs-source-dirs:   test
+  build-depends:    base
+                  , inline-python
+                  , tasty                >=1.2
+                  , tasty-hunit          >=0.10
+                  , tasty-quickcheck     >=0.10
+                  , stm
+                  , quickcheck-instances >=0.3.33
+                  , exceptions
+                  , containers
+                  , vector
+                  , bytestring
+                  , text
+
+
+-- Running tests using several threads does very good job at finding threading
+-- bugs. Especially deadlocks
+test-suite inline-python-tests
+  import:           language, tests
+  type:             exitcode-stdio-1.0
+  Ghc-options:      -threaded -rtsopts -with-rtsopts=-N2
+  main-is:          exe/main.hs
+  Other-modules:
+    TST.Run
+    TST.ToPy
+    TST.FromPy
+    TST.Callbacks
+    TST.Roundtrip
+    TST.Util
+    TST.Module
+
+test-suite inline-python-tests1
+  import:           language, tests
+  type:             exitcode-stdio-1.0
+  Ghc-options:      -rtsopts
+  main-is:          exe/main.hs
+  Other-modules:
+    TST.Run
+    TST.ToPy
+    TST.FromPy
+    TST.Callbacks
+    TST.Roundtrip
+    TST.Util
+    TST.Module
+
+benchmark pysmall
+  import:           language
+  type:             exitcode-stdio-1.0
+  Ghc-options:      -threaded
+  main-is:          Main.hs
+  hs-source-dirs:   bench
+  build-depends:
+        base >= 2 && < 5
+      , inline-python
+      , tasty
+      , tasty-bench >= 0.2.1
+
+benchmark pysmall1
+  import:           language
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  hs-source-dirs:   bench
+  build-depends:
+        base >= 2 && < 5
+      , inline-python
+      , tasty
+      , tasty-bench >= 0.2.1
