@@ -1,0 +1,107 @@
+cabal-version: 3.12
+name: clickhouse-migrate-test-support
+version: 0.1.0.0
+synopsis: Isolated server fixtures for ClickHouse migration tests
+description:
+  Isolated server fixtures for ClickHouse migration tests.
+  Validated public APIs with explicit application-owned configuration and scope.
+
+license: BSD-3-Clause
+license-file: LICENSE
+author: shinzui
+maintainer: shinzui@users.noreply.github.com
+category: Database
+build-type: Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+data-files:
+  test/data/clickhouse-matrix.json
+  test/fixtures/kansoku/**/*.sql
+  test/fixtures/kansoku/*.json
+  test/fixtures/kansoku/original/migrate.sh
+  test/scripts/native_fixture.py
+
+extra-source-files:
+  test/scripts/transport_smoke.py
+
+tested-with: ghc ==9.12.4
+
+source-repository head
+  type: git
+  location: https://github.com/shinzui/clickhouse-migrate.git
+  subdir: clickhouse-migrate-test-support
+
+common common
+  default-language: GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+  ghc-options: -Wall
+  build-depends:
+    base >=4.21 && <4.22,
+    clickhouse-migrate ==0.1.*,
+
+  build-depends:
+    aeson >=2.2.4.1 && <2.4,
+    bytestring >=0.12.2 && <0.13,
+    cryptohash-sha256 >=0.11.102.1 && <0.12,
+    directory >=1.3.10 && <1.4,
+    filelock >=0.1.1.8 && <0.2,
+    filepath >=1.5.4 && <1.6,
+    process >=1.6.25 && <1.7,
+    text >=2.1 && <2.2,
+
+library
+  import: common
+  hs-source-dirs: src
+  exposed-modules:
+    ClickHouseMigrate.TestSupport
+    ClickHouseMigrate.TestSupport.ExclusiveAccess
+    ClickHouseMigrate.TestSupport.FaultProxy
+    ClickHouseMigrate.TestSupport.Server
+
+  other-modules:
+    ClickHouseMigrate.TestSupport.Internal.Fixture
+    Paths_clickhouse_migrate_test_support
+
+  autogen-modules: Paths_clickhouse_migrate_test_support
+
+flag integration
+  description: Run owned real-server qualification (explicit driver path required)
+  default: False
+  manual: True
+
+test-suite clickhouse-migrate-integration
+  import: common
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  other-modules:
+    AdoptionFaults
+    AdoptionIntegration
+    CLIIntegration
+    ConsumerFixtures
+    FailureBoundaries
+    LedgerIntegration
+    Paths_clickhouse_migrate_test_support
+    RepairBoundaries
+    RepairIntegration
+    ReviewRemediation
+    RunnerIntegration
+    SurvivingWork
+
+  autogen-modules: Paths_clickhouse_migrate_test_support
+  ghc-options: -threaded
+  build-depends:
+    clickhouse-migrate-cli ==0.1.*,
+    clickhouse-migrate-embed ==0.1.*,
+    clickhouse-migrate-test-support,
+    containers >=0.7 && <0.9,
+
+  if !flag(integration)
+    buildable: False
