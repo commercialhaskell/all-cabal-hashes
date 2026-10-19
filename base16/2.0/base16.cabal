@@ -1,0 +1,120 @@
+cabal-version:   3.0
+name:            base16
+version:         2.0
+synopsis:        Fast RFC 4648-compliant Base16 encoding
+description:
+  RFC 4648-compliant Base16 encodings and decodings.
+  This library provides performant encoding and decoding primitives, as well as support for textual values.
+
+homepage:        https://github.com/emilypi/base16
+bug-reports:     https://github.com/emilypi/base16/issues
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Emily Pillmore
+maintainer:      Emily Pillmore <emilypi@cohomolo.gy>
+copyright:       (c) 2020-2026 Emily Pillmore
+category:        Data
+build-type:      Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+  MIGRATION-1.0.md
+  MIGRATION-2.0.md
+
+tested-with:
+  GHC ==9.6.7
+   || ==9.8.4
+   || ==9.10.3
+   || ==9.12.4
+   || ==9.14.1
+
+extra-source-files:
+  cbits/base16_simd.h
+  test/simd-native.c
+  benchmarks/simd-native.c
+
+flag simd
+  description:     Use bundled SIMD kernels where supported, with a scalar fallback
+  default:         False
+  manual:          True
+
+source-repository head
+  type:     git
+  location: https://github.com/emilypi/base16.git
+
+library
+  exposed-modules:
+    Data.Base16.Types
+    Data.ByteString.Base16
+    Data.ByteString.Lazy.Base16
+    Data.ByteString.Short.Base16
+    Data.Text.Encoding.Base16
+    Data.Text.Encoding.Base16.Error
+    Data.Text.Lazy.Encoding.Base16
+    Data.Text.Short.Encoding.Base16
+
+    Data.ByteString.Base16.Internal.Head
+    Data.ByteString.Base16.Internal.Utils
+    Data.ByteString.Base16.Internal.W16.Loop
+    Data.ByteString.Base16.Internal.W16.ShortLoop
+
+  if flag(simd)
+    exposed-modules: Data.ByteString.Base16.Internal.SIMD
+    cpp-options:    -DBASE16_SIMD
+    c-sources:      cbits/base16_simd.c
+    include-dirs:   cbits
+    cc-options:     -O2 -std=c99
+
+  build-depends:
+      base        >=4.18 && <4.23
+    , bytestring  >=0.11 && <0.13
+    , deepseq     >=1.4.4.0 && <1.6
+    , primitive   >=0.6  && <0.10
+    , text        >=2.0 && <2.3
+    , text-short  ^>=0.1
+
+  hs-source-dirs:   src
+  default-language: Haskell2010
+  ghc-options:      -Wall
+
+test-suite base16-tests
+  other-modules:    Internal
+                    Simd
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  build-depends:
+      base               >=4.18 && <4.23
+    , base16
+    , base16-bytestring  >=1.0
+    , bytestring         >=0.11
+    , QuickCheck
+    , random-bytestring
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , text               >=2.0
+    , text-short
+
+  ghc-options:      -Wall -threaded -with-rtsopts=-N
+
+benchmark bench
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   benchmarks
+  main-is:          Base16Bench.hs
+  build-depends:
+      base               >=4.18 && <4.23
+    , base16
+    , base16-bytestring  >=1.0
+    , bytestring         >=0.11
+    , criterion
+    , deepseq
+    , random-bytestring
+    , text               >=2.0
+
+  if flag(simd)
+    cpp-options:    -DBASE16_SIMD
+
+  ghc-options:      -Wall -rtsopts
