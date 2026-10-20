@@ -1,0 +1,156 @@
+cabal-version: 3.0
+name:          memcache
+version:       0.4.2.0
+synopsis:      A memcached client library.
+description:
+  A client library for a Memcached cluster. Memcached is an in-memory key-value
+  store typically used as a distributed and shared cache. Clients connect to a
+  group of Memcached servers and perform out-of-band caching for things like
+  SQL results, rendered pages, or third-party APIs.
+
+  It uses the Memcached Meta Text protocol and requires memcached 1.6.0 or
+  newer. Username/password authentication is supported through memcached's
+  @-Y authfile@ mode; the binary protocol and SASL authentication are no longer
+  supported. It supports connecting to a single, or a cluster of Memcached
+  servers. When connecting to a cluster, consistent hashing is used for routing
+  requests to the appropriate server. Timeouts, retrying failed operations, and
+  failover to a different server are all supported, as is Amazon ElastiCache
+  auto discovery.
+
+  Multi-get is supported through the pipelined @getMany@. Keys containing
+  whitespace or control bytes are sent using the protocol's base64 binary-key
+  mode.
+
+  Basic usage is:
+
+  > {-# LANGUAGE OverloadedStrings #-}
+  >
+  > import qualified Database.Memcache.Client as M
+  >
+  > main :: IO ()
+  > main = do
+  >     mc <- M.newClient [M.ServerSpec "localhost" "11211" M.NoAuth] M.def
+  >     _ <- M.set mc "key" "value" 0 0
+  >     v <- M.get mc "key"
+  >     print v
+
+  You should only need to import 'Database.Memcache.Client', but other modules
+  are exposed for lower-level use. Version 0.4 is a breaking change from 0.3;
+  see the changelog for details.
+
+category:      Database
+homepage:      https://github.com/dterei/memcache-hs#readme
+bug-reports:   https://github.com/dterei/memcache-hs/issues
+author:        David Terei <code@davidterei.com>
+maintainer:    David Terei <code@davidterei.com>
+copyright:     2012-2026 David Terei.
+license:       BSD-3-Clause
+license-file:  LICENSE
+build-type:    Simple
+-- Keep in step with the GHC matrix in .github/workflows/cabal.yml.
+tested-with:
+  GHC ==9.2.*
+   || ==9.4.*
+   || ==9.6.*
+   || ==9.8.*
+   || ==9.10.*
+   || ==9.12.*
+   || ==9.14.*
+
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+  TODO.md
+
+source-repository head
+  type:     git
+  location: https://github.com/dterei/memcache-hs
+
+-- Settings shared by every component.
+common shared
+  default-language: GHC2021
+  ghc-options:      -Wall -Wextra -Wunused-packages
+  build-depends:
+    , base        >=4.16     && <5
+    , bytestring  >=0.11.4.0
+
+library
+  import:           shared
+  hs-source-dirs:   .
+  exposed-modules:
+    Database.Memcache.Auth
+    Database.Memcache.Client
+    Database.Memcache.Cluster
+    Database.Memcache.ElastiCacheClient
+    Database.Memcache.Errors
+    Database.Memcache.Server
+    Database.Memcache.Socket
+    Database.Memcache.Types
+
+  other-modules:
+    Database.Memcache.Types.Authentication
+    Database.Memcache.Types.ServerSpec
+    Database.Memcache.Util
+
+  other-extensions:
+    CPP
+    OverloadedStrings
+    RecordWildCards
+
+  ghc-options:
+    -Wcompat -Widentities -Wincomplete-record-updates -Wredundant-constraints
+    -fwarn-tabs
+
+  build-depends:
+    , base64-bytestring  >=1.2.1.0
+    , data-default       >=0.7.1.1
+    , hashable           >=1.4.2.0
+    , network            >=3.1.4.0
+    , network-uri        >=2.6.4.2
+    , resource-pool      >=0.2.3.2
+    , text               >=1.2.5.0
+    , time               >=1.11.1.1
+    , unliftio           >=0.2.25.0
+    , vector             >=0.12.3.1
+
+test-suite spec
+  import:           shared
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Spec.hs
+  other-modules:    MockServer
+  other-extensions: OverloadedStrings
+  ghc-options:      -threaded -rtsopts "-with-rtsopts=-N"
+  build-depends:
+    , base64-bytestring  >=1.2.1.0
+    , hspec
+    , memcache
+    , network
+    , QuickCheck
+    , unliftio
+
+-- Runs against a real memcached; reports a pending test if none is on PATH.
+test-suite integration
+  import:           shared
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test-integration
+  main-is:          Integration.hs
+  other-extensions: OverloadedStrings
+  ghc-options:      -threaded -rtsopts "-with-rtsopts=-N"
+  build-depends:
+    , directory
+    , hspec
+    , memcache
+    , network
+    , process
+    , time
+
+benchmark parser
+  import:           shared
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          Parser.hs
+  other-extensions: OverloadedStrings
+  build-depends:
+    , criterion
+    , memcache
