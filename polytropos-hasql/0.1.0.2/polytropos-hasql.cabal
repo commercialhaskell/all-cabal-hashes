@@ -1,0 +1,62 @@
+cabal-version: 3.0
+name: polytropos-hasql
+version: 0.1.0.2
+synopsis: High-performance hasql PostgreSQL decoders for polytropos open records
+description:
+  High-performance PostgreSQL row decoding integrating <https://hackage.haskell.org/package/polytropos polytropos> open records
+  with the <https://hackage.haskell.org/package/hasql hasql> driver ecosystem.
+
+  'Polytropos.Hasql.recordRow' constructs a 'Hasql.Decoders.Row' decoder that streams SQL columns directly
+  into the contiguous 'Data.Primitive.SmallArray.SmallArray' payload slots in row order. Completely bypasses GHC's
+  62-column tuple limit and avoids intermediate tuple allocations during query execution.
+
+  Start at the front door module "Polytropos.Hasql" for complete documentation,
+  row decoder combinators, and worked examples.
+license: EUPL-1.2 OR Apache-2.0
+license-file: LICENSE
+author: Nadia Yvette Chambers
+maintainer: nadia.yvette.chambers@ik.me
+category: Database, PostgreSQL
+homepage: https://github.com/NadiaYvette/polytropos
+bug-reports: https://github.com/NadiaYvette/polytropos/issues
+extra-doc-files:
+    README.md
+  , CHANGELOG.md
+build-type: Simple
+
+source-repository head
+  type:     git
+  location: https://github.com/NadiaYvette/polytropos
+  subdir:   packages/polytropos-hasql
+
+library
+  default-language: GHC2021
+  hs-source-dirs: src
+  exposed-modules: Polytropos.Hasql
+  ghc-options: -Wall
+  build-depends:
+    base >= 4.14 && < 5,
+    hasql >= 1.6 && < 1.10,
+    polytropos-core >= 0.1 && < 0.2,
+    polytropos-plugin >= 0.1 && < 0.2
+
+test-suite polytropos-hasql-test
+  type: exitcode-stdio-1.0
+  default-language: GHC2021
+  hs-source-dirs: test
+  main-is: Main.hs
+  ghc-options: -Wall -fplugin=Polytropos.Plugin
+  build-depends:
+    base,
+    bytestring,
+    text,
+    polytropos-core,
+    polytropos-hasql,
+    polytropos-plugin,
+    -- postgresql-binary is hasql's codec backend: the per-column binary
+    -- payload decoding in the tests runs through the same machinery
+    -- hasql's value decoders use, so column consumption is simulated at
+    -- the exact wire format a live PostgreSQL server would send.
+    postgresql-binary,
+    tasty,
+    tasty-hunit

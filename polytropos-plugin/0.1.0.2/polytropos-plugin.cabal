@@ -1,0 +1,75 @@
+cabal-version:      3.0
+name:               polytropos-plugin
+version: 0.1.0.2
+synopsis:           TcPlugin that emits literal evidence for Polytropos row classes
+description:
+  A GHC typechecker plugin for <https://hackage.haskell.org/package/polytropos polytropos>
+  that solves the evidence-class constraints ('Polytropos.Core.FieldIndex',
+  'Polytropos.Core.ConstructorIndex', 'Polytropos.Core.RowEq', 'Polytropos.Core.RowShow',
+  'Polytropos.Core.RowEqSum', 'Polytropos.Core.RowShowSum', 'Polytropos.Core.AllFields')
+  by inspecting the row carried in a 'Polytropos.Core.RowRep''s type and emitting literal
+  slot indices, tags, and dictionary vectors directly into GHC Core AST — eliminating
+  inductive type-level search and pointer-chasing runtime overhead entirely.
+
+  Uses the <https://hackage.haskell.org/package/ghc-tcplugin-api ghc-tcplugin-api> library
+  for a streamlined interface to GHC's typechecker plugin API across compiler versions.
+
+  Start at the front door module "Polytropos.Plugin" for complete usage
+  instructions and worked examples. Enable in consuming packages via:
+  @ghc-options: -fplugin=Polytropos.Plugin@.
+license:            EUPL-1.2 OR Apache-2.0
+license-file:       LICENSE
+author:             Nadia Yvette Chambers
+maintainer:         nadia.yvette.chambers@ik.me
+category:           Compiler Plugin
+homepage:           https://github.com/NadiaYvette/polytropos
+bug-reports:        https://github.com/NadiaYvette/polytropos/issues
+extra-doc-files:    README.md
+                  , CHANGELOG.md
+
+source-repository head
+  type:     git
+  location: https://github.com/NadiaYvette/polytropos
+  subdir:   packages/polytropos-plugin
+
+common warnings
+  ghc-options:
+      -Wall
+      -Wcompat
+      -Widentities
+      -Wincomplete-record-updates
+      -Wincomplete-uni-patterns
+      -Wredundant-constraints
+      -Wunused-packages
+
+library
+  import:           warnings
+  exposed-modules:  Polytropos.Plugin
+                  , Polytropos.Plugin.Source
+  other-modules:    Polytropos.Plugin.Compat
+  hs-source-dirs:   src
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.18 && < 4.23
+    , ghc         >= 9.6  && < 9.15
+    , ghc-tcplugin-api >= 0.1 && < 0.21
+
+test-suite polytropos-plugin-smoke
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   tests/smoke
+  main-is:          Main.hs
+  default-language: GHC2021
+  build-depends:
+      base       >= 4.18 && < 4.23
+    , polytropos-core
+    , primitive
+    , tasty         >= 1.4  && < 1.6
+    , tasty-hunit   >= 0.10 && < 0.11
+    , polytropos-plugin
+    , process
+    , filepath
+    , directory
+
+  ghc-options:
+      -fplugin=Polytropos.Plugin
