@@ -1,0 +1,663 @@
+cabal-version:      3.0
+name:               plexus-synapse
+version:            3.15.0
+synopsis:           Schema-driven CLI for Plexus RPC servers
+license:            MIT
+author:
+maintainer:
+build-type:         Simple
+
+flag build-examples
+  description: Build example programs (schema-discovery)
+  default:     False
+  manual:      True
+
+flag build-keychain-tests
+  description: Build and run SELF-8 keychain tests. These shell out to
+               `security` on macOS and touch the real keychain; they're
+               opt-in so default `cabal test` runs stay quiet.
+               Enable with: cabal test -f build-keychain-tests
+  default:     False
+  manual:      True
+
+library
+  exposed-modules:
+    Synapse.Schema.Types
+    Synapse.Schema.Functor
+    Synapse.Endpoint
+    Synapse.Monad
+    Synapse.Log
+    Synapse.Algebra.Navigate
+    Synapse.Algebra.Render
+    Synapse.Algebra.Walk
+    Synapse.Algebra.Recursion
+    Synapse.Transport
+    Synapse.Reconnect
+    Synapse.Cache
+    Synapse.Deprecation
+    Synapse.Renderer
+    Synapse.IR.Types
+    Synapse.IR.Builder
+    Synapse.IR.Cache
+    Synapse.Bidir
+    Synapse.CLI.Help
+    Synapse.CLI.Parse
+    Synapse.CLI.Support
+    Synapse.CLI.Template
+    Synapse.CLI.Source
+    Synapse.CLI.Transform
+    Synapse.CLI.Similarity
+    Synapse.Find
+    Synapse.Backend.Discovery
+    Synapse.Self
+    Synapse.Self.Types
+    Synapse.Self.Resolve
+    Synapse.Self.IO
+    Synapse.Self.Resolve.Literal
+    Synapse.Self.Resolve.Env
+    Synapse.Self.Resolve.File
+    Synapse.Self.Resolve.Keychain
+    Synapse.Self.Resolve.Default
+    Synapse.Self.Command
+    Synapse.Self.Commands
+    Synapse.Self.Template
+    Synapse.Self.Pattern
+    Synapse.Self.Examples
+    Synapse.Self.Debugger
+    Synapse.Self.Protocol.Validator
+    Synapse.Self.Protocol.StreamTracker
+    Synapse.Self.Protocol.Reporter
+    Synapse.Self.Protocol.TestRunner
+    Synapse.Identity.Proof
+    Synapse.Identity.Store
+    Synapse.Identity.Session
+    Synapse.Identity.Command
+    Synapse.Auth
+    Synapse.Auth.Loopback
+  build-depends:
+    base >= 4.17 && < 5,
+    -- SCAFFOLD-21: substrateTls (wss)
+    plexus-protocol >= 0.5.2,
+    aeson >= 2.0 && < 2.3,
+    aeson-pretty >= 0.8 && < 0.9,
+    text >= 2.0 && < 2.2,
+    bytestring >= 0.11 && < 0.13,
+    case-insensitive >= 1.2 && < 1.3,
+    websockets >= 0.13 && < 0.14,
+    network >= 3.1 && < 3.3,
+    async >= 2.2 && < 2.3,
+    stm >= 2.5 && < 2.6,
+    streaming >= 0.2 && < 0.3,
+    mtl >= 2.3 && < 2.4,
+    transformers >= 0.6 && < 0.7,
+    containers >= 0.6 && < 0.8,
+    unordered-containers >= 0.2 && < 0.3,
+    hashable >= 1.4 && < 1.6,
+    prettyprinter >= 1.7 && < 1.8,
+    mustache >= 2.4 && < 2.5,
+    directory >= 1.3 && < 1.4,
+    filepath >= 1.4 && < 1.6,
+    yaml >= 0.11 && < 0.12,
+    vector >= 0.12 && < 0.14,
+    scientific >= 0.3 && < 0.4,
+    regex-tdfa >= 1.3 && < 1.4,
+    time >= 1.12 && < 1.15,
+    array >= 0.5 && < 0.6,
+    process >= 1.6 && < 1.7,
+    fast-logger >= 3.0 && < 3.3,
+    katip >= 0.8 && < 0.9,
+    base64-bytestring >= 1.2 && < 1.3,
+    optparse-applicative >= 0.18 && < 0.19,
+    unix >= 2.7 && < 2.9,
+    -- IDENTITY-43: Ed25519 keys and their randomness
+    crypton >= 1.0 && < 1.2,
+    ram >= 0.20 && < 0.23
+  hs-source-dirs:   src
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+    DeriveGeneric
+    DeriveAnyClass
+    DerivingStrategies
+    GeneralizedNewtypeDeriving
+    LambdaCase
+    RecordWildCards
+
+executable synapse
+  main-is:          Main.hs
+  autogen-modules:  Paths_plexus_synapse
+  other-modules:    Paths_plexus_synapse
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-protocol,
+    plexus-synapse,
+    aeson >= 2.0 && < 2.3,
+    text >= 2.0 && < 2.2,
+    bytestring >= 0.11 && < 0.13,
+    mtl >= 2.3 && < 2.4,
+    containers >= 0.6 && < 0.8,
+    directory >= 1.3 && < 1.4,
+    filepath >= 1.4 && < 1.6,
+    katip >= 0.8 && < 0.9,
+    optparse-applicative >= 0.18 && < 0.19,
+    prettyprinter >= 1.7 && < 1.8,
+    time >= 1.12 && < 1.14
+  hs-source-dirs:   app
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+    RecordWildCards
+    LambdaCase
+
+executable schema-discovery
+  main-is:          SchemaDiscovery.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-protocol,
+    plexus-synapse,
+    aeson >= 2.0 && < 2.3,
+    text >= 2.0 && < 2.2,
+    streaming >= 0.2 && < 0.3
+  hs-source-dirs:   examples
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  if !flag(build-examples)
+    buildable: False
+
+executable reporter-demo
+  main-is:          ReporterDemo.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  if !flag(build-examples)
+    buildable: False
+
+executable validation-report-test
+  main-is:          ValidationReportTest.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    aeson >= 2.0 && < 2.3
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  if !flag(build-examples)
+    buildable: False
+
+executable protocol-test-demo
+  main-is:          ProtocolTestDemo.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  if !flag(build-examples)
+    buildable: False
+
+test-suite cli-test
+  type:             exitcode-stdio-1.0
+  main-is:          CLISpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    text >= 2.0 && < 2.2,
+    process >= 1.6 && < 1.7,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite ir-test
+  type:             exitcode-stdio-1.0
+  main-is:          IRSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    containers >= 0.6 && < 0.8,
+    hspec >= 2.10 && < 2.12,
+    aeson >= 2.2 && < 2.3,
+    bytestring >= 0.11 && < 0.13,
+    katip >= 0.8 && < 0.9
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+    LambdaCase
+    RecordWildCards
+  ghc-options:      -threaded
+
+test-suite schema-decode-test
+  type:             exitcode-stdio-1.0
+  main-is:          SchemaDecodeSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-protocol,
+    aeson >= 2.2 && < 2.3,
+    aeson-qq >= 0.8 && < 0.9,
+    bytestring >= 0.11 && < 0.13,
+    vector >= 0.13 && < 0.14
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite req8-render-test
+  type:             exitcode-stdio-1.0
+  main-is:          Req8RenderSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-protocol,
+    plexus-synapse,
+    aeson >= 2.2 && < 2.3,
+    aeson-qq >= 0.8 && < 0.9,
+    containers >= 0.6 && < 0.8,
+    text >= 2.0 && < 2.2
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite render-test
+  -- SYNAPSE-12: a backend's help laid out (blank lines, columns, wrapping,
+  -- required before optional, types as the schema says them).
+  -- SYNAPSE-13: in the gh / cargo shape — listings of one-line summaries in
+  -- their groups; a method's page with its usage line, aligned options,
+  -- values and examples; an older hub's schema still rendered.
+  type:             exitcode-stdio-1.0
+  main-is:          RenderSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-protocol,
+    plexus-synapse,
+    aeson >= 2.2 && < 2.3,
+    aeson-qq >= 0.8 && < 0.9,
+    containers >= 0.6 && < 0.8,
+    text >= 2.0 && < 2.2,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite typeref-json
+  type:             exitcode-stdio-1.0
+  main-is:          TypeRefJson.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    aeson >= 2.2 && < 2.3,
+    aeson-pretty >= 0.8 && < 0.9,
+    bytestring >= 0.11 && < 0.13
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite parse-test
+  type:             exitcode-stdio-1.0
+  main-is:          ParseSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    aeson >= 2.2 && < 2.3,
+    containers >= 0.6 && < 0.8,
+    vector >= 0.12 && < 0.14,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+-- SYNAPSE-10: a parameter's value from a file or stdin
+test-suite source-test
+  type:             exitcode-stdio-1.0
+  main-is:          SourceSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    bytestring >= 0.11 && < 0.13,
+    directory >= 1.3 && < 1.4,
+    filepath >= 1.4 && < 1.6,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite path-normalization-test
+  type:             exitcode-stdio-1.0
+  main-is:          PathNormalizationSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite websocket-raw-test
+  type:             exitcode-stdio-1.0
+  main-is:          WebSocketRaw.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    text >= 2.0 && < 2.2,
+    aeson >= 2.2 && < 2.3,
+    bytestring >= 0.11 && < 0.13,
+    websockets >= 0.13 && < 0.14
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite bidir-test
+  type:             exitcode-stdio-1.0
+  main-is:          BidirSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-protocol,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    bytestring >= 0.11 && < 0.13,
+    aeson >= 2.2 && < 2.3,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+    RecordWildCards
+  ghc-options:      -threaded
+
+test-suite bidir-integration-test
+  type:             exitcode-stdio-1.0
+  main-is:          BidirIntegrationSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    containers >= 0.6 && < 0.8,
+    hspec >= 2.10 && < 2.12,
+    katip >= 0.8 && < 0.9
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+    RecordWildCards
+  ghc-options:      -threaded
+
+test-suite stream-tracker-test
+  type:             exitcode-stdio-1.0
+  main-is:          StreamTrackerSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    aeson >= 2.2 && < 2.3,
+    bytestring >= 0.11 && < 0.13,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite deprecation-test
+  type:             exitcode-stdio-1.0
+  main-is:          DeprecationSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-protocol,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    aeson >= 2.0 && < 2.3,
+    containers >= 0.6 && < 0.8,
+    directory >= 1.3 && < 1.4,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite self-test
+  type:             exitcode-stdio-1.0
+  main-is:          SelfSpec.hs
+  other-modules:
+    SelfCommandSpec
+    SelfMigrationSpec
+    SelfSafeWriteSpec
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    bytestring >= 0.11 && < 0.13,
+    containers >= 0.6 && < 0.8,
+    aeson >= 2.2 && < 2.3,
+    directory >= 1.3 && < 1.4,
+    filepath >= 1.4 && < 1.6,
+    hspec >= 2.10 && < 2.12,
+    time >= 1.12 && < 1.15,
+    temporary >= 1.3 && < 1.4,
+    base64-bytestring >= 1.2 && < 1.3,
+    unix >= 2.7 && < 2.9
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite identity-test
+  -- IDENTITY-43: the canonical message, the fixed proof vector the Rust
+  -- side cross-checks, and the key and session stores' order (env, a
+  -- mocked keychain, files in a directory of the test's own).
+  type:             exitcode-stdio-1.0
+  main-is:          IdentitySpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    async >= 2.2 && < 2.3,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    bytestring >= 0.11 && < 0.13,
+    base64-bytestring >= 1.2 && < 1.3,
+    aeson >= 2.2 && < 2.3,
+    containers >= 0.6 && < 0.8,
+    directory >= 1.3 && < 1.4,
+    filepath >= 1.4 && < 1.6,
+    hspec >= 2.10 && < 2.12,
+    temporary >= 1.3 && < 1.4,
+    unix >= 2.7 && < 2.9
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite ir12-method-role-test
+  type:             exitcode-stdio-1.0
+  main-is:          IR12MethodRoleSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    containers >= 0.6 && < 0.8,
+    plexus-protocol,
+    plexus-synapse,
+    aeson >= 2.2 && < 2.3,
+    bytestring >= 0.11 && < 0.13,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite keychain-test
+  -- SELF-8 keychain tests. Opt-in via `-f build-keychain-tests` because
+  -- they shell out to macOS `security` and touch the real keychain.
+  type:             exitcode-stdio-1.0
+  main-is:          KeychainSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    hspec >= 2.10 && < 2.12,
+    uuid >= 1.3 && < 1.4
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+  if !flag(build-keychain-tests)
+    buildable: False
+
+test-suite auth-test
+  -- AUTH-8: the auth shapes plexus-protocol parses (and their absence),
+  -- the anonymous page, the caller's header and grant columns, the refusal
+  -- block, the loopback's state check, and the flows end to end against a
+  -- hub in miniature (test/MockHub.hs) on ports of their own.
+  type:             exitcode-stdio-1.0
+  main-is:          AuthSpec.hs
+  other-modules:    MockHub
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-protocol,
+    plexus-synapse,
+    aeson >= 2.2 && < 2.3,
+    aeson-qq >= 0.8 && < 0.9,
+    bytestring >= 0.11 && < 0.13,
+    containers >= 0.6 && < 0.8,
+    text >= 2.0 && < 2.2,
+    katip >= 0.8 && < 0.9,
+    network >= 3.1 && < 3.3,
+    websockets >= 0.13 && < 0.14,
+    vector >= 0.12 && < 0.14,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite find-test
+  -- SYNAPSE-17: _find's matcher (exact, prefix, typo at both thresholds,
+  -- snake_case subsequence, every word, ranking) and its renders against
+  -- the mock hub's catalog (menger's schema as it was, test/fixtures), on a
+  -- terminal and piped; a caller's view; the IR cache's hash check.
+  type:             exitcode-stdio-1.0
+  main-is:          FindSpec.hs
+  other-modules:    MockHub
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-synapse,
+    aeson >= 2.2 && < 2.3,
+    bytestring >= 0.11 && < 0.13,
+    containers >= 0.6 && < 0.8,
+    directory >= 1.3 && < 1.4,
+    filepath >= 1.4 && < 1.6,
+    text >= 2.0 && < 2.2,
+    katip >= 0.8 && < 0.9,
+    network >= 3.1 && < 3.3,
+    websockets >= 0.13 && < 0.14,
+    vector >= 0.12 && < 0.14,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite reconnect-test
+  -- SYNAPSE-20: a lost connection is noticed (a close, a drop before any
+  -- answer, a silent peer by its keepalive) and synapse rides out the
+  -- outage — a read sent again, a stream resumed with since, a write that
+  -- went out never repeated, one that never left sent when the backend is
+  -- back, the window run out — against a flaky hub on ports of its own.
+  type:             exitcode-stdio-1.0
+  main-is:          ReconnectSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-protocol,
+    plexus-synapse,
+    aeson >= 2.2 && < 2.3,
+    text >= 2.0 && < 2.2,
+    network >= 3.1 && < 3.3,
+    websockets >= 0.13 && < 0.14,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
+
+test-suite endpoint-test
+  -- SCAFFOLD-21: --url and -H/-P with --tls/--path read into one address,
+  -- and every key derived from it — the session store's (a plain address
+  -- keyed exactly as before), the proof's audience, the options messages
+  -- tell the reader to type, the plexus-protocol config.
+  type:             exitcode-stdio-1.0
+  main-is:          EndpointSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-protocol,
+    plexus-synapse,
+    text >= 2.0 && < 2.2,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+
+test-suite tls-test
+  -- SCAFFOLD-21: synapse speaks wss — the probe, a call and a key login
+  -- through a TLS terminator of the test's own (a CA openssl makes for the
+  -- run, in front of the mock hub), at a path; an unknown CA and a wrong
+  -- name refused at the handshake. Pending without openssl.
+  type:             exitcode-stdio-1.0
+  main-is:          TlsSpec.hs
+  other-modules:    MockHub
+  build-depends:
+    base >= 4.17 && < 5,
+    plexus-protocol,
+    plexus-synapse,
+    aeson >= 2.2 && < 2.3,
+    base64-bytestring >= 1.2 && < 1.3,
+    bytestring >= 0.11 && < 0.13,
+    directory >= 1.3 && < 1.4,
+    filepath >= 1.4 && < 1.6,
+    katip >= 0.8 && < 0.9,
+    network >= 3.1 && < 3.3,
+    process >= 1.6 && < 1.7,
+    temporary >= 1.3 && < 1.4,
+    text >= 2.0 && < 2.2,
+    tls >= 2.1 && < 2.5,
+    vector >= 0.12 && < 0.14,
+    websockets >= 0.13 && < 0.14,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+  ghc-options:      -threaded
