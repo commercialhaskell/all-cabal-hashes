@@ -1,0 +1,102 @@
+cabal-version: 3.8
+name: settei-preflight
+version: 0.3.0.0
+synopsis: Run application configuration checks on proposed deployment inputs
+description:
+  Materialize explicitly proposed environment and file inputs, run the application's
+  own check command, redact known secrets, and report honest deployment coverage.
+
+homepage: https://github.com/shinzui/settei
+bug-reports: https://github.com/shinzui/settei/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: shinzui
+maintainer: shinzui
+category: Configuration
+build-type: Simple
+tested-with: ghc ==9.12.4
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+data-files:
+  test/golden/*.json
+  test/golden/*.txt
+
+source-repository head
+  type: git
+  location: https://github.com/shinzui/settei.git
+
+common common
+  default-language: GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+  ghc-options:
+    -Wall
+    -Wcompat
+
+common dependencies
+  build-depends:
+    aeson >=2.2.4.1 && <2.4,
+    base >=4.21 && <5,
+    bytestring >=0.12 && <0.13,
+    containers >=0.6.8 && <0.8,
+    directory >=1.3.8 && <1.4,
+    filepath >=1.5.4 && <1.6,
+    generic-lens >=2.2 && <2.4,
+    process >=1.6.19 && <1.7,
+    settei ==0.3.0.0,
+    settei-env ==0.3.0.0,
+    temporary >=1.3 && <1.4,
+    text >=2.1 && <2.2,
+
+library
+  import: common, dependencies
+  hs-source-dirs: src
+  exposed-modules:
+    Settei.Preflight
+    Settei.Preflight.Request
+
+  other-modules: Settei.Preflight.Internal
+
+executable settei-preflight
+  import: common
+  hs-source-dirs: app
+  main-is: Main.hs
+  ghc-options: -threaded
+  build-depends:
+    base >=4.21 && <5,
+    bytestring >=0.12 && <0.13,
+    generic-lens >=2.2 && <2.4,
+    optparse-applicative >=0.19 && <0.20,
+    settei ==0.3.0.0,
+    settei-preflight ==0.3.0.0,
+    text >=2.1 && <2.2,
+
+test-suite settei-preflight-tests
+  import: common, dependencies
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    test
+    src
+
+  main-is: Main.hs
+  ghc-options: -threaded
+  other-modules:
+    Paths_settei_preflight
+    Settei.Preflight
+    Settei.Preflight.Fixture
+    Settei.Preflight.Internal
+    Settei.Preflight.Request
+    Settei.Preflight.RequestTest
+    Settei.PreflightTest
+
+  autogen-modules: Paths_settei_preflight
+  build-tool-depends: settei-preflight:settei-preflight
+  build-depends:
+    tasty >=1.5 && <1.6,
+    tasty-hunit >=0.10.2 && <0.11,
