@@ -1,0 +1,258 @@
+cabal-version:      3.0
+name:               jsonlogic-hs
+version:            0.1.0.0
+synopsis:           JsonLogic rule engine, checked against the JavaScript reference
+description:
+  jsonlogic-hs is a native Haskell implementation of JsonLogic
+  (<https://jsonlogic.com>), a small, closed rule language that is itself
+  JSON, so rules can be stored, shared between systems, and evaluated
+  against data without running arbitrary code.
+
+  It follows the JavaScript reference implementation, json-logic-js 2.0.5:
+  all 278 cases of the classic shared suite pass, and in lenient arity mode
+  it gives the reference's own answers on a committed catalogue of about
+  27,000 deliberately awkward rules (type coercion, UTF-16 strings, signed
+  zero, NaN, infinities, undefined, numeric edge cases, odd arities, and
+  every rule of the community suite), with a 140,000-case tier and thousands
+  of random rules checked against the reference in CI. The few deliberate
+  differences are listed in docs/COMPATIBILITY.md.
+
+  Rules are compiled once and run many times. Evaluation is pure and bounded:
+  rule depth, evaluation steps, string length and array length all have
+  configurable limits, so rules from an untrusted source cannot run
+  unbounded work or exhaust memory. Every error carries the JSON Pointer of
+  the rule node that failed. Arity checking is strict by default and can be
+  switched to the reference's lenient behaviour. Custom operators are
+  supplied by the caller, and dataUse reports which parts of the data a rule
+  can read.
+
+  The supported API is the "JsonLogic" module; docs/TUTORIAL.md walks through
+  it. The "JsonLogic.Core" modules are exposed for advanced use and may
+  change before 1.0.
+category:           Data, JSON
+license:            MIT
+license-file:       LICENSE
+author:             Sabrinathan Nair
+maintainer:         259497327+Bombay-Boyz@users.noreply.github.com
+copyright:          (c) 2026 Sabrinathan Nair
+homepage:           https://github.com/Bombay-Boyz/jsonlogic-hs
+bug-reports:        https://github.com/Bombay-Boyz/jsonlogic-hs/issues
+build-type:         Simple
+tested-with:        GHC ==9.6.7 || ==9.8.4 || ==9.10.3 || ==9.12.4 || ==9.14.1
+extra-doc-files:    CHANGELOG.md
+                    README.md
+                    docs/ARCHITECTURE.md
+                    docs/COMPATIBILITY.md
+                    docs/CONFORMANCE.md
+                    docs/LIMITS.md
+                    docs/STABILITY.md
+                    docs/TUTORIAL.md
+extra-source-files: test/tests.json
+                    test/outliers.jsonl
+                    test/community/LICENSE
+                    test/community/README.md
+                    test/community/*.json
+                    test/community/arithmetic/*.json
+                    test/community/array/*.json
+                    test/community/comparison/*.json
+                    test/community/control/*.json
+                    test/community/string/*.json
+                    differential/README.md
+                    differential/oracle.js
+                    differential/outliers.js
+                    differential/package.json
+                    differential/package-lock.json
+
+-- Treat warnings as errors during development and CI, but not in released
+-- builds: new GHC versions add warnings that would otherwise break
+-- downstream installs (`cabal check` rejects an unconditional -Werror).
+-- Enabled for our own builds through cabal.project.
+flag werror
+  description: Treat warnings as errors (enable in dev/CI, off for releases).
+  default:     False
+  manual:      True
+
+-- The differential test needs Node.js to run, so it is a development tool:
+-- off by default so that installing the package never builds it.
+flag differential
+  description: Build the differential-test executable (needs Node.js to run).
+  default:     False
+  manual:      True
+
+-- Benchmarks are a development tool too.
+flag bench
+  description: Build the benchmark executable.
+  default:     False
+  manual:      True
+
+-- Standard 5.1: the warning flags, shared so every component is held to the
+-- same bar.
+common warnings
+  default-language: Haskell2010
+  ghc-options:      -Wall
+                    -Wcompat
+                    -Widentities
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wmissing-export-lists
+                    -Wpartial-fields
+                    -Wredundant-constraints
+                    -Wunused-imports
+                    -Wunused-local-binds
+                    -Wunused-matches
+                    -Wunused-top-binds
+  if flag(werror)
+    ghc-options:    -Werror
+
+-- The supported API is the JsonLogic module. JsonLogic.Core.* is exposed for
+-- advanced use and for the test suites, and may change before 1.0.
+library
+  import:           warnings
+  hs-source-dirs:   src
+  exposed-modules:  JsonLogic
+                    JsonLogic.Core.Analysis
+                    JsonLogic.Core.Config
+                    JsonLogic.Core.Custom
+                    JsonLogic.Core.Errors
+                    JsonLogic.Core.Eval
+                    JsonLogic.Core.Location
+                    JsonLogic.Core.Number
+                    JsonLogic.Core.Operator
+                    JsonLogic.Core.Parse
+                    JsonLogic.Core.Rule
+                    JsonLogic.Core.Ryu
+                    JsonLogic.Core.Utf16
+                    JsonLogic.Core.Value
+  build-depends:    base                 >=4.18 && <4.23
+                  , aeson                >=2.1 && <2.4
+                  , containers           >=0.6 && <0.9
+                  , data-fix             >=0.3 && <0.4
+                  , scientific           >=0.3 && <0.4
+                  , text                 >=2.0 && <2.3
+                  , vector               >=0.12.3 && <0.14
+
+test-suite jsonlogic-hs-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Spec.hs
+  other-modules:    AnalysisSpec
+                    CompatSpec
+                    EvalSpec
+                    Gen
+                    LimitsSpec
+                    LocationSpec
+                    NumberSpec
+                    ParseSpec
+                    Support
+                    ValueSpec
+  -- a runaway allocation fails the test instead of swapping the machine
+  ghc-options:      -rtsopts "-with-rtsopts=-M2g"
+  build-depends:    base                 >=4.18 && <4.23
+                  , aeson                >=2.1 && <2.4
+                  , bytestring           >=0.11 && <0.13
+                  , data-fix             >=0.3 && <0.4
+                  , hspec                >=2.10 && <2.12
+                  , QuickCheck           >=2.14 && <2.20
+                  , text                 >=2.0 && <2.3
+                  , vector               >=0.12.3 && <0.14
+                  , jsonlogic-hs
+
+-- Runs the classic JsonLogic suite (test/tests.json) and fails if any case
+-- does not pass. Run it with:
+--   cabal test jsonlogic-hs-conformance --test-show-details=direct
+test-suite jsonlogic-hs-conformance
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   conformance
+  main-is:          Conformance.hs
+  build-depends:    base                 >=4.18 && <4.23
+                  , aeson                >=2.1 && <2.4
+                  , bytestring           >=0.11 && <0.13
+                  , directory            >=1.3 && <1.4
+                  , jsonlogic-hs
+
+-- Replays the committed outlier fixture (test/outliers.jsonl), the
+-- reference implementation's own answers to about 27,000 awkward cases.
+-- Needs neither Node nor a network. Pass a path to replay another tier:
+--   cabal run jsonlogic-hs-outliers -- /path/to/full.jsonl
+test-suite jsonlogic-hs-outliers
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   outliers
+  main-is:          Outliers.hs
+  build-depends:    base                 >=4.18 && <4.23
+                  , aeson                >=2.1 && <2.4
+                  , bytestring           >=0.11 && <0.13
+                  , containers           >=0.6 && <0.9
+                  , directory            >=1.3 && <1.4
+                  , scientific           >=0.3 && <0.4
+                  , text                 >=2.0 && <2.3
+                  , jsonlogic-hs
+
+-- Every example in docs/TUTORIAL.md, checked against the library.
+test-suite jsonlogic-hs-tutorial
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   tutorial
+  main-is:          Tutorial.hs
+  build-depends:    base                 >=4.18 && <4.23
+                  , aeson                >=2.1 && <2.4
+                  , bytestring           >=0.11 && <0.13
+                  , text                 >=2.0 && <2.3
+                  , jsonlogic-hs
+
+-- Scores the library on the community suite (test/community, from
+-- json-logic/compat-tables) and fails if the score differs from
+-- test/community/expected.json. See test/community/README.md.
+test-suite jsonlogic-hs-community
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   community
+  main-is:          Community.hs
+  build-depends:    base                 >=4.18 && <4.23
+                  , aeson                >=2.1 && <2.4
+                  , bytestring           >=0.11 && <0.13
+                  , directory            >=1.3 && <1.4
+                  , text                 >=2.0 && <2.3
+                  , vector               >=0.12.3 && <0.14
+                  , jsonlogic-hs
+
+-- Differential test against the real JavaScript implementation. Needs
+-- Node.js, so it is a flag-gated executable and not part of `cabal test`.
+-- See differential/README.md.
+executable jsonlogic-hs-differential
+  import:           warnings
+  if !flag(differential)
+    buildable:      False
+  hs-source-dirs:   differential
+  main-is:          Differential.hs
+  build-depends:    base                 >=4.18 && <4.23
+                  , aeson                >=2.1 && <2.4
+                  , bytestring           >=0.11 && <0.13
+                  , directory            >=1.3 && <1.4
+                  , process              >=1.6 && <1.7
+                  , QuickCheck           >=2.14 && <2.20
+                  , scientific           >=0.3 && <0.4
+                  , text                 >=2.0 && <2.3
+                  , jsonlogic-hs
+
+-- Benchmarks. See docs/LIMITS.md and bench/Bench.hs.
+executable jsonlogic-hs-bench
+  import:           warnings
+  if !flag(bench)
+    buildable:      False
+  hs-source-dirs:   bench
+  main-is:          Bench.hs
+  -- -T makes the RTS keep allocation statistics, which tasty-bench reports
+  ghc-options:      -rtsopts "-with-rtsopts=-T"
+  build-depends:    base                 >=4.18 && <4.23
+                  , aeson                >=2.1 && <2.4
+                  , bytestring           >=0.11 && <0.13
+                  , tasty-bench          >=0.3 && <0.5
+                  , text                 >=2.0 && <2.3
+                  , jsonlogic-hs
+
+source-repository head
+  type:     git
+  location: https://github.com/Bombay-Boyz/jsonlogic-hs.git
