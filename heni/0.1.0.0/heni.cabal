@@ -1,0 +1,327 @@
+cabal-version: 3.4
+name: heni
+version: 0.1.0.0
+synopsis: Deliberate mutation testing with attributable evidence
+description:
+  Run checked mutations in disposable workspaces and require precise
+  failure evidence from existing tests and commands.
+
+homepage: https://github.com/shinzui/heni
+bug-reports: https://github.com/shinzui/heni/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Nadeem Bitar
+maintainer: nadeem@gmail.com
+copyright: 2026 Nadeem Bitar
+category: Testing
+build-type: Simple
+tested-with: ghc ==9.12.4
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+  docs/*.md
+  docs/adr/*.md
+  docs/design/*.md
+  docs/research/*.md
+  docs/validation/migration-measurements.json
+  docs/validation/migration-results.md
+  docs/validation/migration-source-identities.json
+
+extra-source-files:
+  schemas/*.json
+  scripts/check-schemas.py
+  scripts/check-sdist.py
+  scripts/check-sdist.sh
+  scripts/measure-migration.py
+  scripts/test-migrations.sh
+
+data-files:
+  examples/adapters/*.json
+  examples/adapters/README.md
+  examples/adapters/input
+  examples/migrations/README.md
+  examples/migrations/diagnostic-checker/LICENSE
+  examples/migrations/diagnostic-checker/heni.json
+  examples/migrations/diagnostic-checker/policy.txt
+  examples/migrations/diagnostic-checker/tools/Build.hs
+  examples/migrations/diagnostic-checker/tools/Check.hs
+  examples/migrations/generated-code/LICENSE
+  examples/migrations/generated-code/cabal.project
+  examples/migrations/generated-code/generated-fixture.cabal
+  examples/migrations/generated-code/heni.json
+  examples/migrations/generated-code/model.txt
+  examples/migrations/generated-code/test/Main.hs
+  examples/migrations/generated-code/tools/Build.hs
+  examples/migrations/patch-catalogue/LICENSE
+  examples/migrations/patch-catalogue/cabal.project
+  examples/migrations/patch-catalogue/heni-minimal-fixture.cabal
+  examples/migrations/patch-catalogue/heni.json
+  examples/migrations/patch-catalogue/patches/guard-bypass.patch
+  examples/migrations/patch-catalogue/patches/survivor.patch
+  examples/migrations/patch-catalogue/src/Capacity.hs
+  examples/migrations/patch-catalogue/test/Main.hs
+  examples/migrations/replacement/LICENSE
+  examples/migrations/replacement/cabal.project
+  examples/migrations/replacement/heni-minimal-fixture.cabal
+  examples/migrations/replacement/heni.json
+  examples/migrations/replacement/src/Capacity.hs
+  examples/migrations/replacement/test/Main.hs
+  examples/minimal/*.cabal
+  examples/minimal/cabal.project
+  examples/minimal/heni.json
+  examples/minimal/src/*.hs
+  examples/minimal/test/*.hs
+  examples/standalone/*.cabal
+  examples/standalone/*.hs
+  examples/standalone/target/*.hs
+  examples/standalone/target/*.json
+  examples/standalone/target/input
+
+source-repository head
+  type: git
+  location: https://github.com/shinzui/heni.git
+
+flag migration-tests
+  description: Run cross-package migration trials with an explicitly supplied CLI executable.
+  default: False
+  manual: True
+
+common common
+  default-language: GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-uni-patterns
+    -Wincomplete-record-updates
+
+  build-depends:
+    base >=4.21.2 && <4.22,
+    containers >=0.7 && <0.9,
+    text >=2.1.4 && <2.2,
+
+library
+  import: common
+  hs-source-dirs: src
+  build-depends:
+    aeson >=2.3.2 && <2.4,
+    bytestring >=0.12.2 && <0.13,
+    crypton >=2.2.5 && <2.3,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    process >=1.6.26.1 && <1.7,
+    stm >=2.5.3.1 && <2.6,
+    unix >=2.8.8 && <2.9,
+
+  exposed-modules:
+    Test.Heni
+    Test.Heni.Adapter
+    Test.Heni.BuildReuse
+    Test.Heni.Case
+    Test.Heni.Command
+    Test.Heni.Crash
+    Test.Heni.Edit
+    Test.Heni.Expectation
+    Test.Heni.Manifest
+    Test.Heni.Process
+    Test.Heni.Replay
+    Test.Heni.Report
+    Test.Heni.Resource
+    Test.Heni.Result
+    Test.Heni.Runner
+    Test.Heni.Scheduler
+    Test.Heni.Workspace
+
+  other-modules:
+    Test.Heni.Internal.Baseline
+    Test.Heni.Internal.Codec
+    Test.Heni.Internal.Files
+    Test.Heni.Internal.Model
+    Test.Heni.Internal.Prelude
+    Test.Heni.Internal.Process.Posix
+
+executable heni-fixture
+  import: common
+  hs-source-dirs: test/fixture
+  main-is: Main.hs
+  build-depends:
+    bytestring >=0.12.2 && <0.13,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    process >=1.6.26.1 && <1.7,
+    unix >=2.8.8 && <2.9,
+
+  ghc-options: -threaded
+
+executable heni-evidence-fixture
+  import: common
+  hs-source-dirs: test/evidence-fixture
+  main-is: Main.hs
+  build-depends:
+    bytestring >=0.12.2 && <0.13,
+    heni ==0.1.0.0,
+    unix >=2.8.8 && <2.9,
+
+  ghc-options: -threaded
+
+executable heni-library-example
+  import: common
+  hs-source-dirs: examples/library
+  main-is: Main.hs
+  other-modules: Definitions
+  build-depends: heni
+  ghc-options: -threaded
+
+test-suite heni-runner
+  import: common
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    test/runner
+    examples/library
+
+  main-is: Main.hs
+  other-modules:
+    Definitions
+    Paths_heni
+
+  autogen-modules: Paths_heni
+  build-depends:
+    aeson >=2.3.2 && <2.4,
+    bytestring >=0.12.2 && <0.13,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    heni ==0.1.0.0,
+    unix >=2.8.8 && <2.9,
+
+  build-tool-depends: heni:heni-fixture
+  ghc-options: -threaded
+
+test-suite heni-process
+  import: common
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/process
+  main-is: Main.hs
+  build-depends:
+    bytestring >=0.12.2 && <0.13,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    heni ==0.1.0.0,
+    unix >=2.8.8 && <2.9,
+
+  build-tool-depends: heni:heni-fixture
+  ghc-options: -threaded
+
+test-suite heni-adapter
+  import: common
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/adapter
+  main-is: Main.hs
+  build-depends:
+    aeson >=2.3.2 && <2.4,
+    bytestring >=0.12.2 && <0.13,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    heni ==0.1.0.0,
+    unix >=2.8.8 && <2.9,
+
+  build-tool-depends: heni:heni-evidence-fixture
+  ghc-options: -threaded
+
+test-suite heni-unit
+  import: common
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    test/unit
+    test/api
+
+  main-is: Main.hs
+  other-modules:
+    Consumer
+    Labels
+
+  build-depends: heni
+  ghc-options: -threaded
+
+test-suite heni-workspace
+  import: common
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/workspace
+  main-is: Main.hs
+  build-depends:
+    bytestring >=0.12.2 && <0.13,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    heni ==0.1.0.0,
+    process >=1.6.26.1 && <1.7,
+    unix >=2.8.8 && <2.9,
+
+  ghc-options: -threaded
+
+test-suite heni-scheduler
+  import: common
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/scheduler
+  main-is: Main.hs
+  build-depends:
+    bytestring >=0.12.2 && <0.13,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    heni ==0.1.0.0,
+    unix >=2.8.8 && <2.9,
+
+  build-tool-depends: heni:heni-fixture
+  ghc-options: -threaded
+
+executable heni-campaign-bench
+  import: common
+  hs-source-dirs:
+    bench/campaign
+    examples/library
+
+  main-is: Main.hs
+  other-modules:
+    Definitions
+    Paths_heni
+
+  autogen-modules: Paths_heni
+  build-depends:
+    aeson >=2.3.2 && <2.4,
+    bytestring >=0.12.2 && <0.13,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    heni ==0.1.0.0,
+    unix >=2.8.8 && <2.9,
+
+  ghc-options: -threaded
+
+test-suite heni-migration
+  import: common
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/migration
+  main-is: Main.hs
+  other-modules:
+    Legacy
+    Paths_heni
+
+  autogen-modules: Paths_heni
+  build-depends:
+    aeson >=2.3.2 && <2.4,
+    bytestring >=0.12.2 && <0.13,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    heni ==0.1.0.0,
+    process >=1.6.26.1 && <1.7,
+    unix >=2.8.8 && <2.9,
+
+  build-tool-depends:
+    heni:heni-evidence-fixture,
+    heni:heni-fixture,
+
+  if !flag(migration-tests)
+    buildable: False
+  ghc-options: -threaded
