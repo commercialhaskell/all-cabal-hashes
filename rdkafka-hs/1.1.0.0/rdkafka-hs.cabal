@@ -1,0 +1,268 @@
+cabal-version: 3.0
+name: rdkafka-hs
+version: 1.1.0.0
+synopsis: Kafka bindings for Haskell backed by librdkafka
+description:
+  Apache Kafka bindings backed by the librdkafka C library.
+
+  rdkafka-hs is the maintained successor of hw-kafka-client and keeps
+  its Kafka.* module namespace.
+
+  Features include:
+
+  * Consumer groups: auto-rebalancing consumers
+
+  * Keyed and keyless messages producing/consuming
+
+  * Batch producing messages
+
+category: Database
+homepage: https://github.com/shinzui/rdkafka-hs
+bug-reports: https://github.com/shinzui/rdkafka-hs/issues
+author: Alexey Raga <alexey.raga@gmail.com>
+maintainer: Nadeem Bitar <nadeem@gmail.com>
+license: MIT
+license-file: LICENSE
+tested-with: ghc ==9.12.4
+build-type: Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+extra-source-files:
+  docs/testing/*.json
+  docs/testing/*.md
+  scripts/*.hs
+  scripts/*.py
+  scripts/*.sh
+
+source-repository head
+  type: git
+  location: https://github.com/shinzui/rdkafka-hs.git
+
+flag examples
+  description: Also compile examples
+  manual: True
+  default: False
+
+flag integration
+  description: Build the integration tests (they need a Kafka broker)
+  manual: True
+  default: False
+
+common common-options
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-uni-patterns
+    -Wincomplete-record-updates
+    -Wredundant-constraints
+    -fhide-source-paths
+    -Wmissing-export-lists
+    -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+  default-language: GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+library
+  import: common-options
+  hs-source-dirs: src
+  extra-libraries: rdkafka
+  build-depends:
+    base >=4.21 && <5,
+    bifunctors >=5.6 && <5.7,
+    bytestring >=0.12 && <0.13,
+    containers >=0.7 && <0.9,
+    text >=2.1 && <2.2,
+    transformers >=0.6 && <0.7,
+    unix >=2.8 && <2.9,
+
+  build-tool-depends: c2hs:c2hs
+  exposed-modules:
+    Kafka.Consumer
+    Kafka.Consumer.ConsumerProperties
+    Kafka.Consumer.Subscription
+    Kafka.Consumer.Types
+    Kafka.Dump
+    Kafka.Metadata
+    Kafka.Producer
+    Kafka.Producer.ProducerProperties
+    Kafka.Producer.Types
+    Kafka.Topic
+    Kafka.Topic.Types
+    Kafka.Transaction
+    Kafka.Types
+    Kafka.Version
+
+  other-modules:
+    Kafka.Callbacks
+    Kafka.Consumer.Callbacks
+    Kafka.Consumer.Convert
+    Kafka.Internal.CallbackOwner
+    Kafka.Internal.RdKafka
+    Kafka.Internal.Setup
+    Kafka.Internal.Shared
+    Kafka.Producer.Callbacks
+    Kafka.Producer.Convert
+
+executable kafka-client-example
+  import: common-options
+  main-is: Main.hs
+  hs-source-dirs: example
+  ghc-options:
+    -threaded
+    -rtsopts
+
+  build-depends:
+    base >=4.21 && <5,
+    bytestring,
+    rdkafka-hs,
+    text,
+
+  if !flag(examples)
+    buildable: False
+  other-modules:
+    ConsumerExample
+    ProducerExample
+
+test-suite rdkafka-hs-integration
+  import: common-options
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    test-integration
+    test-support
+
+  c-sources:
+    test-integration/cbits/admin_ownership.c
+    test-integration/cbits/callback_lifetime.c
+    test-integration/cbits/consumer_state.c
+    test-integration/cbits/diagnostics.c
+    test-integration/cbits/message_ownership.c
+    test-integration/cbits/metadata.c
+    test-integration/cbits/partition_lists.c
+    test-integration/cbits/producer_ownership.c
+    test-integration/cbits/seek_faults.c
+    test-integration/cbits/transaction_ownership.c
+
+  if os(linux)
+    extra-libraries: dl
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  build-depends:
+    base >=4.21 && <5,
+    bytestring,
+    containers,
+    directory,
+    network,
+    process,
+    random,
+    rdkafka-hs,
+    tasty ^>=1.5,
+    tasty-hunit ^>=0.10,
+    tasty-quickcheck ^>=0.11.1,
+    text,
+    unix,
+
+  if !flag(integration)
+    buildable: False
+  other-modules:
+    Kafka.AdminTestSupport
+    Kafka.CallbackLifetimeSupport
+    Kafka.CallbackTestSupport
+    Kafka.Compatibility.KafkaFixture
+    Kafka.Compatibility.SecurityFixture
+    Kafka.ConsumerStateSupport
+    Kafka.DiagnosticTestSupport
+    Kafka.FaultTestSupport
+    Kafka.FixtureSupport
+    Kafka.FixtureSupportTest
+    Kafka.Integration.AssignOnlyTest
+    Kafka.Integration.AttributedErrorTest
+    Kafka.Integration.AuthenticationTest
+    Kafka.Integration.BatchTest
+    Kafka.Integration.BrokerFailureTest
+    Kafka.Integration.CallbackLifetimeTest
+    Kafka.Integration.ConfigStringContractTest
+    Kafka.Integration.ConfigurationTest
+    Kafka.Integration.ConsumerCommitContractTest
+    Kafka.Integration.ConsumerPropertyTest
+    Kafka.Integration.ConsumerStateContractTest
+    Kafka.Integration.ConsumerTest
+    Kafka.Integration.DeprecatedRunnerContractTest
+    Kafka.Integration.DestroyTest
+    Kafka.Integration.DiagnosticContractTest
+    Kafka.Integration.FatalErrorTest
+    Kafka.Integration.HeadersTest
+    Kafka.Integration.InputBoundaryContractTest
+    Kafka.Integration.LifecycleTest
+    Kafka.Integration.MetadataContractTest
+    Kafka.Integration.ObserverTest
+    Kafka.Integration.PartitionListContractTest
+    Kafka.Integration.PerMessageCommitTest
+    Kafka.Integration.ProducerPropertyTest
+    Kafka.Integration.ProducerRegressionTest
+    Kafka.Integration.PublicConsumerContractTest
+    Kafka.Integration.QueueEventTest
+    Kafka.Integration.ReadCommittedTest
+    Kafka.Integration.RuntimeContractTest
+    Kafka.Integration.SeekPartitionsTest
+    Kafka.Integration.StoreOffsetsTest
+    Kafka.Integration.TopicConfigurationTest
+    Kafka.Integration.TopicTest
+    Kafka.Integration.TransactionErrorTest
+    Kafka.MessageTestSupport
+    Kafka.MetadataTestSupport
+    Kafka.ProducerTestSupport
+    Kafka.PropertySupport
+    Kafka.SeekTestSupport
+    Kafka.TestEnv
+    Kafka.TransactionTestSupport
+
+test-suite rdkafka-hs-test
+  import: common-options
+  c-sources: test/cbits/error_constants.c
+  default-extensions: PackageImports
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+    test
+    test-support
+    src
+
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  build-depends:
+    base >=4.21 && <5,
+    bifunctors,
+    bytestring,
+    containers,
+    rdkafka-hs,
+    tasty ^>=1.5,
+    tasty-hunit ^>=0.10,
+    tasty-quickcheck ^>=0.11.1,
+    text,
+
+  other-modules:
+    Kafka.Consumer.ConsumerPropertiesSpec
+    Kafka.Consumer.ConsumerRecordMapSpec
+    Kafka.Consumer.ConsumerRecordTraverseSpec
+    Kafka.Internal.CallbackOwner
+    Kafka.Internal.CallbackOwnerSpec
+    Kafka.Producer.ProducerPropertiesSpec
+    Kafka.PropertySupport
+    Kafka.PublicDataContractSpec
+    Kafka.PublicPropertiesSpec
+    Kafka.VersionTest
