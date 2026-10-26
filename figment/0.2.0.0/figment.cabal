@@ -1,0 +1,156 @@
+cabal-version:      3.0
+name:               figment
+version:            0.2.0.0
+synopsis:           Layered configuration with provenance, profiles and complete error reports
+description:
+  A Haskell take on Rust's figment. Combine configuration from files
+  (JSON, TOML, YAML), environment variables, command-line arguments and
+  Haskell values; select profiles; and decode into your own types.
+  .
+  Every value remembers where it came from, so all problems are reported
+  together, each with the key, the name you would type to fix it
+  (@APP_PORT@, @--port@), the file, and the line and column. Higher-kinded
+  partial configurations give a compile-time guarantee that no field is
+  missing. Parsers enforce resource limits while parsing.
+  .
+  Start with "Figment.Tutorial"; the API is in "Figment".
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Sabrinathan Nair
+maintainer:         bombay.boyz@hotmail.com
+copyright:          (c) 2026 Bombay-Boyz
+homepage:           https://github.com/Bombay-Boyz/Figment
+bug-reports:        https://github.com/Bombay-Boyz/Figment/issues
+category:           Configuration
+build-type:         Simple
+tested-with:        GHC == 9.10.3 || == 9.12.4
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+  ENGINEERING_STANDARD.md
+  ADRs/*.md
+  docs/*.md
+extra-source-files:
+  test/golden/*.txt
+  test/compile-fail/*.hs
+  scripts/check-compile-fail.sh
+
+source-repository head
+  type:     git
+  location: https://github.com/Bombay-Boyz/Figment
+
+flag dev
+  description: Enable -Werror for local development
+  default:     False
+  manual:      True
+
+common shared
+  default-language: GHC2021
+  default-extensions:
+    DerivingStrategies
+    DeriveAnyClass
+    LambdaCase
+    OverloadedStrings
+  ghc-options:
+    -Wall -Wcompat
+    -Wincomplete-uni-patterns -Wincomplete-record-updates
+    -Wmissing-export-lists -Wpartial-fields -Wredundant-constraints
+    -Widentities -Wunused-packages
+  if flag(dev)
+    ghc-options: -Werror
+
+library
+  import:           shared
+  hs-source-dirs:   src
+  exposed-modules:
+    Figment
+    Figment.Aeson
+    Figment.Core
+    Figment.Decode
+    Figment.Error
+    Figment.Extract
+    Figment.Jail
+    Figment.Limits
+    Figment.Merge
+    Figment.Metadata
+    Figment.Partial
+    Figment.Path
+    Figment.Profile
+    Figment.Provider.Cli
+    Figment.Provider.Env
+    Figment.Provider.Format
+    Figment.Provider.Json
+    Figment.Provider.Toml
+    Figment.Provider.Yaml
+    Figment.Tutorial
+    Figment.Value
+  other-modules:
+    Figment.Internal.Budget
+    Figment.Internal.Nest
+    Figment.Internal.ValueParser
+  build-depends:
+      base        >= 4.20   && < 4.22
+    , aeson       >= 2.2    && < 2.3
+    , bytestring  >= 0.11   && < 0.13
+    , conduit     >= 1.3    && < 1.4
+    , containers  >= 0.6.7  && < 0.8
+    , deepseq     >= 1.4.8  && < 1.6
+    , directory   >= 1.3    && < 1.4
+    , filepath    >= 1.4    && < 1.6
+    , libyaml     >= 0.1.2  && < 0.2
+    , scientific  >= 0.3.7  && < 0.4
+    , temporary   >= 1.3    && < 1.4
+    , text        >= 2.0.2  && < 2.2
+    , time        >= 1.9    && < 1.15
+    , toml-parser >= 2.0    && < 2.1
+    , vector      >= 0.13   && < 0.14
+
+test-suite figment-test
+  import:           shared
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Spec.hs
+  other-modules:
+    Figment.Test.Arbitrary
+    Figment.Test.MergeLaws
+    Figment.Test.Figment
+    Figment.Test.Decode
+    Figment.Test.Partial
+    Figment.Test.Providers
+    Figment.Test.Env
+    Figment.Test.Cli
+    Figment.Test.Errors
+    Figment.Test.Adversarial
+    Figment.Test.Readme
+    Figment.Test.Tutorial
+  build-depends:
+      base
+    , figment
+    , aeson
+    , bytestring
+    , containers
+    , deepseq
+    , filepath
+    , tasty        >= 1.4  && < 1.6
+    , tasty-golden >= 2.3  && < 2.4
+    , tasty-hunit  >= 0.10 && < 0.11
+    , tasty-quickcheck >= 0.10 && < 0.12
+    , QuickCheck   >= 2.14 && < 2.17
+    , text
+    , time
+    , vector
+  ghc-options:      -threaded -rtsopts "-with-rtsopts=-N"
+
+benchmark figment-bench
+  import:           shared
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          Bench.hs
+  build-depends:
+      base
+    , figment
+    , containers
+    , criterion  >= 1.6 && < 1.7
+    , deepseq
+    , text
+  ghc-options:      -threaded -rtsopts
