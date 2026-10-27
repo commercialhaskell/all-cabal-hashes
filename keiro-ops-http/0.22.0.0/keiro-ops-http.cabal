@@ -1,0 +1,228 @@
+cabal-version: 3.0
+name: keiro-ops-http
+version: 0.22.0.0
+synopsis:
+  Bounded HTTP transport for the Keiro operational command tree
+
+description:
+  An embeddable WAI application, Warp runner, and database-only executable.
+  Exposes the supported command tree with bounded reads and confirmed mutations.
+
+license: BSD-3-Clause
+license-file: LICENSE
+author: Nadeem Bitar
+maintainer: nadeem@gmail.com
+copyright: 2026 Nadeem Bitar
+category: Operations
+homepage: https://github.com/shinzui/keiro#readme
+bug-reports: https://github.com/shinzui/keiro/issues
+build-type: Simple
+tested-with: ghc >=9.12 && <9.13
+extra-doc-files: CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/shinzui/keiro.git
+
+common warnings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wpartial-fields
+    -Wredundant-constraints
+
+common shared
+  default-language: GHC2024
+  default-extensions:
+    BlockArguments
+    DeriveAnyClass
+    DuplicateRecordFields
+    ImportQualifiedPost
+    LambdaCase
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+
+library
+  import: warnings, shared
+  hs-source-dirs: src
+  exposed-modules:
+    Keiro.Ops.Http
+    Keiro.Ops.Http.Application
+    Keiro.Ops.Http.Budget
+    Keiro.Ops.Http.Compose
+    Keiro.Ops.Http.Config
+    Keiro.Ops.Http.Cors
+    Keiro.Ops.Http.Feed
+    Keiro.Ops.Http.Pool
+    Keiro.Ops.Http.Protocol
+    Keiro.Ops.Http.Route
+    Keiro.Ops.Http.Server
+    Keiro.Ops.Http.Views
+    Keiro.Ops.Http.WebSocket
+
+  other-modules:
+    Keiro.Ops.Http.Feed.Driver
+    Keiro.Ops.Http.Feed.Queue
+
+  build-depends:
+    aeson >=2.2.2 && <2.3,
+    async >=2.2 && <2.3,
+    base >=4.21 && <5,
+    bytestring >=0.12 && <0.13,
+    containers >=0.6 && <0.8,
+    effectful >=2.6 && <2.8,
+    hasql >=1.10 && <1.11,
+    hasql-pool >=1.2 && <1.5,
+    http-types >=0.12 && <0.13,
+    keiro ^>=0.22.0.0,
+    keiro-migrations ^>=0.22.0.0,
+    keiro-ops ^>=0.22.0.0,
+    kiroku-store ^>=0.12.0.0,
+    network >=3.1 && <3.3,
+    network-uri >=2.6.4.2 && <2.7,
+    optparse-applicative >=0.19 && <0.20,
+    stm >=2.5 && <2.6,
+    text >=2.1 && <2.2,
+    time >=1.12 && <1.15,
+    uuid >=1.3 && <1.4,
+    wai >=3.2 && <3.3,
+    wai-websockets >=3.0 && <3.1,
+    warp >=3.4 && <3.5,
+    websockets >=0.13 && <0.14,
+
+executable keiro-ops-http
+  import: warnings, shared
+  hs-source-dirs: app
+  main-is: Main.hs
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  build-depends:
+    async >=2.2 && <2.3,
+    base >=4.21 && <5,
+    hasql >=1.10 && <1.11,
+    keiro-migrations ^>=0.22.0.0,
+    keiro-ops ^>=0.22.0.0,
+    keiro-ops-http,
+    kiroku-store ^>=0.12.0.0,
+    optparse-applicative >=0.19 && <0.20,
+    text >=2.1 && <2.2,
+
+flag compose-example
+  description: Build the composed inspection example with the sibling metrics surface.
+  default: False
+  manual: True
+
+executable keiro-ops-http-compose-example
+  import: warnings, shared
+  hs-source-dirs: example
+  main-is: Compose.hs
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  if !flag(compose-example)
+    buildable: False
+  build-depends:
+    async >=2.2 && <2.3,
+    base >=4.21 && <5,
+    keiro-ops ^>=0.22.0.0,
+    keiro-ops-http,
+    kiroku-metrics ^>=0.4.0.0,
+    kiroku-store ^>=0.12.0.0,
+    optparse-applicative >=0.19 && <0.20,
+    text >=2.1 && <2.2,
+
+benchmark inspection-interference
+  import: warnings, shared
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: InspectionInterference.hs
+  other-modules: InspectionClients
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N8
+
+  build-depends:
+    aeson >=2.2 && <2.3,
+    async >=2.2 && <2.3,
+    base >=4.21 && <5,
+    bytestring >=0.12 && <0.13,
+    containers >=0.6 && <0.8,
+    directory >=1.3 && <1.4,
+    effectful >=2.6 && <2.8,
+    filepath >=1.4 && <1.6,
+    hasql >=1.10 && <1.11,
+    hasql-pool >=1.2 && <1.5,
+    http-client >=0.7 && <0.8,
+    http-types >=0.12 && <0.13,
+    jitsurei,
+    keiro ^>=0.22.0.0,
+    keiro-ops ^>=0.22.0.0,
+    keiro-ops-http,
+    keiro-test-support ^>=0.22.0.0,
+    kiroku-store ^>=0.12.0.0,
+    process >=1.6 && <1.7,
+    text >=2.1 && <2.2,
+    time >=1.12 && <1.15,
+    uuid >=1.3 && <1.4,
+    websockets >=0.13 && <0.14,
+
+test-suite keiro-ops-http-test
+  import: warnings, shared
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  other-modules:
+    Test.ComposeSpec
+    Test.FeedSpec
+    Test.WebSocketSpec
+
+  build-tool-depends: keiro-ops:keiro-ops
+  build-depends:
+    aeson >=2.2.2 && <2.3,
+    async >=2.2 && <2.3,
+    base >=4.21 && <5,
+    bytestring >=0.12 && <0.13,
+    containers >=0.6 && <0.8,
+    effectful >=2.6 && <2.8,
+    hasql >=1.10 && <1.11,
+    hasql-pool >=1.2 && <1.5,
+    hspec >=2.11,
+    http-client >=0.7 && <0.8,
+    http-types >=0.12 && <0.13,
+    jitsurei,
+    keiro ^>=0.22.0.0,
+    keiro-migrations ^>=0.22.0.0,
+    keiro-ops ^>=0.22.0.0,
+    keiro-ops-http,
+    keiro-pgmq ^>=0.22.0.0,
+    keiro-test-support ^>=0.22.0.0,
+    kiroku-metrics ^>=0.4.0.0,
+    kiroku-store ^>=0.12.0.0,
+    network >=3.1 && <3.3,
+    optparse-applicative >=0.19 && <0.20,
+    pgmq-migration >=0.7.0.0 && <0.8,
+    process >=1.6 && <1.7,
+    stm >=2.5 && <2.6,
+    text >=2.1 && <2.2,
+    time >=1.12 && <1.15,
+    uuid >=1.3 && <1.4,
+    vector >=0.13 && <0.14,
+    wai >=3.2 && <3.3,
+    wai-extra >=3.1 && <3.2,
+    warp >=3.4 && <3.5,
+    websockets >=0.13 && <0.14,
