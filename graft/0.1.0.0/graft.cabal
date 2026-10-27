@@ -1,0 +1,138 @@
+cabal-version:   3.0
+name:            graft
+version:         0.1.0.0
+synopsis:        Immutable, lossless concrete syntax trees
+description:
+    Lossless, immutable concrete syntax trees, modelled on rust-analyzer's
+    Rowan. Green trees keep every byte of the source, cache UTF-8 lengths and
+    share subtrees. Cursors navigate them and find syntax by byte offset; plans
+    and rewrites edit them persistently, sharing what they don't change.
+    Builders turn parser events into trees, and typed views give a grammar's
+    nodes typed accessors without a separate AST. Lexing and parsing are left
+    to the application.
+category:        Language
+license:         MIT
+license-files:   LICENSE licenses/ROWAN-MIT
+copyright:       2026 Andrea Bedini
+author:          Andrea Bedini
+maintainer:      andrea@bedini.au
+homepage:        https://github.com/andreabedini/graft
+bug-reports:     https://github.com/andreabedini/graft/issues
+build-type:      Simple
+tested-with:     GHC ==9.8.4 || ==9.10.3 || ==9.12.2 || ==9.14.1
+extra-source-files:
+    bench/run.py
+    bench/results/**/*.csv
+    bench/results/**/*.json
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+    CONTRIBUTING.md
+    NOTICE
+    docs/architecture.md
+    docs/performance.md
+    bench/README.md
+
+source-repository head
+    type:     git
+    location: https://github.com/andreabedini/graft.git
+
+flag doctest
+    description: Build the doctest suite, which checks the Haddock examples.
+    default:     False
+    manual:      True
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    exposed-modules:  Graft Graft.Green Graft.Range Graft.Cursor Graft.Edit Graft.Builder Graft.Build Graft.Ast Graft.LineIndex
+    other-modules:    Graft.Green.Internal
+    build-depends:
+        base >=4.19 && <4.23,
+        containers >=0.6.8 && <0.9,
+        deepseq >=1.5 && <1.6,
+        hashable >=1.4 && <1.6,
+        primitive >=0.8 && <0.10,
+        text >=2.0 && <2.2
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+benchmark graft-bench
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    other-modules:    Fixtures Residency
+    hs-source-dirs:   bench
+    build-depends:
+        base >=4.19 && <4.23,
+        deepseq >=1.5 && <1.6,
+        graft,
+        hashable >=1.4 && <1.6,
+        tasty-bench >=0.3.5 && <0.6,
+        text >=2.0 && <2.2,
+        transformers >=0.6.1 && <0.7
+    ghc-options:      -rtsopts -with-rtsopts=-T -fproc-alignment=64
+    default-language: Haskell2010
+
+test-suite graft-tests
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    other-modules:    AstTests BuilderTests ChildEditTests CursorTests EditTests FoldTests LineIndexTests TestModel
+    hs-source-dirs:   test
+    build-depends:
+        base >=4.19 && <4.23,
+        bytestring >=0.11 && <0.13,
+        containers >=0.6.8 && <0.9,
+        deepseq >=1.5 && <1.6,
+        graft,
+        hashable >=1.4 && <1.6,
+        QuickCheck >=2.14 && <2.20,
+        text >=2.0 && <2.2,
+        transformers >=0.6.1 && <0.7
+    default-language: Haskell2010
+
+-- The program in the README's Getting started section, built and run so that
+-- it tracks the API. CI checks that the README shows this file unchanged.
+test-suite graft-getting-started
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          GettingStarted.hs
+    hs-source-dirs:   examples
+    build-depends:
+        base >=4.19 && <4.23,
+        graft,
+        text >=2.0 && <2.2
+    default-language: Haskell2010
+
+-- The exact-preserving update example linked from the README and the
+-- architecture note, built and run so that it tracks the API.
+test-suite graft-example
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          ExactUpdate.hs
+    hs-source-dirs:   examples
+    build-depends:
+        base >=4.19 && <4.23,
+        graft,
+        text >=2.0 && <2.2
+    default-language: Haskell2010
+
+-- Checks the examples in the Haddock documentation. Enable it with
+-- -fdoctest; see CONTRIBUTING.md.
+test-suite graft-doctest
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    hs-source-dirs:   test/doctest
+    if !flag(doctest)
+        buildable: False
+    build-depends:
+        base >=4.19 && <4.23,
+        directory >=1.3 && <1.4,
+        doctest >=0.22 && <0.26,
+        graft
+    ghc-options:      -threaded
+    default-language: Haskell2010
