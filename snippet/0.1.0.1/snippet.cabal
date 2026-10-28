@@ -1,0 +1,176 @@
+cabal-version:   1.18
+name:            snippet
+version:         0.1.0.1
+license:         AGPL-3
+license-file:    COPYING
+maintainer:      Patrick Brisbin
+homepage:        https://codeberg.org/pbrisbin/sarif-tools#readme
+bug-reports:     https://codeberg.org/pbrisbin/sarif-tools/issues
+synopsis:        Pretty-print regions within source code files
+description:
+    Pretty-print @Region@s of source-code, i.e. snippets.
+    .
+    This is meant to mimic tooling available in rust and used by tools such as
+    @sarif-fmt@.
+    .
+    For example, focusing on a region within our README:
+    .
+    @
+    \   ┌─ README.md:32:8
+    \   │
+    \32 │   main = do
+    \   │ ╭────────^
+    \33 │ │   let
+    \34 │ │     region = Region
+    \35 │ │       { startLine = 32
+    \36 │ │       , endLine = Just 44
+    \37 │ │       , startColumn = Just 8
+    \38 │ │       , endColumn = Nothing
+    \39 │ │       }
+    \40 │ │
+    \41 │ │   -- Returns Nothing if file is missing/empty or region is invalid
+    \42 │ │   mSnippet <- snippetFromFile region "README.md"
+    \43 │ │
+    \44 │ │   traverse_ (putDoc . reAnnotate annToAnsi . prettySnippet) mSnippet
+    \   │ ╰────────────────────────────────────────────────────────────────────^
+    @
+    .
+    To see the code that produces this, and an image of the output (e.g. with
+    color), view the [README on Codeberg](https://codeberg.org/pbrisbin/snippet#readme).
+
+category:        Data
+build-type:      Simple
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+    COPYING
+
+source-repository head
+    type:     git
+    location: https://codeberg.org/pbrisbin/sarif-tools
+
+library
+    exposed-modules:
+        Snippet
+        Snippet.Line
+        Snippet.Lines
+        Snippet.Pretty
+        Snippet.Region
+        Snippet.Snippet
+
+    hs-source-dirs:     src
+    other-modules:      Paths_snippet
+    default-language:   GHC2021
+    default-extensions:
+        DataKinds DeriveAnyClass DerivingStrategies DerivingVia
+        DuplicateRecordFields GADTs LambdaCase NoFieldSelectors
+        NoImplicitPrelude NoMonomorphismRestriction NoPostfixOperators
+        OverloadedRecordDot OverloadedStrings QuasiQuotes TypeFamilies
+
+    ghc-options:
+        -Weverything -Wno-all-missed-specialisations
+        -Wno-missed-specialisations -Wno-missing-exported-signatures
+        -Wno-missing-import-lists -Wno-missing-local-signatures
+        -Wno-monomorphism-restriction -Wno-safe -Wno-unsafe
+
+    build-depends:
+        base >=4.19.2.0 && <5,
+        directory >=1.3.8.5,
+        prettyprinter >=1.7.1,
+        prettyprinter-ansi-terminal >=1.1.3,
+        text >=2.1.1
+
+    if impl(ghc >=9.8)
+        ghc-options:
+            -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures
+
+    if impl(ghc >=9.2)
+        ghc-options: -Wno-missing-kind-signatures
+
+    if impl(ghc >=8.10)
+        ghc-options:
+            -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
+
+    if impl(ghc >=8.8)
+        ghc-options: -fwrite-ide-info
+
+test-suite readme
+    type:               exitcode-stdio-1.0
+    main-is:            README.lhs
+    other-modules:      Paths_snippet
+    default-language:   GHC2021
+    default-extensions:
+        DataKinds DeriveAnyClass DerivingStrategies DerivingVia
+        DuplicateRecordFields GADTs LambdaCase NoFieldSelectors
+        NoImplicitPrelude NoMonomorphismRestriction NoPostfixOperators
+        OverloadedRecordDot OverloadedStrings QuasiQuotes TypeFamilies
+
+    ghc-options:
+        -Weverything -Wno-all-missed-specialisations
+        -Wno-missed-specialisations -Wno-missing-exported-signatures
+        -Wno-missing-import-lists -Wno-missing-local-signatures
+        -Wno-monomorphism-restriction -Wno-safe -Wno-unsafe -pgmL
+        markdown-unlit
+
+    build-depends:
+        base >=4.19.2.0 && <5,
+        markdown-unlit >=0.6.0,
+        prettyprinter >=1.7.1,
+        prettyprinter-ansi-terminal >=1.1.3,
+        snippet
+
+    if impl(ghc >=9.8)
+        ghc-options:
+            -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures
+
+    if impl(ghc >=9.2)
+        ghc-options: -Wno-missing-kind-signatures
+
+    if impl(ghc >=8.10)
+        ghc-options:
+            -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
+
+    if impl(ghc >=8.8)
+        ghc-options: -fwrite-ide-info
+
+test-suite spec
+    type:               exitcode-stdio-1.0
+    main-is:            Spec.hs
+    hs-source-dirs:     test
+    other-modules:
+        Snippet.LinesSpec
+        Paths_snippet
+
+    default-language:   GHC2021
+    default-extensions:
+        DataKinds DeriveAnyClass DerivingStrategies DerivingVia
+        DuplicateRecordFields GADTs LambdaCase NoFieldSelectors
+        NoImplicitPrelude NoMonomorphismRestriction NoPostfixOperators
+        OverloadedRecordDot OverloadedStrings QuasiQuotes TypeFamilies
+
+    ghc-options:
+        -Weverything -Wno-all-missed-specialisations
+        -Wno-missed-specialisations -Wno-missing-exported-signatures
+        -Wno-missing-import-lists -Wno-missing-local-signatures
+        -Wno-monomorphism-restriction -Wno-safe -Wno-unsafe -threaded
+        -rtsopts -with-rtsopts=-N
+
+    build-depends:
+        base >=4.19.2.0 && <5,
+        hspec >=2.11.12,
+        snippet,
+        text >=2.1.1
+
+    if impl(ghc >=9.8)
+        ghc-options:
+            -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures
+
+    if impl(ghc >=9.2)
+        ghc-options: -Wno-missing-kind-signatures
+
+    if impl(ghc >=8.10)
+        ghc-options:
+            -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
+
+    if impl(ghc >=8.8)
+        ghc-options: -fwrite-ide-info
