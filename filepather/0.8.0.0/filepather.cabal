@@ -1,0 +1,157 @@
+cabal-version:      2.4
+name:               filepather
+version:            0.8.0.0
+license:            BSD-3-Clause
+license-file:       LICENCE
+author:             Tony Morris <ʇǝu˙sıɹɹoɯʇ@ןןǝʞsɐɥ> <dibblego>
+maintainer:         Tony Morris <ʇǝu˙sıɹɹoɯʇ@ןןǝʞsɐɥ> <dibblego>
+copyright:          Copyright (c) 2021-2026 Tony Morris
+synopsis:           Computations that depend on a file path, and tracked build steps
+category:           System
+description:
+  <<https://logo.systemf.com.au/systemf-450x450.png>>
+  .
+  @FilePather f a@ is a computation that depends on the file path being
+  operated on:
+  .
+  > newtype FilePather f a = FilePather (FilePath -> f a)
+  .
+  It is isomorphic to @ReaderT FilePath f a@, with the same instances, and
+  combinators to run one @FilePather@ on the output of another, and to apply
+  rules to every file in a directory.
+  .
+  @Tracked f a@ is a named build step, or several, that records the files it
+  makes, with the steps that made them, so that a chain of build steps that
+  would go round in a cycle is stopped before it does:
+  .
+  > newtype Tracked f a = Tracked (FilePather (ReaderT Trail (ExceptT Cycle f)) (Outputs, a))
+
+homepage:           https://gitlab.com/tonymorris/document-build
+bug-reports:        https://gitlab.com/tonymorris/document-build/issues
+build-type:         Simple
+extra-doc-files:    README.md
+                    changelog.md
+                    FUSION.md
+tested-with:        GHC == 9.14.1, GHC == 9.12.4, GHC == 9.10.3, GHC == 9.8.4, GHC == 9.6.7
+
+source-repository   head
+  type:             git
+  location:         https://gitlab.com/tonymorris/document-build.git
+  subdir:           filepather
+
+flag doctest
+  description:      Build the doctest test suite, which runs doctest through cabal. It is enabled in cabal.project, and disabled by default so that builds from the source distribution do not need cabal or doctest at test time.
+  default:          False
+  manual:           True
+
+library
+  default-language:
+                    Haskell2010
+
+  build-depends:
+                      base              >= 4.18      && < 5
+                    , adjunctions       >= 4.4.2     && < 5
+                    , contravariant     >= 1.5.5     && < 2
+                    , deepseq           >= 1.4.8.1   && < 2
+                    , directory         >= 1.3.8.5   && < 2
+                    , distributive      >= 0.6.2.1   && < 1
+                    , exitcode          >= 0.3.0.1   && < 0.4
+                    , filepath          >= 1.4.301.0 && < 1.6
+                    , lens              >= 5.2.1     && < 6
+                    , mtl               >= 2.3.1     && < 2.4
+                    , selective         >= 0.7       && < 1
+                    , semigroupoids     >= 6.0.0.1   && < 7
+                    , transformers      >= 0.6.1     && < 0.7
+                    , witherable        >= 0.4.2     && < 1
+
+  ghc-options:
+                    -Wall
+                    -Wcompat
+                    -Wincomplete-uni-patterns
+                    -Werror=incomplete-patterns
+
+  hs-source-dirs:
+                    src
+
+  exposed-modules:
+                    System.FilePather
+                    System.FilePather.Combinators
+                    System.FilePather.Cycle
+                    System.FilePather.FilePather
+                    System.FilePather.Name.File
+                    System.FilePather.Name.Once
+                    System.FilePather.Name.PathFunction
+                    System.FilePather.Name.Repeatable
+                    System.FilePather.Name.StepInput
+                    System.FilePather.Name.StepName
+                    System.FilePather.Name.Steps
+                    System.FilePather.RepeatsStep
+                    System.FilePather.Repetition
+                    System.FilePather.ReproducesInput
+                    System.FilePather.Step
+                    System.FilePather.Trail
+                    System.FilePather.Tracked
+
+test-suite hedgehog
+  type:
+                    exitcode-stdio-1.0
+
+  main-is:
+                    hedgehog_tests.hs
+
+  other-modules:
+                    FilePatherTests
+                    Gens
+                    Laws
+                    OpticsTests
+                    TrackedTests
+
+  default-language:
+                    Haskell2010
+
+  build-depends:
+                      base              >= 4.18      && < 5
+                    , adjunctions       >= 4.4.2     && < 5
+                    , contravariant     >= 1.5.5     && < 2
+                    , distributive      >= 0.6.2.1   && < 1
+                    , filepather
+                    , hedgehog          >= 1.2       && < 2
+                    , hedgehog-fn       >= 1.1       && < 2
+                    , lens              >= 5.2.1     && < 6
+                    , mtl               >= 2.3.1     && < 2.4
+                    , selective         >= 0.7       && < 1
+                    , semigroupoids     >= 6.0.0.1   && < 7
+                    , transformers      >= 0.6.1     && < 0.7
+                    , witherable        >= 0.4.2     && < 1
+
+  ghc-options:
+                    -Wall
+                    -threaded
+
+  hs-source-dirs:
+                    test
+
+test-suite doctest
+  type:
+                    exitcode-stdio-1.0
+
+  if !flag(doctest)
+    buildable:      False
+
+  main-is:
+                    doctest_tests.hs
+
+  default-language:
+                    Haskell2010
+
+  build-depends:
+                      base    >= 4.18     && < 5
+                    , process >= 1.6.19.0 && < 2
+                    , filepather
+
+  ghc-options:
+                    -Wall
+                    -threaded
+
+  hs-source-dirs:
+                    test
