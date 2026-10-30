@@ -1,0 +1,160 @@
+cabal-version:   3.0
+name:            hasql-th-format
+version:         0.1.0.0
+synopsis:        Format the SQL inside hasql-th quasiquotes
+description:
+  Rewrites the SQL in every hasql-th quasiquote of a Haskell source file into
+  one house layout, in place. It parses each statement, renders it again, and
+  re-parses the result, so a formatting pass that would change what the
+  statement means fails instead of being written out.
+  .
+  Ships two executables: @hasql-th-format@, the formatter itself, and
+  @hasql-th-audit@, which diffs the statements of two revisions of a file
+  quasiquote by quasiquote, so a reformatting commit can be shown to have
+  changed no SQL.
+
+category:        Database, Development
+homepage:        https://github.com/kronor-io/hasql-check
+bug-reports:     https://github.com/kronor-io/hasql-check/issues
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Kronor
+maintainer:      lorenzo@kronor.io
+copyright:       2026 Kronor
+build-type:      Simple
+tested-with:     GHC ==9.10.3 || ==9.12.4 || ==9.14.1
+extra-doc-files: README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/kronor-io/hasql-check
+
+flag lint
+  description: lint
+  manual:      True
+  default:     False
+
+flag kronor-syntax
+  description:
+    Accept the hasql-th extensions of Kronor's forks (Haskell targets and
+    Haskell param fields) and format them. Needs Kronor's fork of
+    postgresql-syntax.
+
+  manual:      True
+  default:     False
+
+executable hasql-th-format
+  main-is:            Main.hs
+
+  -- cabal-fmt: expand app -Main -Audit
+  other-modules:
+    Hasql.ThFormat
+    Hasql.ThFormat.SqlFormat
+
+  hs-source-dirs:     app
+  default-language:   GHC2021
+  default-extensions:
+    ApplicativeDo
+    BangPatterns
+    BlockArguments
+    ConstraintKinds
+    DataKinds
+    DeriveAnyClass
+    DeriveFunctor
+    DeriveGeneric
+    DerivingStrategies
+    DerivingVia
+    DuplicateRecordFields
+    FlexibleContexts
+    FlexibleInstances
+    GADTs
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    LambdaCase
+    MultiParamTypeClasses
+    NamedFieldPuns
+    NoImplicitPrelude
+    OverloadedRecordDot
+    OverloadedStrings
+    PatternSynonyms
+    RecordWildCards
+    ScopedTypeVariables
+    StrictData
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    ViewPatterns
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+    -freverse-errors -fhide-source-paths
+
+  if flag(lint)
+    ghc-options: -Werror
+
+  build-depends:
+    , base               >=4.20 && <4.23
+    , bytestring         >=0.11 && <0.13
+    , hasql-check        >=0.5  && <0.6
+    , postgresql-syntax  >=0.5  && <0.6
+    , prettyprinter      >=1.7  && <1.8
+    , text               >=2.0  && <2.2
+    , text-builder       >=1.0  && <1.1
+
+  if flag(kronor-syntax)
+    cpp-options: -DKRONOR_SYNTAX
+
+executable hasql-th-audit
+  main-is:            Audit.hs
+  hs-source-dirs:     app
+  default-language:   GHC2021
+  default-extensions:
+    ImportQualifiedPost
+    LambdaCase
+    NamedFieldPuns
+    NoImplicitPrelude
+    OverloadedStrings
+
+  ghc-options:        -Wall
+
+  if flag(lint)
+    ghc-options: -Werror
+  build-depends:
+    , base               >=4.20 && <4.23
+    , bytestring         >=0.11 && <0.13
+    , hasql-check        >=0.5  && <0.6
+    , postgresql-syntax  >=0.5  && <0.6
+    , text               >=2.0  && <2.2
+
+  if flag(kronor-syntax)
+    cpp-options: -DKRONOR_SYNTAX
+
+test-suite hasql-th-format-test
+  type:               exitcode-stdio-1.0
+  main-is:            Test.hs
+  other-modules:      Hasql.ThFormat.SqlFormat
+  hs-source-dirs:     test app
+  default-language:   GHC2021
+  default-extensions:
+    ImportQualifiedPost
+    LambdaCase
+    NoImplicitPrelude
+    OverloadedStrings
+    QuasiQuotes
+
+  ghc-options:        -Wall
+
+  if flag(lint)
+    ghc-options: -Werror
+  build-depends:
+    , base                >=4.20 && <4.23
+    , hasql-check         >=0.5  && <0.6
+    , postgresql-syntax   >=0.5  && <0.6
+    , prettyprinter       >=1.7  && <1.8
+    , string-interpolate  >=0.3  && <0.4
+    , text                >=2.0  && <2.2
+    , text-builder        >=1.0  && <1.1
+
+  if flag(kronor-syntax)
+    cpp-options: -DKRONOR_SYNTAX
