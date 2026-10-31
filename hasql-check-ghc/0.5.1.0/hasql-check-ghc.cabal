@@ -1,0 +1,113 @@
+cabal-version:   3.0
+name:            hasql-check-ghc
+version:         0.5.1.0
+synopsis:
+  Check inferred hasql statements with what GHC knows of their types
+
+description:
+  The types of a statement of Hasql.Check.Inferred.TH are only known once GHC
+  has type-checked its module. This package gets them from GHC in two ways:
+  .
+  * Hasql.Check.Plugin, a GHC plugin that checks the statements against a
+  database while their module compiles, making a statement that does not
+  fit the schema a compile error at its quote.
+  .
+  * hasql-check-hie, which reads them from the .hie files GHC writes with
+  -fwrite-ide-info, for hasql-check --inferred. It needs no database, so it
+  can run inside a sandboxed build.
+  .
+  Both depend on GHC's own library: build them with the GHC the checked
+  project is built with.
+
+category:        Database, Development
+homepage:        https://github.com/kronor-io/hasql-check
+bug-reports:     https://github.com/kronor-io/hasql-check/issues
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Pranay Sashank, Jose Lorenzo Rodriguez
+maintainer:      lorenzo@kronor.io, pranay.sashank@kronor.io
+copyright:       2026 Kronor
+build-type:      Simple
+tested-with:     GHC ==9.12.4 || ==9.14.1
+extra-doc-files:
+  ChangeLog.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/kronor-io/hasql-check
+  subdir:   ghc
+
+flag lint
+  description: lint
+  manual:      True
+  default:     False
+
+common warnings
+  default-language:   GHC2021
+  default-extensions:
+    BlockArguments
+    DerivingStrategies
+    LambdaCase
+    OverloadedRecordDot
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+
+  if flag(lint)
+    ghc-options: -Werror
+
+library
+  import:          warnings
+  exposed-modules:
+    Hasql.Check.Ghc.Source
+    Hasql.Check.Plugin
+
+  hs-source-dirs:  src
+  build-depends:
+    , base         >=4.21 && <4.23
+    , bytestring   >=0.11 && <0.13
+    , ghc          >=9.12 && <9.15
+    , hasql-check  >=0.5  && <0.6
+    , text         >=2.0  && <2.2
+
+executable hasql-check-hie
+  import:         warnings
+  main-is:        Main.hs
+  hs-source-dirs: app
+
+  -- 9.14 deprecates initNameCache in favour of a newNameCache that takes no
+  -- arguments and does not exist in 9.12. Drop this with 9.12.
+  ghc-options:    -Wno-deprecations
+  build-depends:
+    , base             >=4.21 && <4.23
+    , containers       >=0.6  && <0.9
+    , ghc              >=9.12 && <9.15
+    , hasql-check-ghc
+    , text             >=2.0  && <2.2
+
+test-suite hasql-check-ghc-test
+  import:         warnings
+  type:           exitcode-stdio-1.0
+  main-is:        Main.hs
+  hs-source-dirs: test
+  build-depends:
+    , base             >=4.21 && <4.23
+    , hasql-check-ghc
+
+-- Compiles fixture modules with the plugin, against a throwaway PostgreSQL
+-- server: initdb, pg_ctl and psql must be on PATH, and cabal must write the
+-- package environment the compiler finds the plugin through.
+test-suite hasql-check-plugin-test
+  import:         warnings
+  type:           exitcode-stdio-1.0
+  main-is:        Plugin.hs
+  hs-source-dirs: test
+  build-depends:
+    , base             >=4.21 && <4.23
+    , directory        >=1.3  && <1.4
+    , filepath         >=1.4  && <1.6
+    , hasql-check-ghc
+    , process          >=1.6  && <1.7
+    , temporary        >=1.3  && <1.4
