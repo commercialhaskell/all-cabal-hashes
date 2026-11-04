@@ -1,0 +1,93 @@
+cabal-version:      >=1.10
+name:               simple-sendfile
+version:            0.2.33
+license:            BSD3
+license-file:       LICENSE
+maintainer:         Kazu Yamamoto <kazu@iij.ad.jp>
+author:             Kazu Yamamoto <kazu@iij.ad.jp>
+synopsis:           Cross platform library for the sendfile system call
+description:
+    Cross platform library for the sendfile system call.
+    This library tries to call minimum system calls which
+    are the bottleneck of web servers.
+
+category:           Network
+build-type:         Simple
+tested-with:        GHC == 9.2.8 || == 9.4.8 || == 9.6.7 || == 9.8.4 || == 9.10.3 || == 9.12.4 || == 9.14.1
+extra-source-files:
+    ChangeLog.md
+    test/inputFile
+
+source-repository head
+    type:     git
+    location: https://github.com/kazu-yamamoto/simple-sendfile
+
+flag allow-bsd
+    description: Allow use of BSD sendfile (disable on GNU/kFreeBSD)
+
+flag fallback
+    description: Use conduit instead of sendfile()
+    default: False
+
+library
+    exposed-modules:  Network.Sendfile
+    other-modules:    Network.Sendfile.Types
+    default-language: Haskell2010
+    ghc-options:      -Wall
+    build-depends:
+        base >=4.16 && <5,
+        network >=3.1.4,
+        bytestring
+
+    if (os(freebsd) && flag(allow-bsd) && !flag(fallback))
+        cpp-options:   -DOS_BSD
+        other-modules:
+            Network.Sendfile.BSD
+            Network.Sendfile.IOVec
+
+        build-depends: unix
+
+    else
+        if (os(osx) && !flag(fallback))
+            cpp-options:   -DOS_MacOS
+            other-modules:
+                Network.Sendfile.BSD
+                Network.Sendfile.IOVec
+
+            build-depends: unix
+
+        else
+            if (os(linux) && !flag(fallback))
+                exposed-modules: System.Linux.Sendfile
+                cpp-options:     -DOS_Linux
+                other-modules:   Network.Sendfile.Linux
+                build-depends:   unix
+
+            else
+                other-modules: Network.Sendfile.Fallback
+                build-depends:
+                    conduit >=1.3 && <1.4,
+                    conduit-extra >=1.3 && <1.4
+
+test-suite spec
+    type:               exitcode-stdio-1.0
+    main-is:            Spec.hs
+    build-tool-depends: hspec-discover:hspec-discover
+    hs-source-dirs:     test
+    other-modules:      SendfileSpec
+    default-language:   Haskell2010
+    -- The non-threaded RTS on Windows sometimes misses EOF on sockets.
+    ghc-options:        -Wall -threaded
+    build-depends:
+        HUnit,
+        base,
+        bytestring,
+        conduit >=1.3,
+        conduit-extra >=1.3,
+        directory,
+        easy-file >= 0.2.4,
+        hspec >=1.3,
+        network,
+        process,
+        resourcet,
+        simple-sendfile
