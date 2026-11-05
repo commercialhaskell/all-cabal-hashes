@@ -1,0 +1,188 @@
+cabal-version: 3.0
+name:          linear-massiv
+category:      Math, Algebra, Numerical
+version:       0.1.0.6
+author:        Nadia Yvette Chambers
+maintainer:    Nadia Yvette Chambers <nadia.yvette.chambers@ik.me>
+synopsis:      Pure Haskell numerical linear algebra implementing Golub & Van Loan
+description:
+  Pure Haskell numerical linear algebra implementing algorithms from
+  Golub & Van Loan's /Matrix Computations/ (4th ed.), with no FFI and no C
+  dependencies.
+
+  Provides type-safe matrix and vector operations backed by
+  <https://hackage.haskell.org/package/massiv massiv> arrays, with
+  compile-time dimension checking via GHC type-level naturals.
+  Implements BLAS Level 1–3 operations, panel LU, Cholesky, and QR
+  factorisations, blocked WY Householder transformations, banded linear
+  solvers, symmetric eigenvalue decomposition, and singular value
+  decomposition (SVD).
+
+  Execution is portable across all architectures and GHC versions (9.6+)
+  using efficient unboxed scalar kernels by default. On x86_64 systems with
+  AVX2 and FMA support, optional SIMD acceleration can be enabled via the
+  @simd@ cabal flag when compiling with GHC's LLVM backend.
+license:       EUPL-1.2 OR Apache-2.0
+license-file:  LICENSE
+build-type:    Simple
+tested-with:   GHC == 9.6.7, GHC == 9.8.4, GHC == 9.10.3, GHC == 9.12.4, GHC == 9.14.1
+extra-doc-files:
+  README.md
+  CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/NadiaYvette/linear-massiv
+
+flag simd
+  description: Enable AVX2 SIMD optimizations (requires GHC with LLVM backend and AVX2/FMA CPU)
+  default:     False
+  manual:      True
+
+library
+  hs-source-dirs: src
+  exposed-modules:
+    Numeric.LinearAlgebra.Massiv
+    Numeric.LinearAlgebra.Massiv.Types
+    Numeric.LinearAlgebra.Massiv.Internal
+    Numeric.LinearAlgebra.Massiv.Norms
+    Numeric.LinearAlgebra.Massiv.BLAS.Level1
+    Numeric.LinearAlgebra.Massiv.BLAS.Level2
+    Numeric.LinearAlgebra.Massiv.BLAS.Level3
+    Numeric.LinearAlgebra.Massiv.Solve.Triangular
+    Numeric.LinearAlgebra.Massiv.Solve.LU
+    Numeric.LinearAlgebra.Massiv.Solve.Cholesky
+    Numeric.LinearAlgebra.Massiv.Solve.Banded
+    Numeric.LinearAlgebra.Massiv.Orthogonal.Householder
+    Numeric.LinearAlgebra.Massiv.Orthogonal.Givens
+    Numeric.LinearAlgebra.Massiv.Orthogonal.QR
+    Numeric.LinearAlgebra.Massiv.Orthogonal.LeastSquares
+    Numeric.LinearAlgebra.Massiv.Eigen.Power
+    Numeric.LinearAlgebra.Massiv.Eigen.Hessenberg
+    Numeric.LinearAlgebra.Massiv.Eigen.Schur
+    Numeric.LinearAlgebra.Massiv.Eigen.Symmetric
+    Numeric.LinearAlgebra.Massiv.Eigen.SVD
+    Numeric.LinearAlgebra.Massiv.Internal.Kernel
+    Numeric.LinearAlgebra.Massiv.Linear
+  build-depends:
+    base >= 4.18 && < 5,
+    ghc-prim < 1,
+    massiv >= 1.0 && < 2,
+    linear >= 1.21 && < 2,
+    vector >= 0.12 && < 1,
+    primitive >= 0.7 && < 1,
+    deepseq >= 1.4 && < 2
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+    TypeFamilies
+    ScopedTypeVariables
+    TypeApplications
+    TypeOperators
+    GADTs
+    RankNTypes
+    FlexibleContexts
+    FlexibleInstances
+    MultiParamTypeClasses
+    StandaloneDeriving
+    DerivingStrategies
+  ghc-options: -Wall
+  if flag(simd)
+    cpp-options: -DUSE_SIMD
+    ghc-options: -mavx2 -mfma
+
+test-suite linear-massiv-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs: test
+  other-modules:
+    Test.Types
+    Test.Residuals
+    Test.BLAS
+    Test.Solve
+    Test.Banded
+    Test.Orthogonal
+    Test.Eigen
+    Test.Norms
+    Test.Linear
+  build-depends:
+    base,
+    linear-massiv,
+    massiv,
+    tasty >= 1.4,
+    tasty-hunit >= 0.10,
+    tasty-quickcheck >= 0.10,
+    QuickCheck >= 2.14,
+    linear,
+    vector
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+    TypeFamilies
+    ScopedTypeVariables
+    TypeApplications
+    TypeOperators
+    GADTs
+    RankNTypes
+    FlexibleContexts
+    FlexibleInstances
+    MultiParamTypeClasses
+  ghc-options: -Wall -threaded -rtsopts
+
+benchmark linear-massiv-bench
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: bench
+  other-modules:
+    Bench.BLAS
+    Bench.Solve
+    Bench.Orthogonal
+    Bench.Eigen
+    Bench.Parallel
+  build-depends:
+    base,
+    linear-massiv,
+    massiv,
+    criterion >= 1.5,
+    deepseq,
+    linear
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+    TypeFamilies
+    ScopedTypeVariables
+    TypeApplications
+    TypeOperators
+    GADTs
+    RankNTypes
+    FlexibleContexts
+    FlexibleInstances
+    MultiParamTypeClasses
+  ghc-options: -Wall -threaded -rtsopts "-with-rtsopts=-N"
+
+benchmark linear-massiv-comparison
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: bench-comparison
+  build-depends:
+    base,
+    linear-massiv,
+    massiv,
+    hmatrix >= 0.20,
+    linear,
+    criterion >= 1.5,
+    deepseq,
+    vector
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+    TypeFamilies
+    ScopedTypeVariables
+    TypeApplications
+    TypeOperators
+    GADTs
+    RankNTypes
+    FlexibleContexts
+    FlexibleInstances
+    MultiParamTypeClasses
+  ghc-options: -Wall -threaded -rtsopts "-with-rtsopts=-N"
