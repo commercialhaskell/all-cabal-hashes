@@ -1,0 +1,412 @@
+cabal-version: 3.0
+name: wireform-parquet
+version: 0.1.0.0
+synopsis: Apache Parquet metadata, column pages, and read/write
+description:
+  Read and write Apache Parquet files, with column-page codecs,
+  Arrow column conversion, schema derivation, statistics, bloom filters,
+  and predicate pushdown.
+category: Codec
+homepage: https://github.com/iand675/wireform-
+bug-reports: https://github.com/iand675/wireform-/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Ian Duncan
+maintainer: ian@iankduncan.com
+copyright: 2026 Ian Duncan
+build-type: Simple
+extra-source-files:
+  README.md
+  DEVELOPING.md
+  scripts/*.py
+  scripts/*.rs
+  scripts/*.lock
+  scripts/parquet_encrypted_reference.cc
+  test/fixtures/*.parquet
+
+-- Compression codec flags. Defaults are ON so out-of-the-box
+-- wireform can read what every other Parquet engine writes by
+-- default (pyarrow + duckdb default to Snappy; polars defaults
+-- to ZSTD; LZ4 / brotli are common enough on modern files).
+-- Disable with @-f-snappy@ etc. if you want a smaller dep tree.
+flag snappy
+  description: Snappy decompression for Parquet column chunks
+  manual: True
+  default: True
+
+flag zstd
+  description: Zstandard decompression for Parquet column chunks
+  manual: True
+  default: True
+
+flag lz4
+  description: Raw and legacy Hadoop LZ4 decompression for Parquet column chunks
+  manual: True
+  default: True
+
+flag brotli
+  description: Native Brotli compression and bounded decompression for Parquet pages
+  manual: True
+  default: False
+
+common defaults
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wpartial-fields
+    -Wredundant-constraints
+    -O2
+  default-language: GHC2021
+  default-extensions:
+    StrictData
+    DerivingStrategies
+    DeriveGeneric
+    DeriveAnyClass
+    OverloadedStrings
+    LambdaCase
+
+library
+  import: defaults
+  hs-source-dirs: src
+  exposed-modules:
+    Parquet
+    Parquet.Aggregate
+    Parquet.Alp
+    Parquet.BloomFilter
+    Parquet.Compress
+    Parquet.Delta
+    Parquet.ByteStreamSplit
+    Parquet.DeltaEncode
+    Parquet.Derive
+    Parquet.Encryption
+    Parquet.Decryption
+    Parquet.Footer
+    Parquet.File
+    Parquet.Variant
+    Parquet.Variant.Parquet
+    Parquet.Variant.Schema
+    Parquet.Variant.Shred
+    Parquet.Variant.Arrow
+    Parquet.Arrow
+    Parquet.HighLevel
+    Parquet.Levels
+    Parquet.LevelsEncode
+    Parquet.Nested
+    Parquet.NullPagesBitmap
+    Parquet.Page
+    Parquet.PageIndex
+    Parquet.Predicate
+    Parquet.Read
+    Parquet.Thrift.Schema
+    Parquet.Types
+    Parquet.Timestamp
+    Parquet.Write
+  other-modules:
+    Parquet.Decimal
+    Parquet.GZip
+    Parquet.Timestamp.Internal
+    Parquet.RLE
+    Parquet.Arrow.Nested
+    Parquet.Arrow.Geospatial
+    Parquet.Arrow.File
+    Parquet.Nested.Fast
+    Parquet.Nested.Plain
+    Parquet.Nested.Statistics
+    Parquet.Write.Encrypted
+    Parquet.Nested.Bloom
+    Parquet.Nested.Types
+    Parquet.Nested.Generate
+    Parquet.Variant.Array
+    Parquet.Variant.Nested
+  extra-libraries: z
+  build-depends:
+    base >= 4.20 && < 5,
+    aeson >= 2.1 && < 2.4,
+    wireform-core >= 0.3 && < 0.4,
+    wireform-columnar-core == 0.1.*,
+    wireform-arrow == 0.1.*,
+    wireform-derive == 0.2.*,
+    wireform-thrift == 0.1.*,
+    bytestring >= 0.11 && < 0.13,
+    text >= 2.0 && < 2.2,
+    vector >= 0.13 && < 0.14,
+    primitive >= 0.7 && < 0.10,
+    containers >= 0.7 && < 0.9,
+    zlib >= 0.6 && < 0.8,
+    deepseq >= 1.4 && < 1.6,
+    crypton >= 2.2.6 && < 2.3,
+    ram >= 0.20.1 && < 0.23,
+    template-haskell >= 2.18 && < 2.25
+
+  if flag(snappy)
+    cpp-options: -DHAVE_SNAPPY
+    build-depends: snappy >= 0.2 && < 0.3
+  if flag(zstd)
+    cpp-options: -DHAVE_ZSTD
+    build-depends: zstd >= 0.1 && < 0.2
+  -- LZ4 support is provided by Columnar.LZ4 (FFI bindings to
+  -- system liblz4 from wireform-columnar-core). The Cabal flag
+  -- still gates the codec at compile time so callers can drop
+  -- it; the package dep stays via wireform-columnar-core regardless,
+  -- so the only thing this controls is whether 'tryLZ4Raw' is
+  -- compiled in.
+  if flag(lz4)
+    cpp-options: -DHAVE_LZ4
+  if flag(brotli)
+    cpp-options: -DHAVE_BROTLI
+    other-modules: Parquet.Brotli
+    pkgconfig-depends:
+      libbrotlidec >= 1.0 && < 2,
+      libbrotlienc >= 1.0 && < 2
+
+test-suite wireform-parquet-test
+  import: defaults
+  ghc-options: -threaded
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test
+  other-modules:
+    MetadataRegression
+    DecimalCapacityRegression
+    NestedPrimitiveRegression
+    TimestampRegression
+    SchemaBoundaryRegression
+    CodecBoundaryRegression
+    BloomBuilderRegression
+    NestedStatisticsRegression
+    NestedOptionsRegression
+    EncryptedWriterRegression
+    EncryptedReadRegression
+    EncryptionFooterRegression
+    LargeOffsetRegression
+    GeospatialRegression
+    FileRegression
+    FileArrowRegression
+    FileZeroRegression
+    VariantRegression
+    VariantSchemaRegression
+    VariantArrowRegression
+    VariantWriteRegression
+    VariantParquetRegression
+    Aggregate
+    AlpRegression
+    Selection
+    WriterBounds
+  build-depends:
+    base >= 4.20 && < 5,
+    aeson >= 2.1 && < 2.4,
+    wireform-core,
+    wireform-arrow,
+    wireform-columnar-core,
+    wireform-parquet,
+    wireform-thrift == 0.1.*,
+    bytestring >= 0.11 && < 0.13,
+    text >= 2.0 && < 2.2,
+    vector >= 0.13 && < 0.14,
+    primitive >= 0.7 && < 0.10,
+    crypton >= 2.2.6 && < 2.3,
+    filepath,
+    directory >= 1.3 && < 1.4,
+    containers >= 0.7 && < 0.9,
+    process >= 1.6 && < 1.7,
+    hedgehog >= 1.4 && < 1.8
+  if flag(brotli)
+    cpp-options: -DHAVE_BROTLI
+
+  if flag(lz4)
+    cpp-options: -DHAVE_LZ4
+
+test-suite wireform-parquet-derive-test
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test-derive
+  main-is: Main.hs
+  other-modules:
+    Test.Parquet.Derive
+    Test.Parquet.Derive.Types
+    Test.Parquet.Derive.Instances
+  default-extensions:
+    ScopedTypeVariables
+    TemplateHaskell
+  build-depends:
+    base,
+    wireform-parquet,
+    wireform-derive,
+    template-haskell,
+    text,
+    vector,
+    bytestring,
+    sydtest
+
+executable wireform-parquet-interop-probe
+  import: defaults
+  hs-source-dirs: probe
+  main-is: Probe.hs
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-arrow,
+    wireform-parquet,
+    crypton >= 2.2.6 && < 2.3,
+    bytestring >= 0.11 && < 0.13,
+    directory >= 1.3 && < 1.4,
+    filepath >= 1.4 && < 1.6,
+    text >= 2.0 && < 2.2,
+    vector >= 0.13 && < 0.14
+
+executable wireform-parquet-reverse-probe
+  import: defaults
+  ghc-options: -rtsopts
+  hs-source-dirs: probe
+  main-is: Reverse.hs
+  build-depends:
+    aeson >= 2.1 && < 2.4,
+    containers >= 0.7 && < 0.9,
+    crypton >= 2.2.6 && < 2.3,
+    base >= 4.20 && < 5,
+    wireform-arrow,
+    wireform-parquet,
+    deepseq >= 1.4 && < 1.6,
+    bytestring >= 0.11 && < 0.13,
+    directory >= 1.3 && < 1.4,
+    filepath >= 1.4 && < 1.6,
+    text >= 2.0 && < 2.2,
+    vector >= 0.13 && < 0.14
+
+benchmark parquet-bench
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: Bench.hs
+  other-modules: XXH64Pure
+  ghc-options: -O2
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-core,
+    wireform-parquet,
+    bytestring >= 0.11 && < 0.13,
+    criterion >= 1.5 && < 1.7
+
+benchmark parquet-selection-throughput
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: SelectionThroughput.hs
+  ghc-options: -O2 -rtsopts
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-arrow,
+    wireform-parquet,
+    bytestring >= 0.11 && < 0.13,
+    criterion >= 1.5 && < 1.7,
+    deepseq >= 1.4 && < 1.6,
+    filepath >= 1.4 && < 1.6,
+    text >= 2.0 && < 2.2,
+    vector >= 0.13 && < 0.14
+
+benchmark parquet-delta-throughput
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: DeltaThroughput.hs
+  ghc-options: -O2 -rtsopts
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-parquet,
+    criterion >= 1.5 && < 1.7,
+    deepseq >= 1.4 && < 1.6,
+    vector >= 0.13 && < 0.14
+
+benchmark parquet-dictionary-throughput
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: DictionaryThroughput.hs
+  ghc-options: -O2 -rtsopts
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-parquet,
+    bytestring >= 0.11 && < 0.13,
+    criterion >= 1.5 && < 1.7,
+    deepseq >= 1.4 && < 1.6,
+    primitive >= 0.9 && < 0.10,
+    vector >= 0.13 && < 0.14
+
+benchmark parquet-rle-throughput
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: RleThroughput.hs
+  ghc-options: -O2 -rtsopts
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-parquet,
+    bytestring >= 0.11 && < 0.13,
+    criterion >= 1.5 && < 1.7,
+    vector >= 0.13 && < 0.14
+
+benchmark parquet-byte-stream-split-throughput
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: ByteStreamSplitThroughput.hs
+  ghc-options: -O2 -rtsopts
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-parquet,
+    bytestring >= 0.11 && < 0.13,
+    criterion >= 1.5 && < 1.7,
+    deepseq >= 1.4 && < 1.6,
+    vector >= 0.13 && < 0.14
+
+benchmark parquet-alp-throughput
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: AlpThroughput.hs
+  ghc-options: -O2 -rtsopts
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-parquet,
+    bytestring >= 0.11 && < 0.13,
+    criterion >= 1.5 && < 1.7,
+    deepseq >= 1.4 && < 1.6,
+    filepath >= 1.4 && < 1.6,
+    vector >= 0.13 && < 0.14
+
+benchmark parquet-throughput
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: Throughput.hs
+  ghc-options: -O2 -rtsopts
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-arrow,
+    wireform-parquet,
+    bytestring >= 0.11 && < 0.13,
+    criterion >= 1.5 && < 1.7,
+    deepseq >= 1.4 && < 1.6,
+    directory >= 1.3 && < 1.4,
+    filepath >= 1.4 && < 1.6,
+    text >= 2.0 && < 2.2,
+    vector >= 0.13 && < 0.14
+
+
+benchmark parquet-encryption-throughput
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: EncryptionThroughput.hs
+  ghc-options: -O2 -rtsopts
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-parquet,
+    bytestring >= 0.11 && < 0.13,
+    criterion >= 1.5 && < 1.7,
+    directory >= 1.3 && < 1.4,
+    filepath >= 1.4 && < 1.6,
+    text >= 2.0 && < 2.2,
+    vector >= 0.13 && < 0.14

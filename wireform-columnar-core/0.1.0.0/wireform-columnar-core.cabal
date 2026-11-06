@@ -1,0 +1,131 @@
+cabal-version: 3.0
+name: wireform-columnar-core
+version: 0.1.0.0
+synopsis: SIMD-accelerated columnar primitives (bit-unpacking, etc.)
+description:
+  Format-agnostic columnar primitives shared by the wireform Arrow,
+  Parquet, ORC, and Iceberg packages: a pull-based iterator surface
+  ('Columnar.Stream'), a pushdown predicate vocabulary
+  ('Columnar.Predicate'), an mmap-aware file loader ('Columnar.IO'),
+  LZ4 and raw LZO1X codecs ('Columnar.LZ4', 'Columnar.LZO'), and SIMD-accelerated
+  bit-unpacking / popcount kernels ('Columnar.SIMD').
+homepage: https://github.com/iand675/wireform-
+bug-reports: https://github.com/iand675/wireform-/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Ian Duncan
+maintainer: ian@iankduncan.com
+copyright: 2026 Ian Duncan
+category: Data, Codec, Serialization
+build-type: Simple
+tested-with: GHC == 9.10.3, GHC == 9.12.4, GHC == 9.14.1
+extra-source-files:
+  README.md
+  cbits/*.c
+  include/**/*.h
+
+source-repository head
+  type:     git
+  location: https://github.com/iand675/wireform-
+
+flag lzo-reference-bench
+  description: Include the independent system liblzo2 in the LZO benchmark only
+  manual: True
+  default: False
+
+common defaults
+  default-language: GHC2021
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wpartial-fields
+    -Wredundant-constraints
+    -O2
+  default-extensions:
+    StrictData
+    DerivingStrategies
+    DeriveGeneric
+    DeriveAnyClass
+    OverloadedStrings
+    LambdaCase
+
+library
+  import: defaults
+  hs-source-dirs: src
+  exposed-modules:
+    Columnar.IO
+    Columnar.LZ4
+    Columnar.LZO
+    Columnar.Predicate
+    Columnar.SIMD
+    Columnar.Stream
+  c-sources:
+    cbits/columnar_simd.c
+    cbits/byte_stream_split.c
+    cbits/packed_float.c
+    cbits/lzo.c
+  -- simde headers are vendored under include/simde/ so the package
+  -- is self-contained at sdist time. The same headers also live in
+  -- wireform-core, but cabal-check (correctly) rejects a relative
+  -- include-dirs path that walks outside the per-package source
+  -- tree. cbits/columnar_simd.c does '#include <simde/x86/sse2.h>',
+  -- so the include search path needs to land one level above the
+  -- 'simde/' subdirectory.
+  include-dirs: include
+  cc-options: -march=native
+  -- liblz4 is the system C library that backs Columnar.LZ4.
+  -- On Debian / Ubuntu install with `apt install liblz4-dev`;
+  -- on macOS `brew install lz4`. The library is light enough
+  -- (< 100 KiB) that we don't gate it behind a Cabal flag —
+  -- if it's missing the link will fail with a clear "cannot
+  -- find -llz4" message.
+  extra-libraries: lz4
+  build-depends:
+    base >= 4.20 && < 5,
+    async >= 2.2 && < 2.3,
+    bytestring >= 0.11 && < 0.13,
+    directory >= 1.3 && < 1.4,
+    mmap >= 0.5 && < 0.6,
+    stm >= 2.5 && < 2.6,
+    text >= 2.0 && < 2.2,
+    vector >= 0.13 && < 0.14,
+    primitive >= 0.7 && < 0.10
+
+test-suite wireform-columnar-test
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  other-modules: LZORegression
+  ghc-options: -threaded -rtsopts
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-columnar-core,
+    primitive >= 0.7 && < 0.10,
+    bytestring >= 0.11 && < 0.13,
+    text >= 2.0 && < 2.2,
+    vector >= 0.13 && < 0.14,
+    hedgehog >= 1.4 && < 1.8,
+    sydtest,
+    sydtest-hedgehog,
+    temporary >= 1.3 && < 1.4
+
+benchmark columnar-lzo-throughput
+  import: defaults
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is: LZOThroughput.hs
+  ghc-options: -rtsopts
+  build-depends:
+    base >= 4.20 && < 5,
+    wireform-columnar-core,
+    bytestring >= 0.11 && < 0.13,
+    deepseq >= 1.4 && < 1.6,
+    criterion >= 1.6 && < 1.7
+  if flag(lzo-reference-bench)
+    cpp-options: -DLZO_REFERENCE
+    c-sources: bench/lzo_reference.c
+    extra-libraries: lzo2
