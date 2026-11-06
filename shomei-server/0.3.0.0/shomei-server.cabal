@@ -1,0 +1,353 @@
+cabal-version: 3.0
+name: shomei-server
+version: 0.3.0.0
+synopsis: Standalone Shōmei authentication service
+description:
+  The standalone deployment of Shōmei: a warp executable that serves ShomeiAPI
+  against PostgreSQL, the WAI middleware stack (structured logging, Prometheus
+  metrics, rate limiting, body limits), health and readiness probes, the
+  environment-driven config loader, signing-key bootstrap and rotation, and
+  breach-password checking. Also ships shomei-admin, an operations CLI for
+  user administration and zero-downtime signing-key rotation. Other services
+  verify its tokens by fetching its published JWKS.
+
+homepage: https://github.com/shinzui/shomei
+bug-reports: https://github.com/shinzui/shomei/issues
+license: MIT
+license-file: LICENSE
+author: Nadeem Bitar
+maintainer: nadeem@gmail.com
+copyright: 2026 Nadeem Bitar
+category: Web, Security
+tested-with: ghc ==9.12.4
+extra-doc-files: CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/shinzui/shomei.git
+
+flag review-load
+  description: Build the isolated remediation workload tool (excluded from production builds).
+  default: False
+  manual: True
+
+common warnings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wpartial-fields
+    -Wredundant-constraints
+
+common shared
+  default-language: GHC2024
+  default-extensions:
+    BlockArguments
+    DataKinds
+    DeriveAnyClass
+    DuplicateRecordFields
+    LambdaCase
+    MultilineStrings
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+    QualifiedDo
+    TemplateHaskell
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+
+library
+  import: warnings, shared
+  hs-source-dirs: src
+  exposed-modules:
+    Shomei.Health.Server
+    Shomei.Notify
+    Shomei.Notify.Queue
+    Shomei.Server.App
+    Shomei.Server.Boot
+    Shomei.Server.BreachChecker
+    Shomei.Server.Config
+    Shomei.Server.DatabaseError
+    Shomei.Server.ExceptionResponse
+    Shomei.Server.Keys
+    Shomei.Server.Middleware.BodyLimit
+    Shomei.Server.Middleware.RateLimit
+    Shomei.Server.Middleware.TrustedProxy
+    Shomei.Server.Observability.Logging
+    Shomei.Server.Observability.Metrics
+    Shomei.Server.Runtime
+    Shomei.Server.Supervisor
+
+  build-depends:
+    aeson >=2.1 && <2.3,
+    base >=4.18 && <5,
+    bytestring >=0.11 && <0.13,
+    containers >=0.6 && <0.9,
+    crypton >=1.1 && <1.2,
+    effectful >=2.5 && <2.8,
+    effectful-core >=2.5 && <2.8,
+    hasql >=1.10 && <1.11,
+    http-client >=0.7 && <0.8,
+    http-client-tls >=0.3 && <0.5,
+    http-types >=0.12 && <0.13,
+    iproute >=1.7.8 && <1.8,
+    jose >=0.13 && <0.14,
+    mime-mail >=0.5 && <0.6,
+    network >=3.1 && <3.3,
+    pg-migrate >=1.2 && <1.3,
+    process >=1.6 && <1.7,
+    ram >=0.22 && <0.23,
+    servant-health >=0.1 && <0.2,
+    servant-server >=0.20.3 && <0.21,
+    shomei-core ^>=0.3.0.0,
+    shomei-jwt ^>=0.3.0.0,
+    shomei-migrations ^>=0.2.0.1,
+    shomei-postgres ^>=0.3.0.0,
+    shomei-servant ^>=0.3.0.0,
+    shomei-webauthn ^>=0.3.0.0,
+    smtp-mail >=0.5.0.2 && <0.6,
+    stm >=2.5 && <2.6,
+    text >=2.0 && <2.2,
+    time >=1.12 && <1.15,
+    unix >=2.8 && <2.9,
+    unordered-containers >=0.2 && <0.3,
+    uuid >=1.3 && <1.4,
+    wai >=3.2 && <3.3,
+    warp >=3.3 && <3.5,
+
+executable shomei-server
+  import: warnings, shared
+  hs-source-dirs: app
+  main-is: Main.hs
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  build-depends:
+    base >=4.18 && <5,
+    shomei-server ^>=0.3.0.0,
+
+-- EP-4: the operational CLI. A second executable in this package (MasterPlan 2 default;
+-- avoids registering a new mori.dhall package). It reuses the same pool/config/key/interpreter
+-- assembly the server uses, but needs no servant/wai.
+executable shomei-admin
+  import: warnings, shared
+  hs-source-dirs: app
+  main-is: Admin.hs
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  other-modules:
+    Shomei.Admin.Audit
+    Shomei.Admin.Env
+    Shomei.Admin.Keys
+    Shomei.Admin.OAuthClients
+    Shomei.Admin.Roles
+    Shomei.Admin.ServiceAccounts
+    Shomei.Admin.Sweep
+    Shomei.Admin.Users
+
+  build-depends:
+    aeson >=2.1 && <2.3,
+    base >=4.18 && <5,
+    bytestring >=0.11 && <0.13,
+    containers >=0.6 && <0.9,
+    contravariant-extras >=0.3 && <0.4,
+    effectful >=2.5 && <2.8,
+    effectful-core >=2.5 && <2.8,
+    hasql >=1.10 && <1.11,
+    http-client >=0.7 && <0.8,
+    http-client-tls >=0.3 && <0.5,
+    optparse-applicative >=0.19 && <0.20,
+    pg-migrate >=1.2 && <1.3,
+    shomei-core ^>=0.3.0.0,
+    shomei-jwt ^>=0.3.0.0,
+    shomei-migrations ^>=0.2.0.1,
+    shomei-postgres ^>=0.3.0.0,
+    shomei-server ^>=0.3.0.0,
+    text >=2.0 && <2.2,
+    time >=1.12 && <1.15,
+    uuid >=1.3 && <1.4,
+
+test-suite shomei-server-config-test
+  import: warnings, shared
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Shomei/Server/ConfigSpec.hs
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  build-depends:
+    aeson >=2.1 && <2.3,
+    base >=4.18 && <5,
+    bytestring >=0.11 && <0.13,
+    containers >=0.6 && <0.9,
+    directory >=1.3 && <1.4,
+    process >=1.6 && <1.7,
+    shomei-core ^>=0.3.0.0,
+    shomei-postgres ^>=0.3.0.0,
+    shomei-server ^>=0.3.0.0,
+    tasty >=1.4 && <1.6,
+    tasty-hunit >=0.10 && <0.11,
+    text >=2.0 && <2.2,
+
+test-suite shomei-admin-test
+  import: warnings, shared
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    app
+    test
+
+  main-is: Admin/Main.hs
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  other-modules:
+    Shomei.Admin.Audit
+    Shomei.Admin.Env
+    Shomei.Admin.Keys
+    Shomei.Admin.OAuthClients
+    Shomei.Admin.Roles
+    Shomei.Admin.ServiceAccounts
+    Shomei.Admin.Sweep
+    Shomei.Admin.Users
+
+  build-depends:
+    aeson >=2.1 && <2.3,
+    base >=4.18 && <5,
+    bytestring >=0.11 && <0.13,
+    containers >=0.6 && <0.9,
+    contravariant-extras >=0.3 && <0.4,
+    effectful >=2.5 && <2.8,
+    effectful-core >=2.5 && <2.8,
+    hasql >=1.10 && <1.11,
+    http-client >=0.7 && <0.8,
+    http-client-tls >=0.3 && <0.5,
+    jose >=0.13 && <0.14,
+    optparse-applicative >=0.19 && <0.20,
+    ram >=0.22 && <0.23,
+    shomei-core ^>=0.3.0.0,
+    shomei-jwt ^>=0.3.0.0,
+    shomei-migrations ^>=0.2.0.1,
+    shomei-migrations:test-support ^>=0.2.0.1,
+    shomei-postgres ^>=0.3.0.0,
+    shomei-server ^>=0.3.0.0,
+    tasty >=1.4 && <1.6,
+    tasty-hunit >=0.10 && <0.11,
+    text >=2.0 && <2.2,
+    time >=1.12 && <1.15,
+    uuid >=1.3 && <1.4,
+
+test-suite shomei-server-test
+  import: warnings, shared
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  other-modules:
+    Shomei.Server.E2ESpec
+    Shomei.Server.MiddlewareSpec
+    Shomei.Server.NotifySpec
+    Shomei.Server.RuntimeSpec
+    Shomei.Server.SupervisorSpec
+
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  build-depends:
+    aeson >=2.1 && <2.3,
+    base >=4.18 && <5,
+    base64 >=1.0 && <1.1,
+    bytestring >=0.11 && <0.13,
+    containers >=0.6 && <0.9,
+    directory >=1.3 && <1.4,
+    effectful >=2.5 && <2.8,
+    effectful-core >=2.5 && <2.8,
+    hasql >=1.10 && <1.11,
+    http-client >=0.7 && <0.8,
+    http-types >=0.12 && <0.13,
+    network >=3.1 && <3.3,
+    servant-health >=0.1 && <0.2,
+    servant-health:testkit,
+    shomei-core ^>=0.3.0.0,
+    shomei-jwt ^>=0.3.0.0,
+    shomei-migrations:test-support ^>=0.2.0.1,
+    shomei-postgres ^>=0.3.0.0,
+    shomei-servant ^>=0.3.0.0,
+    shomei-server ^>=0.3.0.0,
+    tasty >=1.4 && <1.6,
+    tasty-hunit >=0.10 && <0.11,
+    text >=2.0 && <2.2,
+    time >=1.12 && <1.15,
+    wai >=3.2 && <3.3,
+    warp >=3.3 && <3.5,
+
+test-suite shomei-health-test
+  import: warnings, shared
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test-health
+  main-is: Main.hs
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+  build-depends:
+    base >=4.18 && <5,
+    bytestring >=0.11 && <0.13,
+    http-client >=0.7 && <0.8,
+    servant-health >=0.1 && <0.2,
+    servant-health:testkit,
+    shomei-core ^>=0.3.0.0,
+    shomei-jwt ^>=0.3.0.0,
+    shomei-migrations:test-support ^>=0.2.0.1,
+    shomei-postgres ^>=0.3.0.0,
+    shomei-server ^>=0.3.0.0,
+    tasty >=1.4 && <1.6,
+    tasty-hunit >=0.10 && <0.11,
+
+-- Isolated acceptance driver; never accepts a deployment database or external HTTP target.
+executable shomei-review-load
+  import: warnings, shared
+  hs-source-dirs: review-load
+  main-is: Main.hs
+
+  if !flag(review-load)
+    buildable: False
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N2
+
+  build-depends:
+    aeson >=2.1 && <2.3,
+    base >=4.18 && <5,
+    bytestring >=0.11 && <0.13,
+    containers >=0.6 && <0.9,
+    directory >=1.3 && <1.4,
+    hasql >=1.10 && <1.11,
+    http-client >=0.7 && <0.8,
+    http-types >=0.12 && <0.13,
+    process >=1.6 && <1.7,
+    servant-health >=0.1 && <0.2,
+    shomei-core ^>=0.3.0.0,
+    shomei-jwt ^>=0.3.0.0,
+    shomei-migrations:test-support ^>=0.2.0.1,
+    shomei-postgres ^>=0.3.0.0,
+    shomei-servant ^>=0.3.0.0,
+    shomei-server ^>=0.3.0.0,
+    text >=2.0 && <2.2,
+    unix >=2.8 && <2.9,
+    uuid >=1.3 && <1.4,
+    warp >=3.3 && <3.5,
