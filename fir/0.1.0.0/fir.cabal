@@ -1,0 +1,482 @@
+cabal-version:  3.0
+name:           fir
+version:        0.1.0.0
+x-revision: 1
+synopsis:       An EDSL that compiles to SPIR-V for graphics programming on the GPU in Haskell.
+category:       Graphics
+author:         Sam Derbyshire
+maintainer:     sam.derbyshire@gmail.com
+license:        BSD-3-Clause
+homepage:       https://gitlab.com/sheaf/fir
+bug-reports:    https://gitlab.com/sheaf/fir/-/issues
+build-type:     Simple
+tested-with:    GHC == 9.14.1
+extra-doc-files:
+    CHANGELOG.md
+    img/FIR_logo.svg
+extra-source-files:
+    test/Tests/**/*.hs
+    test/Tests/**/*.golden
+description:
+
+  <<https://gitlab.com/sheaf/fir/-/raw/v0.1.0.0/img/FIR_logo.svg>>
+
+  [__FIR__](https://gitlab.com/sheaf/fir) is an EDSL
+  for writing GPU shader code in Haskell, compiled to __@SPIR-V@__.
+  Requires GHC >= 8.10.
+
+  With this library, shader programs can be written using @do@ notation.
+  Such programs are then transformed into abstract syntax trees (ASTs),
+  before being compiled to @SPIR-V@ assembly.
+
+  In effect, this replaces @GLSL@ as a shader language.
+  This means the Haskell type-system and type-checker are put to use
+  in verifying programs at compile-time.
+  Functional idioms, such as functor and applicative operations, are also supported.
+
+  See the [fir-examples](https://gitlab.com/sheaf/fir/tree/0.1/fir-examples)
+  project subdirectory for fleshed out examples,
+  including using the @vulkan@ package for rendering.
+
+  The exposed modules are:
+
+  ["FIR"]
+      Re-exports the main functionality of the library: writing and compiling programs.
+
+
+  ["FIR.Syntax.Labels"]
+      Optional imperative-like syntax using /OverloadedLabels/.
+
+
+  ["Math.Linear"]
+      Vectors, matrices, and operations on them, as used by this library.
+
+
+  ["Math.Quaternion"]
+      Quaternions and their action by conjugation in 3 dimensions, useful for 3D cameras.
+
+
+
+  Important types used by this library:
+
+  [@Code a@]
+
+      Code for a pure value of type @a@, represented internally as an abstract syntax tree.
+      See "FIR.AST".
+
+      Overloaded functions are provided that automatically create and combine terms of this type.
+      For instance, @3 + 5 :: Code Float@ gets desugared to @PrimOp FAdd ( Lit 3.0 ) ( Lit 5.0 )@.
+
+  [@Program i j a@]
+
+      A monadic expression, starting in state @i@ and ending in state @j@.
+      This state is used to keep track of information at the type level,
+      allowing for type errors to be thrown on invalid operations
+      (e.g. writing to a read-only variable, image sampling outside a fragment shader, etc).
+
+      A value of type @Program i j (Code a)@ can be thought of as stateful GPU code
+      producing a value of type @a@.
+
+      Internally represented using the codensity transformation of McBride-style indexed monads, see "Control.Monad.Indexed".
+
+  [@Module defs@]
+
+      Code for a program that can be compiled to a @SPIR-V@ module.
+
+      @defs@ is a type-level list of shader inputs/ouputs (uniforms, varyings, etc),
+      top-level functions, and entry points.
+
+      See "FIR.Module" for the definition, and the [example shaders](https://gitlab.com/sheaf/fir/tree/0.1/fir-examples/readme.md#overview)
+      for common usage patterns.
+
+
+  Values of all three of these types can be displayed graphically as trees using @showAST@/@drawAST@,
+  which can be useful for debugging.
+
+  See the [project readme](https://gitlab.com/sheaf/fir/tree/0.1/readme.md) for further information,
+  as well as the ["getting started" guide](https://gitlab.com/sheaf/fir/tree/0.1/getting_started.md),
+  which includes instructions concerning installation and usage of the library, and of useful tools
+  such as the @SPIR-V@ tools provided by the [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/).
+
+source-repository head
+  type:     git
+  location: https://gitlab.com/sheaf/fir.git
+  branch:   0.1
+
+flag internals
+
+  manual: True
+  default: False
+  description: This flag exposes all internal modules that by default are
+               inaccessible. It's mostly only useful for library developers to
+               use the internals of FIR rather than end users writing shader
+               programs.
+
+flag sop
+
+  manual: True
+  default: False
+  description: This flag exposes a module with Syntactic instances for generics-sop.
+
+
+common common
+
+  build-depends:
+        base
+          >= 4.14     && < 4.23
+      , bytestring
+          >= 0.10.9.0 && < 0.13
+      , directory
+          ^>= 1.3.3.0
+
+common test
+
+  build-depends:
+        filepath
+           >= 1.4.2.1 && < 1.6
+      , process
+          ^>= 1.6.3.0
+      , text
+           >= 1.2.3.1 && < 2.2
+
+library
+
+    import:
+        common
+
+    hs-source-dirs:
+        src
+
+    exposed-modules:
+        FIR
+      , FIR.Syntax.DebugPrintf
+      , FIR.Syntax.Labels
+      , Math.Linear
+      , Math.Quaternion
+
+    if flag(sop)
+        exposed-modules:
+            , FIR.Generics
+
+    if flag(internals)
+        exposed-modules:
+          , CodeGen.Application
+          , CodeGen.Applicative
+          , CodeGen.Array
+          , CodeGen.Atomics
+          , CodeGen.Binary
+          , CodeGen.CFG
+          , CodeGen.CodeGen
+          , CodeGen.Composite
+          , CodeGen.Debug
+          , CodeGen.Functions
+          , CodeGen.IDs
+          , CodeGen.Images
+          , CodeGen.Instruction
+          , CodeGen.Monad
+          , CodeGen.Optics
+          , CodeGen.Phi
+          , CodeGen.Pointers
+          , CodeGen.PrimOps
+          , CodeGen.RayTracing
+          , CodeGen.State
+          , Control.Arrow.Strength
+          , Control.Monad.Indexed
+          , Control.Type.Optic
+          , Data.Binary.Class.Put
+          , Data.Constraint.All
+          , Data.Containers.Traversals
+          , Data.Finite.With
+          , Data.Function.Variadic
+          , Data.Product
+          , Data.Type.Error
+          , Data.Type.Known
+          , Data.Type.LazyEquality
+          , Data.Type.List
+          , Data.Type.Map
+          , Data.Type.Maybe
+          , Data.Type.Nat
+          , Data.Type.POrd
+          , Data.Type.Snoc
+          , Data.Type.String
+          , Deriving.Base
+          , FIR.AST
+          , FIR.AST.ControlFlow
+          , FIR.AST.Display
+          , FIR.AST.Images
+          , FIR.AST.Type
+          , FIR.AST.Effs
+          , FIR.AST.Exts
+          , FIR.AST.Optics
+          , FIR.AST.Prim
+          , FIR.Binding
+          , FIR.Builtin
+          , FIR.Definition
+          , FIR.Layout
+          , FIR.Module
+          , FIR.Pipeline
+          , FIR.Prelude
+          , FIR.Prim.Array
+          , FIR.Prim.Image
+          , FIR.Prim.RayTracing
+          , FIR.Prim.Atomic
+          , FIR.Prim.Struct
+          , FIR.Prim.Types
+          , FIR.Prim.Op
+          , FIR.ProgramState
+          , FIR.Syntax.AST
+          , FIR.Syntax.Complex
+          , FIR.Syntax.IfThenElse
+          , FIR.Syntax.Images
+          , FIR.Syntax.Optics
+          , FIR.Syntax.Option
+          , FIR.Syntax.Program
+          , FIR.Syntax.RayTracing
+          , FIR.Syntax.Swizzle
+          , FIR.Syntax.Synonyms
+          , FIR.Validation.Ambiguity
+          , FIR.Validation.Arrayness
+          , FIR.Validation.Bindings
+          , FIR.Validation.Bounds
+          , FIR.Validation.CFG
+          , FIR.Validation.Definitions
+          , FIR.Validation.ExecutionModes
+          , FIR.Validation.Formats
+          , FIR.Validation.Images
+          , FIR.Validation.Interface
+          , FIR.Validation.Layout
+          , FIR.Validation.Pipeline
+          , FIR.Validation.RayTracing
+          , FIR.Temp
+          , Instances.TH.Lift
+          , Math.Algebra.Class
+          , Math.Algebra.GradedSemigroup
+          , Math.Logic.Bits
+          , Math.Logic.Class
+          , SPIRV.Builtin
+          , SPIRV.Capability
+          , SPIRV.Control
+          , SPIRV.Decoration
+          , SPIRV.ExecutionMode
+          , SPIRV.Extension
+          , SPIRV.Groups
+          , SPIRV.Image
+          , SPIRV.Layout
+          , SPIRV.Operation
+          , SPIRV.PrimOp
+          , SPIRV.PrimTy
+          , SPIRV.Requirements
+          , SPIRV.ScalarTy
+          , SPIRV.Stage
+          , SPIRV.Storage
+          , SPIRV.Synchronisation
+          , SPIRV.Version
+    else
+        other-modules:
+            CodeGen.Application
+          , CodeGen.Applicative
+          , CodeGen.Array
+          , CodeGen.Atomics
+          , CodeGen.Binary
+          , CodeGen.CFG
+          , CodeGen.CodeGen
+          , CodeGen.Composite
+          , CodeGen.Debug
+          , CodeGen.Functions
+          , CodeGen.IDs
+          , CodeGen.Images
+          , CodeGen.Instruction
+          , CodeGen.Monad
+          , CodeGen.Optics
+          , CodeGen.Phi
+          , CodeGen.Pointers
+          , CodeGen.PrimOps
+          , CodeGen.RayTracing
+          , CodeGen.State
+          , Control.Arrow.Strength
+          , Control.Monad.Indexed
+          , Control.Type.Optic
+          , Data.Binary.Class.Put
+          , Data.Constraint.All
+          , Data.Containers.Traversals
+          , Data.Finite.With
+          , Data.Function.Variadic
+          , Data.Product
+          , Data.Type.Error
+          , Data.Type.Known
+          , Data.Type.LazyEquality
+          , Data.Type.List
+          , Data.Type.Map
+          , Data.Type.Maybe
+          , Data.Type.Nat
+          , Data.Type.POrd
+          , Data.Type.Snoc
+          , Data.Type.String
+          , Deriving.Base
+          , FIR.AST
+          , FIR.AST.ControlFlow
+          , FIR.AST.Display
+          , FIR.AST.Images
+          , FIR.AST.Type
+          , FIR.AST.Effs
+          , FIR.AST.Exts
+          , FIR.AST.Optics
+          , FIR.AST.Prim
+          , FIR.Binding
+          , FIR.Builtin
+          , FIR.Definition
+          , FIR.Layout
+          , FIR.Module
+          , FIR.Pipeline
+          , FIR.Prelude
+          , FIR.Prim.Array
+          , FIR.Prim.Image
+          , FIR.Prim.RayTracing
+          , FIR.Prim.Atomic
+          , FIR.Prim.Struct
+          , FIR.Prim.Types
+          , FIR.Prim.Op
+          , FIR.ProgramState
+          , FIR.Syntax.AST
+          , FIR.Syntax.Complex
+          , FIR.Syntax.IfThenElse
+          , FIR.Syntax.Images
+          , FIR.Syntax.Optics
+          , FIR.Syntax.Option
+          , FIR.Syntax.Program
+          , FIR.Syntax.RayTracing
+          , FIR.Syntax.Swizzle
+          , FIR.Syntax.Synonyms
+          , FIR.Validation.Ambiguity
+          , FIR.Validation.Arrayness
+          , FIR.Validation.Bindings
+          , FIR.Validation.Bounds
+          , FIR.Validation.CFG
+          , FIR.Validation.Definitions
+          , FIR.Validation.ExecutionModes
+          , FIR.Validation.Formats
+          , FIR.Validation.Images
+          , FIR.Validation.Interface
+          , FIR.Validation.Layout
+          , FIR.Validation.Pipeline
+          , FIR.Validation.RayTracing
+          , FIR.Temp
+          , Instances.TH.Lift
+          , Math.Algebra.Class
+          , Math.Algebra.GradedSemigroup
+          , Math.Logic.Bits
+          , Math.Logic.Class
+          , SPIRV.Builtin
+          , SPIRV.Capability
+          , SPIRV.Control
+          , SPIRV.Decoration
+          , SPIRV.ExecutionMode
+          , SPIRV.Extension
+          , SPIRV.Groups
+          , SPIRV.Image
+          , SPIRV.Layout
+          , SPIRV.Operation
+          , SPIRV.PrimOp
+          , SPIRV.PrimTy
+          , SPIRV.Requirements
+          , SPIRV.ScalarTy
+          , SPIRV.Stage
+          , SPIRV.Storage
+          , SPIRV.Synchronisation
+          , SPIRV.Version
+
+
+    build-depends:
+        atomic-file-ops
+          ^>= 0.3.0.0
+      , binary
+          >= 0.8.7.0  && < 0.11
+      , containers
+          >= 0.6.2.1  && < 0.9
+      , distributive
+          ^>= 0.6
+      , finite-typelits
+          >= 0.1.4.2  && < 0.3
+      , generic-monoid
+          ^>= 0.1.0.0
+      , ghc-typelits-knownnat
+          ^>= 0.8.2
+      , ghc-typelits-natnormalise
+          ^>= 0.9.0
+      , half
+          ^>= 0.3
+      , lens
+          >= 4.18     && < 5.4
+      , mtl
+          >= 2.2.2    && < 2.4
+      , split
+          >= 0.2.3.3  && < 0.3
+      , template-haskell
+          >= 2.15     && < 2.25
+      , text-short
+          >= 0.1.4    && < 0.2
+      , transformers
+          >= 0.5.6.2  && < 0.7
+      , tree-view
+          ^>= 0.5
+      , typelits-witnesses
+          >= 0.2.3    && < 0.5
+      , variant
+          ^>= 1.0.1
+      , vector
+          >= 0.12.0.3 && < 0.14
+      , vector-sized
+          >= 1.4.0.0  && < 1.7
+
+    if flag(sop)
+        build-depends:
+          , generics-sop
+              >= 0.4 && < 0.5.2
+          , sop-core
+              >= 0.4 && < 0.5.1
+
+    default-language:
+        Haskell2010
+
+    default-extensions:
+        NoStarIsType
+
+    ghc-options:
+        -Wall
+        -Wcompat
+        -fno-warn-orphans
+        -fno-warn-unticked-promoted-constructors
+        -fno-warn-unused-do-bind
+        -fwarn-missing-local-signatures
+        -fwarn-incomplete-uni-patterns
+        -fwarn-missing-deriving-strategies
+
+    if impl(ghc >= 9.14)
+      ghc-options:
+        -Wno-pattern-namespace-specifier
+
+test-suite fir-tests
+
+    import: common, test
+
+    type:
+      detailed-0.9
+
+    hs-source-dirs:
+      test
+
+    test-module:
+      CabalTests
+
+    other-modules:
+        Test
+      , Tests
+      , Folders
+
+    build-depends:
+        fir
+      , Cabal
+          >= 3.0.0.0 && < 3.17
+
+    default-language:
+        Haskell2010
