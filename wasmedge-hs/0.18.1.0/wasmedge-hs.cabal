@@ -1,0 +1,318 @@
+cabal-version:   3.4
+name:            wasmedge-hs
+version:         0.18.1.0
+
+synopsis:
+  Haskell FFI bindings for the WasmEdge 0.18 WebAssembly runtime
+
+description:
+  Comprehensive, type-safe Haskell FFI bindings for the WasmEdge C API.
+
+  Features:
+
+  * Full coverage of the WasmEdge 0.18.x C API
+  * Two-layer design: raw FFI layer + safe idiomatic public API
+  * Phantom-typed ownership model — no double-frees or use-after-free
+  * @bracket@-style resource management compatible with @MonadUnliftIO@
+  * Support for WASI, host functions, async execution, AOT compilation,
+    plugins, Tag instances (exception handling), and lazy JIT mode
+  * Property-tested with Hedgehog; unit-tested with HSpec
+
+homepage:        https://github.com/tusharad/wasmedge-hs
+bug-reports:     https://github.com/tusharad/wasmedge-hs/issues
+license:         MIT
+license-file:    LICENSE
+author:          Tushar Adhatrao
+maintainer:      tusharadhatrao@gmail.com
+copyright:       2026 Tushar Adhatrao
+category:        WebAssembly, FFI, Language
+build-type:      Simple
+tested-with:
+    GHC == 9.6.6
+  , GHC == 9.8.4
+  , GHC == 9.10.1
+
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+  docs/MAINTAINING.md
+  docs/BACKWARDS_COMPAT.md
+  docs/CONTRIBUTING.md
+  docs/ARCHITECTURE.md
+
+extra-source-files:
+  cbits/wasmedge_hs_shims.h
+  cbits/wasmedge_hs_shims.c
+  cbits/wasmedge_hs_int128.c
+  include/wasmedge_hs.h
+
+source-repository head
+  type:     git
+  location: https://github.com/tusharad/wasmedge-hs.git
+
+-- -------------------------------------------------------------------------
+-- Flags
+-- -------------------------------------------------------------------------
+
+flag static
+  description:
+    Link against libwasmedge statically (requires a static build of WasmEdge).
+  default:     False
+  manual:      True
+
+-- -------------------------------------------------------------------------
+-- Common stanzas
+-- -------------------------------------------------------------------------
+
+common defaults
+  default-language:    GHC2021
+  default-extensions:
+    DataKinds
+    DerivingStrategies
+    DeriveAnyClass
+    DeriveGeneric
+    GeneralizedNewtypeDeriving
+    LambdaCase
+    OverloadedStrings
+    ScopedTypeVariables
+    TypeFamilies
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wredundant-constraints
+    -Wmissing-export-lists
+    -Wmissing-deriving-strategies
+    -Wno-unused-do-bind
+
+-- -------------------------------------------------------------------------
+-- Library
+-- -------------------------------------------------------------------------
+
+library
+  import:          defaults
+  hs-source-dirs:  src
+
+  -- C shim sources compiled by GHC directly — no external codegen needed
+  c-sources:
+    cbits/wasmedge_hs_shims.c
+    cbits/wasmedge_hs_int128.c
+
+  include-dirs:
+    include
+    cbits
+
+  -- Let hsc2hs find WasmEdge headers via pkg-config or system paths.
+  -- Users set CPATH / C_INCLUDE_PATH if WasmEdge is in a non-standard location.
+  includes:
+    wasmedge_hs.h
+
+  if flag(static)
+    extra-libraries: wasmedge
+    ghc-options:     -optl-static
+  else
+    extra-libraries: wasmedge
+
+  build-depends:
+      base              >= 4.18   && < 5
+    , bytestring        >= 0.11   && < 0.13
+    , text              >= 2.0    && < 2.2
+    , wide-word         >= 0.1.5  && < 0.2
+    , vector            >= 0.13   && < 0.14
+    , containers        >= 0.6    && < 0.8
+    , unliftio-core     >= 0.2    && < 0.3
+    , resourcet         >= 1.3    && < 1.4
+    , deepseq           >= 1.4    && < 1.6
+    , aeson             >= 2.1    && < 2.3
+
+  exposed-modules:
+    -- Top-level convenience re-export
+    WasmEdge
+    -- Core types
+    WasmEdge.Types
+    WasmEdge.Error
+    WasmEdge.Value
+    -- Configuration
+    WasmEdge.Configure
+    -- Logging
+    WasmEdge.Log
+    -- Statistics
+    WasmEdge.Statistics
+    -- Execution pipeline
+    WasmEdge.Store
+    WasmEdge.Executor
+    -- Module instances
+    WasmEdge.Module
+    WasmEdge.Function
+    WasmEdge.Function.Memory
+    WasmEdge.Caller
+    WasmEdge.Table
+    WasmEdge.Memory
+    WasmEdge.Memory.Codec
+    WasmEdge.Memory.Alloc
+    WasmEdge.Bindgen
+    WasmEdge.Global
+    WasmEdge.Tag
+    -- High-level VM
+    WasmEdge.VM
+    -- AOT compiler
+    WasmEdge.Compiler
+    -- Async
+    WasmEdge.Async
+    -- Plugins
+    WasmEdge.Plugin
+    -- Internal modules (exposed for testing and advanced use; unstable API)
+    WasmEdge.Internal.Types
+    WasmEdge.Internal.Ownership
+    WasmEdge.Internal.Storable
+    WasmEdge.Internal.Utils
+    WasmEdge.Internal.FFI.Basic
+    WasmEdge.Internal.FFI.Value
+    WasmEdge.Internal.FFI.Configure
+    WasmEdge.Internal.FFI.AST
+    WasmEdge.Internal.FFI.Execution
+    WasmEdge.Internal.FFI.Instance
+    WasmEdge.Internal.FFI.VM
+    WasmEdge.Internal.FFI.Plugin
+    WasmEdge.Internal.FFI.Compiler
+    WasmEdge.Internal.FFI.Experimental
+
+-- -------------------------------------------------------------------------
+-- Test suite
+-- -------------------------------------------------------------------------
+
+test-suite wasmedge-hs-test
+  import:          defaults
+  type:            exitcode-stdio-1.0
+  hs-source-dirs:  test
+  main-is:         Main.hs
+  ghc-options:     -threaded -rtsopts "-with-rtsopts=-N2"
+
+  other-modules:
+    Test.Unit.VersionSpec
+    Test.Unit.ConfigureSpec
+    Test.Unit.ValueSpec
+    Test.Unit.VMSpec
+    Test.Unit.HostFuncSpec
+    Test.Unit.OwnershipSpec
+    Test.Unit.WasmMemorySpec
+    Test.Unit.LiftMemFuncSpec
+    Test.Property.ValueProp
+    Test.Property.StringProp
+
+  build-depends:
+      wasmedge-hs
+    , base
+    , hspec              >= 2.11  && < 2.12
+    , hspec-core         >= 2.11  && < 2.12
+    , hedgehog           >= 1.4   && < 1.8
+    , hspec-hedgehog     >= 0.1   && < 0.4
+    , bytestring
+    , text
+    , aeson
+    , filepath           >= 1.4   && < 1.6
+    , temporary          >= 1.3   && < 1.4
+
+-- -------------------------------------------------------------------------
+-- Benchmark suite
+-- -------------------------------------------------------------------------
+
+benchmark wasmedge-hs-bench
+  import:          defaults
+  type:            exitcode-stdio-1.0
+  hs-source-dirs:  bench
+  main-is:         Main.hs
+
+  build-depends:
+      wasmedge-hs
+    , base
+    , criterion          >= 1.6   && < 1.7
+    , deepseq
+    , bytestring
+    , text
+
+-- -------------------------------------------------------------------------
+-- Examples
+-- -------------------------------------------------------------------------
+
+executable wasmedge-hs-example-hello
+  import:          defaults
+  hs-source-dirs:  examples
+  main-is:         Hello.hs
+  build-depends:
+      wasmedge-hs
+    , base
+    , bytestring
+
+executable wasmedge-hs-example-hostfunc
+  import:          defaults
+  hs-source-dirs:  examples
+  main-is:         HostFunc.hs
+  build-depends:
+      wasmedge-hs
+    , base
+    , bytestring
+    , text
+
+executable wasmedge-hs-example-aot
+  import:          defaults
+  hs-source-dirs:  examples
+  main-is:         AOTCompile.hs
+  build-depends:
+      wasmedge-hs
+    , base
+    , bytestring
+    , filepath          >= 1.4   && < 1.6
+    , temporary         >= 1.3   && < 1.4
+
+executable wasmedge-hs-example-plugin
+  import:          defaults
+  hs-source-dirs:  examples
+  main-is:         Plugin.hs
+  build-depends:
+      wasmedge-hs
+    , base
+    , text
+
+executable wasmedge-hs-example-api-suite
+  import:          defaults
+  hs-source-dirs:  examples
+  main-is:         Stress/Main.hs
+  ghc-options:     -threaded -rtsopts "-with-rtsopts=-N"
+  other-modules:
+    Stress.Lib
+    Stress.WasmBytecode
+    Stress.AOTWorkflow
+    Stress.AsyncTimeout
+    Stress.BigMemory
+    Stress.CallerIntrospection
+    Stress.ChaosFault
+    Stress.ComplexData
+    Stress.ConcurrentPool
+    Stress.GlobalState
+    Stress.HostPipeline
+    Stress.LeakCheck
+    Stress.LoggingDiagnostic
+    Stress.LowLevelPipeline
+    Stress.PluginWorkflow
+    Stress.StatisticsCost
+    Stress.StoreReflection
+    Stress.TableIndirect
+    Stress.TagException
+    Stress.WASILifecycle
+  build-depends:
+      wasmedge-hs
+    , base
+    , bytestring
+    , text
+    , vector
+    , async             >= 2.2   && < 2.3
+    , stm               >= 2.5   && < 2.6
+    , clock             >= 0.8   && < 0.9
+    , cryptohash-sha256 >= 0.11  && < 0.12
+    , temporary         >= 1.3   && < 1.4
+    , filepath          >= 1.4   && < 1.6
+    , directory         >= 1.3   && < 1.4
+    , containers
+    , aeson
+
