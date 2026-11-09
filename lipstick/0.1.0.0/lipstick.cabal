@@ -1,0 +1,156 @@
+cabal-version:   3.12
+name:            lipstick
+version:         0.1.0.0
+synopsis:        Style definitions for nice terminal layouts
+category:        Console, Text
+description:
+  A port of charmbracelet's lipgloss (v2): colours, borders, padding,
+  alignment, tables, lists, trees and layered compositions for command-line
+  output. Styles are composable modifiers; they render to blocks of styled
+  text, laid out in the width available and turned into ANSI escape
+  sequences only when printed. lipstick-brick shows the blocks in brick and
+  vty applications.
+license:         MIT AND Unicode-3.0
+license-files:
+    LICENSE
+    LICENSE.Unicode
+author:          Andrea Bedini
+maintainer:      andrea@bedini.au
+homepage:        https://github.com/andreabedini/lipstick
+bug-reports:     https://github.com/andreabedini/lipstick/issues
+build-type:      Simple
+tested-with:     GHC == 9.10.3 || == 9.12.2 || == 9.14.1
+extra-doc-files:
+    CHANGELOG.md
+    README.md
+extra-source-files:
+    scripts/GenUnicodeTable.hs
+    test/data/GraphemeBreakTest.txt
+
+source-repository head
+    type:     git
+    location: https://github.com/andreabedini/lipstick.git
+
+-- The demo and the screenshot generator are for developing lipstick:
+-- cabal.project switches them on, so that installing the package from
+-- Hackage does not install them.
+flag examples
+    description: Build the example programs
+    default:     False
+    manual:      True
+
+common warnings
+    ghc-options: -Wall -Wcompat -Wincomplete-uni-patterns -Wincomplete-record-updates
+
+library
+    import:           warnings
+    -- The public modules are in src; the representation of blocks, grids,
+    -- styles and colours is in internal, as other-modules, so other
+    -- packages cannot import it.
+    hs-source-dirs:   src internal
+    exposed-modules:
+        Lipstick
+        Lipstick.Ansi
+        Lipstick.Block
+        Lipstick.Border
+        Lipstick.Color
+        Lipstick.Grid
+        Lipstick.Layer
+        Lipstick.Mod
+        Lipstick.Place
+        Lipstick.Style
+        Lipstick.Table
+        Lipstick.Outline
+        Lipstick.Terminal
+        Lipstick.Width
+    other-modules:
+        Lipstick.Internal.Border
+        Lipstick.Internal.Color
+        Lipstick.Internal.Grid
+        Lipstick.Internal.Layout
+        Lipstick.Internal.Mod
+        Lipstick.Internal.Types
+        Lipstick.Internal.UnicodeTable
+        Lipstick.Internal.Width
+    build-depends:
+        base >=4.20 && <4.23,
+        array ^>=0.5,
+        bytestring >=0.11 && <0.13,
+        text >=2.1.2 && <2.2,
+        ansi-terminal ^>=1.1,
+        terminal-size >=0.3.4 && <0.4,
+        colour ^>=2.3,
+        containers >=0.6 && <0.9
+    default-language: GHC2024
+
+executable lipstick-demo
+    import:           warnings
+    if !flag(examples)
+        buildable: False
+    main-is:          Main.hs
+    hs-source-dirs:   examples
+    build-depends:
+        base,
+        text,
+        lipstick
+    default-language: GHC2024
+
+executable lipstick-screenshots
+    import:           warnings
+    if !flag(examples)
+        buildable: False
+    main-is:          Screenshots.hs
+    other-modules:    Svg
+    hs-source-dirs:   examples
+    build-depends:
+        base,
+        filepath ^>=1.5,
+        text,
+        lipstick
+    default-language: GHC2024
+
+test-suite lipstick-test
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    -- The tests reach the library's internals by compiling its sources, so
+    -- other-modules and build-depends must include the library's.
+    hs-source-dirs:   test src internal
+    other-modules:
+        Lipstick
+        Lipstick.Ansi
+        Lipstick.Block
+        Lipstick.Border
+        Lipstick.Color
+        Lipstick.Grid
+        Lipstick.Layer
+        Lipstick.Mod
+        Lipstick.Place
+        Lipstick.Style
+        Lipstick.Table
+        Lipstick.Outline
+        Lipstick.Terminal
+        Lipstick.Width
+        Lipstick.Internal.Border
+        Lipstick.Internal.Color
+        Lipstick.Internal.Grid
+        Lipstick.Internal.Layout
+        Lipstick.Internal.Mod
+        Lipstick.Internal.Types
+        Lipstick.Internal.UnicodeTable
+        Lipstick.Internal.Width
+    build-depends:
+        base >=4.20 && <4.23,
+        array ^>=0.5,
+        bytestring >=0.11 && <0.13,
+        text >=2.1.2 && <2.2,
+        ansi-terminal ^>=1.1,
+        terminal-size >=0.3.4 && <0.4,
+        colour ^>=2.3,
+        containers >=0.6 && <0.9,
+        directory,
+        tasty ^>=1.5,
+        tasty-hunit ^>=0.10,
+        tasty-quickcheck ^>=0.11,
+        QuickCheck >=2.14 && <2.20
+    default-language: GHC2024
