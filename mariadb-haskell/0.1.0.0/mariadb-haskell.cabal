@@ -1,0 +1,367 @@
+cabal-version:      3.4
+name:               mariadb-haskell
+version:            0.1.0.0
+synopsis:           Alpha streaming Haskell driver for MariaDB
+stability:          Alpha
+description:
+  Alpha software: extensively validated with automated tests and benchmarks,
+  but not yet validated in real-world applications. Evaluate in your own
+  environment before relying on it; APIs and behavior may change.
+
+  MariaDB-only fork of mysql-haskell. Streaming text and binary queries,
+  managed prepared statements, native bulk execution, cached/extended metadata,
+  session observations and clean connection reset, streamed parameters,
+  server cursors, progress reporting and optional transport compression.
+
+  TCP, Unix sockets and verified TLS, including client certificates and
+  explicit PAM/Kerberos authentication. Row-based CDC supports MariaDB GTID
+  resume, complete-group checkpoints and manual semisync acknowledgements.
+
+  See the packaged README, user guide, migration guide and benchmark guide,
+  or <https://github.com/aantich/mariadb-haskell>.
+  <https://github.com/aantich/mariadb-haskell/blob/main/docs/USER_GUIDE.md User guide>;
+  <https://github.com/aantich/mariadb-haskell/blob/main/docs/BENCHMARKS.md benchmarks>;
+  <https://github.com/aantich/mariadb-haskell/blob/main/validation/RESULTS.md live validation>.
+  Public modules retain Database.MySQL names; MySQL servers are not supported.
+  Full validation currently covers MariaDB 12.3.3 on macOS and Linux.
+  Linux builds require zlib and MIT Kerberos development libraries;
+  macOS uses the system GSS framework. Windows GSSAPI is unavailable.
+license:            BSD-3-Clause AND MPL-2.0
+license-files:      LICENSE
+                    LICENSE-MPL-2.0
+author:             winterland1989
+maintainer:         Anton Antich <anton.antich@gmail.com>
+copyright:          (c) 2016 Winterland
+category:           Database
+build-type:         Simple
+tested-with:        GHC ==9.4.7, GHC ==9.10.3
+extra-doc-files:    README.md
+                    docs/CA_BUNDLE.md
+                    ChangeLog.md
+                    docs/USER_GUIDE.md
+                    docs/BENCHMARKS.md
+                    docs/MIGRATION.md
+                    docs/RELEASING.md
+data-files:         mozillaCAStore.pem
+extra-source-files:
+  examples/*.hs
+  tools/update_ca_bundle.py
+  tools/check_release.py
+  ca-bundle.json
+  validation/*.py
+  validation/*.md
+  validation/*.c
+  validation/auth_fixture/Dockerfile
+  validation/auth_fixture/.dockerignore
+  validation/auth_fixture/*.py
+  validation/auth_fixture/*.c
+  test/cert/ca-key.pem
+  test/cert/ca.pem
+  test/cert/server-cert.pem
+  test/cert/server-key.pem
+  test/cert/server-req.pem
+  test/json-data/buffer-builder.json
+  test/json-data/dates-fract.json
+  test/json-data/dates.json
+  test/json-data/example.json
+  test/json-data/geometry.json
+  test/json-data/integers.json
+  test/json-data/jp10.json
+  test/json-data/jp100.json
+  test/json-data/jp50.json
+  test/json-data/numbers.json
+  test/json-data/twitter1.json
+  test/json-data/twitter10.json
+  test/json-data/twitter100.json
+  test/json-data/twitter20.json
+  test/json-data/twitter50.json
+
+homepage:           https://github.com/aantich/mariadb-haskell
+bug-reports:        https://github.com/aantich/mariadb-haskell/issues
+
+source-repository head
+  type:     git
+  location: https://github.com/aantich/mariadb-haskell
+
+flag validation
+  description: Build the developer-only correctness and benchmark harness
+  default: False
+  manual: True
+
+common common-options
+  ghc-options:
+    -Wall -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Widentities -Wredundant-constraints
+    -Wcpp-undef -fwarn-tabs -Wpartial-fields
+    -Wunused-packages
+    -fenable-th-splice-warnings
+    -fno-omit-yields
+  build-depends:
+      base >=4.17 && <4.22
+  default-language: GHC2021
+
+library
+  import: common-options
+  exposed-modules:
+    Data.Binary.Parser
+    Data.Binary.Parser.Numeric
+    Data.Binary.Parser.Word8
+    Data.Connection
+    Data.Int.Int24
+    Data.TLSSetting
+    Data.Word.Word24
+    Database.MySQL.Base
+    Database.MySQL.Authentication
+    Database.MySQL.BinLog
+    Database.MySQL.BinLogProtocol.BinLogEvent
+    Database.MySQL.BinLogProtocol.BinLogMeta
+    Database.MySQL.BinLogProtocol.BinLogValue
+    Database.MySQL.Connection
+    Database.MySQL.Field
+    Database.MySQL.Protocol.Auth
+    Database.MySQL.Protocol.ColumnDef
+    Database.MySQL.Protocol.Command
+    Database.MySQL.Protocol.Escape
+    Database.MySQL.Protocol.MySQLValue
+    Database.MySQL.Protocol.Packet
+    Database.MySQL.TLS
+    System.IO.Streams.TCP
+    System.IO.Streams.TLS
+
+  other-modules:      Paths_mariadb_haskell
+  autogen-modules:    Paths_mariadb_haskell
+  hs-source-dirs:     src
+  c-sources:         cbits/gssapi.c
+  if os(osx)
+    frameworks:      GSS
+  else
+    if !os(windows)
+      extra-libraries: gssapi_krb5
+  other-modules:      Database.MySQL.Authentication.GSSAPI
+                      Database.MySQL.Query
+                      Database.MySQL.Session
+                      Database.MySQL.BinLogProtocol.CDC
+                      Database.MySQL.Protocol.Progress
+                      Database.MySQL.Protocol.Compression
+  build-depends:
+    asn1-encoding >=0.9 && <0.10,
+    asn1-types >=0.3 && <0.4,
+    binary >=0.8.3 && <0.9,
+    blaze-textual >=0.2 && <0.3,
+    bytestring >=0.10.2.0 && <0.12 || ^>=0.12.0,
+    bytestring-lexing >=0.5 && <0.6,
+    containers >=0.5 && <0.9,
+    crypton-x509 >=1.5 && <2,
+    crypton-x509-store >=1.5 && <2,
+    crypton-x509-system >=1.5 && <2,
+    data-default-class >=0.1.2 && <0.2 || ^>=0.2.0,
+    deepseq >=1.4.6 && <1.5 || ^>=1.5.0,
+    io-streams >=1.2 && <2,
+    monad-loops >=0.4 && <0.5,
+    network >=2.3 && <4,
+    crypton-pem >=0.2.4 && <0.4,
+    scientific >=0.3 && <0.4,
+    text >=1.1 && <2.1 || ^>=2.1,
+    time >=1.5.0 && <1.12 || ^>=1.12.2 || ^>=1.14,
+    tls >=1.7.0 && <1.8 || ^>=1.8.0 || ^>=1.9.0 || ^>=2.0.0 || ^>=2.1.0 || ^>=2.2.0 || ^>=2.3.0 || ^>=2.4.0,
+    vector >=0.8 && <0.13 || ^>=0.13.0,
+    word-compat >=0.0 && <0.1,
+    zlib >=0.6 && <0.8
+
+  -- Decision: require crypton 2.0, the first release with its side-channel
+  -- fixes (none backported to 1.x). Before it, P-384/P-521 point multiplication
+  -- and DH exponentiation took time that followed the secret, and tls runs them
+  -- on the client's ephemeral key whenever the server picks such a group. 2.0
+  -- rather than 2.1.x, as 2.0 has every fix we reach.
+  build-depends:
+    crypton ^>=2.0.0 || ^>=2.1.0,
+    ram >=0.20 && <0.23
+
+  default-extensions:
+    DeriveDataTypeable
+    DeriveGeneric
+    MultiWayIf
+    OverloadedStrings
+
+
+test-suite test
+  import: common-options
+  type:               exitcode-stdio-1.0
+  main-is:            Main.hs
+  other-modules:
+    Aeson
+    AesonBP
+    BoundsCheck
+    ConnectInfo
+    FieldRoundtrip
+    JSON
+    QC.ByteString
+    QC.Combinator
+    QC.Common
+    Orphans
+    Sha1Scramble
+    Sha256Scramble
+    TCPStreams
+    Word24
+
+  hs-source-dirs:     test
+  build-depends:
+    attoparsec < 1.0,
+    base16-bytestring >=1.0 && <2.0,
+    binary >=0.8,
+    bytestring >=0.10,
+    deepseq,
+    directory < 2.0,
+    filepath < 2.0,
+    io-streams,
+    mariadb-haskell,
+    network,
+    QuickCheck >=2.7 && <3.0,
+    quickcheck-instances < 1.0,
+    scientific >=0.3.0,
+    tasty >=0.11 && <2.0,
+    tasty-expected-failure < 1.0,
+    tasty-hunit < 1.0,
+    tasty-quickcheck >=0.8 && < 1.0,
+    text,
+    time,
+    unordered-containers < 1.0,
+    vector
+
+  default-extensions:
+    MultiWayIf
+    OverloadedStrings
+
+  ghc-options:        -threaded 
+
+test-suite integration
+  type:               exitcode-stdio-1.0
+  main-is:            Integration.hs
+  other-modules:
+    BinaryRow
+    BinaryRowNew
+    BinLog
+    BinLogNew
+    CachingSha2
+    ExecuteMany
+    MultipleResults
+    MysqlTests
+    QueryWithoutResultSet
+    RoundtripBit
+    RoundtripYear
+    SelectOne
+    TextRow
+    TLSConnection
+    TextRowNew
+    UnixSocket
+
+  hs-source-dirs:     test
+  build-depends:
+    base,
+    bytestring >=0.10,
+    directory,
+    io-streams,
+    mariadb-haskell,
+    tasty >=0.11 && <2.0,
+    tasty-hunit < 1.0,
+    text,
+    time,
+    vector
+
+  default-extensions:
+    MultiWayIf
+    OverloadedStrings
+
+  ghc-options:        -threaded
+  default-language:   Haskell2010
+
+benchmark binary-parsers-bench
+  import: common-options
+  other-modules:
+    Aeson
+    AesonBP
+    Common
+    HttpReq
+    Network.Wai.Handler.Warp.ReadInt
+    Network.Wai.Handler.Warp.RequestHeader
+
+  build-depends:
+    attoparsec,
+    binary,
+    bytestring,
+    case-insensitive < 2,
+    criterion >=1.1 && <1.2 || ^>=1.6.3,
+    deepseq,
+    directory < 1.4,
+    filepath < 1.6,
+    http-types < 1.0,
+    mariadb-haskell,
+    scanner < 0.4,
+    scientific,
+    text,
+    unordered-containers,
+    vector
+
+  hs-source-dirs:   binary-parser-bench
+  main-is:          Bench.hs
+  type:             exitcode-stdio-1.0
+
+benchmark bench24
+  import: common-options
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   word24-bench
+  main-is:          Benchmark.hs
+  build-depends:
+    criterion >=1.1,
+    deepseq >=1.2 && <2,
+    mariadb-haskell
+
+
+-- enable to debug the RULES    
+-- executable exe
+--   import: common-options
+--   main-is: Main.hs
+--   hs-source-dirs:
+--       app
+--   build-depends:
+--       mariadb-haskell
+--   ghc-options: -Wno-unused-packages
+
+-- Developer harness, requiring a provisioned server and a Git/evidence checkout
+-- for the complete Python workflow. See docs/RELEASING.md before distribution.
+executable mariadb-validation
+  import: common-options
+  if !flag(validation)
+    buildable: False
+  default-extensions: OverloadedStrings
+  hs-source-dirs: validation/hs
+  main-is: Main.hs
+  other-modules:
+    Validation.Common
+    Validation.Protocol
+    Validation.Functional
+    Validation.Reliability
+    Validation.Security
+    Validation.CDC
+    Validation.Benchmark
+    Validation.Supplementary
+    Validation.Stage1
+    Validation.Stage2
+    Validation.Stage3
+    Validation.Stage3Bench
+    Validation.Stage4
+    Validation.Stage4Bench
+    Validation.Stage5
+    Validation.Stage5Review
+    Validation.Stage5Bench
+    Validation.Stage6
+    Validation.Stage6Bench
+    Validation.Stage6Review
+    Validation.Stage7
+    Validation.Stage7Bench
+    Validation.ExternalAuthFixture
+    Validation.WireProxy
+    Validation.FaultTransport
+  build-depends:
+    binary, bytestring, containers, filepath >=1.4 && <1.6, io-streams, mariadb-haskell, network, scientific, text, time, tls, vector, zlib, process >=1.6 && <1.7, directory >=1.3 && <1.4
+  ghc-options: -threaded -rtsopts -with-rtsopts=-T
