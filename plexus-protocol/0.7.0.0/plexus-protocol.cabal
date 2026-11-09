@@ -1,0 +1,102 @@
+cabal-version:      3.0
+name:               plexus-protocol
+version:            0.7.0.0
+synopsis:           Plexus RPC protocol types and client
+description:        Haskell types and a client for Plexus RPC, a streaming JSON-RPC 2.0
+                    protocol: stream items and provenance, recursive plugin and method
+                    schemas, authentication, and a WebSocket transport. Shared by Synapse
+                    and other Plexus RPC clients.
+license:            MIT
+license-file:       LICENSE
+author:             hypermemetic
+maintainer:         hypermemetic@proton.me
+copyright:          (c) 2025-2026 hypermemetic
+category:           Network
+build-type:         Simple
+tested-with:        GHC == 9.8.4, GHC == 9.12.4
+extra-doc-files:    README.md
+                    CHANGELOG.md
+
+library
+  exposed-modules:
+    Plexus.Client
+    Plexus.Client.Pool
+    Plexus.Input
+    Plexus.Transport
+    Plexus
+    Plexus.Types
+    Plexus.Auth
+    Plexus.RemoteError
+    Plexus.Schema
+    Plexus.Schema.Cache
+    Plexus.Schema.Recursive
+  build-depends:
+    base ^>=4.17 || ^>=4.18 || ^>=4.19 || ^>=4.21,
+    aeson >= 2.0,
+    aeson-casing >= 0.2,
+    text >= 2.0,
+    bytestring >= 0.11,
+    case-insensitive >= 1.2,
+    containers >= 0.6,
+    websockets >= 0.13,
+    network >= 3.1.2,
+    -- SCAFFOLD-21: wss — TLS, the certificate checked against the system store
+    tls >= 2.1 && < 2.5,
+    crypton-x509-store >= 1.6 && < 1.10,
+    crypton-x509-system >= 1.6 && < 1.10,
+    async >= 2.2,
+    stm >= 2.5,
+    streaming >= 0.2,
+    directory >= 1.3,
+    filepath >= 1.4,
+    time >= 1.9,
+    resource-pool >= 0.4,
+    -- BIDIR-18: credit and seq read as bounded integers
+    scientific >= 0.3
+  hs-source-dirs:   src
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+    DeriveGeneric
+    DeriveAnyClass
+    DerivingStrategies
+    GeneralizedNewtypeDeriving
+    LambdaCase
+    RecordWildCards
+
+-- NAMING-9: the naming gate (scripts/naming-gate.sh) in the suite. The
+-- spec counts the gate's lines and shows the first; it never diffs them.
+-- Its heap is capped (-M6G; +RTS -M... -RTS overrides it), so no regression
+-- of that can take the machine (2026-10-29: an hspec diff reached 7.3 GB).
+test-suite naming-gate
+  type:             exitcode-stdio-1.0
+  main-is:          NamingGateSpec.hs
+  build-depends:
+    base >= 4.17 && < 5,
+    process >= 1.6 && < 1.7,
+    hspec >= 2.10 && < 2.12
+  hs-source-dirs:   test
+  default-language: GHC2021
+  ghc-options:      -threaded -rtsopts "-with-rtsopts=-M6G"
+
+-- Golden tests against the plexus 0.7 conformance fixture (RETURNS-7), read
+-- by sibling path from ../plexus-macros/fixtures/conformance/expected/.
+test-suite plexus-protocol-test
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  hs-source-dirs:   test
+  build-depends:
+    base,
+    plexus-protocol,
+    aeson,
+    bytestring,
+    containers,
+    directory,
+    filepath,
+    hspec >= 2.7,
+    text
+  default-language: GHC2021
+  default-extensions:
+    OverloadedStrings
+    LambdaCase
+  ghc-options:      -Wall
