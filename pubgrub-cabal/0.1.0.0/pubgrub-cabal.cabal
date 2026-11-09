@@ -1,0 +1,110 @@
+cabal-version:      3.0
+name:               pubgrub-cabal
+version:            0.1.0.0
+synopsis:           The PubGrub version solver for cabal packages
+description:
+    The cabal domain for the @pubgrub@ solver: a package name or one of its
+    automatic flags is a variable, an installed unit or a source release is a
+    value, a dependency's declared range is one symbolic set of instances, and
+    the leaves of every proof are what the request asks for, what a @.cabal@
+    file states, and what the compiler and the machine rule out.
+
+    It provides the translation from @GenericPackageDescription@ and an
+    installed package set into the solver's input (@PubGrub.Cabal.Flatten@,
+    @PubGrub.Cabal.Installed@), the rule that picks an instance of a package
+    and states what it entails (@PubGrub.Cabal.Provider@), and the renderer
+    that prints a failed resolution as a proof in cabal's range syntax
+    (@PubGrub.Cabal.Report@). Of the cabal ecosystem it needs @Cabal-syntax@
+    only: the index, the compiler and the installed database are the caller's
+    to supply.
+category:           Distribution
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Andrea Bedini
+maintainer:         andrea.bedini@moduscreate.com
+copyright:          (c) 2026 Tweag I/O by Modus Create
+homepage:           https://github.com/tweag/pubgrub-hs
+bug-reports:        https://github.com/tweag/pubgrub-hs/issues
+build-type:         Simple
+tested-with:        GHC ==9.12.2 || ==9.14.1
+extra-doc-files:
+    CHANGELOG.md
+    README.md
+
+-- The expected proofs for the two error-reporting cases in test/PaperSpec.hs,
+-- shipped so that the test suite runs from the sdist. They are golden files so
+-- that each can be read as the proof a user would see, and
+-- `cabal test --test-options=--accept` rewrites them when the wording changes on
+-- purpose.
+extra-source-files: test/golden/*.txt
+
+source-repository head
+    type:     git
+    location: https://github.com/tweag/pubgrub-hs.git
+    subdir:   pubgrub-cabal
+
+common warnings
+    ghc-options: -Wall
+
+common language
+    default-language:   GHC2021
+    default-extensions: ImportQualifiedPost
+
+library
+    import:          warnings, language
+    hs-source-dirs:  src
+    exposed-modules:
+        PubGrub.Cabal
+        PubGrub.Cabal.Flatten
+        PubGrub.Cabal.Installed
+        PubGrub.Cabal.InstanceSet
+        PubGrub.Cabal.PreInstalled
+        PubGrub.Cabal.Pretty
+        PubGrub.Cabal.Provider
+        PubGrub.Cabal.Report
+        PubGrub.Cabal.Report.Headline
+        PubGrub.Cabal.Report.Layout
+        PubGrub.Cabal.Report.Rule
+        PubGrub.Cabal.Report.Wording
+        PubGrub.Cabal.Value
+
+        PubGrub.Cabal.Version
+        PubGrub.Cabal.VersionSet
+    build-depends:
+        , base         >=4.21  && <4.23
+        , Cabal-syntax >=3.14  && <3.20
+        , co-log-core  >=0.3.2 && <0.4
+        , containers   >=0.7   && <0.9
+        , pubgrub      ^>=0.1
+        , text         >=2.1   && <2.2
+
+test-suite pubgrub-cabal-test
+    import:         warnings
+    type:           exitcode-stdio-1.0
+    hs-source-dirs: test
+    main-is:        Main.hs
+    default-language: GHC2021
+    other-modules:
+        ConstraintSpec
+        FlagSolveSpec
+        InstalledSpec
+        InstanceSetSpec
+        PaperSpec
+        ReleaseSpec
+        ReportSpec
+        SolverSpec
+        StoreSpec
+        VersionSetSpec
+    build-depends:
+        , base
+        , Cabal-syntax
+        , co-log-core
+        , bytestring
+        , containers
+        , pubgrub
+        , pubgrub-cabal
+        , tasty            >=1.5 && <1.6
+        , tasty-golden     >=2.3 && <2.4
+        , tasty-hunit      >=0.10 && <0.11
+        , tasty-quickcheck >=0.11 && <0.12
+        , text
