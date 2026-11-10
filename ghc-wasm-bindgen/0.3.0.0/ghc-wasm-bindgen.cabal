@@ -1,0 +1,76 @@
+cabal-version:      3.0
+name:               ghc-wasm-bindgen
+version:            0.3.0.0
+synopsis:           JavaScript/TypeScript bindings for GHC's WASM backend
+description:
+    Generate JavaScript and TypeScript bindings for a pure Haskell module
+    compiled with GHC's WebAssembly backend. Exported functions are exposed
+    as typed JavaScript functions, and exported data types as TypeScript
+    types with constructor functions.
+
+    See the README for supported types and usage.
+category:           Web, WebAssembly, JavaScript, Development
+homepage:           https://github.com/joaquin-rossi/ghc-wasm-bindgen
+bug-reports:        https://github.com/joaquin-rossi/ghc-wasm-bindgen/issues
+license:            MIT
+license-file:       LICENSE
+author:             Joaquín Rossi
+maintainer:         joaquin@joaquinrossi.net
+copyright:          2026 Joaquín Rossi
+build-type:         Simple
+tested-with:        GHC == 9.10.3
+extra-doc-files:
+    README.md
+extra-source-files:
+    runtime-js/ghc_wasm_bindgen_internal.js
+    runtime-js/ghc_wasm_bindgen_internal.d.ts
+    runtime-js/ghc_wasm_jsffi.d.ts
+    runtime-hs/GhcWasmBindgen/Runtime.hs
+    test/errors/*.hs
+
+source-repository head
+    type:     git
+    location: https://github.com/joaquin-rossi/ghc-wasm-bindgen.git
+
+common shared
+    default-language: GHC2021
+    default-extensions: LambdaCase, OverloadedStrings
+    ghc-options:      -Wall
+    build-depends:
+        base >=4.20 && <4.21,
+        bytestring >=0.11 && <0.13,
+        text >=2.0 && <2.2
+
+library
+    import:           shared
+    hs-source-dirs:   src
+    exposed-modules:
+        GhcWasmBindgen
+        GhcWasmBindgen.Model
+        GhcWasmBindgen.Inspect
+        GhcWasmBindgen.EmitHaskell
+        GhcWasmBindgen.EmitJavaScript
+    build-depends:
+        -- The GHC that typechecks the user's module is the one this tool is
+        -- built with (ghc-paths); only Inspect imports it.
+        ghc ==9.10.*,
+        ghc-paths >=0.1.0.12 && <0.2,
+        containers >=0.6 && <0.8,
+        directory >=1.3.8 && <1.4,
+        filepath >=1.4.100 && <1.6,
+        file-embed >=0.0.15 && <0.1,
+        process >=1.6.17 && <1.7
+
+executable ghc-wasm-bindgen
+    import:           shared
+    hs-source-dirs:   app
+    main-is:          Main.hs
+    build-depends:    ghc-wasm-bindgen
+
+test-suite tests
+    import:           shared
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    other-modules:    Errors
+    build-depends:    ghc-wasm-bindgen
