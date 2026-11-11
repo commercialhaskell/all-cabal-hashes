@@ -1,0 +1,104 @@
+cabal-version: 3.0
+name: lossy-chan
+version: 0.1.0.0
+synopsis: Fast, bounded, and lossy broadcast channels backed by a ring buffer
+description: Fast, bounded, and /lossy/ broadcast channels backed by a ring buffer.
+license: BSD-3-Clause
+license-file: LICENSE
+author: Wen Kokke
+maintainer: wen@well-typed.com
+copyright: (c) 2026 Well-Typed
+category: Concurrency
+build-type: Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+tested-with:
+  ghc ==9.4.8 || ==9.6.7 || ==9.8.4 || ==9.10.3 || ==9.12.4 || ==9.14.1
+
+source-repository head
+  type: git
+  location: https://github.com/well-typed/lossy-chan.git
+
+common language
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wprepositive-qualified-module
+    -Wredundant-constraints
+    -Wunticked-promoted-constructors
+    -Wunused-packages
+
+  default-extensions:
+    ImportQualifiedPost
+    RecordWildCards
+
+  default-language: Haskell2010
+
+flag small-loop-counter
+  description:
+    Use Word8 instead of Word32 for the loop counter,
+    for the purposes of testing loop counter overflows.
+
+  default: False
+  manual: True
+
+library
+  import: language
+  hs-source-dirs: src
+  exposed-modules: Control.Concurrent.LossyChan
+  build-depends: base >=4.16 && <5
+
+  if flag(small-loop-counter)
+    cpp-options: -DLOSSY_CHAN_SMALL_LOOP_COUNTER
+
+test-suite lossy-chan-test
+  import: language
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  build-depends:
+    base >=4.16 && <5,
+    lossy-chan,
+    tasty,
+    tasty-hunit,
+    tasty-quickcheck,
+
+  if flag(small-loop-counter)
+    cpp-options: -DLOSSY_CHAN_SMALL_LOOP_COUNTER
+
+benchmark lossy-chan-benchmark-time
+  import: language
+  type: exitcode-stdio-1.0
+  hs-source-dirs: benchmark
+  main-is: time.hs
+  other-modules:
+    Benchmark.Chan
+    Benchmark.Simple
+
+  build-depends:
+    async,
+    base >=4.16 && <5,
+    criterion,
+    lossy-chan,
+    stm,
+    unagi-chan,
+
+benchmark lossy-chan-benchmark-space
+  import: language
+  type: exitcode-stdio-1.0
+  hs-source-dirs: benchmark
+  main-is: space.hs
+  other-modules:
+    Benchmark.Chan
+    Benchmark.Simple
+
+  build-depends:
+    async,
+    base >=4.16 && <5,
+    lossy-chan,
+    stm,
+    unagi-chan,
+    weigh,
