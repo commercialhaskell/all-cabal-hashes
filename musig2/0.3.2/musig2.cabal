@@ -1,0 +1,152 @@
+cabal-version:      3.0
+name:               musig2
+version:            0.3.2
+synopsis:           MuSig2 library
+license:            MIT
+license-file:       LICENSE
+author:             Jose Storopoli
+maintainer:         jose@storopoli.com
+homepage:           https://github.com/storopoli/musig2
+category:           Cryptography
+build-type:         Simple
+tested-with:        GHC ==9.10.3 || ==9.12.4 || ==9.14.1
+extra-doc-files:
+  CHANGELOG
+  README.md
+
+extra-source-files:
+  scripts/gen-diff-corpus.py
+  test/vectors/bip327/*.json
+  test/vectors/bip327/README.md
+  test/vectors/diff/corpus.json
+  test/vectors/diff/README.md
+
+description:
+  Pure BIP0327 MuSig2 (partial)signatures with tweak support on the elliptic curve secp256k1.
+
+source-repository head
+  type:     git
+  location: github.com/storopoli/musig2.git
+
+flag llvm
+  description: Use GHC's LLVM backend.
+  default:     False
+  manual:      True
+
+common llvm
+  if flag(llvm)
+    ghc-options: -fllvm -O2
+
+    -- Keep LLVM from turning constant-time selects back into branches, as
+    -- ppad-secp256k1 does for code that inlines ppad-fixed primitives.
+    if arch(x86_64)
+      ghc-options: -optlc=-x86-cmov-converter=false
+
+-- Dependencies and source directories of the implementation, shared by the
+-- public library and the private internal library below.
+common implementation
+  default-language: Haskell2010
+  hs-source-dirs:   lib internal
+  ghc-options:      -Wall
+  build-depends:
+    , base            >=4.20    && <5
+    , bytestring      >=0.11    && <0.13
+    , containers      >=0.6     && <0.9
+    , deepseq         >=1.4     && <1.7
+    , entropy         >=0.4.1.6 && <0.5
+    , ppad-fixed      >=0.2.2   && <0.3
+    , ppad-secp256k1  >=0.5.11  && <0.6
+    , ppad-sha256     >=0.3.5   && <0.4
+
+-- The implementation modules are other-modules here (not a dependency on the
+-- internal library) so that Haddock documents everything the public module
+-- re-exports: cabal does not link the Haddock interface of a sublibrary.
+library
+  import:          llvm, implementation
+  exposed-modules:
+    Crypto.Curve.Secp256k1.MuSig2
+    Crypto.Curve.Secp256k1.MuSig2.Coordinator
+    Crypto.Curve.Secp256k1.MuSig2.Unsafe
+
+  other-modules:
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Error
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Hash
+    Crypto.Curve.Secp256k1.MuSig2.Internal.KeyAgg
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Nonce
+    Crypto.Curve.Secp256k1.MuSig2.Internal.OneShot
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Point
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Scalar
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Session
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Types
+
+-- The same sources with every module exposed, for the test suite and the
+-- benchmarks. Private: library users cannot depend on it, so the constructors
+-- the internal modules export stay out of their reach.
+library internal
+  import:          llvm, implementation
+  visibility:      private
+  exposed-modules:
+    Crypto.Curve.Secp256k1.MuSig2
+    Crypto.Curve.Secp256k1.MuSig2.Coordinator
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Error
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Hash
+    Crypto.Curve.Secp256k1.MuSig2.Internal.KeyAgg
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Nonce
+    Crypto.Curve.Secp256k1.MuSig2.Internal.OneShot
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Point
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Scalar
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Session
+    Crypto.Curve.Secp256k1.MuSig2.Internal.Types
+    Crypto.Curve.Secp256k1.MuSig2.Unsafe
+
+test-suite musig2-tests
+  import:           llvm
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  other-modules:
+    ApplyTweaks
+    Bip327Regressions
+    CoordinatorRounds
+    DiffCorpus
+    Encoding
+    Example
+    Generators
+    LongInputs
+    NonceSafety
+    OfficialVectors
+    Properties
+    Scalars
+    SignVerify
+    Util
+
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N -Wall
+  build-depends:
+    , aeson              >=2.0  && <2.4
+    , base               >=4.20 && <5
+    , base16-bytestring
+    , bytestring
+    , directory
+    , filepath
+    , musig2:internal
+    , ppad-fixed
+    , ppad-secp256k1
+    , ppad-sha256
+    , QuickCheck
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+
+benchmark musig2-bench
+  import:           llvm
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  hs-source-dirs:   bench
+  main-is:          Main.hs
+  ghc-options:      -rtsopts -O2 -Wall
+  build-depends:
+    , base             >=4.20 && <5
+    , bytestring
+    , criterion
+    , musig2:internal
