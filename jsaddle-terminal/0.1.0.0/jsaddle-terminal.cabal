@@ -1,0 +1,86 @@
+cabal-version:      3.4
+name:               jsaddle-terminal
+version:            0.1.0.0
+license:            MIT
+license-file:       LICENSE
+author:             Hamish Mackenzie
+maintainer:         Hamish.K.Mackenzie@gmail.com
+synopsis:           Run jsaddle apps in a tmux pane, tunnelling over stdin/stdout
+category:           Web, Javascript
+description:
+  A jsaddle transport for executables that run inside a tmux pane.  When a
+  watching IDE (leksah) answers the handshake, jsaddle Batch/Results JSON is
+  tunnelled over the process's own stdin/stdout — framed as OSC 5799 escape
+  sequences on stdout (delivered to the IDE via tmux control-mode %output)
+  and RS-prefixed lines on stdin (injected via tmux send-keys -H) — and the
+  UI renders in an iframe hosted by the IDE.  No sockets are opened on the
+  app's machine, so it works over ssh-reached tmux servers too.  When nobody
+  answers the handshake there is nothing to tunnel to, so the runner reports
+  that on stderr and stops (an earlier version fell back to serving the app
+  over jsaddle-warp; that has been removed).
+build-type:         Simple
+extra-doc-files:    ChangeLog.md
+
+source-repository head
+  type:     git
+  location: https://github.com/ghcjs/jsaddle
+  subdir:   jsaddle-terminal
+
+flag demo
+  description:
+    Build the jsaddle-terminal-demo executable.  Off by default: it needs
+    reflex-dom-core, whose released versions lag new GHCs (base upper
+    bounds), which would break solving the whole project on those GHCs.
+  default: False
+  manual: True
+
+library
+  hs-source-dirs:     src
+  exposed-modules:    Language.Javascript.JSaddle.Terminal
+                      Language.Javascript.JSaddle.Terminal.Protocol
+                      Language.Javascript.JSaddle.Terminal.Bootstrap
+  build-depends:      base >=4.16 && <5
+                    , aeson >=0.11.3.0 && <2.4
+                    , base64-bytestring >=1.0.0.1 && <1.3
+                    , bytestring >=0.10.6.0 && <0.13
+                    , jsaddle >=0.9.4 && <0.10
+                    , stm >=2.4.4 && <2.6
+  ghc-options:        -Wall
+  default-language:   Haskell2010
+  -- The runner puts its own terminal into raw mode.  On POSIX that is termios
+  -- (unix); on Windows it is the console API (SetConsoleMode with VT flags),
+  -- from Win32.  The IDE-tunnel transport itself opens no sockets, so the
+  -- runner builds on every platform now (it used to fall back to jsaddle-warp
+  -- when no IDE answered — dropped, so the aeson<2.3 cap it carried is gone).
+  if os(windows)
+    build-depends:    Win32 >=2.13.0.0 && <2.15
+  else
+    build-depends:    unix >=2.7 && <2.9
+
+executable jsaddle-terminal-demo
+  main-is:            Main.hs
+  hs-source-dirs:     demo
+  build-depends:      base
+                    , containers >=0.5.6.2 && <0.9
+                    , ghcjs-dom >=0.10 && <0.11
+                    , jsaddle
+                    , jsaddle-terminal
+                    , reflex >=0.9 && <0.10
+                    , reflex-dom-core >=0.9 && <0.10
+                    , text >=1.2.1.3 && <1.3 || >=2.0 && <2.2
+  ghc-options:        -threaded -Wall
+  default-language:   Haskell2010
+  if os(windows) || !flag(demo)
+    buildable: False
+
+test-suite jsaddle-terminal-test
+  type:               exitcode-stdio-1.0
+  main-is:            Test.hs
+  hs-source-dirs:     test
+  build-depends:      base
+                    , bytestring
+                    , jsaddle-terminal
+  ghc-options:        -Wall
+  default-language:   Haskell2010
+  if os(windows)
+    buildable: False
