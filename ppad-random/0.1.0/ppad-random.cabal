@@ -1,0 +1,106 @@
+cabal-version:      3.0
+name:               ppad-random
+version:            0.1.0
+synopsis:           Fast random number generators.
+license:            MIT
+license-file:       LICENSE
+author:             Jared Tobin
+maintainer:         jared@ppad.tech
+category:           Cryptography, Random
+build-type:         Simple
+tested-with:        GHC == 9.10.3
+extra-doc-files:    CHANGELOG
+description:
+  Fast random number generators: the xoshiro256++ PRNG, as a mutable
+  generator or a pure value, and the ChaCha8Rand CSPRNG, with unbiased
+  bounded integers and seeding from the operating system.
+
+flag llvm
+  description: Use GHC's LLVM backend.
+  default:     False
+  manual:      True
+
+source-repository head
+  type:     git
+  location: git.ppad.tech/random.git
+
+library
+  default-language: Haskell2010
+  hs-source-dirs:   lib, internal
+  ghc-options:
+      -Wall
+  if flag(llvm)
+    ghc-options: -fllvm -O2
+  exposed-modules:
+      Crypto.CSPRNG
+    , Crypto.PRNG
+    , Crypto.PRNG.Pure
+  other-modules:
+      Crypto.Entropy
+    , Crypto.Range
+    , Crypto.Xoshiro
+  build-depends:
+      base >= 4.17 && < 5
+    , bytestring >= 0.11 && < 0.13
+    , ppad-chacha >= 0.3.4 && < 0.4
+    , primitive >= 0.8 && < 0.10
+
+test-suite random-tests
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      test, internal
+  main-is:             Main.hs
+  other-modules:
+      Crypto.Range
+    , Vectors
+
+  ghc-options:
+    -rtsopts -Wall -O2
+
+  build-depends:
+      base
+    , bytestring
+    , ppad-base16
+    , ppad-random
+    , tasty
+    , tasty-hunit
+
+benchmark random-bench
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      bench
+  main-is:             Main.hs
+
+  ghc-options:
+    -rtsopts -O2 -Wall
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  build-depends:
+      base
+    , bytestring
+    , criterion
+    , crypton
+    , entropy
+    , mwc-random
+    , pcg-random
+    , ppad-random
+    , random
+    , splitmix
+
+benchmark random-weigh
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      bench
+  main-is:             Weight.hs
+
+  ghc-options:
+    -rtsopts -O2 -Wall
+  if flag(llvm)
+    ghc-options: -fllvm
+
+  build-depends:
+      base
+    , bytestring
+    , ppad-random
+    , weigh
