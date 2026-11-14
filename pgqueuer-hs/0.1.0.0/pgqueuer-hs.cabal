@@ -1,0 +1,191 @@
+cabal-version: 1.18
+
+-- This file has been generated from package.yaml by hpack version 0.39.6.
+--
+-- see: https://github.com/sol/hpack
+
+name:           pgqueuer-hs
+version:        0.1.0.0
+synopsis:       High-performance PostgreSQL background job queue with cron and workflows
+description:    A high-throughput, type-safe PostgreSQL-backed job queue for Haskell applications.
+                Inspired by pgqueuer in Python, pgqueuer-hs leverages PostgreSQL's LISTEN / NOTIFY
+                and `FOR UPDATE SKIP LOCKED` for reliable, non-contending, at-least-once distributed job processing.
+                .
+                Key features:
+                * Zero-polling real-time dispatch via PostgreSQL LISTEN / NOTIFY
+                * Non-contending job claims using `FOR UPDATE SKIP LOCKED`
+                * Dual backend support: `SimpleDb` (postgresql-simple) and `HasqlDb` (binary protocol via Hasql)
+                * Declarative Workflow DAG orchestration (`JobTree` and `<~~` operator)
+                * Native recurring cron job scheduling
+                * Pluggable retry backoff policies (constant, linear, exponential) with full and equal jitter
+                * Write batching and rate limiting via `TimedOverflowBuffer` to protect PostgreSQL WAL
+                * Full end-to-end distributed tracing support
+                .
+                For getting started and runnable examples, please see the README on GitHub at
+                <https://github.com/tusharad/pgqueuer-hs#readme>.
+category:       Database, Concurrency, Distributed Computing
+stability:      experimental
+homepage:       https://github.com/tusharad/pgqueuer-hs#readme
+bug-reports:    https://github.com/tusharad/pgqueuer-hs/issues
+author:         Tushar Adhatrao
+maintainer:     tusharadhatrao@gmail.com
+copyright:      2026 Tushar Adhatrao
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+tested-with:
+    GHC == 9.8.4, GHC == 9.10.3
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+    LICENSE
+    CONTRIBUTING.md
+
+source-repository head
+  type: git
+  location: https://github.com/tusharad/pgqueuer-hs
+
+flag otel
+  description: Enable OpenTelemetry tracing integration
+  manual: True
+  default: False
+
+library
+  exposed-modules:
+      PGQueuer
+      PGQueuer.Backend.Hasql
+      PGQueuer.Backend.Hasql.Statements
+      PGQueuer.Backend.Simple
+      PGQueuer.Core.Monad
+      PGQueuer.Listener
+      PGQueuer.Query
+      PGQueuer.Schema
+      PGQueuer.Settings
+      PGQueuer.Tracing
+      PGQueuer.Types
+      PGQueuer.Worker.Backoff
+      PGQueuer.Worker.Buffer
+      PGQueuer.Worker.Cron
+      PGQueuer.Workflow
+  other-modules:
+      Paths_pgqueuer_hs
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wredundant-constraints -Wno-partial-fields
+  build-depends:
+      aeson >=2.0 && <3
+    , async >=2.2 && <3
+    , base >=4.7 && <5
+    , bytestring >=0.10.4.0 && <0.13
+    , containers >=0.6 && <0.8
+    , contravariant >=1.5 && <2
+    , cron >=0.7 && <1
+    , hasql >=1.6 && <1.10
+    , hasql-pool >=1.2 && <1.4
+    , mtl >=2.2 && <3
+    , postgresql-simple >=0.7 && <0.9
+    , random ==1.2.*
+    , stm >=2.5 && <3
+    , text >=1.2 && <3
+    , time >=1.9 && <2
+    , unliftio ==0.2.*
+    , unordered-containers ==0.2.*
+    , uuid >=1.3 && <2
+    , vector >=0.12 && <1
+  default-language: Haskell2010
+  if flag(otel)
+    cpp-options: -DOTEL
+    build-depends:
+        case-insensitive
+      , hs-opentelemetry-api
+      , hs-opentelemetry-propagator-w3c
+      , http-types
+
+test-suite pgqueuer-hs-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Tests.BackoffSpec
+      Tests.BufferSpec
+      Tests.CoreSpec
+      Tests.CronSpec
+      Tests.HasqlSpec
+      Tests.PGQueuer
+      Tests.SimpleSpec
+      Tests.TestContainer
+      Tests.TypesSpec
+      Tests.WorkflowSpec
+      Paths_pgqueuer_hs
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wredundant-constraints -Wno-partial-fields -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson >=2.0 && <3
+    , async >=2.2 && <3
+    , base >=4.7 && <5
+    , bytestring >=0.10.4.0 && <0.13
+    , containers >=0.6 && <0.8
+    , contravariant >=1.5 && <2
+    , cron >=0.7 && <1
+    , hasql >=1.6 && <1.10
+    , hasql-pool >=1.2 && <1.4
+    , mtl >=2.2 && <3
+    , pgqueuer-hs
+    , postgresql-simple >=0.7 && <0.9
+    , random ==1.2.*
+    , stm >=2.5 && <3
+    , tasty >=1.4 && <2
+    , tasty-hunit >=0.10 && <1
+    , testcontainers ==0.5.*
+    , text >=1.2 && <3
+    , time >=1.9 && <2
+    , unliftio ==0.2.*
+    , unordered-containers ==0.2.*
+    , uuid >=1.3 && <2
+    , vector >=0.12 && <1
+  default-language: Haskell2010
+  if flag(otel)
+    cpp-options: -DOTEL
+    build-depends:
+        case-insensitive
+      , hs-opentelemetry-api
+      , hs-opentelemetry-propagator-w3c
+      , http-types
+
+benchmark pgqueuer-hs-bench
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Paths_pgqueuer_hs
+  hs-source-dirs:
+      bench
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wredundant-constraints -Wno-partial-fields -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson >=2.0 && <3
+    , async >=2.2 && <3
+    , base >=4.7 && <5
+    , bytestring >=0.10.4.0 && <0.13
+    , containers >=0.6 && <0.8
+    , contravariant >=1.5 && <2
+    , cron >=0.7 && <1
+    , hasql >=1.6 && <1.10
+    , hasql-pool >=1.2 && <1.4
+    , mtl >=2.2 && <3
+    , pgqueuer-hs
+    , postgresql-simple >=0.7 && <0.9
+    , random ==1.2.*
+    , stm >=2.5 && <3
+    , text >=1.2 && <3
+    , time >=1.9 && <2
+    , unliftio ==0.2.*
+    , unordered-containers ==0.2.*
+    , uuid >=1.3 && <2
+    , vector >=0.12 && <1
+  default-language: Haskell2010
+  if flag(otel)
+    cpp-options: -DOTEL
+    build-depends:
+        case-insensitive
+      , hs-opentelemetry-api
+      , hs-opentelemetry-propagator-w3c
+      , http-types
