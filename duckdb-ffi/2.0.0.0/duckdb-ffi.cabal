@@ -1,0 +1,196 @@
+cabal-version: 3.4
+name: duckdb-ffi
+version: 2.0.0.0
+author: Matthias Pall Gissurarson
+maintainer: mpg@mpg.is
+category: Database
+build-type: Custom
+tested-with:
+  ghc ==9.10.3
+  ghc ==9.12.4
+  ghc ==9.14.1
+  ghc ==9.6.7
+  ghc ==9.8.4
+
+license: MPL-2.0
+license-file: LICENSE
+synopsis: Low-level bindings to the DuckDB C API
+homepage: https://github.com/Tritlo/duckdb-haskell
+bug-reports: https://github.com/Tritlo/duckdb-haskell/issues
+description:
+  Haskell FFI bindings generated from the DuckDB 2.0 C APIs with hs-bindgen.
+  The retained API supports DuckDB 2.0.x releases. The V2 API requires
+  exactly DuckDB 2.0.0, because upstream marks it as unstable.
+
+  Downloads the verified DuckDB 2.0.0 release on supported Linux and macOS
+  systems. Also accepts a native library supplied by the user or Nix.
+
+  Includes the complete pinned DuckDB V2 C API.
+
+extra-doc-files: CHANGELOG.md
+extra-source-files:
+  cbits/duckdb-LICENSE
+  cbits/duckdb.h
+  cbits/duckdb_arrow.h
+  cbits/duckdb_extension_v2.h
+  cbits/duckdb_haskell_extension.h
+  cbits/duckdb_v2.h
+  generated.sha256
+  native.sha256
+  vendor/duckdb-api.json
+  vendor/upstream.sha256
+
+source-repository head
+  type: git
+  location: https://github.com/Tritlo/duckdb-haskell.git
+  subdir: duckdb-ffi
+
+-- Setup.hs reads this flag. cabal check reports it as unused.
+flag systemlib
+  description: Use an installed DuckDB library without downloading it.
+  default: False
+  manual: True
+
+flag extension
+  description: Use the host V2 function table for a loadable extension.
+  default: False
+  manual: True
+
+custom-setup
+  setup-depends:
+    base >=4.18 && <4.23,
+    Cabal >=3.10 && <3.19,
+    directory >=1.3 && <1.4,
+    filepath >=1.4 && <1.6,
+    process >=1.6 && <1.7,
+    temporary >=1.3 && <1.4,
+
+library
+  default-language: GHC2021
+  hs-source-dirs: generated
+  exposed-modules:
+    Database.DuckDB.FFI.V2
+
+  include-dirs: cbits/
+  install-includes:
+    duckdb-LICENSE
+    duckdb.h
+    duckdb_arrow.h
+    duckdb_extension_v2.h
+    duckdb_haskell_extension.h
+    duckdb_v2.h
+
+  c-sources:
+    generated/abi-checks-v2.c
+
+  if flag(extension)
+    if os(linux) || os(osx)
+      cc-options:
+        -fvisibility=hidden
+        -include
+        duckdb_haskell_extension.h
+
+      -- Keep private C calls inside this shared library. GHC also compiles
+      -- the C wrappers emitted by Template Haskell.
+      ghc-options:
+        -fomit-interface-pragmas
+        -optc-fvisibility=hidden
+        -optc-include
+        -optcduckdb_haskell_extension.h
+
+      c-sources: cbits/extension.c
+      extra-libraries: pthread
+    else
+      buildable: False
+  else
+    exposed-modules: Database.DuckDB.FFI
+    c-sources: generated/abi-checks.c
+    extra-libraries: duckdb
+
+  build-depends:
+    base >=4.18 && <4.23,
+    hs-bindgen-runtime >=1.0.0.0 && <1.1,
+
+test-suite duckdb-ffi-v2-test
+  if flag(extension)
+    buildable: False
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: V2Main.hs
+  other-modules:
+    V2AggregateTest
+    V2ArrowTest
+    V2AttachTest
+    V2CallbackTest
+    V2ChunkTest
+    V2CopyTest
+    V2FileSystemTest
+    V2FunctionDocsTest
+    V2MacroTest
+    V2ReplacementScanTest
+    V2StatementTest
+    V2TableFunctionTest
+    V2Test
+    V2TypeTest
+    V2ValueTest
+
+  default-language: Haskell2010
+  ghc-options: -threaded
+  build-depends:
+    base >=4.18 && <4.23,
+    duckdb-ffi,
+    hs-bindgen-runtime >=1.0.0.0 && <1.1,
+    tasty >=1.5 && <1.6,
+    tasty-hunit >=0.10 && <0.11,
+
+test-suite duckdb-ffi-tests
+  if flag(extension)
+    buildable: False
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  other-modules:
+    AggregateFunctionsTest
+    AppenderTest
+    ArrowInterfaceDeprecatedTests
+    ArrowInterfaceTest
+    BindValuesTest
+    CastFunctionsTest
+    ConfigurationTest
+    DataChunkTest
+    ErrorDataTest
+    ExecutePreparedStatementsTest
+    ExpressionTest
+    ExtractStatementsTest
+    HelpersTest
+    LogicalTypesTest
+    OpenConnectTest
+    PendingResultTest
+    PreparedStatementsTest
+    ProfilingInfoTest
+    QueryExecutionTest
+    ReplacementScansTest
+    ResultFunctionsTest
+    SafeFetchTest
+    ScalarFunctionsTest
+    SelectionVectorTest
+    StreamingResultTest
+    TableDescriptionTest
+    TableFunctionsTest
+    ThreadingTest
+    Utils
+    ValidityMaskTest
+    ValueInterfaceTest
+    VectorTest
+
+  ghc-options: -threaded
+  default-language: Haskell2010
+  build-depends:
+    base >=4.18 && <4.23,
+    duckdb-ffi,
+    hs-bindgen-runtime >=1.0.0.0 && <1.1,
+    tasty >=1.5 && <1.6,
+    tasty-expected-failure >=0.12 && <0.13,
+    tasty-hunit >=0.10 && <0.11,
+    text >=2.0 && <2.2,
+    time >=1.12 && <1.16,
