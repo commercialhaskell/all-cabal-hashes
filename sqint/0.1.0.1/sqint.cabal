@@ -1,0 +1,139 @@
+cabal-version: 3.4
+name:          sqint
+version:       0.1.0.1
+synopsis:
+  Lint sqitch migrations for PostgreSQL lock and rewrite hazards
+
+description:
+  sqint reads sqitch deploy scripts and reports statements that take
+  heavy locks, rewrite or scan tables, defeat indexes, or leave SQL
+  functions broken between changes. A static pass needs only the SQL;
+  an optional dynamic pass deploys each new change to a scratch
+  database and observes the locks it actually takes.
+
+category:      Database
+homepage:      https://github.com/kronor-io/sqint
+bug-reports:   https://github.com/kronor-io/sqint/issues
+license:       MIT
+license-file:  LICENSE
+author:        José Lorenzo Rodríguez
+maintainer:    lorenzo@kronor.io
+copyright:     2026 Kronor
+tested-with:   GHC ==9.12.4
+build-type:    Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/kronor-io/sqint
+
+common shared
+  default-language:   GHC2021
+  default-extensions:
+    BlockArguments
+    DataKinds
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    MultilineStrings
+    MultiWayIf
+    NoImplicitPrelude
+    OverloadedRecordDot
+    OverloadedStrings
+    PatternSynonyms
+    QuasiQuotes
+    RecordWildCards
+    StrictData
+    ViewPatterns
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+    -Wunused-packages
+
+library
+  import:          shared
+  hs-source-dirs:  src
+  exposed-modules:
+    Sqint.Cumulative
+    Sqint.DeferredDependency
+    Sqint.Deploy
+    Sqint.Deploy.Connection
+    Sqint.Deploy.Introspector
+    Sqint.Deploy.Observer
+    Sqint.Deploy.PlanCheck
+    Sqint.DeployTree
+    Sqint.Diagnostic
+    Sqint.Domains
+    Sqint.Location
+    Sqint.Lock
+    Sqint.NodeWalk
+    Sqint.Output
+    Sqint.PgAst
+    Sqint.Plpgsql
+    Sqint.QueryPlan
+    Sqint.Rule
+    Sqint.Run
+    Sqint.SetLocal
+    Sqint.Severity
+    Sqint.Suppression
+
+  build-depends:
+    , aeson               >=2.3 && <2.4
+    , base                >=4.21   && <5
+    , bytestring          >=0.12 && <0.13
+    , containers          >=0.7 && <0.8
+    , hasql               >=2.0    && <2.1
+    , libpg-query         ^>=0.1
+    , pqi                 >=1.1 && <1.2
+    , pqi-ffi             >=1.0 && <1.1
+    , process             >=1.6 && <1.7
+    , proto-lens          >=0.7 && <0.8
+    , rio                 >=0.1.22 && <0.2
+    , sqitch-plan         ^>=0.1
+    , string-interpolate  >=1.0 && <1.1
+    , text                >=2.1 && <2.2
+    , vector              >=0.13 && <0.14
+
+executable sqint
+  import:         shared
+  hs-source-dirs: app
+  main-is:        Main.hs
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , base
+    , opt-env-conf        >=0.15 && <0.18
+    , rio
+    , sqint
+
+test-suite sqint-test
+  import:         shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Spec.hs
+  ghc-options:    -threaded -rtsopts -with-rtsopts=-N
+  other-modules:
+    Sqint.CumulativeSpec
+    Sqint.DeferredDependencySpec
+    Sqint.DeploySpec
+    Sqint.DomainsSpec
+    Sqint.LockSpec
+    Sqint.OutputSpec
+    Sqint.PgAstSpec
+    Sqint.PlanCheckSpec
+    Sqint.QueryPlanSpec
+    Sqint.SetLocalSpec
+    Sqint.SuppressionSpec
+
+  build-depends:
+    , bytestring
+    , containers
+    , rio
+    , sqint
+    , sqitch-plan         ^>=0.1
+    , string-interpolate
+    , tasty
+    , tasty-hunit
+    , text
