@@ -1,0 +1,428 @@
+cabal-version:      2.4
+name:               papa
+version:            0.7.0
+license:            BSD-3-Clause
+license-file:       LICENCE
+author:             Tony Morris <ʇǝu˙sıɹɹoɯʇ@ןןǝʞsɐɥ> <dibblego>
+maintainer:         Tony Morris <ʇǝu˙sıɹɹoɯʇ@ןןǝʞsɐɥ> <dibblego>
+copyright:          Copyright (c) 2016-2017 Commonwealth Scientific and Industrial Research Organisation (CSIRO) ABN 41 687 119 230
+                    Copyright (c) 2017-2026 Tony Morris
+synopsis:           Type class-driven prelude with lens, comonads, and safe alternatives
+category:           Prelude
+description:
+  <<https://logo.systemf.com.au/systemf-450x450.png>>
+  .
+  Papa is a Haskell prelude that replaces the partial functions of Prelude
+  with total ones, generalises the familiar names to type classes, and
+  brings in lens, semigroupoids, bifunctors and comonad.
+  .
+  = Total replacements
+  .
+  Total division takes a @NonZero@ divisor, checked once by
+  @preview nonZero@ (@divNonZero@, @divideNonZero@, @ratioNonZero@, ...), and
+  @pow@ a @Natural@ exponent, and @intCast@ converts between integral types
+  only where no value can be lost; Prelude's partial versions, with
+  @fromIntegral@, are in the separate module @Papa.Unsafe.Numeric@. Elsewhere, where Prelude throws, Papa returns a
+  @Maybe@: @cycle@ (empty list), @(!!)@, @(!?)@ (index out of range), @chr@,
+  @succ@, @pred@ (out of range), @stimes@ (count out of range) and @readIO@
+  (no parse). On any @Foldable1@, @maximum@, @minimum@, @maximumBy@ and
+  @minimumBy@ need no @Maybe@, and @head@, @tail@, @last@ and @init@ are
+  lenses into a @NonEmpty@.
+  .
+  @fromJust@, @read@, @error@, @undefined@, @throw@, @foldl1@, @foldr1@,
+  @truncate@, @round@, @realToFrac@ and every @unsafe*@ function are not
+  exported (@truncateMaybe@, @roundMaybe@, @floatToDouble@, ... instead); a
+  test fails to compile if they are.
+  .
+  = Text first, and I/O errors as values
+  .
+  @putStrLn@, @readFile@, @print@, @lines@, @words@ and the rest are
+  @Text@'s, read and write UTF-8 whatever the locale, read strictly, and
+  return their @IOException@ in @IOExcept@ (@ExceptT IOException IO@) rather
+  than throw it. @catch@, @try@ and @bracket@ never catch an asynchronous
+  exception. The functions of text, bytestring, containers, vector and
+  unordered-containers are wrapped, imported qualified, with a total
+  function of the same name for each one that throws.
+  .
+  = Generalised names
+  .
+  @map@ is @fmap@, @(++)@ is @(<>)@, @const@ is @pure@, @mapM@ is
+  @traverse@, @fst@ and @snd@ work on any tuple, @lookup@ and
+  @partitionEithers@ work on any @Foldable@, and @lefts@ and @rights@ are
+  traversals.
+  .
+  = Usage
+  .
+  > {-# LANGUAGE NoImplicitPrelude #-}
+  > import Papa
+  >
+  > average :: [Int] -> Maybe Int
+  > average xs = fmap (divNonZero (sum xs)) (preview nonZero (length xs))
+  .
+  See "Papa" for the modules that import alongside it, and those to import
+  qualified.
+homepage:           https://gitlab.com/system-f/code/papa
+bug-reports:        https://gitlab.com/system-f/code/papa/issues
+build-type:         Simple
+extra-doc-files:    changelog.md
+tested-with:        GHC == 9.6.7
+                  , GHC == 9.8.4
+                  , GHC == 9.10.3
+                  , GHC == 9.12.4
+                  , GHC == 9.14.1
+
+flag dev
+  description:      Enable development warnings (-Werror)
+  manual:           True
+  default:          False
+
+source-repository   head
+  type:             git
+  location:         git@gitlab.com:system-f/code/papa.git
+
+common warnings
+  ghc-options:
+                    -Wall -Wcompat -Wincomplete-uni-patterns -Werror=incomplete-patterns
+
+  if flag(dev)
+    ghc-options:    -Werror
+
+library
+  import:           warnings
+
+  default-language:
+                    Haskell2010
+
+  build-depends:
+                    base >= 4.18 && < 5
+                    , adjunctions >= 4 && < 5
+                    , async >= 2.2.5 && < 2.3
+                    , bytestring >= 0.11.2 && < 0.13
+                    , associative >= 0 && < 1
+                    , bifunctors >= 5 && < 7
+                    , comonad >= 5 && < 6
+                    , containers >= 0.6.0.1 && < 1
+                    , contravariant >= 1 && < 2
+                    , deepseq >= 1.4 && < 2
+                    , directory >= 1.3.8 && < 1.4
+                    , distributive >= 0 && < 1
+                    , exceptions >= 0.10 && < 0.11
+                    , filepath >= 1.4.100 && < 1.6
+                    , free >= 5 && < 6
+                    , id >= 0 && < 1
+                    , lens >= 5.2 && < 6
+                    , mtl >= 2 && < 3
+                    , one >= 0.0.4 && < 1
+                    , polytree >= 0 && < 1
+                    , profunctors >= 5 && < 6
+                    , selective >= 0 && < 1
+                    , semigroupoids >= 5 && < 7
+                    , stm >= 2.5 && < 2.6
+                    , text >= 2.0.2 && < 2.2
+                    , time >= 1.12 && < 1.16
+                    , transformers >= 0.5 && < 1
+                    , hashable >= 1.4 && < 1.6
+                    , primitive >= 0.7 && < 0.10
+                    , unordered-containers >= 0.2.19 && < 0.3
+                    , vector >= 0.13.2 && < 0.14
+                    , witherable >= 0 && < 1
+
+  default-extensions:
+                    NoImplicitPrelude
+
+  hs-source-dirs:
+                    src
+
+  exposed-modules:
+                    Papa
+                    Papa.Adjunctions
+                    Papa.Async.Control.Concurrent.Async
+                    Papa.Adjunctions.Data.Functor.Adjunction
+                    Papa.Adjunctions.Data.Functor.Rep
+                    Papa.Associative
+                    Papa.Associative.Data.Associative
+                    Papa.Associative.Renamed
+                    Papa.Base
+                    Papa.Base.Control.Applicative
+                    Papa.Base.Control.Arrow
+                    Papa.Base.Control.Category
+                    Papa.Base.Control.Concurrent
+                    Papa.Base.Control.DeepSeq
+                    Papa.Base.Control.Exception
+                    Papa.Base.Control.Monad
+                    Papa.Base.Control.Monad.Cont
+                    Papa.Base.Control.Monad.Error
+                    Papa.Base.Control.Monad.RWS
+                    Papa.Base.Control.Monad.Reader
+                    Papa.Base.Control.Monad.State
+                    Papa.Base.Control.Monad.Trans
+                    Papa.Base.Control.Monad.Writer
+                    Papa.Base.Data.Bool
+                    Papa.Base.Data.Char
+                    Papa.Base.Data.Coerce
+                    Papa.Base.Data.Data
+                    Papa.Base.Data.Divisor
+                    Papa.Base.Data.Either
+                    Papa.Base.Data.Enum
+                    Papa.Base.Data.Eq
+                    Papa.Base.Data.Foldable
+                    Papa.Base.Data.Foldable1
+                    Papa.Base.Data.Fractional
+                    Papa.Base.Data.Function
+                    Papa.Base.Data.Functor
+                    Papa.Base.Data.Functor.Compose
+                    Papa.Base.Data.Functor.Identity
+                    Papa.Base.Data.IORef
+                    Papa.Base.Data.Int
+                    Papa.Base.Data.IntCast
+                    Papa.Base.Data.Integral
+                    Papa.Base.Data.Left
+                    Papa.Base.Data.List
+                    Papa.Base.Data.List.NonEmpty
+                    Papa.Base.Data.Maybe
+                    Papa.Base.Data.Monoid
+                    Papa.Base.Data.NonZero
+                    Papa.Base.Data.Ord
+                    Papa.Base.Data.Proxy
+                    Papa.Base.Data.Ratio
+                    Papa.Base.Data.RealFloat
+                    Papa.Base.Data.RealFrac
+                    Papa.Base.Data.Right
+                    Papa.Base.Data.Semigroup
+                    Papa.Base.Data.Show
+                    Papa.Base.Data.String
+                    Papa.Base.Data.Traversable
+                    Papa.Base.Data.Tuple
+                    Papa.Base.Data.Void
+                    Papa.Base.Data.Word
+                    Papa.Base.GHC.Generics
+                    Papa.Base.GHC.Stack
+                    Papa.Base.Prelude
+                    Papa.Base.System.Environment
+                    Papa.Base.System.Exit
+                    Papa.Base.System.IO
+                    Papa.Base.System.IO.Except
+                    Papa.Base.Text.Read
+                    Papa.Bifunctors
+                    Papa.Bifunctors.Data.Bifoldable
+                    Papa.Bytestring.Data.ByteString
+                    Papa.Bytestring.Data.ByteString.Builder
+                    Papa.Bytestring.Data.ByteString.Char8
+                    Papa.Bytestring.Data.ByteString.Lazy
+                    Papa.Bytestring.Data.ByteString.Lazy.Char8
+                    Papa.Comonad
+                    Papa.Comonad.Control.Comonad
+                    Papa.Comonad.Control.Comonad.Env
+                    Papa.Comonad.Control.Comonad.Store
+                    Papa.Comonad.Control.Comonad.Traced
+                    Papa.Comonad.Renamed
+                    Papa.Containers
+                    Papa.Containers.Data.Containers.ListUtils
+                    Papa.Containers.Data.IntMap
+                    Papa.Containers.Data.IntSet
+                    Papa.Containers.Data.Map
+                    Papa.Containers.Data.Seq
+                    Papa.Containers.Data.Set
+                    Papa.Containers.Data.Tree
+                    Papa.Contravariant
+                    Papa.Contravariant.Data.Functor.Contravariant
+                    Papa.Directory.System.Directory
+                    Papa.Distributive
+                    Papa.Distributive.Data.Distributive
+                    Papa.Filepath.System.FilePath
+                    Papa.Free
+                    Papa.Free.Control.Applicative.Free
+                    Papa.Free.Control.Comonad.Cofree
+                    Papa.Free.Control.Monad.Free
+                    Papa.Id
+                    Papa.Id.Data.BiId
+                    Papa.Id.Data.Id
+                    Papa.Lens
+                    Papa.Lens.Control.Exception
+                    Papa.Lens.Core
+                    Papa.Lens.Data.List
+                    Papa.Lens.Data.Tuple
+                    Papa.Lens.Optic
+                    Papa.Lens.System.IO.Error
+                    Papa.One
+                    Papa.One.Control.One
+                    Papa.One.Renamed
+                    Papa.Polytree
+                    Papa.Polytree.Data.Polytree
+                    Papa.Profunctors
+                    Papa.Profunctors.Data.Profunctor
+                    Papa.Profunctors.Data.Profunctor.Choice
+                    Papa.Profunctors.Data.Profunctor.Strong
+                    Papa.Profunctors.Renamed
+                    Papa.Selective
+                    Papa.Selective.Control.Selective
+                    Papa.Semigroupoids
+                    Papa.Stm.Control.Concurrent.STM
+                    Papa.Text.Data.Text
+                    Papa.Text.Data.Text.Encoding
+                    Papa.Text.Data.Text.IO
+                    Papa.Text.Data.Text.Lazy
+                    Papa.Text.Data.Text.Lazy.Builder
+                    Papa.Text.Data.Text.Lazy.Builder.Int
+                    Papa.Text.Data.Text.Lazy.Encoding
+                    Papa.Text.Data.Text.Lazy.Read
+                    Papa.Text.Data.Text.Read
+                    Papa.Time.Data.Time
+                    Papa.Unsafe
+                    Papa.Unsafe.Async
+                    Papa.Unsafe.Exception
+                    Papa.Hashable.Data.Hashable
+                    Papa.UnorderedContainers.Data.HashMap
+                    Papa.UnorderedContainers.Data.HashSet
+                    Papa.Vector.Data.Vector
+                    Papa.Vector.Data.Vector.Generic
+                    Papa.Vector.Data.Vector.Storable
+                    Papa.Vector.Data.Vector.Unboxed
+                    Papa.Unsafe.Format
+                    Papa.Unsafe.IO
+                    Papa.Unsafe.Numeric
+                    Papa.Witherable
+                    Papa.Witherable.Renamed
+                    Papa.Witherable.Witherable
+
+  other-modules:
+                    Papa.Internal.Char8
+                    Papa.Internal.Order
+                    Papa.Internal.Read
+
+test-suite hedgehog
+  import:           warnings
+
+  type:
+                    exitcode-stdio-1.0
+
+  default-language:
+                    Haskell2010
+
+  hs-source-dirs:
+                    test
+
+  main-is:
+                    Main.hs
+
+  other-modules:
+                    Agree
+                    Composes
+                    ComposesUnsafe
+                    Deny
+                    Properties
+                    PropertiesIO
+                    PropertiesVector
+                    PropertiesAsync
+                    PropertiesContainers
+                    PropertiesFS
+                    PropertiesNumeric
+                    PropertiesText
+                    Totals
+
+  build-depends:
+                    base >= 4.18 && < 5
+                    , async
+                    , bytestring
+                    , containers
+                    , deepseq
+                    , directory
+                    , filepath
+                    , hedgehog >= 1.2 && < 2
+                    , hedgehog-fn >= 1.0 && < 2
+                    , papa
+                    , tagged
+                    , text
+                    , time
+                    , transformers
+                    , unordered-containers
+                    , vector
+
+  ghc-options:
+                    -threaded
+
+  default-extensions:
+                    NoImplicitPrelude
+
+test-suite inspection
+  import:           warnings
+
+  type:
+                    exitcode-stdio-1.0
+
+  default-language:
+                    Haskell2010
+
+  hs-source-dirs:
+                    test
+
+  main-is:
+                    Inspection.hs
+
+  build-depends:
+                    base >= 4.18 && < 5
+                    , inspection-testing >= 0.5 && < 0.7
+                    , papa
+
+  default-extensions:
+                    NoImplicitPrelude
+
+test-suite doctest
+  import:           warnings
+
+  type:
+                    exitcode-stdio-1.0
+
+  hs-source-dirs:
+                    test
+
+  main-is:
+                    Doctest.hs
+
+  build-depends:
+                    base >= 4.18 && < 5
+                    , process >= 1 && < 2
+
+  build-tool-depends:
+                    doctest:doctest >= 0.22 && < 1
+
+  default-language:
+                    Haskell2010
+
+benchmark papa-bench
+  import:           warnings
+
+  type:
+                    exitcode-stdio-1.0
+
+  default-language:
+                    Haskell2010
+
+  hs-source-dirs:
+                    bench
+
+  main-is:
+                    Main.hs
+
+  other-modules:
+                    Nub
+                    BenchVector
+                    Totality
+                    Text
+
+  build-depends:
+                    base >= 4.18 && < 5
+                    , bytestring
+                    , containers
+                    , criterion >= 1.6 && < 1.7
+                    , directory
+                    , papa
+                    , unordered-containers
+                    , vector
+                    , text
+
+  ghc-options:
+                    -O2
+
+  default-extensions:
+                    NoImplicitPrelude
