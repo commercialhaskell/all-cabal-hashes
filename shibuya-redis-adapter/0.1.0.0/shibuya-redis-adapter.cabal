@@ -1,0 +1,169 @@
+cabal-version: 3.12
+name: shibuya-redis-adapter
+version: 0.1.0.0
+synopsis: Redis Streams adapter for Shibuya
+description:
+  Connect Shibuya processors to Redis Streams using either an independent
+  ordered reader with checkpoints or a consumer-group worker with fenced
+  pending-entry recovery. Both modes support dead-lettering and OpenTelemetry
+  trace correlation.
+
+category: Concurrency, Database
+author: Nadeem Bitar
+maintainer: nadeem@gmail.com
+copyright: 2026 Nadeem Bitar
+homepage: https://github.com/shinzui/shibuya-redis-adapter
+bug-reports: https://github.com/shinzui/shibuya-redis-adapter/issues
+license: MIT
+license-file: LICENSE
+tested-with: ghc ==9.12.4
+build-type: Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+  docs/capabilities/*.md
+  docs/user/*.md
+
+extra-source-files:
+  docs/capabilities/profile.dhall
+  docs/compatibility.md
+  docs/initial-spec.md
+  docs/user/profile.dhall
+
+source-repository head
+  type: git
+  location: https://github.com/shinzui/shibuya-redis-adapter.git
+
+flag examples
+  description: Build the reader and worker example programs.
+  default: False
+  manual: True
+
+common shared
+  default-language: GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-uni-patterns
+    -Wincomplete-record-updates
+    -Wredundant-constraints
+    -Wmissing-export-lists
+    -Wpartial-fields
+    -Wmissing-deriving-strategies
+
+  build-depends:
+    base ^>=4.21,
+    bytestring ^>=0.12,
+    hedis ^>=0.16.4,
+    shibuya-core ^>=0.13.0.1,
+    text ^>=2.1,
+
+library
+  import: shared
+  hs-source-dirs: src
+  exposed-modules:
+    Shibuya.Adapter.Redis
+    Shibuya.Adapter.Redis.Internal
+
+  other-modules:
+    Shibuya.Adapter.Redis.Adapter
+    Shibuya.Adapter.Redis.Connection
+    Shibuya.Adapter.Redis.DeadLetter
+    Shibuya.Adapter.Redis.Group
+    Shibuya.Adapter.Redis.Group.Scripts
+    Shibuya.Adapter.Redis.Reader
+    Shibuya.Adapter.Redis.Types
+
+  build-depends:
+    async ^>=2.2,
+    containers ^>=0.7,
+    effectful-core (>=2.6.1 && <2.7) || (>=2.7.1.1 && <2.8),
+    entropy ^>=0.4.1,
+    hs-opentelemetry-api ^>=1.0,
+    stm ^>=2.5,
+    streamly-core ^>=0.3,
+    unordered-containers ^>=0.2,
+
+common redis-integration
+  import: shared
+  other-modules: Fixture
+  hs-source-dirs: test
+  ghc-options: -threaded
+  build-depends:
+    async ^>=2.2,
+    directory ^>=1.3,
+    effectful-core (>=2.6.1 && <2.7) || (>=2.7.1.1 && <2.8),
+    filepath ^>=1.5,
+    process ^>=1.6,
+    shibuya-redis-adapter,
+    streamly-core ^>=0.3,
+    temporary ^>=1.3,
+
+test-suite runner-fixture
+  import: redis-integration
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  build-depends:
+    hs-opentelemetry-api ^>=1.0,
+    unordered-containers ^>=0.2,
+
+test-suite reader-integration
+  import: redis-integration
+  type: exitcode-stdio-1.0
+  main-is: ReaderSpec.hs
+
+test-suite group-integration
+  import: redis-integration
+  type: exitcode-stdio-1.0
+  main-is: GroupSpec.hs
+
+test-suite release-integration
+  import: redis-integration
+  type: exitcode-stdio-1.0
+  main-is: ReleaseSpec.hs
+
+test-suite telemetry-integration
+  import: redis-integration
+  type: exitcode-stdio-1.0
+  main-is: TelemetrySpec.hs
+  build-depends:
+    hs-opentelemetry-api ^>=1.0,
+    hs-opentelemetry-exporter-in-memory ^>=1.0,
+    hs-opentelemetry-sdk ^>=1.0,
+
+common example
+  import: shared
+  other-modules: Example
+  hs-source-dirs: examples
+  ghc-options: -threaded
+  build-depends:
+    containers ^>=0.7,
+    effectful-core (>=2.6.1 && <2.7) || (>=2.7.1.1 && <2.8),
+    shibuya-redis-adapter,
+
+executable reader-example
+  import: example
+  main-is: Reader.hs
+
+  if !flag(examples)
+    buildable: False
+  build-depends:
+    directory ^>=1.3,
+    filepath ^>=1.5,
+    temporary ^>=1.3,
+
+executable worker-example
+  import: example
+  main-is: Worker.hs
+
+  if !flag(examples)
+    buildable: False
+  build-depends: entropy ^>=0.4.1
