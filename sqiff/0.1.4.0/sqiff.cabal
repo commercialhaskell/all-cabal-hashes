@@ -1,0 +1,169 @@
+cabal-version:      3.0
+name:               sqiff
+version:            0.1.4.0
+synopsis:           Describe and diff PostgreSQL schemas from their catalogs
+description:
+  sqiff compares PostgreSQL schemas and writes the difference as sqitch
+  changes. Edit a table's create table file as if writing the table today,
+  and sqiff writes the migration, revert and verify scripts that get an
+  existing database there, with the dependent views and functions and the
+  hazards each statement brings.
+
+category:           Database
+homepage:           https://github.com/kronor-io/sqiff
+bug-reports:        https://github.com/kronor-io/sqiff/issues
+license:            MIT
+license-file:       LICENSE
+author:             José Lorenzo Rodríguez
+maintainer:         lorenzo@kronor.io
+copyright:          2026 Kronor
+tested-with:        GHC ==9.12.4
+build-type:         Simple
+extra-doc-files:    README.md
+extra-source-files:
+  sql/depend.sql
+  sql/depend_from.sql
+  sql/depend_on.sql
+  sql/describe/*.sql
+  sql/plpgsql/*.sql
+
+source-repository head
+  type:     git
+  location: https://github.com/kronor-io/sqiff
+
+common shared
+  default-language:   GHC2021
+  default-extensions:
+    BlockArguments
+    StrictData
+    DerivingStrategies
+    LambdaCase
+
+  -- The warnings docs/readability.md relies on fail the build; the rest of -Wall
+  -- stays advice.
+  ghc-options:
+    -Wall
+    -Werror=missing-signatures
+    -Werror=missing-fields
+    -Werror=incomplete-patterns
+    -Werror=incomplete-uni-patterns
+    -Werror=incomplete-record-updates
+    -Werror=incomplete-record-selectors
+
+library
+  import:          shared
+  hs-source-dirs:  src
+  exposed-modules:
+    Sqiff.App.Compare
+    Sqiff.App.Dependents
+    Sqiff.App.Env
+    Sqiff.App.Options
+    Sqiff.App.Read
+    Sqiff.App.Table
+    Sqiff.App.Table.Env
+    Sqiff.App.Table.Findings
+    Sqiff.App.Table.Rewrite
+    Sqiff.Baseline
+    Sqiff.Body
+    Sqiff.Catalog
+    Sqiff.Catalog.PlpgsqlCheck
+    Sqiff.Catalog.Rows
+    Sqiff.Config
+    Sqiff.Connection
+    Sqiff.ConnectionString
+    Sqiff.Definition
+    Sqiff.Dependencies
+    Sqiff.Diff
+    Sqiff.Folder
+    Sqiff.Git
+    Sqiff.Graph
+    Sqiff.Identifier
+    Sqiff.Model
+    Sqiff.Plan
+    Sqiff.Recipe
+    Sqiff.Recreate
+    Sqiff.Rewrite
+    Sqiff.Script
+    Sqiff.Sql
+    Sqiff.Sqitch
+    Sqiff.Sqitch.Check
+    Sqiff.Sqitch.Layout
+    Sqiff.Sqitch.Plan
+    Sqiff.Sqitch.Units
+    Sqiff.TableEdit
+    Sqiff.Timing
+
+  -- The version above, for sqiff --version.
+  other-modules:   Paths_sqiff
+  autogen-modules: Paths_sqiff
+  build-depends:
+    , aeson              ^>=2.3.1.0
+    , base               >=4.21 && <5
+    , bytestring         ^>=0.12.2.0
+    , containers         ^>=0.7
+    , crypton            ^>=1.1.4
+    , Diff               ^>=1.0.2
+    , file-embed         ^>=0.0.16.0
+    , filepath           ^>=1.5.5.0
+    , hasql              ^>=2.0.1.0
+    , hasql-th-kronor    ^>=0.5.1.1
+    , opt-env-conf       ^>=0.15.0.2
+    , pqi-ffi            ^>=1.0.1.0
+    , rio                ^>=0.1.25.0
+    , string-interpolate ^>=1.0.0.0
+    , text               ^>=2.1.4
+    , time               ^>=1.14
+    , typed-process      ^>=0.2.13.0
+    , vector             ^>=0.13.2.0
+    , yaml               ^>=0.11.11.2
+
+executable sqiff
+  import:         shared
+  hs-source-dirs: app
+  main-is:        Sqiff.hs
+  ghc-options:
+    -main-is Sqiff.main -threaded -rtsopts -with-rtsopts=-N4
+
+  build-depends:
+    , base
+    , rio
+    , sqiff
+    , string-interpolate
+    , text
+
+test-suite sqiff-test
+  import:             shared
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            Main.hs
+  other-modules:
+    Integration
+    Postgres
+    Rewriting
+    Unit
+    Writing
+
+  ghc-options:        -threaded -rtsopts -with-rtsopts=-N4
+  build-tool-depends: sqiff:sqiff
+  build-depends:
+    , aeson
+    , base
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , hasql
+    , hasql-th-kronor
+    , hedgehog
+    , rio
+    , sqiff
+    , string-interpolate
+    , tasty
+    , tasty-expected-failure
+    , tasty-golden
+    , tasty-hedgehog
+    , tasty-hunit
+    , temporary
+    , text
+    , time
+    , typed-process
