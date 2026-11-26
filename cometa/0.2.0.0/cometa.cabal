@@ -1,0 +1,826 @@
+cabal-version: 3.0
+name: cometa
+version: 0.2.0.0
+synopsis: Idiomatic Haskell bindings to cardano-c
+description:
+  Haskell-owned Cardano values with transaction construction, signing, script
+  evaluation and provider interfaces backed by cardano-c. Includes a
+  Blockfrost provider.
+license: Apache-2.0
+license-file: LICENSE
+author: Biglup Labs
+maintainer: angel.castillob@protonmail.com
+category: Blockchain
+homepage: https://github.com/Biglup/cometa.hs
+bug-reports: https://github.com/Biglup/cometa.hs/issues
+build-type: Simple
+extra-source-files:
+  test/fixtures/providers/*.json
+  test/fixtures/providers/README.md
+  README.md
+  examples/README.md
+  CODING_CONVENTIONS.md
+  AGENTS.md
+  tools/*.py
+  cbits/*.h
+  .hlint.yaml
+  .clang-format
+  .readthedocs.yaml
+  assets/*.png
+  native/cardano-c.ref
+  native/NOTICE
+  native/*.json
+  native/licenses/*.txt
+  docs/requirements.txt
+  docs/userguide/*.md
+  docs/userguide/conf.py
+  docs/userguide/_static/*.css
+  docs/development/*.md
+  test/Fixtures/*.md
+  test/package-consumer/*.hs
+  test/package-consumer/*.cabal
+  test/valgrind/*.supp
+  test/release/*.py
+
+source-repository head
+  type: git
+  location: https://github.com/Biglup/cometa.hs.git
+
+flag system-cardano-c
+  description: Link an installed cardano-c instead of the bundled source package.
+  default: False
+  manual: True
+
+common language
+  default-language: Haskell2010
+  ghc-options: -Wall -Wcompat -Wincomplete-uni-patterns -Wincomplete-record-updates
+
+library core
+  import: language
+  visibility: private
+  hs-source-dirs: internal
+  exposed-modules:
+    Cometa.Internal.Failure
+    Cometa.Internal.Callback
+    Cometa.Internal.Provider
+    Cometa.Internal.FFI.Provider
+    Cometa.Internal.FFI.Native
+    Cometa.Internal.Ownership
+    Cometa.Internal.Hex
+    Cometa.Internal.FFI.Cbor
+    Cometa.Internal.FFI.Reencode
+    Cometa.Internal.Transaction
+    Cometa.Internal.FFI.Transaction
+    Cometa.Internal.SigningKey
+    Cometa.Internal.FFI.SigningKey
+    Cometa.Internal.FFI.Ed25519Values
+    Cometa.Internal.FFI.Bip32
+    Cometa.Internal.FFI.Bip39
+    Cometa.Internal.Bip39
+    Cometa.Internal.PasswordCrypto
+    Cometa.Internal.FFI.PasswordCrypto
+    Cometa.Internal.KeyHandler
+    Cometa.Internal.FFI.KeyHandler
+    Cometa.Internal.Bip32PrivateKey
+    Cometa.Internal.FFI.Script
+    Cometa.Internal.FFI.Runtime
+    Cometa.Internal.FFI.ProviderRuntime
+    Cometa.Internal.FFI.CoinSelection
+    Cometa.Internal.FFI.Evaluation
+    Cometa.Internal.FFI.NativeEvaluation
+    Cometa.Internal.FFI.Building
+    Cometa.Internal.FFI.ParameterUpdate
+    Cometa.Internal.FFI.Inspection
+    Cometa.Internal.FFI.Cip8
+    Cometa.Internal.FFI.SubTransactionBuilder
+    Cometa.Internal.FFI.ContextualTransaction
+    Cometa.Internal.FFI.TransactionBuilder
+  build-depends:
+    base >=4.18 && <4.22,
+    bytestring >=0.11 && <0.13,
+    text >=2.0 && <2.2
+  if flag(system-cardano-c)
+    extra-libraries: cardano-c
+    if os(linux) || os(osx)
+      extra-libraries: m, pthread
+  else
+    build-depends: cardano-c-clib ==0.1.1.0
+  c-sources:
+    cbits/cometa_provider.c
+    cbits/cometa_cbor.c
+    cbits/cometa_reencode.c
+    cbits/cometa_transaction.c
+    cbits/cometa_signing_key.c
+    cbits/cometa_ed25519_values.c
+    cbits/cometa_key_handler.c
+    cbits/cometa_bip32.c
+    cbits/cometa_bip39.c
+    cbits/cometa_password_crypto.c
+    cbits/cometa_script.c
+    cbits/cometa_runtime.c
+    cbits/cometa_provider_runtime.c
+    cbits/cometa_parameters.c
+    cbits/cometa_inspection.c
+    cbits/cometa_cip8.c
+    cbits/cometa_coin_selection.c
+    cbits/cometa_evaluation.c
+    cbits/cometa_native_evaluation.c
+    cbits/cometa_building.c
+    cbits/cometa_sub_transaction_builder.c
+    cbits/cometa_contextual_transaction.c
+    cbits/cometa_transaction_builder.c
+  include-dirs: cbits
+  includes: cometa_provider.h
+  cc-options: -std=c11 -Wall -Wextra
+
+library
+  import: language
+  hs-source-dirs: src
+  exposed-modules:
+    Cometa.Provider.Blockfrost
+    Cometa.Provider.Hydra
+    Cometa.Provider.Koios
+    Cometa.Provider.Kupmios
+    Cometa
+    Cometa.Crypto.Blake2b
+    Cometa.Credential
+    Cometa.Address
+    Cometa.Address.Byron
+    Cometa.Transaction
+    Cometa.SubTransaction
+    Cometa.Transaction.Signing
+    Cometa.Transaction.Inspection
+    Cometa.Inspection
+    Cometa.Message.Cip8
+    Cometa.Transaction.Input
+    Cometa.Transaction.Indices
+    Cometa.Transaction.Deferred
+    Cometa.Transaction.Authority
+    Cometa.SubTransaction.Indices
+    Cometa.SubTransaction.Plan
+    Cometa.SubTransaction.Builder
+    Cometa.Transaction.Utxo
+    Cometa.Transaction.Output
+    Cometa.Transaction.Datum
+    Cometa.Transaction.Fields
+    Cometa.Transaction.Body
+    Cometa.Transaction.Building
+    Cometa.Transaction.Balancing
+    Cometa.Transaction.Builder
+    Cometa.Transaction.Plan
+    Cometa.SubTransaction.Body
+    Cometa.Transaction.Witness
+    Cometa.Transaction.Witnesses
+    Cometa.Transaction.Redeemer
+    Cometa.Transaction.AuxiliaryData
+    Cometa.Address.Shelley
+    Cometa.Address.Reward
+    Cometa.NetworkId
+    Cometa.NetworkMagic
+    Cometa.Diagnostics
+    Cometa.AssetName
+    Cometa.PolicyId
+    Cometa.AssetId
+    Cometa.Value
+    Cometa.UnitInterval
+    Cometa.Protocol.Rational
+    Cometa.Protocol.ExUnits
+    Cometa.Protocol.Version
+    Cometa.Protocol.ExUnitPrices
+    Cometa.Protocol.CostModels
+    Cometa.Protocol.PoolVotingThresholds
+    Cometa.Protocol.DRepVotingThresholds
+    Cometa.Protocol.Parameters
+    Cometa.Protocol.Parameters.Update
+    Cometa.Certificate
+    Cometa.Certificate.Collection
+    Cometa.Pool.Parameters
+    Cometa.Pool.Relay
+    Cometa.Pool.Metadata
+    Cometa.Pool.BlsKey
+    Cometa.TransactionId
+    Cometa.Governance.Action
+    Cometa.Governance.Constitution
+    Cometa.Governance.Committee
+    Cometa.Governance.Proposal
+    Cometa.Protocol.ProposedUpdates
+    Cometa.Governance.Anchor
+    Cometa.Governance.ActionId
+    Cometa.Governance.DRep
+    Cometa.Governance.Voting
+    Cometa.PlutusData
+    Cometa.Metadata
+    Cometa.Script
+    Cometa.Script.Native
+    Cometa.Script.Plutus
+    Cometa.Crypto.Ed25519.PublicKey
+    Cometa.Crypto.Ed25519.Signature
+    Cometa.Crypto.Ed25519.SigningKey
+    Cometa.Crypto.Bip32
+    Cometa.Crypto.Bip32.PublicKey
+    Cometa.Crypto.Bip32.PrivateKey
+    Cometa.Crypto.Bip39
+    Cometa.Crypto.Pbkdf2
+    Cometa.Crypto.Emip3
+    Cometa.KeyHandler.Software
+    Cometa.Crypto.DerivationPath
+    Cometa.Error
+    Cometa.Error.Code
+    Cometa.Encoding.Cbor
+    Cometa.Encoding.Integer
+    Cometa.Encoding.Reencode
+    Cometa.Value.Raw
+    Cometa.Encoding.Hex
+    Cometa.Encoding.Collections
+    Cometa.Encoding.Set
+    Cometa.Provider
+    Cometa.Evaluation
+    Cometa.Evaluation.Native
+    Cometa.Signer
+    Cometa.SlotConfig
+    Cometa.CoinSelection
+  other-modules:
+    Cometa.Provider.Internal.Config
+    Cometa.Provider.Internal.Protocol
+    Cometa.Provider.Internal.Codec
+    Cometa.Provider.Internal.Remote
+    Cometa.Provider.Internal.Hydra
+    Cometa.Provider.Blockfrost.Internal.Config
+    Cometa.Provider.Blockfrost.Internal.Http
+    Cometa.Provider.Blockfrost.Internal.Connection
+    Cometa.Provider.Blockfrost.Internal.Protocol
+    Cometa.Provider.Blockfrost.Internal.Json
+    Cometa.Provider.Blockfrost.Internal.Provider
+    Cometa.Internal.Runtime
+    Cometa.Internal.Reencode
+    Cometa.Internal.ProviderRuntime
+    Cometa.Internal.CoinSelection
+    Cometa.Internal.CoinSelection.Native
+    Cometa.Internal.ParameterSnapshot
+    Cometa.Internal.Evaluation
+    Cometa.Internal.Evaluation.Native
+    Cometa.Internal.Building
+    Cometa.Internal.ParameterUpdate
+    Cometa.Internal.Inspection
+    Cometa.Internal.Message.Cip8
+    Cometa.Internal.Balance
+    Cometa.Internal.BatchValidation
+    Cometa.Internal.SubTransactionPlan
+    Cometa.Internal.SubTransactionBuilder
+    Cometa.Internal.TransactionIndices
+    Cometa.Internal.ContextualTransaction
+    Cometa.Internal.TransactionPlan
+    Cometa.Internal.TransactionBuilder
+    Cometa.Internal.TransactionBalancing
+    Cometa.Internal.BalancingScripts
+    Cometa.Internal.EvaluationNative
+    Cometa.Internal.TransactionCbor
+    Cometa.Internal.SetEncoding
+    Cometa.Internal.TransactionValue
+    Cometa.Internal.TransactionFields
+    Cometa.Internal.Error
+    Cometa.Internal.ProtocolValues
+    Cometa.Internal.CostModels
+    Cometa.Internal.Certificate
+    Cometa.Internal.Pool
+    Cometa.Internal.ProposalCbor
+    Cometa.Internal.Governance
+    Cometa.Internal.AddressText
+    Cometa.Internal.Bip39Pure
+    Cometa.Internal.Pbkdf2Pure
+    Cometa.Internal.Ed25519SigningKey
+  build-depends:
+    base >=4.18 && <4.22,
+    bech32 >=1.1.10 && <1.2,
+    cborg >=0.2.10 && <0.3,
+    aeson >=2.2 && <2.3,
+    scientific >=0.3.7 && <0.4,
+    containers >=0.6.7 && <0.8,
+    bytestring >=0.11 && <0.13,
+    text >=2.0 && <2.2,
+    transformers >=0.6 && <0.7,
+    cometa:core,
+    network-uri >=2.6.4 && <2.7,
+    http-client >=0.7.19 && <0.8,
+    http-client-tls >=0.3.6 && <0.4,
+    http-types >=0.12.3 && <0.13,
+    async >=2.2 && <2.3,
+    tls >=2.2 && <2.3,
+    crypton-x509-store >=1.8 && <1.9,
+    crypton-x509-system >=1.8 && <1.9,
+    network >=3.2.12 && <3.3,
+    stm >=2.5 && <2.6
+
+executable cometa-bip39
+  import: language
+  hs-source-dirs: examples
+  main-is: Bip39.hs
+  build-depends:
+    base >=4.18 && <4.22,
+    bytestring >=0.11 && <0.13,
+    text >=2.0 && <2.2,
+    transformers >=0.6 && <0.7,
+    cometa
+
+executable cometa-secure-key-handler
+  import: language
+  hs-source-dirs: examples
+  main-is: SecureKeyHandler.hs
+  other-modules: Support.Terminal
+  build-depends:
+    directory >=1.3 && <1.4,
+    base >=4.18 && <4.22,
+    bytestring >=0.11 && <0.13,
+    text >=2.0 && <2.2,
+    transformers >=0.6 && <0.7,
+    cometa
+
+test-suite cometa-test
+  import: language
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test examples
+  main-is: Main.hs
+  c-sources:
+    cbits/cometa_error_codes_test.c
+    test/cbits/transaction_oracle.c
+    test/cbits/transaction_witnesses_oracle.c
+    test/cbits/transaction_body_oracle.c
+    test/cbits/derivation_path_oracle.c
+    test/cbits/address_oracle.c
+    test/cbits/complete_address_oracle.c
+    test/cbits/value_oracle.c
+    test/cbits/asset_id_oracle.c
+    test/cbits/plutus_data_oracle.c
+    test/cbits/metadata_oracle.c
+    test/cbits/script_oracle.c
+    test/cbits/parameters_oracle.c
+    test/cbits/protocol_values_oracle.c
+    test/cbits/proposals_oracle.c
+    test/cbits/pool_oracle.c
+    test/cbits/certificates_oracle.c
+    test/cbits/governance_oracle.c
+    test/cbits/slot_config_oracle.c
+    test/cbits/collections_oracle.c
+    test/cbits/integer_semantics_oracle.c
+    test/cbits/collection_operations_oracle.c
+    test/cbits/transaction_collection_operations_oracle.c
+    test/cbits/diagnostics_oracle.c
+    test/cbits/numeric_conversions_oracle.c
+    test/cbits/transaction_map_operations_oracle.c
+  cc-options: -std=c11 -Wall -Wextra
+  other-modules:
+    Collections
+    SetEncoding
+    StandaloneSetEncoding
+    TransactionDeferred
+    TransactionAccountingProperties
+    AccountingReliability
+    SelectionReliability
+    IdentityReliability
+    IntegerSemantics
+    CollectionOperations
+    TransactionCollectionOperations
+    Diagnostics
+    NumericConversions
+    TransactionMapOperations
+    InspectionCollections
+    HexEncoding
+    NativeWorkflows
+    ConnectedGovernance
+    RewardAccountPubkey
+    RewardAccountScript
+    DeferredWithdrawZero
+    DRepPubkey
+    DRepScript
+    VoteForProposalPubkey
+    VoteForProposalScript
+    DonateToTreasury
+    ProposeTreasuryWithdrawal
+    Fixtures.TransactionWorkflows
+    SpendFromValidator
+    DeferredRedeemerSelfIndex
+    DeferredRedeemerBatch
+    PlutusV4GuardedSubTransaction
+    Support.Inputs
+    Support.Wallet
+    Support.Terminal
+    Support.Configuration
+    Support.Governance
+    Support.Transaction
+    Support.Scripts
+    Fixtures.Workflow
+    Fixtures.Swap
+    Fixtures.ExampleParameters
+    Value
+    PlutusData
+    Metadata
+    Parameters
+    ProtocolValues
+    SlotConfig
+    Governance
+    Proposals
+    Pool
+    Certificates
+    Fixtures.Governance
+    Fixtures.ProtocolParameters
+    Scripts
+    Fixtures.Scripts
+    Fixtures.PlutusData
+    Address
+    CompleteAddress
+    AssetId
+    Cip8
+    Fixtures.Address
+    ErrorCode
+    Ownership
+    Callback
+    Cbor
+    Transaction
+    PublicTransaction
+    TransactionWitnesses
+    TransactionBody
+    Fixtures.Transaction
+    Fixtures.Ed25519
+    Ed25519
+    Bip32
+    Fixtures.Bip32
+    Bip39
+    PasswordCrypto
+    SoftwareKeyHandler
+    DerivationPath
+    Fixtures.Bip39
+  ghc-options: -threaded -rtsopts
+  build-depends:
+    base >=4.18 && <4.22,
+    containers >=0.6.7 && <0.8,
+    aeson >=2.2 && <2.3,
+    cborg >=0.2.10 && <0.3,
+    scientific >=0.3.7 && <0.4,
+    bech32 >=1.1.10 && <1.2,
+    bytestring >=0.11 && <0.13,
+    text >=2.0 && <2.2,
+    transformers >=0.6 && <0.7,
+    cometa,
+    cometa:core,
+    tasty >=1.4 && <1.6,
+    tasty-hunit >=0.10 && <0.11,
+    tasty-hedgehog >=1.4 && <1.5,
+    hedgehog >=1.2 && <1.6
+
+test-suite cometa-runtime-test
+  import: language
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test src
+  main-is: RuntimeMain.hs
+  c-sources:
+    test/cbits/parameter_snapshot_oracle.c
+    test/cbits/runtime_oracle.c
+    test/cbits/transaction_indices_oracle.c
+    test/cbits/contextual_transaction_oracle.c
+    test/cbits/encoding_normalization_oracle.c
+  include-dirs: cbits
+  cc-options: -std=c11 -Wall -Wextra
+  ghc-options: -threaded -rtsopts
+  other-modules:
+    BlockfrostProtocol
+    BlockfrostJson
+    BlockfrostProvider
+    AdditionalProviders
+    Cometa.Provider.Blockfrost
+    Cometa.Provider.Hydra
+    Cometa.Provider.Koios
+    Cometa.Provider.Kupmios
+    BlockfrostHttp
+    Cometa.Provider.Internal.Config
+    Cometa.Provider.Internal.Protocol
+    Cometa.Provider.Internal.Codec
+    Cometa.Provider.Internal.Remote
+    Cometa.Provider.Internal.Hydra
+    Cometa.Provider.Blockfrost.Internal.Config
+    Cometa.Provider.Blockfrost.Internal.Http
+    Cometa.Provider.Blockfrost.Internal.Connection
+    Cometa.Provider.Blockfrost.Internal.Protocol
+    Cometa.Provider.Blockfrost.Internal.Json
+    Cometa.Provider.Blockfrost.Internal.Provider
+    TransactionInspection
+    EncodingNormalization
+    Fixtures.Inspection
+    Cometa.Transaction.Inspection
+    Cometa.Inspection
+    Provider
+    Runtime
+    Evaluation
+    CoinSelection
+    ParameterSnapshot
+    TransactionBuilding
+    TransactionBuilder
+    NativeCoinSelection
+    NativeEvaluation
+    DeferredRedeemer
+    TransactionBalancing
+    BalancingScriptLanguages
+    TransactionIndices
+    ContextualTransaction
+    SubTransactionBuilder
+    DijkstraBuilder
+    Fixtures.ProtocolParameters
+    Cometa
+    Cometa.Address
+    Cometa.Address.Byron
+    Cometa.Address.Reward
+    Cometa.Address.Shelley
+    Cometa.AssetId
+    Cometa.AssetName
+    Cometa.Certificate
+    Cometa.Certificate.Collection
+    Cometa.CoinSelection
+    Cometa.Credential
+    Cometa.Crypto.Bip32
+    Cometa.Crypto.Bip32.PrivateKey
+    Cometa.Crypto.Bip32.PublicKey
+    Cometa.Crypto.Bip39
+    Cometa.Crypto.Blake2b
+    Cometa.Crypto.DerivationPath
+    Cometa.Crypto.Ed25519.PublicKey
+    Cometa.Crypto.Ed25519.Signature
+    Cometa.Crypto.Ed25519.SigningKey
+    Cometa.Crypto.Emip3
+    Cometa.Crypto.Pbkdf2
+    Cometa.Encoding.Cbor
+    Cometa.Encoding.Integer
+    Cometa.Encoding.Reencode
+    Cometa.Value.Raw
+    Cometa.Encoding.Set
+    Cometa.Encoding.Collections
+    Cometa.Error
+    Cometa.Error.Code
+    Cometa.Evaluation
+    Cometa.Evaluation.Native
+    Cometa.Governance.Action
+    Cometa.Governance.ActionId
+    Cometa.Governance.Anchor
+    Cometa.Governance.Committee
+    Cometa.Governance.Constitution
+    Cometa.Governance.DRep
+    Cometa.Governance.Proposal
+    Cometa.Governance.Voting
+    Cometa.Internal.AddressText
+    Cometa.Internal.Bip39Pure
+    Cometa.Internal.Certificate
+    Cometa.Internal.CoinSelection
+    Cometa.Internal.CoinSelection.Native
+    Cometa.Internal.CostModels
+    Cometa.Internal.Ed25519SigningKey
+    Cometa.Internal.Error
+    Cometa.Internal.Evaluation
+    Cometa.Internal.Evaluation.Native
+    Cometa.Internal.Building
+    Cometa.Internal.ParameterUpdate
+    Cometa.Internal.Inspection
+    Cometa.Internal.Message.Cip8
+    Cometa.Internal.Balance
+    Cometa.Internal.BatchValidation
+    Cometa.Internal.SubTransactionPlan
+    Cometa.Internal.SubTransactionBuilder
+    Cometa.Internal.TransactionIndices
+    Cometa.Internal.ContextualTransaction
+    Cometa.Internal.TransactionPlan
+    Cometa.Internal.TransactionBuilder
+    Cometa.Internal.TransactionBalancing
+    Cometa.Internal.BalancingScripts
+    Cometa.Internal.EvaluationNative
+    Cometa.Internal.Governance
+    Cometa.Internal.ParameterSnapshot
+    Cometa.Internal.Pbkdf2Pure
+    Cometa.Internal.Pool
+    Cometa.Internal.ProposalCbor
+    Cometa.Internal.ProtocolValues
+    Cometa.Internal.ProviderRuntime
+    Cometa.Internal.Runtime
+    Cometa.Internal.Reencode
+    Cometa.Internal.TransactionCbor
+    Cometa.Internal.SetEncoding
+    Cometa.Internal.TransactionFields
+    Cometa.Internal.TransactionValue
+    Cometa.KeyHandler.Software
+    Cometa.Metadata
+    Cometa.NetworkId
+    Cometa.NetworkMagic
+    Cometa.Diagnostics
+    Cometa.PlutusData
+    Cometa.PolicyId
+    Cometa.Pool.BlsKey
+    Cometa.Pool.Metadata
+    Cometa.Pool.Parameters
+    Cometa.Pool.Relay
+    Cometa.Protocol.CostModels
+    Cometa.Protocol.DRepVotingThresholds
+    Cometa.Protocol.ExUnitPrices
+    Cometa.Protocol.ExUnits
+    Cometa.Protocol.Parameters
+    Cometa.Protocol.Parameters.Update
+    Cometa.Protocol.PoolVotingThresholds
+    Cometa.Protocol.ProposedUpdates
+    Cometa.Protocol.Rational
+    Cometa.Protocol.Version
+    Cometa.Provider
+    Cometa.Script
+    Cometa.Script.Native
+    Cometa.Script.Plutus
+    Cometa.Signer
+    Cometa.SlotConfig
+    Cometa.SubTransaction
+    Cometa.SubTransaction.Body
+    Cometa.Transaction
+    Cometa.Transaction.AuxiliaryData
+    Cometa.Transaction.Body
+    Cometa.Transaction.Building
+    Cometa.Transaction.Balancing
+    Cometa.Transaction.Builder
+    Cometa.Transaction.Plan
+    Cometa.Transaction.Datum
+    Cometa.Transaction.Fields
+    Cometa.Transaction.Input
+    Cometa.Transaction.Indices
+    Cometa.Transaction.Deferred
+    Cometa.Transaction.Authority
+    Cometa.SubTransaction.Indices
+    Cometa.SubTransaction.Plan
+    Cometa.SubTransaction.Builder
+    Cometa.Transaction.Output
+    Cometa.Transaction.Redeemer
+    Cometa.Transaction.Signing
+    Cometa.Transaction.Utxo
+    Cometa.Transaction.Witness
+    Cometa.Transaction.Witnesses
+    Cometa.TransactionId
+    Cometa.UnitInterval
+    Cometa.Value
+  build-depends:
+    base >=4.18 && <4.22,
+    containers >=0.6.7 && <0.8,
+    aeson >=2.2 && <2.3,
+    cborg >=0.2.10 && <0.3,
+    scientific >=0.3.7 && <0.4,
+    bech32 >=1.1.10 && <1.2,
+    bytestring >=0.11 && <0.13,
+    text >=2.0 && <2.2,
+    transformers >=0.6 && <0.7,
+    cometa:core,
+    tasty >=1.5 && <1.6,
+    tasty-hunit >=0.10 && <0.11,
+    tasty-hedgehog >=1.4 && <1.5,
+    hedgehog >=1.2 && <1.6,
+    network-uri >=2.6.4 && <2.7,
+    http-client >=0.7.19 && <0.8,
+    http-client-tls >=0.3.6 && <0.4,
+    http-types >=0.12.3 && <0.13,
+    async >=2.2 && <2.3,
+    tls >=2.2 && <2.3,
+    crypton-x509-store >=1.8 && <1.9,
+    crypton-x509-system >=1.8 && <1.9,
+    network >=3.2.12 && <3.3,
+    stm >=2.5 && <2.6,
+    crypton-x509 >=1.8 && <1.9
+
+executable cometa-provider
+  import: language
+  hs-source-dirs: examples
+  main-is: Provider.hs
+  other-modules: Support.Configuration
+  ghc-options: -threaded -rtsopts
+  build-depends:
+    base >=4.18 && <4.22,
+    cometa,
+    bytestring >=0.11 && <0.13,
+    text >=2.0 && <2.2,
+    transformers >=0.6 && <0.7
+
+executable cometa-sign-data
+  import: language
+  hs-source-dirs: examples
+  main-is: SignData.hs
+  build-depends:
+    base >=4.18 && <4.22,
+    bytestring >=0.11 && <0.13,
+    transformers >=0.6 && <0.7,
+    cometa
+
+common connected-example
+  import: language
+  hs-source-dirs: examples
+  ghc-options: -threaded -rtsopts
+  other-modules:
+    Support.Configuration
+    Support.Wallet
+    Support.Terminal
+    Support.Governance
+    Support.Inputs
+    Support.Transaction
+    Support.Scripts
+  build-depends:
+    base >=4.18 && <4.22,
+    bytestring >=0.11 && <0.13,
+    containers >=0.6.7 && <0.8,
+    text >=2.0 && <2.2,
+    transformers >=0.6 && <0.7,
+    cometa
+
+executable cometa-sub-transaction-batch
+  import: connected-example
+  main-is: SubTransactionBatch.hs
+
+executable cometa-send-lovelace
+  import: connected-example
+  main-is: SendLovelace.hs
+
+executable cometa-mint-burn-native-script
+  import: connected-example
+  main-is: MintBurnNativeScript.hs
+
+executable cometa-mint-burn-plutus-script
+  import: connected-example
+  main-is: MintBurnPlutusScript.hs
+
+executable cometa-spend-from-native-script
+  import: connected-example
+  main-is: SpendFromNativeScript.hs
+
+executable cometa-spend-from-validator
+  import: connected-example
+  main-is: SpendFromValidator.hs
+  ghc-options: -main-is SpendFromValidator
+
+executable cometa-deferred-self-index
+  import: connected-example
+  main-is: DeferredRedeemerSelfIndex.hs
+  ghc-options: -main-is DeferredRedeemerSelfIndex
+
+executable cometa-deferred-batch
+  import: connected-example
+  main-is: DeferredRedeemerBatch.hs
+  ghc-options: -main-is DeferredRedeemerBatch
+
+executable cometa-reward-account-pubkey
+  import: connected-example
+  main-is: RewardAccountPubkey.hs
+  ghc-options: -main-is RewardAccountPubkey
+
+executable cometa-reward-account-script
+  import: connected-example
+  main-is: RewardAccountScript.hs
+  ghc-options: -main-is RewardAccountScript
+
+executable cometa-drep-pubkey
+  import: connected-example
+  main-is: DRepPubkey.hs
+  ghc-options: -main-is DRepPubkey
+
+executable cometa-drep-script
+  import: connected-example
+  main-is: DRepScript.hs
+  ghc-options: -main-is DRepScript
+
+executable cometa-vote-for-proposal-pubkey
+  import: connected-example
+  main-is: VoteForProposalPubkey.hs
+  ghc-options: -main-is VoteForProposalPubkey
+
+executable cometa-vote-for-proposal-script
+  import: connected-example
+  main-is: VoteForProposalScript.hs
+  ghc-options: -main-is VoteForProposalScript
+
+executable cometa-donate-to-treasury
+  import: connected-example
+  main-is: DonateToTreasury.hs
+  ghc-options: -main-is DonateToTreasury
+
+executable cometa-propose-treasury-withdrawal
+  import: connected-example
+  main-is: ProposeTreasuryWithdrawal.hs
+  ghc-options: -main-is ProposeTreasuryWithdrawal
+
+executable cometa-deferred-withdraw-zero
+  import: connected-example
+  main-is: DeferredWithdrawZero.hs
+  ghc-options: -main-is DeferredWithdrawZero
+
+executable cometa-plutus-v4-guarded-subtransaction
+  import: connected-example
+  main-is: PlutusV4GuardedSubTransaction.hs
+  ghc-options: -main-is PlutusV4GuardedSubTransaction
+
+benchmark cometa-performance
+  import: language
+  type: exitcode-stdio-1.0
+  hs-source-dirs: benchmark test
+  main-is: Main.hs
+  other-modules: Fixtures.ProtocolParameters
+  ghc-options: -rtsopts
+  build-depends:
+    base >=4.18 && <4.22,
+    aeson >=2.2 && <2.3,
+    bytestring >=0.11 && <0.13,
+    transformers >=0.6 && <0.7,
+    cometa
