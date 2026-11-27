@@ -1,0 +1,152 @@
+cabal-version: 3.0
+name: cabal-flatpak
+version: 1.0.0
+license: BSD-3-Clause AND GPL-2.0-or-later
+license-files:
+  LICENSE
+  vendor/cabal-plan/LICENSE.GPLv2
+  vendor/cabal-plan/LICENSE.GPLv3
+
+author: Henning Thielemann <haskell@henning-thielemann.de>
+maintainer: Hécate
+homepage: https://codeberg.org/haskell/cabal-flatpak
+category: Distribution
+synopsis: Generate FlatPak modules from a Cabal package description
+description:
+  The @generate@ command reads the build plan of a Cabal project
+  and writes @haskell-sources.yaml@, a Flatpak module that builds GHC,
+  @cabal-install@ and every Hackage dependency without network access.
+  It also writes a stub manifest, a MetaInfo file and a desktop file
+  for a first Flathub submission.
+  Inspired by Richard Szibele's stackpak:
+  <https://gitlab.com/rszibele/stackpak#readme>
+
+tested-with: ghc ==9.14.1
+build-type: Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type: git
+  location: https://codeberg.org/haskell/cabal-flatpak
+
+common extensions
+  default-extensions:
+    DerivingVia
+    MultilineStrings
+    NoFieldSelectors
+    OrPatterns
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+    ScopedTypeVariables
+
+  default-language: GHC2024
+
+common ghc-options
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wpartial-fields
+    -Wredundant-constraints
+    -fhide-source-paths
+    -Wno-unused-do-bind
+    -Wno-unticked-promoted-constructors
+    -Winvalid-haddock
+    -Wmissing-deriving-strategies
+    -Werror=default
+    -Wwarn=x-partial
+
+library vendored-cabal-plan
+  hs-source-dirs: vendor/cabal-plan/src
+  exposed-modules: Cabal.Plan
+  other-extensions:
+    GeneralizedNewtypeDeriving
+    OverloadedStrings
+    RecordWildCards
+
+  build-depends:
+    aeson >=2.2.4.1 && <2.4,
+    base >=4.22 && <5,
+    base16-bytestring ^>=1.0.2.0,
+    bytestring >=0.11.5.3 && <0.13,
+    containers >=0.6.8 && <0.9,
+    directory >=1.3.8.5 && <1.4,
+    filepath >=1.4.301.0 && <1.7,
+    text >=2.1.3 && <2.2,
+
+  default-language: Haskell2010
+  ghc-options: -Wall
+
+library domain
+  import: extensions
+  import: ghc-options
+  hs-source-dirs: src/domain
+  -- cabal-gild: discover src/domain
+  exposed-modules:
+    Distribution.Flatpak
+    Distribution.Flatpak.App
+    Distribution.Flatpak.AppId
+    Distribution.Flatpak.CabalInstall
+    Distribution.Flatpak.Generate
+    Distribution.Flatpak.GHC
+    Distribution.Flatpak.Location
+    Distribution.Flatpak.Stub
+    Distribution.Flatpak.UnitKind
+
+  build-depends:
+    base >=4.22 && <5,
+    bytestring >=0.11.5.3 && <0.13,
+    cabal-flatpak:vendored-cabal-plan,
+    Cabal-syntax ^>=3.18.1,
+    containers >=0.6.8 && <0.9,
+    network-uri >=2.6.4.2 && <2.8,
+    parsec >=3.1.18.0 && <3.2,
+    shell-utility >=0.1 && <0.2,
+    text >=2.1.3 && <2.2,
+    utility-ht >=0.0.12 && <0.1,
+    yamlet >=1.0 && <1.1,
+
+library application
+  import: extensions
+  import: ghc-options
+  hs-source-dirs: src/application
+  -- cabal-gild: discover src/application
+  exposed-modules:
+    Application
+    Application.CLI.Option
+    Application.LocalPackages
+    Application.Retrieve
+    Application.Write
+
+  build-depends:
+    aeson >=2.2.4.1 && <2.4,
+    algebraic-graphs >=0.7 && <0.9,
+    base >=4.22 && <5,
+    bytestring >=0.11.5.3 && <0.13,
+    cabal-flatpak:domain,
+    cabal-flatpak:vendored-cabal-plan,
+    containers >=0.6.8 && <0.9,
+    directory >=1.3.8.5 && <1.4,
+    filepath >=1.4.301.0 && <1.7,
+    http-client >=0.7.14 && <0.8,
+    http-client-tls >=0.3.5.3 && <0.5,
+    http-types >=0.11 && <0.13,
+    JuicyPixels >=3.3.8 && <3.4,
+    nano-svg >=0.2 && <0.3,
+    optparse-applicative >=0.16.1.0 && <0.20,
+    shell-utility >=0.1 && <0.2,
+    text >=2.1.3 && <2.2,
+    utility-ht >=0.0.12 && <0.1,
+
+executable cabal-flatpak
+  import: extensions
+  import: ghc-options
+  build-depends:
+    base >=4.22 && <5,
+    cabal-flatpak:application,
+
+  hs-source-dirs: src
+  main-is: Main.hs
