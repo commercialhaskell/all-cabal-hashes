@@ -1,0 +1,107 @@
+cabal-version:      3.4
+name:               raft-consensus-distributed-process
+version:            0.1.0.0
+synopsis:           Cloud Haskell facilities to the Raft consensus protocol
+-- description:
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Laurent P. René de Cotret
+maintainer:         laurent.decotret@outlook.com
+copyright:          Laurent P. René de Cotret
+category:           Distributed Systems, Consensus, Cloud Haskell
+build-type:         Simple
+extra-doc-files:    README.md
+                    CHANGELOG.md
+
+source-repository head
+    type: git
+    location: https://github.com/LaurentRDC/distributed-consensus
+    subdir: raft-consensus-distributed-process
+
+common warnings
+    ghc-options: -Wall
+                 -Wcompat
+                 -Widentities
+                 -Wincomplete-uni-patterns
+                 -Wincomplete-record-updates
+                 -Wredundant-constraints
+                 -fhide-source-paths
+                 -Wpartial-fields
+                 -Wunused-packages
+
+library
+    import:           warnings
+    exposed-modules:  Control.Distributed.Process.Raft
+    hs-source-dirs:   src
+    -- GHC 9.6+ (base 4.18+) is required to infer types properly when
+    -- using io-classes
+    build-depends:    base >= 4.18 && <4.23
+                    , distributed-process ^>=0.7
+                    , raft-consensus-distributed-process:io-classes-instances
+                    , raft-consensus ^>=0.1
+                    , stm ^>=2.5
+    default-language: GHC2021
+
+library io-classes-instances
+    import:           warnings
+    hs-source-dirs:   src/instances
+    exposed-modules:  Control.Distributed.Process.Raft.Instances
+    build-depends:    base >= 4.18 && <4.23
+                    , array
+                    , async >= 2.1 && <2.3
+                    , distributed-process ^>=0.7
+                    , io-classes ^>=1.11
+                    , io-classes:si-timers
+                    , primitive >=0.7 && <0.11
+                    , stm ^>=2.5
+                    , transformers ^>=0.6
+    default-language: GHC2021
+
+library client
+    import:           warnings
+    hs-source-dirs:   src
+    exposed-modules:  Control.Distributed.Process.Raft.Client
+    visibility:       public
+    build-depends:    base >= 4.18 && <4.23
+                    , distributed-process ^>=0.7
+                    , raft-consensus-distributed-process:io-classes-instances
+                    , raft-consensus ^>=0.1
+                    , random ^>=1.3
+                    , stm ^>=2.5
+    default-language: GHC2021
+
+library admin
+    import:           warnings
+    hs-source-dirs:   src
+    exposed-modules:  Control.Distributed.Process.Raft.Admin
+    visibility:       public
+    build-depends:    base >= 4.18 && <4.23
+                    , distributed-process ^>=0.7
+                    , raft-consensus-distributed-process:io-classes-instances
+                    , raft-consensus ^>=0.1
+                    , random ^>=1.3
+                    , stm ^>=2.5
+    default-language: GHC2021
+
+-- The test suite name is shortened because otherwise
+-- it can lead to paths that are too long for
+-- Windows to handle
+test-suite rcdp-test
+    import:           warnings
+    default-language: Haskell2010
+    other-modules:    Test.Control.Distributed.Process.Raft
+    type:             exitcode-stdio-1.0
+    ghc-options:      -rtsopts -threaded -with-rtsopts=-N
+    hs-source-dirs:   tests
+    main-is:          Main.hs
+    build-depends:    async
+                    , base >= 4.18 && <4.23
+                    , distributed-process
+                    , raft-consensus-distributed-process
+                    , raft-consensus-distributed-process:admin
+                    , raft-consensus-distributed-process:client
+                    , raft-consensus
+                    , tasty ^>= 1.5
+                    , tasty-hunit ^>= 0.10
+                    , network-transport
+                    , network-transport-inmemory

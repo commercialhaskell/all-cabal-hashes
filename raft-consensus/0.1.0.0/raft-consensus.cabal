@@ -1,0 +1,107 @@
+cabal-version:      3.4
+name:               raft-consensus
+version:            0.1.0.0
+synopsis:           Haskell implementation of the Raft consensus protocol
+-- description:
+homepage:           https://github.com/LaurentRDC/distributed-consensus
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Laurent P. René de Cotret
+maintainer:         laurent.decotret@outlook.com
+copyright:          Laurent P. René de Cotret
+category:           Distributed Systems, Consensus
+build-type:         Simple
+extra-doc-files:    README.md
+                    CHANGELOG.md
+
+source-repository head
+    type: git
+    location: https://github.com/LaurentRDC/distributed-consensus
+    subdir: raft-consensus
+
+common warnings
+    ghc-options: -Wall
+                 -Wcompat
+                 -Widentities
+                 -Wincomplete-uni-patterns
+                 -Wincomplete-record-updates
+                 -Wredundant-constraints
+                 -fhide-source-paths
+                 -Wpartial-fields
+                 -Wunused-packages
+
+library
+    import:           warnings
+    exposed-modules:  Distributed.Consensus.Raft
+                      -- TODO: split out client and admin modules
+                      --       into separate libraries so that a client
+                      --       executable doesn't need to compile the
+                      --       Raft algorithm?
+                      Distributed.Consensus.Raft.Admin
+                      Distributed.Consensus.Raft.Client
+    other-modules:    Distributed.Consensus.Raft.Algorithm
+                      Distributed.Consensus.Raft.Domain
+                      Distributed.Consensus.Raft.Domain.Admin
+                      Distributed.Consensus.Raft.Domain.Client
+                      Distributed.Consensus.Raft.Implementation
+                      Distributed.Consensus.Raft.Log
+                      Distributed.Consensus.Raft.Messaging
+                      Distributed.Consensus.Raft.Transformer
+                      Distributed.Consensus.Raft.Transformer.Definition
+                      Distributed.Consensus.Raft.Timer
+    -- GHC 9.6+ (base 4.18+) is required to infer types properly when
+    -- using io-classes
+    build-depends:    base >= 4.18 && <4.23
+                    , binary ^>=0.8
+                    , containers >=0.7 && <0.9
+                    , io-classes ^>=1.11
+                    , microlens-platform ^>=0.4
+                    , random ^>=1.3
+                    , transformers ^>=0.6
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+test-suite raft-consensus-test
+    import:           warnings
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   tests
+    main-is:          Main.hs
+    other-modules:    Control.Monitor
+                      Control.Monitor.Predicate
+                      Control.Monitor.Reason
+                      Test.Distributed.Consensus.Raft
+                      Test.Distributed.Consensus.Raft.Client
+                      Test.Distributed.Consensus.Raft.Options
+                      Test.Distributed.Consensus.Raft.Properties
+                      Test.Distributed.Consensus.Raft.Scenario
+                      Test.StateMachine
+    ghc-options:      -rtsopts -threaded -with-rtsopts=-N
+    build-depends:    base >= 4.18 && <4.23
+                    , containers
+                    , raft-consensus
+                    , io-classes
+                    , io-sim ^>=1.11
+                    , linearizable ^>=0.1
+                    , pretty-simple ^>=4.1
+                    , random
+                    , tagged ^>=0.8
+                    , tasty ^>=1.5
+                    , tasty-quickcheck ^>=0.11
+                    , text
+
+benchmark raft-cluster
+  import:           warnings
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          Main.hs
+  ghc-options:      -rtsopts -threaded -with-rtsopts=-N
+  build-depends:    async
+                  , base
+                  , containers
+                  , deepseq
+                  , raft-consensus
+                  , stm
+                  , tasty
+                  , tasty-bench
