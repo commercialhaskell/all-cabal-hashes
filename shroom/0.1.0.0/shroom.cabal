@@ -1,0 +1,193 @@
+cabal-version: 3.0
+name: shroom
+version: 0.1.0.0
+synopsis: Type-safe structured LLM prompting for Haskell
+description:
+  LLMs hallucinate, but if you use shroom, it will at least be a well-typed
+  hallucination!
+
+  shroom lets an LLM understand the types you defined in Haskell and generate
+  good values for them. A monadic program written
+  with <https://hackage.haskell.org/package/shroom/docs/Control-Monad-Prompt-Effect.html#v:context context> and
+  <https://hackage.haskell.org/package/shroom/docs/Control-Monad-Prompt-Promptable.html#v:prompt prompt> returns a typed
+  Haskell value, or a descriptive error. The model learns a type from what a
+  human reader sees already: its Haddocks and its type, constructor and field
+  names. Properties written as pure Haskell functions, example values and
+  documentation for the model alone guide it further. A response that fails to
+  parse or breaks a property is retried. The package includes
+  the prompt monad and its effect interface
+  ("Control.Monad.Prompt.Effect"), deriving via
+  <https://hackage.haskell.org/package/base/docs/GHC-Generics.html#t:Generically Generically>,
+  tool calls ("Control.Monad.Prompt.Tool"), and a mock backend that reads
+  responses from files ("Control.Monad.Prompt.FileMock"). The classes
+  describing types live in
+  <https://hackage.haskell.org/package/shroom-class shroom-class>, which this
+  package re-exports.
+
+  A tool call is like an effect that the model triggers. The program's type
+  decides which tools the model may use, and the model decides when and how.
+
+  shroom ships no backend for a real model.
+  <https://hackage.haskell.org/package/shroom-baikai shroom-baikai> supplies
+  one for Claude and for OpenAI-compatible hosts such as a local Ollama.
+
+category: AI
+license: BSD-3-Clause
+license-file: LICENSE
+author: Manuel Bärenz
+maintainer: programming@manuelbaerenz.de
+-- copyright:
+build-type: Simple
+extra-doc-files: CHANGELOG.md
+data-files:
+  dev/mock-responses/*.json
+
+-- extra-source-files:
+tested-with:
+  ghc ==9.12
+
+flag web
+  description:
+    Build shroom-test-web-tools, which makes real calls to DuckDuckGo and
+    Wikipedia.
+
+  default: True
+  manual: True
+
+flag online
+  description:
+    Master switch for the test suites that need network or an external
+    service. Off under nix, where the sandbox has no network.
+
+  default: True
+  manual: True
+
+common opts
+  ghc-options:
+    -Wall
+    -haddock
+    -Winvalid-haddock
+
+  build-depends:
+    aeson ^>=2.2,
+    base >=4.20 && <4.22,
+    bytestring ^>=0.12,
+    containers >=0.6 && <0.8,
+    directory ^>=1.3,
+    effectful ^>=2.7,
+    filepath ^>=1.5,
+    generics-sop ^>=0.5.1,
+    http-client ^>=0.7,
+    modern-uri ^>=0.3,
+    openapi3 ^>=3.2,
+    req ^>=3.13,
+    sop-core ^>=0.5,
+    tagsoup ^>=0.14,
+    template-haskell >=2.22 && <2.25,
+    text >=2.1.2 && <2.2,
+    time ^>=1.14,
+    universe-base ^>=1.1,
+    vector ^>=0.13,
+    witherable ^>=0.5,
+
+  default-extensions:
+    DefaultSignatures
+    DerivingVia
+    OverloadedLists
+    OverloadedRecordDot
+    OverloadedStrings
+    TypeFamilies
+
+library
+  import: opts
+  exposed-modules:
+    Control.Monad.Prompt
+    Control.Monad.Prompt.Backend
+    Control.Monad.Prompt.Effect
+    Control.Monad.Prompt.FileMock
+    Control.Monad.Prompt.Promptable
+    Control.Monad.Prompt.Tool
+    Control.Monad.Prompt.Tool.Web
+
+  reexported-modules:
+    Data.Shroom.Class,
+    Data.Shroom.Class.TH,
+
+  other-modules:
+    Control.Monad.Prompt.Schema
+    Paths_shroom
+
+  autogen-modules:
+    Paths_shroom
+
+  hs-source-dirs: src
+  build-depends:
+    shroom-class ^>=0.1
+
+  default-language: GHC2024
+
+library test-utils
+  import: opts
+  visibility: public
+  hs-source-dirs: test-utils
+  default-language: GHC2024
+  build-depends:
+    shroom
+
+  exposed-modules:
+    CelebrityTypes
+    ConferenceTypes
+    GenericTypes
+    TestUtils
+    Types
+    WebToolReport
+
+common test-opts
+  build-depends:
+    shroom,
+    tasty >=1.4 && <1.6,
+    tasty-hunit ^>=0.10,
+    test-utils,
+
+test-suite shroom-test
+  import: opts, test-opts
+  default-language: GHC2024
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  other-modules: UnqualifiedImports
+  build-depends:
+    network ^>=3.2,
+    time ^>=1.14,
+
+test-suite shroom-test-conference
+  import: opts, test-opts
+  default-language: GHC2024
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: ConferenceScenario.hs
+
+test-suite shroom-test-celebrity
+  import: opts, test-opts
+  default-language: GHC2024
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: CelebrityScenario.hs
+
+test-suite shroom-test-web-tools
+  import: opts, test-opts
+  default-language: GHC2024
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: WebToolsScenario.hs
+  build-depends:
+    text
+
+  if !(flag(web) && flag(online))
+    buildable: False
+
+executable shroom-dev
+  import: opts, test-opts
+  default-language: GHC2024
+  hs-source-dirs: app
+  main-is: Main.hs

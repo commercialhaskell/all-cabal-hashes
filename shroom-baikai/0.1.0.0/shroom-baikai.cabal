@@ -1,0 +1,151 @@
+cabal-version: 3.0
+name: shroom-baikai
+version: 0.1.0.0
+synopsis: The baikai transport adapter for shroom
+description:
+  shroom-baikai implements the
+  <https://hackage.haskell.org/package/shroom/docs/Control-Monad-Prompt-Backend.html#t:Backend Backend>
+  interface of <https://hackage.haskell.org/package/shroom shroom> by
+  interpreting the
+  <https://hackage.haskell.org/package/baikai-effectful/docs/Baikai-Effectful.html#t:Baikai Baikai>
+  effect of
+  <https://hackage.haskell.org/package/baikai-effectful baikai-effectful>, so a
+  shroom program runs unchanged against Claude
+  (<https://hackage.haskell.org/package/baikai-claude baikai-claude>) or any
+  OpenAI-compatible host, including a local Ollama
+  (<https://hackage.haskell.org/package/baikai-openai baikai-openai>).
+  Front-door constructors build a backend from an API key or a base URL and a
+  model name; a program that needs a different transport interprets the effect
+  itself. Use it with <https://hackage.haskell.org/package/shroom shroom>,
+  which holds the prompt monad, and
+  <https://hackage.haskell.org/package/shroom-class shroom-class>, which
+  describes the types.
+
+category: AI
+license: BSD-3-Clause
+license-file: LICENSE
+author: Manuel Bärenz
+maintainer: programming@manuelbaerenz.de
+-- copyright:
+build-type: Simple
+extra-doc-files: CHANGELOG.md
+-- extra-source-files:
+tested-with:
+  ghc ==9.12
+
+flag anthropic
+  description:
+    Build shroom-test-integration-claude, which calls the real Anthropic
+    API and needs ANTHROPIC_API_KEY.
+
+  default: True
+  manual: True
+
+flag ollama
+  description:
+    Build shroom-test-integration-ollama, which needs a reachable Ollama
+    server.
+
+  default: True
+  manual: True
+
+flag online
+  description:
+    Master switch for the test suites that need network or an external
+    service. Off under nix, where the sandbox has no network.
+
+  default: True
+  manual: True
+
+common opts
+  ghc-options:
+    -Wall
+    -haddock
+    -Winvalid-haddock
+
+  build-depends:
+    aeson ^>=2.2,
+    baikai >=0.7.0 && <0.12,
+    baikai-claude >=0.7.0 && <0.8,
+    baikai-effectful >=0.4.0 && <0.6,
+    baikai-openai >=0.7.0 && <0.8,
+    base >=4.20 && <4.22,
+    effectful ^>=2.7,
+    shroom ^>=0.1,
+    text >=2.1.2 && <2.2,
+    vector ^>=0.13,
+
+  default-extensions:
+    DefaultSignatures
+    DerivingVia
+    OverloadedLists
+    OverloadedRecordDot
+    OverloadedStrings
+    TypeFamilies
+
+library
+  import: opts
+  exposed-modules:
+    Control.Monad.Prompt.Baikai
+
+  hs-source-dirs: src
+  default-language: GHC2024
+
+common test-opts
+  build-depends:
+    generics-sop ^>=0.5.1,
+    openapi3 ^>=3.2,
+    shroom,
+    shroom:test-utils,
+    shroom-baikai,
+    tasty >=1.4 && <1.6,
+    tasty-hunit ^>=0.10,
+
+test-suite shroom-test-integration-claude
+  import: opts, test-opts
+  default-language: GHC2024
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Integration/Claude.hs
+  other-modules:
+    Integration.Cases
+
+  if !(flag(anthropic) && flag(online))
+    buildable: False
+
+test-suite shroom-test-integration-ollama
+  import: opts, test-opts
+  default-language: GHC2024
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Integration/Ollama.hs
+  other-modules:
+    Integration.Cases
+    ScalarTypes
+
+  if !(flag(ollama) && flag(online))
+    buildable: False
+
+executable shroom-conference-claude
+  import: opts, test-opts
+  default-language: GHC2024
+  hs-source-dirs: app
+  main-is: Claude.hs
+  build-depends:
+    time ^>=1.14
+
+-- Offline: talks only to a localhost socket opened by the test itself, so
+-- unlike the integration suites it is not behind the @online@ flag, and the
+-- offline test gate runs it.
+test-suite shroom-test-baikai-offline
+  import: opts
+  default-language: GHC2024
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/Offline
+  main-is: Main.hs
+  build-depends:
+    bytestring >=0.12 && <0.13,
+    network ^>=3.2,
+    shroom-baikai,
+    tasty >=1.4 && <1.6,
+    tasty-hunit ^>=0.10,
