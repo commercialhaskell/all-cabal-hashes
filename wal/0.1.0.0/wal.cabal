@@ -1,0 +1,98 @@
+cabal-version:      3.4
+name:               wal
+version:            0.1.0.0
+x-revision: 1
+synopsis:           Write-ahead log implementation
+-- description:
+homepage:           https://github.com/LaurentRDC/distributed-consensus
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Laurent P. René de Cotret
+maintainer:         laurent.decotret@outlook.com
+copyright:          Laurent P. René de Cotret
+category:           System
+build-type:         Simple
+extra-doc-files:    README.md
+                    CHANGELOG.md
+
+source-repository head
+    type: git
+    location: https://github.com/LaurentRDC/distributed-consensus
+    subdir: wal
+
+common warnings
+    ghc-options: -Wall
+                 -Wcompat
+                 -Widentities
+                 -Wincomplete-uni-patterns
+                 -Wincomplete-record-updates
+                 -Wredundant-constraints
+                 -fhide-source-paths
+                 -Wpartial-fields
+                 -Wunused-packages
+
+library
+    import:           warnings
+    exposed-modules:  System.IO.WAL
+                      System.IO.File.Durable
+    build-depends:    attoparsec ^>=0.14
+                    , base >= 4.18 && <4.23
+                      -- binary is already in the dependency closure, so adding
+                      -- it here is "free"
+                    , binary ^>=0.8
+                    , bytestring ^>=0.12
+                    , containers >=0.7 && <0.9
+                    , crc32c ^>=0.2
+                    , directory >=1.3.8.0 && <1.4
+                    , filepath ^>=1.5
+                    , file-io ^>=0.2
+                    , os-string ^>=2.0
+                    , exceptions ^>=0.10
+                    , stm ^>=2.5
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+    if os(windows)
+      other-modules:    System.IO.File.Durable.Windows
+      build-depends:  Win32 ^>=2.14
+    else
+      other-modules:    System.IO.File.Durable.Unix
+      build-depends:  unix ^>=2.8
+
+test-suite wal-test
+    import:           warnings
+    default-language: Haskell2010
+    other-modules:    Test.System.IO.File.Durable
+                      Test.System.IO.WAL
+    type:             exitcode-stdio-1.0
+    ghc-options:      -rtsopts -threaded -with-rtsopts=-N
+    hs-source-dirs:   tests
+    main-is:          Main.hs
+    build-depends:    async
+                    , base >= 4.18 && <4.23
+                    , bytestring
+                    , directory
+                    , file-io
+                    , filepath
+                    , hedgehog ^>=1.7
+                    , tasty ^>= 1.5
+                    , tasty-hedgehog
+                    , temporary
+                    , wal
+
+benchmark wal
+  import:           warnings
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          Main.hs
+  ghc-options:      -rtsopts -threaded -with-rtsopts=-N
+  build-depends:    async
+                  , base
+                  , binary
+                  , bytestring
+                  , filepath
+                  , tasty
+                  , tasty-bench
+                  , temporary
+                  , wal
