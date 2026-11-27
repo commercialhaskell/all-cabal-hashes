@@ -1,0 +1,160 @@
+cabal-version: 3.0
+name:          pgstyle
+version:       0.1.2.0
+synopsis:      Format PostgreSQL, checked against PostgreSQL's own parser
+description:
+  pgstyle formats SQL files statement by statement. Each statement is laid out
+  either by pgstyle's own renderer (DML, over libpg_query's parse tree) or by
+  libpg_query's pretty-printer (anything PostgreSQL parses), and is only
+  rewritten if libpg_query reads the result as the same statement.
+
+category:      Database
+homepage:      https://github.com/kronor-io/pgstyle
+bug-reports:   https://github.com/kronor-io/pgstyle/issues
+license:       MIT
+license-file:  LICENSE
+copyright:     2026 Kronor
+author:        Kronor
+maintainer:    dev@kronor.io
+build-type:    Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/kronor-io/pgstyle
+
+flag kronor-syntax
+  description:
+    Accept the hasql-th extensions of Kronor's forks (Haskell targets and
+    Haskell param fields) in the hasql-th dialect. Needs Kronor's fork of
+    postgresql-syntax.
+
+  manual:      True
+  default:     False
+
+common shared
+  default-language:   GHC2021
+  default-extensions:
+    BlockArguments
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    MultiWayIf
+    NamedFieldPuns
+    OverloadedRecordDot
+    OverloadedStrings
+    StrictData
+
+  ghc-options:
+    -Wall -Wcompat -Werror=missing-signatures -Werror=missing-fields
+    -Werror=incomplete-patterns -Werror=incomplete-uni-patterns
+    -Werror=incomplete-record-updates
+
+library
+  import:          shared
+  hs-source-dirs:  src
+  exposed-modules:
+    PgStyle
+    PgStyle.File
+    PgStyle.Haskell
+    PgStyle.Layout
+    PgStyle.LibPgQuery
+    PgStyle.Plpgsql
+    PgStyle.Render
+
+  other-modules:
+    PgStyle.Layout.Comments
+    PgStyle.Layout.Ddl
+    PgStyle.Layout.Dml
+    PgStyle.Layout.Expr
+    PgStyle.Layout.Locations
+    PgStyle.Layout.Monad
+    PgStyle.Layout.Names
+    PgStyle.Layout.Parens
+
+  c-sources:       cbits/pgstyle.c
+  extra-libraries: pg_query
+  build-depends:
+    , aeson
+    , base               >=4.18 && <5
+    , bytestring
+    , containers
+    , libpg-query        ^>=0.1
+    , microlens
+    , postgresql-syntax  >=0.5.0.3 && <0.6
+    , mtl
+    , prettyprinter
+    , proto-lens
+    , syb
+    , text               >=2.0
+    , text-builder
+
+  -- The fork versions itself 0.5.0.3.0.*, under upstream's 0.5.0.4; without
+  -- the flag, keep the solver off it even where its repository is configured.
+  if flag(kronor-syntax)
+    cpp-options:   -DKRONOR_SYNTAX
+    build-depends: postgresql-syntax ==0.5.0.3.0.*
+
+  else
+    build-depends: postgresql-syntax ==0.5.0.3 || >=0.5.0.4 && <0.6
+
+executable pgstyle
+  import:         shared
+  hs-source-dirs: app
+  main-is:        Main.hs
+  build-depends:
+    , base
+    , optparse-applicative
+    , pgstyle
+    , text
+
+-- The renderer's fixtures, carried over from Kronor's hasql-th-format.
+test-suite render
+  import:             shared
+  type:               exitcode-stdio-1.0
+  hs-source-dirs:     test
+  main-is:            RenderSpec.hs
+  default-extensions: QuasiQuotes
+  build-depends:
+    , base
+    , pgstyle
+    , postgresql-syntax
+    , string-interpolate
+    , text
+
+  if flag(kronor-syntax)
+    cpp-options: -DKRONOR_SYNTAX
+
+test-suite file
+  import:         shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        FileSpec.hs
+  build-depends:
+    , base
+    , pgstyle
+    , text
+
+test-suite haskell
+  import:         shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        HaskellSpec.hs
+  build-depends:
+    , base
+    , pgstyle
+    , text
+
+-- pgstyle's layout over libpg_query's tree: the same as the renderer's over
+-- postgresql-syntax's, and what only it lays out.
+test-suite layout
+  import:         shared
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        LayoutSpec.hs
+  build-depends:
+    , base
+    , pgstyle
+    , text
