@@ -1,0 +1,110 @@
+cabal-version:      3.0
+name:               tavro
+version:            0.1.0.2
+synopsis:           identify SPDX licenses by their text
+description:
+  tavro tells which SPDX licenses and exceptions a file is, or has
+  in it, by matching it against the SPDX license list's templates the way the
+  SPDX license matching guidelines describe. it follows Spdx-Java-Library's
+  matcher, and the license list is built in.
+
+category:           Distribution
+homepage:           https://github.com/terrapkg/tavro
+bug-reports:        https://github.com/terrapkg/tavro/issues
+-- the license list data compiled into the binary is CC-BY-3.0, see data/LICENSE.
+-- Hackage rejects CC-BY-3.0 in this field, so it only names the code's license.
+license:            GPL-3.0-or-later
+license-files:
+  LICENSE
+  data/LICENSE
+
+author:             Cypress Reed
+maintainer:         cypress@fyralabs.com
+build-type:         Simple
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
+-- the templates are compiled into the binary, and the reference texts are
+-- what the test suite checks the templates against
+extra-source-files:
+  data/exceptions.json
+  data/header/*.template.txt
+  data/licenses.json
+  data/template/*.template.txt
+  data/VERSION
+  test/fixtures/text/*.txt
+
+tested-with:        GHC ==9.10.3 || ==9.14.1
+
+source-repository head
+  type:     git
+  location: https://github.com/terrapkg/tavro.git
+
+common shared
+  default-language:   GHC2021
+  default-extensions:
+    DerivingStrategies
+    LambdaCase
+    OverloadedStrings
+    RecordWildCards
+
+  ghc-options:
+    -feager-blackholing -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+
+  build-depends:
+    , base        >=4.18     && <4.23
+    , bytestring  >=0.11.5   && <0.13
+    , containers  >=0.6.7    && <0.9
+    , text        >=2.0.2    && <2.2
+
+-- the modules shared by the binary and the test suite. like oglyad, there's
+-- deliberately no library
+common modules
+  hs-source-dirs:  src
+  other-modules:
+    Paths_tavro
+    Tavro.Cabal
+    Tavro.Identify
+    Tavro.LicenseList
+    Tavro.Match
+    Tavro.Regex
+    Tavro.Report
+    Tavro.Required
+    Tavro.Spdx
+    Tavro.Stack
+    Tavro.Submodules
+    Tavro.Template
+    Tavro.Text
+
+  autogen-modules: Paths_tavro
+  build-depends:
+    , aeson       >=2.1.2    && <2.4
+    , directory   >=1.3.8    && <1.4
+    , file-embed  >=0.0.15   && <0.1
+    , filepath    >=1.4.300  && <1.6
+    , process     >=1.6.17   && <1.7
+    , template-haskell  >=2.20  && <2.25
+    , unordered-containers  >=0.2.19  && <0.3
+    , vector      >=0.13.1   && <0.14
+
+executable tavro
+  import:         shared, modules
+  hs-source-dirs: app
+  main-is:        Main.hs
+  ghc-options:    -threaded -rtsopts "-with-rtsopts=-maxN8"
+  build-depends:
+    , directory             >=1.3.8   && <1.4
+    , filepath              >=1.4.300 && <1.6
+    , optparse-applicative  >=0.18.1  && <0.20
+
+test-suite tavro-test
+  import:         shared, modules
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        Spec.hs
+  ghc-options:    -threaded -rtsopts "-with-rtsopts=-maxN8"
+  build-depends:
+    , hspec       >=2.11.9   && <2.12
+    , QuickCheck  >=2.14.3   && <2.20
